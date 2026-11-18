@@ -7,13 +7,19 @@ import { Miniatura } from "@/presentation/components/atoms/miniatura.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
 
+const ID_DA_DICA = "avatar-dica";
+const ID_DO_ERRO = "avatar-erro";
+
+// O que está em andamento: o rótulo do botão correspondente mostra o progresso e os demais ficam inativos.
+export type AcaoDoAvatar = "preparando" | "salvando" | "removendo";
+
 type AvatarDaContaProps = {
   // A imagem de hoje: a foto guardada ou a logo.
   srcAtual: string;
   temFoto: boolean;
   // Foto escolhida, já recortada, ainda não salva.
   previaSrc?: string;
-  pendente: boolean;
+  acao?: AcaoDoAvatar;
   erro?: string;
   idDoEscolher: string;
   aceitar: string;
@@ -29,7 +35,7 @@ export function AvatarDaConta({
   srcAtual,
   temFoto,
   previaSrc,
-  pendente,
+  acao,
   erro,
   idDoEscolher,
   aceitar,
@@ -38,6 +44,8 @@ export function AvatarDaConta({
   aoCancelar,
   aoRemover,
 }: AvatarDaContaProps) {
+  const pendente = acao !== undefined;
+  const inativo = "aria-disabled:opacity-50";
   return (
     <Caixa
       como="section"
@@ -62,16 +70,20 @@ export function AvatarDaConta({
                 type="button"
                 size="sm"
                 autoFocus
+                className={inativo}
                 aria-disabled={pendente || undefined}
                 onClick={pendente ? undefined : aoSalvar}
               >
-                {pendente && <Loader2 className="motion-safe:animate-spin" aria-hidden="true" />}
-                {pendente ? "Salvando…" : "Salvar foto"}
+                {acao === "salvando" && (
+                  <Loader2 className="motion-safe:animate-spin" aria-hidden="true" />
+                )}
+                {acao === "salvando" ? "Salvando…" : "Salvar foto"}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
+                className={inativo}
                 aria-disabled={pendente || undefined}
                 onClick={pendente ? undefined : aoCancelar}
               >
@@ -82,10 +94,14 @@ export function AvatarDaConta({
             <Linha espaco={2} quebra alinhar="centro">
               <BotaoDeArquivo
                 id={idDoEscolher}
-                rotulo={temFoto ? "Trocar foto" : "Escolher foto"}
+                rotulo={
+                  acao === "preparando" ? "Preparando…" : temFoto ? "Trocar foto" : "Escolher foto"
+                }
                 rotuloAcessivel={temFoto ? "Trocar foto" : "Escolher foto"}
                 aceitar={aceitar}
                 ocupado={pendente}
+                descritoPor={erro ? `${ID_DA_DICA} ${ID_DO_ERRO}` : ID_DA_DICA}
+                invalido={!!erro}
                 onEscolher={aoEscolher}
               />
               {temFoto && (
@@ -93,18 +109,24 @@ export function AvatarDaConta({
                   type="button"
                   variant="outline"
                   size="sm"
+                  className={inativo}
                   aria-disabled={pendente || undefined}
                   onClick={pendente ? undefined : aoRemover}
                 >
-                  Remover foto
+                  {acao === "removendo" && (
+                    <Loader2 className="motion-safe:animate-spin" aria-hidden="true" />
+                  )}
+                  {acao === "removendo" ? "Removendo…" : "Remover foto"}
                 </Button>
               )}
             </Linha>
           )}
-          <Texto variante="apoio">JPEG, PNG ou WebP, até 5 MB.</Texto>
+          <Texto variante="apoio" id={ID_DA_DICA}>
+            JPEG, PNG ou WebP, até 5 MB.
+          </Texto>
         </Pilha>
       </Linha>
-      {erro && <AvisoDeStatus tipo="erro" legivel texto={erro} className="mt-3" />}
+      {erro && <AvisoDeStatus id={ID_DO_ERRO} tipo="erro" legivel texto={erro} className="mt-3" />}
     </Caixa>
   );
 }

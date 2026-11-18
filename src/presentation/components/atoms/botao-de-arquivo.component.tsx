@@ -13,6 +13,9 @@ type BotaoDeArquivoProps = {
   // Ação em curso: o campo segue focável (aria-disabled, como os botões irmãos); quem decide o que fazer
   // com a escolha é o chamador (o hook avisa que há uma ação em andamento).
   ocupado?: boolean;
+  // Ids do que descreve o campo (dica, erro) e se o último arquivo foi recusado.
+  descritoPor?: string;
+  invalido?: boolean;
   onEscolher: (arquivo: File) => void;
 };
 
@@ -24,6 +27,8 @@ export function BotaoDeArquivo({
   rotuloAcessivel,
   aceitar,
   ocupado,
+  descritoPor,
+  invalido,
   onEscolher,
 }: BotaoDeArquivoProps) {
   return (
@@ -41,12 +46,16 @@ export function BotaoDeArquivo({
         accept={aceitar}
         aria-disabled={ocupado || undefined}
         aria-label={rotuloAcessivel}
+        aria-describedby={descritoPor}
+        aria-invalid={invalido || undefined}
         className="sr-only"
+        // `aria-disabled` não impede o seletor por teclado: com ação em curso o clique não abre nada.
+        onClick={ocupado ? (evento) => evento.preventDefault() : undefined}
         onChange={(evento) => {
           const arquivo = evento.target.files?.[0];
           // Esvazia para que escolher o mesmo arquivo de novo (depois de uma recusa) dispare onChange.
           evento.target.value = "";
-          if (arquivo) onEscolher(arquivo);
+          if (arquivo && !ocupado) onEscolher(arquivo);
         }}
       />
     </label>

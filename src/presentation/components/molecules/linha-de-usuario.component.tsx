@@ -1,3 +1,5 @@
+import { AlertTriangle } from "lucide-react";
+
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
@@ -28,7 +30,8 @@ export function LinhaDeUsuario({ nome, resumo, desativacaoPendente, acoes }: Lin
           {resumo}
         </Texto>
         {desativacaoPendente && (
-          <Texto variante="alerta">
+          <Texto variante="alerta" className="flex items-start gap-1">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             Desativado: conclusão pendente (bloqueio da conta ou foto ainda guardada).
           </Texto>
         )}

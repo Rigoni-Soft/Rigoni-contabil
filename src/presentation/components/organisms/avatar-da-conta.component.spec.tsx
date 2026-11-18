@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { AvatarDaConta } from "./avatar-da-conta.component";
@@ -14,7 +14,6 @@ function montar(props: Partial<React.ComponentProps<typeof AvatarDaConta>> = {})
     <AvatarDaConta
       srcAtual="/logos/logo-contabil.jpeg"
       temFoto={false}
-      pendente={false}
       idDoEscolher="escolher"
       aceitar="image/jpeg,image/png,image/webp"
       {...acoes}
@@ -76,7 +75,7 @@ describe("AvatarDaConta", () => {
   });
 
   it("em andamento, os botões ficam focáveis com aria-disabled e não disparam a ação", async () => {
-    const { aoSalvar } = montar({ previaSrc: "blob:previa", pendente: true });
+    const { aoSalvar } = montar({ previaSrc: "blob:previa", acao: "salvando" });
 
     const salvar = screen.getByRole("button", { name: "Salvando…" });
     expect(salvar).toHaveAttribute("aria-disabled", "true");
@@ -84,6 +83,47 @@ describe("AvatarDaConta", () => {
     await userEvent.click(salvar);
 
     expect(aoSalvar).not.toHaveBeenCalled();
+  });
+
+  it("com foto, remover em andamento mostra o progresso e o botão segue focável", async () => {
+    const { aoRemover } = montar({ temFoto: true, acao: "removendo" });
+
+    const remover = screen.getByRole("button", { name: "Removendo…" });
+    expect(remover).toHaveAttribute("aria-disabled", "true");
+    await userEvent.click(remover);
+
+    expect(aoRemover).not.toHaveBeenCalled();
+  });
+
+  it("ao preparar a foto escolhida, o seletor diz 'Preparando…' e não aceita outro arquivo", async () => {
+    const { aoEscolher } = montar({ acao: "preparando" });
+    const campo = screen.getByLabelText("Escolher foto");
+
+    expect(screen.getByText("Preparando…")).toBeInTheDocument();
+    expect(campo).toHaveAttribute("aria-disabled", "true");
+    fireEvent.change(campo, {
+      target: { files: [new File(["x"], "foto.png", { type: "image/png" })] },
+    });
+
+    expect(aoEscolher).not.toHaveBeenCalled();
+  });
+
+  it("o erro e a dica ficam ligados ao campo (aria-describedby e aria-invalid)", () => {
+    montar({ erro: "A foto passa de 5 MB. Escolha uma menor." });
+    const campo = screen.getByLabelText("Escolher foto");
+
+    expect(campo).toHaveAttribute("aria-invalid", "true");
+    expect(campo).toHaveAccessibleDescription(
+      /JPEG, PNG ou WebP, até 5 MB\..*A foto passa de 5 MB/,
+    );
+  });
+
+  it("sem erro, só a dica descreve o campo e ele não é inválido", () => {
+    montar();
+    const campo = screen.getByLabelText("Escolher foto");
+
+    expect(campo).not.toHaveAttribute("aria-invalid");
+    expect(campo).toHaveAccessibleDescription("JPEG, PNG ou WebP, até 5 MB.");
   });
 
   it("mostra o aviso de formato ou tamanho como alerta", () => {

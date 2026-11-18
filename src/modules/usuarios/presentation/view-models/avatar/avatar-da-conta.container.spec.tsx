@@ -13,7 +13,7 @@ jest.mock("./use-avatar-da-conta.hook", () => ({
 function hook(sobrescrever = {}) {
   return {
     previaSrc: undefined,
-    pendente: false,
+    acao: undefined,
     erro: undefined,
     aoEscolher: jest.fn(),
     aoSalvar: jest.fn(),

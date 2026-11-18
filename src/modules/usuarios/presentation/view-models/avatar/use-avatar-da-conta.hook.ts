@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import type { AcaoDoAvatar } from "@/presentation/components/organisms/avatar-da-conta.component";
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 
 import { enviarAvatarAction, removerAvatarAction } from "./avatar.actions";
@@ -14,7 +15,7 @@ type Previa = { blob: Blob; url: string };
 export function useAvatarDaConta() {
   const router = useRouter();
   const [previa, setPrevia] = useState<Previa | undefined>();
-  const [pendente, setPendente] = useState(false);
+  const [acao, setAcao] = useState<AcaoDoAvatar | undefined>();
   const [erro, setErro] = useState<string | undefined>();
   const devolverFoco = useRef(false);
 
@@ -39,22 +40,26 @@ export function useAvatarDaConta() {
       setErro(aviso);
       return;
     }
-    setPendente(true);
+    setAcao("preparando");
     try {
       const blob = await recortarParaAvatar(arquivo);
       setPrevia({ blob, url: URL.createObjectURL(blob) });
     } catch {
       setErro("Não foi possível ler essa imagem. Escolha outra.");
     } finally {
-      setPendente(false);
+      setAcao(undefined);
     }
   };
 
-  const executar = async (acao: () => Promise<ActionResult<unknown>>, falha: string) => {
-    setPendente(true);
+  const executar = async (
+    emCurso: AcaoDoAvatar,
+    fazer: () => Promise<ActionResult<unknown>>,
+    falha: string,
+  ) => {
+    setAcao(emCurso);
     setErro(undefined);
     try {
-      const resultado = await acao();
+      const resultado = await fazer();
       if (!resultado.ok) {
         setErro(resultado.error.message);
         return;
@@ -65,7 +70,7 @@ export function useAvatarDaConta() {
     } catch {
       setErro(falha);
     } finally {
-      setPendente(false);
+      setAcao(undefined);
     }
   };
 
@@ -74,6 +79,7 @@ export function useAvatarDaConta() {
     const formData = new FormData();
     formData.set("foto", previa.blob, "avatar.webp");
     return executar(
+      "salvando",
       () => enviarAvatarAction(formData),
       "Não foi possível salvar a foto agora. Tente novamente.",
     );
@@ -81,6 +87,7 @@ export function useAvatarDaConta() {
 
   const aoRemover = () =>
     executar(
+      "removendo",
       () => removerAvatarAction(),
       "Não foi possível remover a foto agora. Tente novamente.",
     );
@@ -93,7 +100,7 @@ export function useAvatarDaConta() {
 
   return {
     previaSrc: previa?.url,
-    pendente,
+    acao,
     erro,
     aoEscolher,
     aoSalvar,
