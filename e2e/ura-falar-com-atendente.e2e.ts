@@ -5,7 +5,7 @@ import type { APIRequestContext } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 
-// "Falar com atendente" na URA abre a lista de Setores (PR #302). O webhook é chamado com a
+// "Falar com atendente" na URA abre a lista de Setores. O webhook é chamado com a
 // assinatura HMAC do segredo de desenvolvimento e o resultado é lido no banco: o envio falso
 // não devolve a resposta da URA, então a escolha vira Atendimento no Setor (ou na recepção).
 const SEGREDO = process.env.MENSAGERIA_SEGREDO_ASSINATURA ?? "segredo-falso";
@@ -67,7 +67,7 @@ async function atendimentoDoCliente() {
   return data;
 }
 
-test.describe("URA: falar com atendente lista os Setores (PR #302)", () => {
+test.describe("URA: falar com atendente lista os Setores", () => {
   test.beforeAll(async () => {
     const cliente = await admin
       .from("clientes")
