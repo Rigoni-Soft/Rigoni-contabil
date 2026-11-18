@@ -1,9 +1,4 @@
-import {
-  listaDeSetores,
-  setoresDaPagina,
-  setoresDaUra,
-  totalDePaginasDeSetores,
-} from "./setores-da-ura.service";
+import { listaDeSetores, setoresDaUra } from "./setores-da-ura.service";
 
 describe("setoresDaUra", () => {
   it("nunca oferece a Recepção (ela é a saída de quem não escolhe)", () => {
@@ -33,22 +28,6 @@ describe("setoresDaUra", () => {
       "financeiro",
       "administrativo",
     ]);
-  });
-});
-
-describe("páginas de setores", () => {
-  const oito = setoresDaUra("mei");
-  const sete = setoresDaUra("lucro_real");
-
-  it("divide em páginas de 5", () => {
-    expect(totalDePaginasDeSetores(oito)).toBe(2);
-    expect(setoresDaPagina(oito, 1)).toHaveLength(5);
-    expect(setoresDaPagina(oito, 2)).toEqual(["condominios", "financeiro", "administrativo"]);
-    expect(totalDePaginasDeSetores(sete)).toBe(2);
-  });
-
-  it("sem setores ainda há uma página", () => {
-    expect(totalDePaginasDeSetores([])).toBe(1);
   });
 });
 

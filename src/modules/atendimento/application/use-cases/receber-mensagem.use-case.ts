@@ -42,11 +42,11 @@ import {
   avisoDeFechado,
   estaAbertoEm,
 } from "@/modules/atendimento/domain/services/expediente.service";
+import { paginar } from "@/modules/atendimento/domain/services/paginacao.service";
 import {
   listaDeSetores,
-  setoresDaPagina,
+  SETORES_POR_PAGINA,
   setoresDaUra,
-  totalDePaginasDeSetores,
 } from "@/modules/atendimento/domain/services/setores-da-ura.service";
 import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
 import type { AppError } from "@/shared/errors/app.error";
@@ -88,13 +88,14 @@ const CNPJ_NAO_ENCONTRADO = `${SEM_CNPJ} Confira e envie novamente (ou digite *m
 const ENCAMINHANDO_PARA_RECEPCAO =
   "Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
 const AVISO_RECEPCAO_CNPJ_NAO_ENCONTRADO = `${SEM_CNPJ} ${ENCAMINHANDO_PARA_RECEPCAO}`;
-// Palavras que, num número não reconhecido, pedem uma pessoa em vez de seguir o fluxo.
-const PEDIDO_DE_ATENDENTE =
-  /\b(atendente|humano|recepcao|recepcionista|suporte|ajuda|funcionario|duvida|(falar|conversar) com (alguem|uma pessoa|gente|o contador|a contadora))\b/;
 // No menu e na lista de Setores só vale o pedido explícito de uma pessoa: "ajuda" e "dúvida" são
 // dúvida de uso do menu, não pedido de atendente.
-const PEDIDO_DE_PESSOA =
-  /\b(atendente|humano|recepcao|recepcionista|funcionario|(falar|conversar) com (alguem|uma pessoa|gente|o contador|a contadora))\b/;
+const PALAVRAS_DE_PESSOA =
+  "atendente|humano|recepcao|recepcionista|funcionario|(falar|conversar) com (alguem|uma pessoa|gente|o contador|a contadora)";
+const PEDIDO_DE_PESSOA = new RegExp(`\\b(${PALAVRAS_DE_PESSOA})\\b`);
+// Num número não reconhecido, também "suporte", "ajuda" e "dúvida" pedem uma pessoa em vez de
+// seguir o fluxo.
+const PEDIDO_DE_ATENDENTE = new RegExp(`\\b(${PALAVRAS_DE_PESSOA}|suporte|ajuda|duvida)\\b`);
 // "atenção" e "atencao" valem o mesmo para quem digita no celular.
 function tirarAcentos(texto: string): string {
   return texto.normalize("NFD").replace(/\p{M}/gu, "");
@@ -153,8 +154,8 @@ type Encaminhamento = { resumo: string; aviso?: string; cnpj?: string; setor?: S
 type Documentos = { contrato: DocumentoContratual | null; alteracoes: DocumentoContratual[] };
 
 function origemDe(
-  { contato, telefone, chave, idExterno }: Conversa,
-  textoDoContato: string,
+  { contato, telefone, chave, idExterno, texto }: Conversa,
+  textoDoContato = texto,
 ): Origem {
   return { telefone, chave, idExterno, textoDoContato, clienteId: contato.clienteId };
 }
@@ -175,17 +176,11 @@ function impressaoDaLista(alteracoes: DocumentoContratual[]): string {
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
 }
 
-function paginaDe(alteracoes: DocumentoContratual[], pagina: number): DocumentoContratual[] {
-  return alteracoes.slice((pagina - 1) * ALTERACOES_POR_PAGINA, pagina * ALTERACOES_POR_PAGINA);
-}
-
-function listaDaPagina(alteracoes: DocumentoContratual[], pagina: number): string {
-  const total = Math.ceil(alteracoes.length / ALTERACOES_POR_PAGINA);
-  const itens = paginaDe(alteracoes, pagina)
-    .map((a, i) => `${i + 1} - ${descreverDocumento(a)}`)
-    .join("\n");
-  const mais = pagina < total ? "\nDigite *mais* para ver as próximas." : "";
-  return `Qual alteração você deseja? (página ${pagina} de ${total})\n${itens}${mais}\nDigite *menu* para voltar.`;
+function listaDaPagina(alteracoes: DocumentoContratual[], numero: number): string {
+  const { total, pagina, itens, temMais } = paginar(alteracoes, numero, ALTERACOES_POR_PAGINA);
+  const linhas = itens.map((a, i) => `${i + 1} - ${descreverDocumento(a)}`).join("\n");
+  const mais = temMais ? "\nDigite *mais* para ver as próximas." : "";
+  return `Qual alteração você deseja? (página ${pagina} de ${total})\n${linhas}${mais}\nDigite *menu* para voltar.`;
 }
 
 // Passos do menu de documentos ficam numa sessão que guarda só a posição (etapa/modo/página):
@@ -399,12 +394,8 @@ export class ReceberMensagem implements ReceberMensagemPort {
       return this.mostrarSetores(conversa, setores.value, { pagina: 1, invalidos: 0 });
     }
     // Pedir uma pessoa por texto, em vez de digitar a opção, também é saída de erro: vai à recepção.
-    if (pedeUmaPessoa(texto)) {
-      return this.encaminhar(origemDe(conversa, conversa.texto), {
-        resumo: RESUMO_PEDIU_ATENDENTE_NO_MENU,
-        aviso: AVISO_RECEPCAO_SEM_SETOR,
-      });
-    }
+    if (pedeUmaPessoa(texto))
+      return this.paraRecepcaoSemSetor(conversa, RESUMO_PEDIU_ATENDENTE_NO_MENU);
     const guia = GUIAS_DO_MENU.get(texto);
     if (guia === "das") return this.entregarPelaUra(conversa, guia, this.dasNaUra);
     if (guia === "parcelamento")
@@ -443,25 +434,22 @@ export class ReceberMensagem implements ReceberMensagemPort {
     texto: string,
   ): Promise<Result<void, AppError>> {
     if (texto === "0" || pedeUmaPessoa(texto)) {
-      const rotulo = texto === "0" ? ROTULO_NAO_SEI_O_SETOR : conversa.texto;
-      return this.encaminhar(origemDe(conversa, rotulo), {
-        resumo: RESUMO_NAO_ESCOLHEU_SETOR,
-        aviso: AVISO_RECEPCAO_SEM_SETOR,
-      });
+      return this.paraRecepcaoSemSetor(
+        conversa,
+        RESUMO_NAO_ESCOLHEU_SETOR,
+        texto === "0" ? ROTULO_NAO_SEI_O_SETOR : undefined,
+      );
     }
 
     const lista = await this.setoresDoContato(conversa.contato);
     if (!lista.ok) return lista;
     const setores = lista.value;
-    const ultimaPagina = totalDePaginasDeSetores(setores);
-    const pagina = Math.min(sessao.pagina, ultimaPagina);
-    if (texto === "mais" && pagina < ultimaPagina) {
-      return this.mostrarSetores(conversa, setores, { pagina: pagina + 1, invalidos: 0 });
+    const exibida = paginar(setores, sessao.pagina, SETORES_POR_PAGINA);
+    if (texto === "mais" && exibida.temMais) {
+      return this.mostrarSetores(conversa, setores, { pagina: exibida.pagina + 1, invalidos: 0 });
     }
 
-    const escolhido = /^\d+$/.test(texto)
-      ? setoresDaPagina(setores, pagina)[Number(texto) - 1]
-      : undefined;
+    const escolhido = exibida.escolher(texto);
     if (escolhido) {
       // A Mensagem registrada é o nome do setor, não o dígito: o Funcionário lê o pedido do contato
       // em vez de um "3" solto.
@@ -474,13 +462,19 @@ export class ReceberMensagem implements ReceberMensagemPort {
     }
 
     const invalidos = sessao.invalidos + 1;
-    if (invalidos >= MAX_INVALIDOS) {
-      return this.encaminhar(origemDe(conversa, conversa.texto), {
-        resumo: RESUMO_SETOR_INVALIDO,
-        aviso: AVISO_RECEPCAO_SEM_SETOR,
-      });
-    }
-    return this.mostrarSetores(conversa, setores, { pagina, invalidos });
+    if (invalidos >= MAX_INVALIDOS)
+      return this.paraRecepcaoSemSetor(conversa, RESUMO_SETOR_INVALIDO);
+    return this.mostrarSetores(conversa, setores, { pagina: exibida.pagina, invalidos });
+  }
+
+  // Saída para quem não escolheu um setor: Atendimento na recepção. `rotulo` substitui o que o
+  // contato digitou na Mensagem registrada (o "0" vira o nome da opção).
+  private paraRecepcaoSemSetor(
+    conversa: Conversa,
+    resumo: string,
+    rotulo?: string,
+  ): Promise<Result<void, AppError>> {
+    return this.encaminhar(origemDe(conversa, rotulo), { resumo, aviso: AVISO_RECEPCAO_SEM_SETOR });
   }
 
   // O provedor fiscal é falha esperada por Cliente (sem autorização, fora do ar): o contato é
@@ -580,16 +574,15 @@ export class ReceberMensagem implements ReceberMensagemPort {
       );
     }
 
-    const ultimaPagina = Math.ceil(alteracoes.length / ALTERACOES_POR_PAGINA);
-    const pagina = Math.min(sessao.pagina, ultimaPagina);
-    if (texto === "mais" && pagina < ultimaPagina) {
-      return this.mostrarPagina(conversa, { ...sessao, pagina: pagina + 1 }, alteracoes);
+    const exibida = paginar(alteracoes, sessao.pagina, ALTERACOES_POR_PAGINA);
+    if (texto === "mais" && exibida.temMais) {
+      return this.mostrarPagina(conversa, { ...sessao, pagina: exibida.pagina + 1 }, alteracoes);
     }
 
-    const escolhida = /^\d+$/.test(texto)
-      ? paginaDe(alteracoes, pagina)[Number(texto) - 1]
-      : undefined;
-    if (!escolhida) return this.enviar(conversa.telefone, listaDaPagina(alteracoes, pagina));
+    const escolhida = exibida.escolher(texto);
+    if (!escolhida) {
+      return this.enviar(conversa.telefone, listaDaPagina(alteracoes, exibida.pagina));
+    }
     return this.entregar(conversa, sessao.modo === "ambos" ? [contrato, escolhida] : [escolhida]);
   }
 

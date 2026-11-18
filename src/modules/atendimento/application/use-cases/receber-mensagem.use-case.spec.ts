@@ -640,6 +640,15 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     expect(enviadas[3].texto).toContain("Alteração nº 3");
   });
 
+  it.each(["01", "007"])("número com zero à esquerda (%p) não escolhe alteração", async (texto) => {
+    const { caso, documentosEnviados, enviadas } = montar({ documentos: alteracoes(3) });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "2" });
+    await caso.execute({ telefone: FONE, texto });
+    expect(documentosEnviados).toHaveLength(0);
+    expect(enviadas.at(-1)?.texto).toContain("Alteração nº 3");
+  });
+
   it("ambos com várias alterações: após escolher, envia o contrato e a alteração", async () => {
     const { caso, documentosEnviados, gravadas } = montar({
       documentos: [CONTRATO, ...alteracoes(3)],
@@ -1294,14 +1303,17 @@ describe("ReceberMensagem — opção falar com atendente: lista de setores", ()
     expect(abertos).toHaveLength(0);
   });
 
-  it.each(["2.0", "0x2", "2e0"])("formato numérico %p não escolhe setor", async (texto) => {
-    const { caso, abertos } = montar();
-    await pedir(caso);
+  it.each(["2.0", "0x2", "2e0", "01", "007", "00"])(
+    "formato numérico %p não escolhe setor",
+    async (texto) => {
+      const { caso, abertos } = montar();
+      await pedir(caso);
 
-    await dizerAna(caso, texto);
+      await dizerAna(caso, texto);
 
-    expect(abertos).toHaveLength(0);
-  });
+      expect(abertos).toHaveLength(0);
+    },
+  );
 
   it("'menu' sai da lista e limpa a sessão", async () => {
     const { caso, enviadas, sessoes } = montar();
