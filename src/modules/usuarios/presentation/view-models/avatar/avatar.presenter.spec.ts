@@ -1,4 +1,24 @@
-import { avisoDaFoto, LIMITE_DA_FOTO_BYTES } from "./avatar.presenter";
+import { avisoDaFoto, imagemDoAvatar, LIMITE_DA_FOTO_BYTES } from "./avatar.presenter";
+
+describe("imagemDoAvatar", () => {
+  it("sem foto, usa a logo e diz que não há foto", () => {
+    const imagem = imagemDoAvatar({ papel: "funcionario", setor: "rh", avatarAtualizadoEm: null });
+
+    expect(imagem.temFoto).toBe(false);
+    expect(imagem.srcAtual).not.toMatch(/^\/api\/avatar/);
+  });
+
+  it("com foto, aponta para a rota autenticada versionada", () => {
+    const imagem = imagemDoAvatar({
+      papel: "funcionario",
+      setor: "rh",
+      avatarAtualizadoEm: "2026-11-01T10:00:00Z",
+    });
+
+    expect(imagem.temFoto).toBe(true);
+    expect(imagem.srcAtual).toMatch(/^\/api\/avatar\?v=/);
+  });
+});
 
 describe("avisoDaFoto", () => {
   it.each(["image/jpeg", "image/png", "image/webp"])("aceita %s", (type) => {

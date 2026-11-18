@@ -1,10 +1,8 @@
 "use client";
 
 import { AvatarDaConta } from "@/presentation/components/organisms/avatar-da-conta.component";
-import { srcDoAvatar } from "@/shared/kernel/avatar";
-import { escopoDoUsuario } from "@/shared/kernel/escopo-do-usuario";
 
-import { ACEITAR_FOTO } from "./avatar.presenter";
+import { ACEITAR_FOTO, imagemDoAvatar } from "./avatar.presenter";
 import { ID_DO_ESCOLHER_FOTO, useAvatarDaConta } from "./use-avatar-da-conta.hook";
 
 export function AvatarDaContaContainer({
@@ -16,12 +14,9 @@ export function AvatarDaContaContainer({
   setor: string;
   avatarAtualizadoEm: string | null;
 }) {
-  const { logo } = escopoDoUsuario({ papel, setor });
-
   return (
     <AvatarDaConta
-      srcAtual={srcDoAvatar({ avatarAtualizadoEm, logo })}
-      temFoto={avatarAtualizadoEm !== null}
+      {...imagemDoAvatar({ papel, setor, avatarAtualizadoEm })}
       idDoEscolher={ID_DO_ESCOLHER_FOTO}
       aceitar={ACEITAR_FOTO}
       {...useAvatarDaConta()}
