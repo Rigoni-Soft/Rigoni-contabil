@@ -56,7 +56,7 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
     if (this.erroTecnicoAoBuscarAtor) return err(this.erroTecnicoAoBuscarAtor);
     return ok(id === "admin-1" ? this.ator : null);
   }
-  async listarComBloqueioPendente(): Promise<Result<Usuario[], AppError>> {
+  async listarComDesativacaoPendente(): Promise<Result<Usuario[], AppError>> {
     return ok([]);
   }
   async buscarLiderAtivoDoSetor(): Promise<Result<Usuario | null, AppError>> {

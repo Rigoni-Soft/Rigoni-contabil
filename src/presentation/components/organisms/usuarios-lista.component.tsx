@@ -9,7 +9,7 @@ export type UsuarioListado = {
   email: string;
   papel: string;
   setor: string;
-  bloqueioPendente?: boolean;
+  desativacaoPendente?: boolean;
 };
 
 type UsuariosListaProps = {
@@ -27,7 +27,7 @@ export function UsuariosLista({ usuarios, acoes }: UsuariosListaProps) {
           key={usuario.id}
           nome={usuario.nome}
           resumo={`${usuario.email} · ${PAPEL_LABEL[usuario.papel] ?? usuario.papel} · ${SETOR_LABEL[usuario.setor] ?? usuario.setor}`}
-          bloqueioPendente={usuario.bloqueioPendente}
+          desativacaoPendente={usuario.desativacaoPendente}
           acoes={acoes(usuario)}
         />
       ))}

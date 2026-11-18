@@ -15,7 +15,7 @@ export type UsuarioProps = {
   senhaAuthAlteradaEm: Date | null;
   senhaProvisoriaExpiraEm: Date;
   desativadoEm: Date | null;
-  // Quando o Auth confirmou o ban da conta desativada; null + desativadoEm = bloqueio pendente.
+  // Quando o Auth confirmou o ban da conta desativada; null + desativadoEm = ban pendente.
   banidoEm: Date | null;
   // Quando a foto do avatar foi gravada (ADR 0012); null = sem foto.
   avatarAtualizadoEm: Date | null;
@@ -64,9 +64,15 @@ export class Usuario {
     return this.props.desativadoEm !== null;
   }
 
-  // Desativada no banco (RLS já nega), mas o ban no Auth ainda não foi confirmado.
-  bloqueioPendente(): boolean {
-    return this.estaDesativado() && this.props.banidoEm === null;
+  // O Auth já confirmou o ban da conta.
+  bloqueioConfirmado(): boolean {
+    return this.props.banidoEm !== null;
+  }
+
+  // Desativada no banco (RLS já nega), mas falta concluir: o ban no Auth ainda não foi confirmado ou a foto do
+  // avatar ainda está gravada (em conta desativada, `avatarAtualizadoEm` não nulo é o marcador; ADR 0012).
+  desativacaoPendente(): boolean {
+    return this.estaDesativado() && (!this.bloqueioConfirmado() || this.temAvatar());
   }
 
   get avatarAtualizadoEm(): Date | null {

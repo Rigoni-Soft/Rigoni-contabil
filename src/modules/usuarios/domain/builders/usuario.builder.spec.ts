@@ -100,10 +100,25 @@ describe("UsuarioBuilder", () => {
   });
 
   it.each([
-    ["ativa", null, null, false],
-    ["desativada sem ban confirmado", "2026-10-05T10:00:00Z", null, true],
-    ["desativada com ban confirmado", "2026-10-05T10:00:00Z", "2026-10-05T10:00:01Z", false],
-  ])("bloqueio pendente: %s", (_nome, desativadoEm, banidoEm, esperado) => {
+    ["ativa", null, null, null, false],
+    ["ativa com foto (não é pendência)", null, null, "2026-10-04T10:00:00Z", false],
+    ["desativada sem ban confirmado", "2026-10-05T10:00:00Z", null, null, true],
+    [
+      "desativada com ban confirmado e sem foto",
+      "2026-10-05T10:00:00Z",
+      "2026-10-05T10:00:01Z",
+      null,
+      false,
+    ],
+    [
+      "desativada com ban confirmado e foto ainda gravada",
+      "2026-10-05T10:00:00Z",
+      "2026-10-05T10:00:01Z",
+      "2026-10-04T10:00:00Z",
+      true,
+    ],
+    ["desativada sem ban e com foto", "2026-10-05T10:00:00Z", null, "2026-10-04T10:00:00Z", true],
+  ])("desativação pendente: %s", (_nome, desativadoEm, banidoEm, avatarAtualizadoEm, esperado) => {
     const resultado = Usuario.builder()
       .restaurar({
         id: "11111111-1111-1111-1111-111111111111",
@@ -115,10 +130,11 @@ describe("UsuarioBuilder", () => {
         senhaProvisoriaExpiraEm: "2026-10-10T10:00:00Z",
         desativadoEm,
         banidoEm,
+        avatarAtualizadoEm,
       })
       .build();
 
-    expect(resultado.ok && resultado.value.bloqueioPendente()).toBe(esperado);
+    expect(resultado.ok && resultado.value.desativacaoPendente()).toBe(esperado);
   });
 
   it.each([

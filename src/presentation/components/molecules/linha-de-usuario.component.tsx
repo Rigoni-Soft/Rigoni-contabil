@@ -5,13 +5,13 @@ type LinhaDeUsuarioProps = {
   nome: string;
   // E-mail, Papel e Setor, já formatados para exibição.
   resumo: string;
-  // Desativado, mas o bloqueio da conta ainda não foi concluído.
-  bloqueioPendente?: boolean;
+  // Desativado, mas falta o bloqueio da conta ou apagar a foto.
+  desativacaoPendente?: boolean;
   // Ações da linha (slot montado no servidor).
   acoes?: React.ReactNode;
 };
 
-export function LinhaDeUsuario({ nome, resumo, bloqueioPendente, acoes }: LinhaDeUsuarioProps) {
+export function LinhaDeUsuario({ nome, resumo, desativacaoPendente, acoes }: LinhaDeUsuarioProps) {
   return (
     <Linha
       como="li"
@@ -27,9 +27,9 @@ export function LinhaDeUsuario({ nome, resumo, bloqueioPendente, acoes }: LinhaD
         <Texto variante="apoio" className="[overflow-wrap:anywhere] sm:truncate">
           {resumo}
         </Texto>
-        {bloqueioPendente && (
+        {desativacaoPendente && (
           <Texto variante="alerta">
-            Desativado, mas o bloqueio da conta ainda não foi concluído.
+            Desativado: conclusão pendente (bloqueio da conta ou foto ainda guardada).
           </Texto>
         )}
       </Caixa>

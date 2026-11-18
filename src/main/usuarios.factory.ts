@@ -125,6 +125,8 @@ export async function makeDesativarUsuario(): Promise<DesativarUsuarioPort> {
     new SupabaseUsuarioRepository(supabase),
     new SupabaseDesativacaoGateway(supabaseAdmin),
     new SupabaseAuthAdminGateway(supabaseAdmin),
+    new SupabaseAvatarArmazenamentoGateway(supabaseAdmin),
+    new SupabaseAvatarMarcaGateway(supabaseAdmin),
     errosUsuarios,
   );
 }
