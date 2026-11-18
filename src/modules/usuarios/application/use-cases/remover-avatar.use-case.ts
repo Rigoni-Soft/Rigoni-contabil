@@ -1,11 +1,15 @@
 import type { RemoverAvatarPort } from "@/modules/usuarios/application/ports/in/remover-avatar.provider";
-import type { AuditoriaPort } from "@/modules/usuarios/application/ports/out/auditoria.provider";
+import type {
+  AuditoriaPort,
+  RegistrarAcaoAuditoria,
+} from "@/modules/usuarios/application/ports/out/auditoria.provider";
 import type { AvatarArmazenamentoPort } from "@/modules/usuarios/application/ports/out/avatar-armazenamento.provider";
 import type { AvatarMarcaPort } from "@/modules/usuarios/application/ports/out/avatar-marca.provider";
 import type { RegistroDeErrosPort } from "@/modules/usuarios/application/ports/out/registro-de-erros.provider";
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
 import { exigirUsuarioAtivo } from "@/modules/usuarios/application/use-cases/exigir-usuario-ativo.use-case";
+import type { Usuario } from "@/modules/usuarios/domain/entities/usuario.entity";
 import type { AppError } from "@/shared/errors/app.error";
 import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
@@ -25,15 +29,16 @@ export class RemoverAvatar implements RemoverAvatarPort {
     if (!ator.ok) return ator;
     const usuario = ator.value;
 
-    // Sem foto, não há o que remover (a coluna nula é o marcador de "sem foto").
-    if (!usuario.temAvatar()) return ok(undefined);
-
     // O objeto sai antes da coluna: se apagar falhar a coluna segue preenchida e a ação se repete.
+    // Apagar é idempotente e roda mesmo sem foto na coluna: limpa um objeto órfão.
     const apagada = await this.armazenamento.apagar(usuario.id);
     if (!apagada.ok) {
-      await this.auditar(usuario.id, usuario.setor.slug, usuario.email, "falha");
+      await this.auditar(usuario, "falha");
       return apagada;
     }
+
+    // Sem foto na coluna, não há o que zerar nem auditar.
+    if (!usuario.temAvatar()) return ok(undefined);
 
     const zerada = await this.marca.definir(usuario.id, null);
     if (!zerada.ok) {
@@ -41,7 +46,7 @@ export class RemoverAvatar implements RemoverAvatarPort {
         `Falha ao zerar a marca da foto removida (id=${usuario.id}):`,
         zerada.error.message,
       );
-      await this.auditar(usuario.id, usuario.setor.slug, usuario.email, "falha");
+      await this.auditar(usuario, "falha");
       return err(
         new EstadoInconsistenteError(
           "A foto foi apagada, mas a conclusão falhou. Tente remover de novo.",
@@ -50,7 +55,7 @@ export class RemoverAvatar implements RemoverAvatarPort {
       );
     }
 
-    const auditada = await this.auditar(usuario.id, usuario.setor.slug, usuario.email, "sucesso");
+    const auditada = await this.auditar(usuario, "sucesso");
     if (!auditada.ok) {
       this.erros.registrar(
         `Falha ao registrar a auditoria da remoção da foto (id=${usuario.id}):`,
@@ -61,16 +66,14 @@ export class RemoverAvatar implements RemoverAvatarPort {
   }
 
   private auditar(
-    ator: string,
-    setor: string,
-    alvo: string,
-    resultado: "sucesso" | "falha",
+    usuario: Usuario,
+    resultado: RegistrarAcaoAuditoria["resultado"],
   ): Promise<Result<void, AppError>> {
     return this.auditoria.registrar({
-      ator,
-      setor,
+      ator: usuario.id,
+      setor: usuario.setor.slug,
       acao: "perfil.avatar.remover",
-      alvo,
+      alvo: usuario.email,
       resultado,
     });
   }

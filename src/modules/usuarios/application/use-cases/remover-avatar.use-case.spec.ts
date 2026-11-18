@@ -15,11 +15,11 @@ describe("RemoverAvatar", () => {
     ]);
   });
 
-  it("sem foto não faz nada nem audita", async () => {
+  it("sem foto na coluna só apaga o objeto (órfão), sem zerar a coluna nem auditar", async () => {
     const { remover, chamadas, auditorias } = montar();
 
     expect((await remover.execute()).ok).toBe(true);
-    expect(chamadas).toEqual([]);
+    expect(chamadas).toEqual(["apagar:func-1"]);
     expect(auditorias).toEqual([]);
   });
 

@@ -83,10 +83,11 @@ export class DesativarUsuario implements DesativarUsuarioPort {
   }
 
   // O objeto sai antes de a coluna ser zerada: se apagar falhar a coluna continua preenchida, que é
-  // o marcador da pendência (ADR 0012).
+  // o marcador da pendência (ADR 0012). Apagar é idempotente e roda mesmo com a coluna nula (um envio
+  // concorrente pode ter gravado o objeto depois da leitura do alvo).
   private async apagarFoto(alvo: Usuario): Promise<Result<void, AppError>> {
-    if (!alvo.temAvatar()) return ok(undefined);
     const apagada = await this.armazenamento.apagar(alvo.id);
+    if (apagada.ok && !alvo.temAvatar()) return apagada;
     const zerada = apagada.ok ? await this.marca.definir(alvo.id, null) : apagada;
     if (!zerada.ok) {
       this.erros.registrar(

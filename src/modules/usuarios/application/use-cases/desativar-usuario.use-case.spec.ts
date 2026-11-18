@@ -107,7 +107,12 @@ describe("DesativarUsuario", () => {
     const resultado = await casoDeUso.execute({ usuarioId: "func-1" });
 
     expect(resultado.ok).toBe(true);
-    expect(chamadas).toEqual(["desativar:func-1:admin-1", "banir:func-1", "bloquear:func-1"]);
+    expect(chamadas).toEqual([
+      "desativar:func-1:admin-1",
+      "banir:func-1",
+      "bloquear:func-1",
+      "apagar-foto:func-1",
+    ]);
   });
 
   it("Admin desativa Líder de setor", async () => {
@@ -250,12 +255,13 @@ describe("DesativarUsuario", () => {
       ]);
     });
 
-    it("sem foto, não toca no Storage nem na coluna", async () => {
+    it("sem foto na coluna, apaga o objeto (pode haver um órfão) mas não toca na coluna", async () => {
       const { casoDeUso, chamadas } = montar();
 
       await casoDeUso.execute({ usuarioId: "func-1" });
 
-      expect(chamadas.some((c) => c.includes("foto"))).toBe(false);
+      expect(chamadas).toContain("apagar-foto:func-1");
+      expect(chamadas.some((c) => c.startsWith("zerar-foto"))).toBe(false);
     });
 
     it("se apagar falha, a coluna continua preenchida e a conta fica com conclusão pendente", async () => {
@@ -323,7 +329,7 @@ describe("DesativarUsuario", () => {
       ]);
     });
 
-    it("repetir com tudo concluído só reafirma a desativação (idempotente)", async () => {
+    it("repetir com tudo concluído reafirma a desativação e reapaga a foto (idempotente), sem banir nem zerar a coluna", async () => {
       const { casoDeUso, chamadas } = montar({
         perfis: [
           usuario("admin-1", "admin"),
@@ -335,7 +341,7 @@ describe("DesativarUsuario", () => {
       });
 
       expect((await casoDeUso.execute({ usuarioId: "func-1" })).ok).toBe(true);
-      expect(chamadas).toEqual(["desativar:func-1:admin-1"]);
+      expect(chamadas).toEqual(["desativar:func-1:admin-1", "apagar-foto:func-1"]);
     });
   });
 });
