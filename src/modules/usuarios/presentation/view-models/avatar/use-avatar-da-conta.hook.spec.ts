@@ -118,6 +118,29 @@ describe("useAvatarDaConta", () => {
     expect(result.current.previaSrc).toBeUndefined();
   });
 
+  it("com uma ação em curso, Salvar e Remover são ignorados", async () => {
+    let terminar: (resultado: unknown) => void = () => {};
+    removerMock.mockReturnValueOnce(new Promise((resolver) => (terminar = resolver)));
+    const { result } = renderHook(() => useAvatarDaConta());
+    await act(() => result.current.aoEscolher(foto()));
+
+    let primeira: Promise<void> | undefined;
+    act(() => {
+      primeira = result.current.aoRemover();
+    });
+    await act(async () => {
+      await result.current.aoRemover();
+      await result.current.aoSalvar();
+    });
+    await act(async () => {
+      terminar({ ok: true, data: undefined });
+      await primeira;
+    });
+
+    expect(removerMock).toHaveBeenCalledTimes(1);
+    expect(enviarMock).not.toHaveBeenCalled();
+  });
+
   it("Remover chama a ação e atualiza a tela; falha mostra o erro", async () => {
     removerMock.mockResolvedValueOnce({ ok: true, data: undefined });
     const { result } = renderHook(() => useAvatarDaConta());

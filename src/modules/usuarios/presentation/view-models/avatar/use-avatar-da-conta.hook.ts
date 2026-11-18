@@ -57,6 +57,8 @@ export function useAvatarDaConta() {
     fazer: () => Promise<ActionResult<unknown>>,
     falha: string,
   ) => {
+    // `aria-disabled` não impede o teclado: com ação em curso, salvar e remover são ignorados.
+    if (acao) return;
     setAcao(emCurso);
     setErro(undefined);
     try {
