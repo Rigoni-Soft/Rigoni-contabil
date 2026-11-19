@@ -467,6 +467,13 @@ com `aria-label` numerado, botão "Adicionar contato" nas mesmas
 variante/tamanho. Segundo consumidor confirma que o padrão vale para
 qualquer lista dinâmica de campos, não só o par data+arquivo do #33.
 
+**Contato (ações da linha):** o contato já salvo tem só a lixeira ("Remover contato N", `ghost`).
+O contato novo (ainda sem `id`) tem, no lugar dela, dois botões de ícone juntos (`gap-1`, `size-8`,
+44 px em toque): "Salvar contato N" (`Check`, `primary`, o verde) grava só aquele contato na hora, e
+"Cancelar contato N" (`X`, `destructive`, o vermelho) limpa a linha para o padrão. Ao concluir, o foco
+volta ao Nome da linha e uma região `aria-live="polite"` oculta (`sr-only`) anuncia "Contato N salvo."
+ou "Contato N limpo."; a falha do servidor aparece sob a linha (`FieldError`, `role="alert"`).
+
 ### Campo obrigatório e máscara de entrada
 
 **`RequiredMark` (#33):** asterisco
@@ -479,10 +486,13 @@ precisa duplicar em texto). Um parágrafo no topo do formulário
 `<RequiredMark />` + `aria-required="true"` no input, em vez de confiar só
 na mensagem de erro do submit pra sinalizar isso.
 
-**Confirmado em #34:** os campos Nome e Telefone de cada Contato (únicos
-campos obrigatórios do cadastro operacional — os demais são `enum`/`select`
-com valor sempre presente ou opcionais) usam `<RequiredMark />` +
-`aria-required="true"`, mesmo padrão do #33.
+**Confirmado em #34:** o campo Nome de cada Contato (único campo
+obrigatório do cadastro operacional — os demais são `enum`/`select` com
+valor sempre presente ou opcionais) usa `<RequiredMark />` +
+`aria-required="true"`, mesmo padrão do #33. Telefone e E-mail são
+opcionais um a um, mas ao menos um dos dois é exigido (#290): a dica fica
+uma vez no cabeçalho "Contatos" e o erro, quando falta os dois, marca os
+dois campos.
 
 **Máscara de exibição (#33):** quando um campo tem um formato
 canônico bem definido (CNPJ: `00.000.000/0000-00`), a formatação acontece
