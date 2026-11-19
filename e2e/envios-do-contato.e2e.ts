@@ -154,8 +154,9 @@ test.describe("O que cada contato recebe do Setor", () => {
     await expect(page).toHaveURL("/rh");
     await abrirCadastro(page, clienteId);
 
+    // O contato do SN só entra na lista do RH quando é escolhido na linha nova.
+    await page.locator("[id='contatos.1.nome']").selectOption({ label: "Sara do SN" });
     await expect(page.locator("[id='contatos.0.nome']")).toHaveAttribute("readonly", "");
-    await page.getByRole("button", { name: "Editar contato 1" }).click();
     const grupo = page.getByRole("group", { name: "Envios do contato 1" });
     await expect(grupo.getByRole("checkbox")).toHaveCount(3);
     await expect(grupo.getByLabel("DAS")).toHaveCount(0);

@@ -79,12 +79,12 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page.getByRole("button", { name: "Remover contato 1" })).toBeVisible();
     await page.getByLabel("Documento recebido").selectOption("positivo");
     // "Enviado" e a data de envio são só do sistema.
-    await expect(
-      page.getByLabel("DAS", { exact: true }).getByRole("option", { name: "Enviado" }),
-    ).toHaveCount(0);
+    await expect(page.locator("#dasStatus").getByRole("option", { name: "Enviado" })).toHaveCount(
+      0,
+    );
     await expect(page.getByLabel("Data de envio")).toHaveAttribute("readonly", "");
     await expect(page.getByLabel("Data de envio")).toBeDisabled();
-    await page.getByLabel("DAS", { exact: true }).selectOption("pronto");
+    await page.locator("#dasStatus").selectOption("pronto");
     await page.getByRole("checkbox", { name: "Comércio" }).check();
     await page.getByLabel("Observações gerais").fill("Observação de teste E2E.");
 
@@ -103,7 +103,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
       "maria.contato@exemplo.com",
     );
     await expect(page.getByLabel("Documento recebido")).toHaveValue("positivo");
-    await expect(page.getByLabel("DAS", { exact: true })).toHaveValue("pronto");
+    await expect(page.locator("#dasStatus")).toHaveValue("pronto");
     await expect(page.getByRole("checkbox", { name: "Comércio" })).toBeChecked();
     await expect(page.getByLabel("Observações gerais")).toHaveValue("Observação de teste E2E.");
   });
@@ -185,13 +185,13 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page).toHaveURL("/simples-nacional");
     await page.goto(`/clientes/${clienteId}`);
 
-    await expect(page.getByLabel("DAS", { exact: true })).toHaveValue("enviado");
-    await expect(page.getByLabel("DAS", { exact: true })).toBeDisabled();
+    await expect(page.locator("#dasStatus")).toHaveValue("enviado");
+    await expect(page.locator("#dasStatus")).toBeDisabled();
     await expect(page.getByLabel("Data de envio")).toHaveValue("2026-10-05");
     await expect(page.getByLabel("Data de envio")).toBeDisabled();
     // Um só jeito de "travado" na tela: esmaecido (opacidade de desabilitado), como a identidade
     // do Cliente, para o usuário entender que não se altera.
-    await expect(page.getByLabel("DAS", { exact: true })).toHaveCSS("opacity", "0.5");
+    await expect(page.locator("#dasStatus")).toHaveCSS("opacity", "0.5");
     await expect(page.getByLabel("Data de envio")).toHaveCSS("opacity", "0.5");
     await expect(page.getByLabel("Empresa", { exact: true })).toHaveCSS("opacity", "0.5");
     await expect(page.getByLabel("CNPJ", { exact: true })).toHaveCSS("opacity", "0.5");
@@ -202,7 +202,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await page.goto(`/clientes/${clienteId}`);
     await expect(page.getByLabel("Observações gerais")).toHaveValue("Edição com DAS já enviado.");
-    await expect(page.getByLabel("DAS", { exact: true })).toHaveValue("enviado");
+    await expect(page.locator("#dasStatus")).toHaveValue("enviado");
     await expect(page.getByLabel("Data de envio")).toHaveValue("2026-10-05");
   });
 
