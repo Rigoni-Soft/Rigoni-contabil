@@ -10,7 +10,6 @@ import { ParcelamentosDoCadastro } from "./parcelamentos-do-cadastro.component";
 import { ResponsavelDoCadastro } from "./responsavel-do-cadastro.component";
 
 const opcoes = {
-  formaEnvio: [{ valor: "email", rotulo: "E-mail" }],
   documento: [{ valor: "recebido", rotulo: "Recebido" }],
   das: [{ valor: "pendente", rotulo: "Pendente" }],
 };
@@ -97,7 +96,8 @@ describe("regiões do cadastro operacional", () => {
 
   it("DAS usa as opções recebidas e trava o select quando o sistema já enviou", () => {
     const { rerender } = render(<Wrapper />);
-    expect(screen.getByRole("option", { name: "E-mail" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Pendente" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Forma de envio")).not.toBeInTheDocument();
     expect(screen.getByLabelText("DAS")).toBeEnabled();
     rerender(<Wrapper dasEnviado />);
     expect(screen.getByLabelText("DAS")).toBeDisabled();
