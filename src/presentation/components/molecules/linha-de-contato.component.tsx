@@ -98,11 +98,12 @@ export function LinhaDeContato({
           </Button>
         )}
         {acoesDeLinhaNova && (
-          <>
+          // Salvar (verde, `primary`) e Cancelar (vermelho, `destructive`) juntos, menores que o ícone padrão.
+          <Linha espaco={1}>
             <Button
               type="button"
-              variant="ghost"
               size="icon"
+              className="size-8 pointer-coarse:size-11"
               onClick={onSalvar}
               disabled={salvando}
               aria-label={`Salvar contato ${numero}`}
@@ -111,15 +112,16 @@ export function LinhaDeContato({
             </Button>
             <Button
               type="button"
-              variant="ghost"
+              variant="destructive"
               size="icon"
+              className="size-8 pointer-coarse:size-11"
               onClick={onCancelar}
               disabled={salvando}
               aria-label={`Cancelar contato ${numero}`}
             >
               <X className="size-4" aria-hidden="true" />
             </Button>
-          </>
+          </Linha>
         )}
       </Linha>
       {erroDaLinha && <FieldError>{erroDaLinha}</FieldError>}
