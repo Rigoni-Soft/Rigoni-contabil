@@ -225,7 +225,9 @@ describe("Destinos de envio (integração)", () => {
     const rh = await comoFuncionarioRH();
 
     const semDdd = await salvarContatos(rh, [{ nome: "Dani Exemplo", telefone: "999990000" }]);
-    const comDdd = await salvarContatos(rh, [{ nome: "Dani Exemplo", telefone: "(11) 99999-0001" }]);
+    const comDdd = await salvarContatos(rh, [
+      { nome: "Dani Exemplo", telefone: "(11) 99999-0001" },
+    ]);
 
     expect(semDdd.error?.code).toBe("22023");
     expect(comDdd.error).toBeNull();

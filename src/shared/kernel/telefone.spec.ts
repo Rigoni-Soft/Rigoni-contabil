@@ -8,10 +8,7 @@ describe("telefoneTemDdd", () => {
     },
   );
 
-  it.each(["", "-", "999990000", "33334444", "119999900001", "551199"])(
-    "recusa %p",
-    (telefone) => {
-      expect(telefoneTemDdd(telefone)).toBe(false);
-    },
-  );
+  it.each(["", "-", "999990000", "33334444", "119999900001", "551199"])("recusa %p", (telefone) => {
+    expect(telefoneTemDdd(telefone)).toBe(false);
+  });
 });

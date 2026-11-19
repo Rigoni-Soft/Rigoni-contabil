@@ -11,7 +11,6 @@ import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 
 import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
-
 import { SupabaseContatoDoClienteRepository } from "./contato-do-cliente.repository";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
