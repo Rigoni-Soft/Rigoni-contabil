@@ -427,7 +427,7 @@ describe("salvar_destino_de_envio (integração)", () => {
     const gravado = await servico
       .from("destinos_de_envio")
       .select("setor, tipo, contato_id, canal")
-      .eq("id", resultado.data as string)
+      .eq("id", (resultado.data as { destino_id: string }).destino_id)
       .single();
     expect(gravado.data).toEqual({
       setor: "simples_nacional",

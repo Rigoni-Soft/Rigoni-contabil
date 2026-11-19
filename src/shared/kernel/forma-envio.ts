@@ -13,6 +13,30 @@ export const FORMA_ENVIO_LABEL: Record<string, string> = {
 export const formaEnvioUsaWhatsapp = (forma: FormaEnvioValor) => forma !== "email";
 export const formaEnvioUsaEmail = (forma: FormaEnvioValor) => forma !== "whatsapp";
 
+// Canais que o Contato tem (WhatsApp = número com dígitos; e-mail preenchido), para o canal do Destino.
+type CanaisDoContato = { telefone: string | null; email: string | null };
+const temWhatsapp = (c: CanaisDoContato) => /\d/.test(c.telefone ?? "");
+const temEmail = (c: CanaisDoContato) => Boolean(c.email?.trim());
+
+// O que o Destino pode usar do Contato: um canal só vira esse canal; os dois canais pedem escolha
+// (WhatsApp, e-mail ou os dois). Contato sem canal não tem opção.
+export function canaisDoContato(contato: CanaisDoContato): FormaEnvioValor[] {
+  if (temWhatsapp(contato) && temEmail(contato)) return [...FORMAS_ENVIO];
+  if (temWhatsapp(contato)) return ["whatsapp"];
+  if (temEmail(contato)) return ["email"];
+  return [];
+}
+
+// O canal do Destino que o Contato deixou de ter (o número ou o e-mail foi removido); null = tudo certo.
+export function canalPerdidoDoDestino(
+  canal: FormaEnvioValor,
+  contato: CanaisDoContato,
+): "whatsapp" | "email" | null {
+  if (formaEnvioUsaWhatsapp(canal) && !temWhatsapp(contato)) return "whatsapp";
+  if (formaEnvioUsaEmail(canal) && !temEmail(contato)) return "email";
+  return null;
+}
+
 // Há para quem enviar pela forma de envio: contato padrão (WhatsApp) e/ou e-mail.
 export const temDestinatario = (c: {
   formaEnvio: FormaEnvioValor;

@@ -4,6 +4,7 @@ import { z } from "zod";
 import type {
   CadastroOperacionalClienteDto,
   CadastroRhClienteDto,
+  DestinosDoSetorDto,
   ClienteQueryPort,
   ResponsavelOpcaoDto,
   ResumoOperacionalRow,
@@ -31,7 +32,7 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ConsultaError } from "@/shared/errors/consulta.error";
 import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
-import type { SetorSlug } from "@/shared/kernel/setores";
+import { SETOR_RH, SETOR_SN, type SetorSlug } from "@/shared/kernel/setores";
 
 // Row da view `clientes_basico`: falha alto se o banco divergir (arquitetura.md §3.9).
 const cadastroRhSchema = z.object({
@@ -41,6 +42,18 @@ const cadastroRhSchema = z.object({
   cliente_contatos: z.array(contatoRowSchema),
   cliente_observacoes_setor: z.array(z.object({ observacoes: z.string() })),
 });
+
+const destinosRowsSchema = z.array(
+  z.object({
+    id: z.string(),
+    contato_id: z.string(),
+    tipo: z.string().nullable(),
+    canal: z.string(),
+  }),
+);
+const tiposRowsSchema = z.array(
+  z.object({ tipo: z.string(), tipos_de_envio: z.object({ rotulo: z.string() }) }),
+);
 
 type AtividadeMensalRow = { industria: boolean; comercio: boolean; servico: boolean };
 
@@ -130,11 +143,15 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       return err(new ConsultaError(`Erro ao buscar cadastro operacional: ${error.message}`));
     if (!data) return ok(null);
 
+    const destinos = await this.destinosDoSetor(clienteId, SETOR_SN);
+    if (!destinos.ok) return destinos;
+
     const row = data as unknown as ClienteBasicoRow;
     const operacional = operacionalUnico(row.cliente_cadastro_operacional_sn);
     const atividade = (row.cliente_atividades_mensais ?? [])[0] ?? null;
 
     return ok({
+      ...destinos.value,
       id: row.id,
       empresa: row.empresa,
       cnpj: row.cnpj,
@@ -154,6 +171,43 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
         servico: atividade?.servico ?? false,
       },
       ...responsavelDe(row.cliente_responsaveis),
+    });
+  }
+
+  // Os Destinos do Setor no Cliente (a RLS só entrega os do Setor de quem lê, e o Admin lê todos) e os
+  // tipos de envio que o Setor faz.
+  private async destinosDoSetor(
+    clienteId: string,
+    setor: SetorSlug,
+  ): Promise<Result<DestinosDoSetorDto, AppError>> {
+    const [destinos, tipos] = await Promise.all([
+      this.supabase
+        .from("destinos_de_envio")
+        .select("id, contato_id, tipo, canal")
+        .eq("cliente_id", clienteId)
+        .eq("setor", setor)
+        .order("criado_em"),
+      this.supabase
+        .from("tipos_de_envio_do_setor")
+        .select("tipo, tipos_de_envio(rotulo)")
+        .eq("setor", setor),
+    ]);
+    const falha = destinos.error ?? tipos.error;
+    if (falha) return err(new ConsultaError(`Erro ao buscar os destinos de envio: ${falha.message}`));
+
+    const lidos = destinosRowsSchema.safeParse(destinos.data);
+    const catalogo = tiposRowsSchema.safeParse(tipos.data);
+    if (!lidos.success || !catalogo.success) {
+      return err(new ConsultaError("Erro ao buscar os destinos de envio: formato inesperado."));
+    }
+    return ok({
+      destinos: lidos.data.map((d) => ({
+        id: d.id,
+        contatoId: d.contato_id,
+        tipo: d.tipo,
+        canal: d.canal,
+      })),
+      tiposDeEnvio: catalogo.data.map((t) => ({ slug: t.tipo, rotulo: t.tipos_de_envio.rotulo })),
     });
   }
 
@@ -186,8 +240,11 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     const { cliente_parcelamentos: linhas } = data as unknown as {
       cliente_parcelamentos: ParcelamentoRow[] | null;
     };
+    const destinos = await this.destinosDoSetor(clienteId, SETOR_RH);
+    if (!destinos.ok) return destinos;
     return ok({
       ...basicos,
+      ...destinos.value,
       contatos: contatos.map(contatoDoRow),
       observacoes: observacoes[0]?.observacoes ?? "",
       parcelamentos: (linhas ?? [])

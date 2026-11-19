@@ -1,10 +1,10 @@
 -- Define UM Destino de envio do Setor de quem chama (ADR 0013): o Contato já cadastrado (`p_contato_id`)
 -- ou um Contato novo (`p_contato`), criado na mesma transação pelo caminho único `contato_gravar`
--- (o Setor de quem cria vira o dono). O Setor vem do perfil, nunca do chamador; a permissão e o canal
+-- (o Setor de quem cria vira o dono). Devolve os ids do Destino e do Contato. O Setor vem do perfil, nunca do chamador; a permissão e o canal
 -- válido são da RLS e do gatilho `destino_validar`. O Admin não tem Setor: não define Destinos.
 CREATE FUNCTION public.salvar_destino_de_envio(
     p_cliente_id uuid, p_contato_id uuid, p_contato jsonb, p_tipo text, p_canal public.forma_envio
-) RETURNS uuid
+) RETURNS jsonb
     LANGUAGE plpgsql
     SET search_path TO 'public'
     AS $$
@@ -29,7 +29,7 @@ begin
   insert into public.destinos_de_envio (cliente_id, setor, tipo, contato_id, canal)
   values (p_cliente_id, v_setor, nullif(btrim(coalesce(p_tipo, '')), ''), v_contato_id, p_canal)
   returning id into v_id;
-  return v_id;
+  return jsonb_build_object('destino_id', v_id, 'contato_id', v_contato_id);
 end;
 $$;
 REVOKE ALL ON FUNCTION public.salvar_destino_de_envio(uuid, uuid, jsonb, text, public.forma_envio) FROM PUBLIC;

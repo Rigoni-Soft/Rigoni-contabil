@@ -13,6 +13,8 @@ const DTO: CadastroRhClienteDto = {
   cnpj: "11444777000161",
   contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", email: "" }],
   observacoes: "Pagar a folha no 5º dia útil.",
+  destinos: [],
+  tiposDeEnvio: [],
   parcelamentos: [],
 };
 

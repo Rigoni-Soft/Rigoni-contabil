@@ -35,6 +35,8 @@ const dados: CadastroOperacionalClienteDto = {
   cnpj: "11444777000161",
   regime: "simples_nacional",
   formaEnvio: "whatsapp",
+  destinos: [],
+  tiposDeEnvio: [],
   contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", email: "" }],
   documentoObrigatorio: "positivo",
   dasStatus: "pronto",

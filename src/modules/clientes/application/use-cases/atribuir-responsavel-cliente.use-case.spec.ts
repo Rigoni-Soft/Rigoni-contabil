@@ -29,6 +29,8 @@ function cadastro(regime = "simples_nacional"): CadastroOperacionalClienteDto {
     cnpj: "11444777000161",
     regime,
     formaEnvio: "whatsapp",
+    destinos: [],
+    tiposDeEnvio: [],
     contatos: [],
     documentoObrigatorio: null,
     dasStatus: null,

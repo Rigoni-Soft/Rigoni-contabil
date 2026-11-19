@@ -38,6 +38,8 @@ const dados: CadastroRhClienteDto = {
   cnpj: "11.444.777/0001-61",
   contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", email: "" }],
   observacoes: "Folha no 5º dia útil.",
+  destinos: [],
+  tiposDeEnvio: [],
   parcelamentos: [],
 };
 
