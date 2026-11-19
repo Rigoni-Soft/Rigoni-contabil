@@ -16,6 +16,7 @@ import {
 } from "@/modules/clientes/infra/mappers/cadastro-operacional-row.mapper";
 import {
   contatoDoRow,
+  contatoRowSchema,
   EMBED_CONTATOS,
   type ContatoRow,
 } from "@/modules/clientes/infra/mappers/contato-row.mapper";
@@ -37,19 +38,7 @@ const cadastroRhSchema = z.object({
   id: z.string(),
   empresa: z.string(),
   cnpj: z.string(),
-  cliente_contatos: z.array(
-    z.object({
-      id: z.string(),
-      nome: z.string(),
-      telefone: z.string().nullable(),
-      email: z.string().nullable(),
-      dono_setor: z.string().nullable(),
-      cliente_contato_setores: z
-        .array(z.object({ setor: z.string() }))
-        .nullable()
-        .optional(),
-    }),
-  ),
+  cliente_contatos: z.array(contatoRowSchema),
   cliente_observacoes_setor: z.array(z.object({ observacoes: z.string() })),
 });
 

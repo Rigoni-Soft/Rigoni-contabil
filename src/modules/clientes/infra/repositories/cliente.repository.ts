@@ -7,7 +7,7 @@ import type { AlteracaoContratual } from "@/modules/clientes/domain/value-object
 import { ConsoleRegistroDeErrosGateway } from "@/modules/clientes/infra/gateways/console-registro-de-erros.gateway";
 import { clienteDoRow, type ClienteRow } from "@/modules/clientes/infra/mappers/cliente.mapper";
 import {
-  contatoParaSalvar,
+  contatoParaRpc,
   EMBED_CONTATOS,
 } from "@/modules/clientes/infra/mappers/contato-row.mapper";
 import { AppError } from "@/shared/errors/app.error";
@@ -165,7 +165,11 @@ export class SupabaseClienteRepository implements ClienteRepository {
         ? cliente.dataEnvioDas.toISOString().slice(0, 10)
         : null,
       p_observacoes_gerais: cliente.observacoesGerais,
-      p_contatos: cliente.contatos.map(contatoParaSalvar),
+      // Na lista (`salvar_contatos_do_cliente`) todo contato leva id.
+      p_contatos: cliente.contatos.map((c) => ({
+        ...contatoParaRpc(c),
+        id: c.id ?? crypto.randomUUID(),
+      })),
       p_ano_mes: anoMes,
       p_industria: cliente.atividadeMesAtual?.industria ?? false,
       p_comercio: cliente.atividadeMesAtual?.comercio ?? false,

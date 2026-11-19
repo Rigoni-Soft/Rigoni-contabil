@@ -36,6 +36,13 @@ describe("Contato", () => {
     expect(resultado.ok).toBe(false);
   });
 
+  it("aceita o WhatsApp legado sem DDD inalterado e rejeita o alterado", () => {
+    const legado = { nome: "Maria", email: "", telefoneOriginal: "99999-0000" };
+
+    expect(Contato.criar({ ...legado, telefone: "999990000" }).ok).toBe(true);
+    expect(Contato.criar({ ...legado, telefone: "88888-0000" }).ok).toBe(false);
+  });
+
   it("rejeita e-mail inválido", () => {
     const resultado = Contato.criar({ nome: "Maria", telefone: "", email: "maria" });
 

@@ -4,16 +4,16 @@ import { DAS_STATUSES } from "@/shared/kernel/das-status";
 import { DOCUMENTO_OBRIGATORIO_STATUSES } from "@/shared/kernel/documento-obrigatorio-status";
 import { FORMAS_ENVIO } from "@/shared/kernel/forma-envio";
 import { SETORES } from "@/shared/kernel/setores";
-import { telefoneTemDdd } from "@/shared/kernel/telefone";
+import { telefoneAceito } from "@/shared/kernel/telefone";
 
 // O contato do Cliente: o mesmo no cadastro do SN e no do RH.
 export const contatoSchema = z
   .object({
     id: z.string().optional(),
     nome: z.string().trim().min(1, "obrigatório"),
-    telefone: z
-      .string()
-      .refine((valor) => !valor.trim() || telefoneTemDdd(valor), "Informe o WhatsApp com DDD"),
+    telefone: z.string(),
+    // O número como veio do banco: o DDD só é cobrado de número novo ou trocado.
+    telefoneOriginal: z.string().optional(),
     email: z
       .string()
       .refine(
@@ -21,6 +21,11 @@ export const contatoSchema = z
         "e-mail inválido",
       ),
   })
+  .refine(
+    (contato) =>
+      !contato.telefone.trim() || telefoneAceito(contato.telefone, contato.telefoneOriginal),
+    { message: "Informe o WhatsApp com DDD", path: ["telefone"] },
+  )
   .refine((contato) => contato.telefone.trim() || contato.email.trim(), {
     message: "Informe o WhatsApp ou o e-mail",
     path: ["telefone"],
@@ -143,6 +148,9 @@ export const editarCadastroOperacionalFormSchema = editarCadastroOperacionalSche
     responsavelId: z.string(),
     parcelamentos: parcelamentosFormSchema,
   });
-export type EditarCadastroOperacionalFormValues = z.infer<
-  typeof editarCadastroOperacionalFormSchema
->;
+// `telefoneOriginal` viaja nos valores (vem do banco nos valores iniciais) mas não é campo do formulário:
+// fora do tipo, o RHF não ganha mais um caminho (`contatos.N.telefoneOriginal`) e os hooks de Control seguem compatíveis.
+type ValoresDoSchema = z.infer<typeof editarCadastroOperacionalFormSchema>;
+export type EditarCadastroOperacionalFormValues = Omit<ValoresDoSchema, "contatos"> & {
+  contatos: Omit<ValoresDoSchema["contatos"][number], "telefoneOriginal">[];
+};

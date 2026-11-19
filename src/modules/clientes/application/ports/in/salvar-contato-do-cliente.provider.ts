@@ -1,11 +1,11 @@
-import type { ContatoProps } from "@/modules/clientes/domain/value-objects/contato.vo";
+import type { ContatoEditavel } from "@/modules/clientes/domain/value-objects/contato.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
 export type SalvarContatoDoClienteInput = {
   clienteId: string;
   // Sem `id`, o contato é criado; com `id`, é atualizado.
-  contato: Pick<ContatoProps, "id" | "nome" | "telefone" | "email">;
+  contato: ContatoEditavel;
 };
 
 export interface SalvarContatoDoClientePort {

@@ -1,7 +1,7 @@
 import { Email } from "@/modules/clientes/domain/value-objects/email.vo";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
-import { telefoneTemDdd } from "@/shared/kernel/telefone";
+import { telefoneAceito } from "@/shared/kernel/telefone";
 
 // A forma única do Contato do Cliente: as camadas (portas, builder, mapper, schema) derivam daqui.
 // `telefone` e `email` vazios = sem o canal. `donoSetor` null = Contato do Admin; `setores` vem do
@@ -13,7 +13,12 @@ export type ContatoProps = {
   email: string;
   donoSetor?: string | null;
   setores?: readonly string[];
+  // O telefone como estava gravado: só o número novo ou trocado é cobrado do DDD. Nunca vai ao salvar.
+  telefoneOriginal?: string;
 };
+
+// O que o dono edita e vai ao salvar.
+export type ContatoEditavel = Pick<ContatoProps, "id" | "nome" | "telefone" | "email">;
 
 export class Contato {
   private constructor(private readonly props: ContatoProps) {}
@@ -26,7 +31,7 @@ export class Contato {
     if (!telefone && !email) {
       return err(new ValidationError("Informe o WhatsApp ou o e-mail do contato"));
     }
-    if (telefone && !telefoneTemDdd(telefone)) {
+    if (telefone && !telefoneAceito(telefone, entrada.telefoneOriginal)) {
       return err(new ValidationError("Informe o WhatsApp com DDD"));
     }
     if (email && !Email.criar(email).ok) return err(new ValidationError("e-mail inválido"));

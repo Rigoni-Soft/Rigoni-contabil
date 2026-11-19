@@ -61,6 +61,16 @@ describe("editarCadastroOperacionalSchema", () => {
     expect(resultado.success).toBe(false);
   });
 
+  it("contato legado sem DDD inalterado passa; alterado ou novo sem DDD falha", () => {
+    const comContato = (contato: object) =>
+      editarCadastroOperacionalSchema.safeParse({ ...payloadValido(), contatos: [contato] });
+    const legado = { nome: "Maria", email: "", telefoneOriginal: "99999-0000" };
+
+    expect(comContato({ ...legado, telefone: "99999-0000" }).success).toBe(true);
+    expect(comContato({ ...legado, telefone: "88888-0000" }).success).toBe(false);
+    expect(comContato({ nome: "Novo", email: "", telefone: "99999-0000" }).success).toBe(false);
+  });
+
   it("rejeita dataEnvioDas que não é data ISO", () => {
     const resultado = editarCadastroOperacionalSchema.safeParse({
       ...payloadValido(),
