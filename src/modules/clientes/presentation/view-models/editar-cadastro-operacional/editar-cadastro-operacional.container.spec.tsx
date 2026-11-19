@@ -7,6 +7,7 @@ import type { CadastroOperacionalClienteDto } from "@/modules/clientes/applicati
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok } from "@/shared/kernel/result";
 
+import { cadastroOperacionalDeTeste } from "../../../../../../test-support/cadastro-de-teste";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
 import { EditarCadastroOperacionalContainer } from "./editar-cadastro-operacional.container";
 
@@ -47,24 +48,13 @@ jest.mock("@/main/clientes.factory", () => ({
 // O Admin só cadastra contatos (sem Setor, não define destinos): os testes de contatos e do resto do cadastro.
 const ADMIN = { papel: "admin", setor: "administrativo" };
 
-const dados: CadastroOperacionalClienteDto = {
-  id: "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d",
-  empresa: "Padaria Pão Quente Ltda",
-  cnpj: "11444777000161",
-  regime: "simples_nacional",
-  formaEnvio: "whatsapp",
-  destinos: [],
-  tiposDeEnvio: [],
+const dados: CadastroOperacionalClienteDto = cadastroOperacionalDeTeste({
   contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", email: "" }],
   documentoObrigatorio: "positivo",
   dasStatus: "pronto",
-  dataEnvioDas: null,
-  parcelamentos: [],
   observacoesGerais: "Cliente pontual.",
   atividadeMes: { industria: false, comercio: true, servico: false },
-  responsavelId: null,
-  responsavelNome: null,
-};
+});
 
 // Sem retry: o backoff do React Query travaria os findBy.
 function render(ui: React.ReactElement) {

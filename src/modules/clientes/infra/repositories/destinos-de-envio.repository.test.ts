@@ -285,8 +285,8 @@ describe("Destinos de envio (integração)", () => {
       .from("destinos_de_envio")
       .insert(destino("simples_nacional", null, ana.id, "email"));
     const rhNoRh = await rh.from("destinos_de_envio").insert(destino("rh", null, ana.id, "email"));
-    const rhLe = await rh.from("destinos_de_envio").select("setor");
-    const snLe = await sn.from("destinos_de_envio").select("setor");
+    const rhLe = await rh.from("destinos_de_envio").select("setor").eq("cliente_id", clienteId);
+    const snLe = await sn.from("destinos_de_envio").select("setor").eq("cliente_id", clienteId);
 
     expect(doSn.error).toBeNull();
     expect(rhNoSn.error).not.toBeNull();

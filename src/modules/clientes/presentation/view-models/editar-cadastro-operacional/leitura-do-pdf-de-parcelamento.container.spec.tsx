@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { ok } from "@/shared/kernel/result";
 
+import { cadastroOperacionalDeTeste } from "../../../../../../test-support/cadastro-de-teste";
 import { EditarCadastroOperacionalContainer } from "./editar-cadastro-operacional.container";
 
 jest.mock("next/navigation", () => ({
@@ -32,24 +33,12 @@ jest.mock("@/main/clientes.factory", () => ({
 // O Admin só cadastra contatos (sem Setor, não define destinos): os testes de contatos e do resto do cadastro.
 const ADMIN = { papel: "admin", setor: "administrativo" };
 
-const dados: CadastroOperacionalClienteDto = {
-  id: "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d",
-  empresa: "Padaria Pão Quente Ltda",
-  cnpj: "11444777000161",
-  regime: "simples_nacional",
-  formaEnvio: "whatsapp",
-  destinos: [],
-  tiposDeEnvio: [],
+const dados: CadastroOperacionalClienteDto = cadastroOperacionalDeTeste({
   contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", email: "" }],
   documentoObrigatorio: "positivo",
   dasStatus: "pronto",
-  dataEnvioDas: null,
-  parcelamentos: [],
-  observacoesGerais: "",
   atividadeMes: { industria: false, comercio: true, servico: false },
-  responsavelId: null,
-  responsavelNome: null,
-};
+});
 
 const PARCELAMENTO_ID = "5b1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7e";
 const okAction = <T,>(data: T) => ({ ok: true as const, data });

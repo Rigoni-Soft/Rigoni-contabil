@@ -5,18 +5,13 @@ import type {
 import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao.provider";
 import { ok } from "@/shared/kernel/result";
 
+import { cadastroRhDeTeste } from "../../../../../test-support/cadastro-de-teste";
 import { ConsultarCadastroRhCliente } from "./consultar-cadastro-rh-cliente.use-case";
 
-const DTO: CadastroRhClienteDto = {
-  id: "11111111-1111-1111-1111-111111111111",
-  empresa: "Padaria Pão Quente Ltda",
-  cnpj: "11444777000161",
+const DTO: CadastroRhClienteDto = cadastroRhDeTeste({
   contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", email: "" }],
   observacoes: "Pagar a folha no 5º dia útil.",
-  destinos: [],
-  tiposDeEnvio: [],
-  parcelamentos: [],
-};
+});
 
 const sessaoCom = (autenticado: boolean, papel = "lider_setor", setor = "rh"): SessaoPort => ({
   usuarioAtual: async () => (autenticado ? { id: "u1", papel, setor } : null),

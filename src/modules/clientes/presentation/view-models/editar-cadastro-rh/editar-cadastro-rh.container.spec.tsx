@@ -7,6 +7,7 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok } from "@/shared/kernel/result";
 
+import { cadastroRhDeTeste } from "../../../../../../test-support/cadastro-de-teste";
 import { salvarParcelamentosAction } from "../editar-cadastro-operacional/salvar-parcelamentos.actions";
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
 import { EditarCadastroRhContainer } from "./editar-cadastro-rh.container";
@@ -37,16 +38,11 @@ jest.mock("@/main/clientes.factory", () => ({
 // O Admin só cadastra contatos (sem Setor, não define destinos): os testes de contatos e do resto do cadastro.
 const ADMIN = { papel: "admin", setor: "administrativo" };
 
-const dados: CadastroRhClienteDto = {
-  id: "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d",
-  empresa: "Padaria Pão Quente Ltda",
+const dados: CadastroRhClienteDto = cadastroRhDeTeste({
   cnpj: "11.444.777/0001-61",
   contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", email: "" }],
   observacoes: "Folha no 5º dia útil.",
-  destinos: [],
-  tiposDeEnvio: [],
-  parcelamentos: [],
-};
+});
 
 function render(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });

@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 
+import { cadastroOperacionalDeTeste } from "../../../../../../test-support/cadastro-de-teste";
 import { BuscarClienteContainer } from "./buscar-cliente.container";
 
 const routerRefresh = jest.fn();
@@ -25,24 +26,7 @@ jest.mock("@/main/clientes.factory", () => ({
   makeEditarCadastroOperacionalCliente: () => ({ execute: editarExecuteMock }),
 }));
 
-const CADASTRO: CadastroOperacionalClienteDto = {
-  id: "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d",
-  empresa: "Padaria Pão Quente Ltda",
-  cnpj: "11444777000161",
-  regime: "simples_nacional",
-  formaEnvio: "whatsapp",
-  destinos: [],
-  tiposDeEnvio: [],
-  contatos: [],
-  documentoObrigatorio: null,
-  dasStatus: null,
-  dataEnvioDas: null,
-  parcelamentos: [],
-  observacoesGerais: "",
-  atividadeMes: { industria: false, comercio: false, servico: false },
-  responsavelId: null,
-  responsavelNome: null,
-};
+const CADASTRO: CadastroOperacionalClienteDto = cadastroOperacionalDeTeste();
 
 // Sem retry: com fake timers, o backoff de retry do React Query enfileira
 // setTimeout extras que os testes não avançam, travando o findBy.

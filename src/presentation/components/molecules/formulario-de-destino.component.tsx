@@ -6,6 +6,7 @@ import { FieldError } from "@/presentation/components/atoms/field-error.componen
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
+import { BOTAO_OCUPADO } from "@/presentation/lib/botao-ocupado";
 import { formatarTelefone } from "@/presentation/lib/telefone-mask";
 
 type Opcao = { valor: string; rotulo: string };
@@ -43,9 +44,6 @@ type FormularioDeDestinoProps = {
   onUsarExistente: (id: string) => void;
   onAdicionar: () => void;
 };
-
-// Ocupado, o botão fica `aria-disabled` e não `disabled`: o navegador não solta o foco dele.
-const OCUPADO = "aria-disabled:pointer-events-none aria-disabled:opacity-50";
 
 // Enter num campo adiciona o destino: sem isto enviaria o cadastro inteiro, que envolve este bloco.
 const adicionarComEnter =
@@ -195,7 +193,7 @@ export function FormularioDeDestino({
       <Linha espaco={2} quebra>
         <Button
           type="button"
-          className={OCUPADO}
+          className={BOTAO_OCUPADO}
           aria-disabled={pendente || undefined}
           aria-busy={pendente}
           onClick={() => !pendente && onAdicionar()}

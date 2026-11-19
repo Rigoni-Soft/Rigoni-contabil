@@ -6,6 +6,7 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
+import { BOTAO_OCUPADO } from "@/presentation/lib/botao-ocupado";
 
 type LinhaDeContatoProps = {
   indice: number;
@@ -30,9 +31,6 @@ type LinhaDeContatoProps = {
   // Contato de outro Setor: os campos ficam só de leitura (o texto diz de quem é) e a linha não tem ação.
   doutroSetor?: string;
 };
-
-// Ocupado, o botão fica `aria-disabled` e não `disabled`: o navegador não solta o foco dele.
-const OCUPADO = "aria-disabled:pointer-events-none aria-disabled:opacity-50";
 
 // Botões na altura do input: o espaçador invisível ocupa o lugar do rótulo, e a mensagem de erro
 // sob o campo não os empurra.
@@ -138,7 +136,7 @@ export function LinhaDeContato({
             <Button
               type="button"
               size="icon"
-              className={`size-8 pointer-coarse:size-11 ${OCUPADO}`}
+              className={`size-8 pointer-coarse:size-11 ${BOTAO_OCUPADO}`}
               onClick={() => !salvando && onSalvar()}
               aria-disabled={salvando || undefined}
               aria-busy={salvando}
@@ -155,7 +153,7 @@ export function LinhaDeContato({
               type="button"
               variant="destructive"
               size="icon"
-              className={`size-8 pointer-coarse:size-11 ${OCUPADO}`}
+              className={`size-8 pointer-coarse:size-11 ${BOTAO_OCUPADO}`}
               onClick={() => !salvando && onLimpar()}
               aria-disabled={salvando || undefined}
               aria-label={rotuloLimpar}

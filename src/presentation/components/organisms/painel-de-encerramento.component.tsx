@@ -3,6 +3,7 @@ import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.component";
 import { Button } from "@/presentation/components/ui/button";
+import { BOTAO_OCUPADO } from "@/presentation/lib/botao-ocupado";
 
 type PainelDeEncerramentoProps = {
   confirmando: boolean;
@@ -54,7 +55,7 @@ export function PainelDeEncerramento({
               autoFocus
               // aria-disabled (não disabled) para o foco não se perder enquanto encerra.
               aria-disabled={encerrando}
-              className="aria-disabled:pointer-events-none aria-disabled:opacity-50 pointer-coarse:h-11"
+              className={`${BOTAO_OCUPADO} pointer-coarse:h-11`}
               onClick={() => !encerrando && onCancelar()}
             >
               Cancelar
