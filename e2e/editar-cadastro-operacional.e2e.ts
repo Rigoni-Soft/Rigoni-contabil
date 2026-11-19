@@ -69,18 +69,22 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     // dev server frio, o salvar gravava os defaults).
     await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
 
-    await page.getByLabel("Forma de envio").selectOption("email");
+    // A forma de envio saiu do cadastro: é o canal de cada contato que recebe envios.
+    await expect(page.locator("#formaEnvio")).toHaveCount(0);
     await page.getByLabel("Nome").fill("Maria Contato");
     await page.getByLabel("WhatsApp").fill("11999998888");
     await page.getByLabel("E-mail", { exact: true }).fill("maria.contato@exemplo.com");
+    // O contato novo só entra no cadastro com o Salvar da própria linha.
+    await page.getByRole("button", { name: "Salvar contato 1" }).click();
+    await expect(page.getByRole("button", { name: "Remover contato 1" })).toBeVisible();
     await page.getByLabel("Documento recebido").selectOption("positivo");
     // "Enviado" e a data de envio são só do sistema.
-    await expect(
-      page.getByLabel("DAS", { exact: true }).getByRole("option", { name: "Enviado" }),
-    ).toHaveCount(0);
+    await expect(page.locator("#dasStatus").getByRole("option", { name: "Enviado" })).toHaveCount(
+      0,
+    );
     await expect(page.getByLabel("Data de envio")).toHaveAttribute("readonly", "");
     await expect(page.getByLabel("Data de envio")).toBeDisabled();
-    await page.getByLabel("DAS", { exact: true }).selectOption("pronto");
+    await page.locator("#dasStatus").selectOption("pronto");
     await page.getByRole("checkbox", { name: "Comércio" }).check();
     await page.getByLabel("Observações gerais").fill("Observação de teste E2E.");
 
@@ -93,19 +97,18 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     // Reabre a tela do cliente pra conferir que a alteração persistiu.
     await page.goto(`/clientes/${clienteId}`);
 
-    await expect(page.getByLabel("Forma de envio")).toHaveValue("email");
     await expect(page.getByLabel("Nome")).toHaveValue("Maria Contato");
     await expect(page.getByLabel("WhatsApp")).toHaveValue("(11) 99999-8888");
     await expect(page.getByLabel("E-mail", { exact: true })).toHaveValue(
       "maria.contato@exemplo.com",
     );
     await expect(page.getByLabel("Documento recebido")).toHaveValue("positivo");
-    await expect(page.getByLabel("DAS", { exact: true })).toHaveValue("pronto");
+    await expect(page.locator("#dasStatus")).toHaveValue("pronto");
     await expect(page.getByRole("checkbox", { name: "Comércio" })).toBeChecked();
     await expect(page.getByLabel("Observações gerais")).toHaveValue("Observação de teste E2E.");
   });
 
-  test("contato por linha: Salvar mantém o id, Limpar zera a linha nova e o contato em uso por outro Setor não sai @smoke", async ({
+  test("contato por linha: Salvar mantém o id, Limpar zera a linha nova e o contato em uso por outro Setor passa à URA @smoke", async ({
     page,
   }) => {
     const cnpjDigits = await criarClienteComoAdmin(page, "Contato Por Linha E2E Ltda");
@@ -123,7 +126,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await page.getByRole("button", { name: "Salvar contato 1" }).click();
     await expect(page.getByRole("button", { name: "Remover contato 1" })).toBeVisible();
     await expect(page.getByText("Contato 1 salvo.")).toBeAttached();
-    await expect(page.locator("[id='contatos.0.nome']")).toBeFocused();
+    await expect(page.locator("[id='contatos.0.editar']")).toBeFocused();
 
     const admin = adminLocal();
     const gravado = await admin
@@ -139,14 +142,14 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     const depois = await admin.from("cliente_contatos").select("id").eq("cliente_id", clienteId);
     expect(depois.data).toEqual([{ id: gravado.data?.id }]);
 
-    // Limpar na linha nova esvazia os campos dela e não mexe no contato salvo.
+    // Cancelar na linha nova a descarta e não mexe no contato salvo.
     await page.getByRole("button", { name: "Adicionar contato" }).click();
     await page.locator("[id='contatos.1.nome']").fill("Rascunho");
-    await page.getByRole("button", { name: "Limpar contato 2" }).click();
-    await expect(page.locator("[id='contatos.1.nome']")).toHaveValue("");
+    await page.getByRole("button", { name: "Cancelar edição do contato 2" }).click();
+    await expect(page.locator("[id='contatos.1.nome']")).toHaveCount(0);
     await expect(page.locator("[id='contatos.0.nome']")).toHaveValue("Ana Linha");
 
-    // Outro Setor (RH) usa o contato: excluí-lo pelo SN é recusado e ele continua gravado.
+    // Outro Setor (RH) usa o contato: o dono que o exclui não o apaga, ele passa à URA (sem dono).
     const uso = await admin.from("destinos_de_envio").insert({
       cliente_id: clienteId,
       setor: "rh",
@@ -156,9 +159,12 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     expect(uso.error).toBeNull();
     await page.getByRole("button", { name: "Remover contato 1" }).click();
     await page.getByRole("button", { name: "Salvar", exact: true }).click();
-    await expect(page.getByText("Não foi possível atualizar o cadastro operacional")).toBeVisible();
-    const aindaLa = await admin.from("cliente_contatos").select("id").eq("cliente_id", clienteId);
-    expect(aindaLa.data).toEqual([{ id: gravado.data?.id }]);
+    await expect(page).toHaveURL("/simples-nacional");
+    const aindaLa = await admin
+      .from("cliente_contatos")
+      .select("id, dono_setor")
+      .eq("cliente_id", clienteId);
+    expect(aindaLa.data).toEqual([{ id: gravado.data?.id, dono_setor: null }]);
   });
 
   test("DAS já enviado pelo sistema: DAS e data ficam desativados e o salvar preserva os dois", async ({
@@ -179,13 +185,13 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page).toHaveURL("/simples-nacional");
     await page.goto(`/clientes/${clienteId}`);
 
-    await expect(page.getByLabel("DAS", { exact: true })).toHaveValue("enviado");
-    await expect(page.getByLabel("DAS", { exact: true })).toBeDisabled();
+    await expect(page.locator("#dasStatus")).toHaveValue("enviado");
+    await expect(page.locator("#dasStatus")).toBeDisabled();
     await expect(page.getByLabel("Data de envio")).toHaveValue("2026-10-05");
     await expect(page.getByLabel("Data de envio")).toBeDisabled();
     // Um só jeito de "travado" na tela: esmaecido (opacidade de desabilitado), como a identidade
     // do Cliente, para o usuário entender que não se altera.
-    await expect(page.getByLabel("DAS", { exact: true })).toHaveCSS("opacity", "0.5");
+    await expect(page.locator("#dasStatus")).toHaveCSS("opacity", "0.5");
     await expect(page.getByLabel("Data de envio")).toHaveCSS("opacity", "0.5");
     await expect(page.getByLabel("Empresa", { exact: true })).toHaveCSS("opacity", "0.5");
     await expect(page.getByLabel("CNPJ", { exact: true })).toHaveCSS("opacity", "0.5");
@@ -196,7 +202,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await page.goto(`/clientes/${clienteId}`);
     await expect(page.getByLabel("Observações gerais")).toHaveValue("Edição com DAS já enviado.");
-    await expect(page.getByLabel("DAS", { exact: true })).toHaveValue("enviado");
+    await expect(page.locator("#dasStatus")).toHaveValue("enviado");
     await expect(page.getByLabel("Data de envio")).toHaveValue("2026-10-05");
   });
 
@@ -231,10 +237,10 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(
       page.getByRole("heading", { name: "Visualizar cadastro operacional" }),
     ).toBeVisible();
-    await expect(page.getByLabel("Forma de envio")).toBeDisabled();
+    await expect(page.getByLabel("Documento recebido")).toBeDisabled();
     await expect(page.getByRole("button", { name: "Salvar" })).not.toBeVisible();
     // Na visualização os campos ficam esmaecidos (não editáveis); sem botão de adicionar contato.
-    await expect(page.getByLabel("Forma de envio")).toHaveCSS("opacity", "0.5");
+    await expect(page.getByLabel("Documento recebido")).toHaveCSS("opacity", "0.5");
     await expect(page.getByLabel("Observações gerais")).toHaveCSS("opacity", "0.5");
     await expect(page.getByRole("button", { name: "Adicionar contato" })).toBeHidden();
   });

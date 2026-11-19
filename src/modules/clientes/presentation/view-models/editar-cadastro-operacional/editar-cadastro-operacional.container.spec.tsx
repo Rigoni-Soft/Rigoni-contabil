@@ -1,12 +1,13 @@
 import { renderToString } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render as renderRtl, screen, waitFor } from "@testing-library/react";
+import { render as renderRtl, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok } from "@/shared/kernel/result";
 
+import { cadastroOperacionalDeTeste } from "../../../../../../test-support/cadastro-de-teste";
 import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.actions";
 import { EditarCadastroOperacionalContainer } from "./editar-cadastro-operacional.container";
 
@@ -29,8 +30,10 @@ const executeMock = jest.fn();
 const atribuirMock = jest.fn();
 const listarMock = jest.fn();
 const salvarContatoMock = jest.fn();
+const definirTiposMock = jest.fn();
 jest.mock("@/main/clientes.factory", () => ({
   makeSalvarContatoDoCliente: () => ({ execute: salvarContatoMock }),
+  makeDefinirTiposDeEnvioDoContato: () => ({ execute: definirTiposMock }),
   makeEditarCadastroOperacionalCliente: () => ({ execute: executeMock }),
   makeAtribuirResponsavelCliente: () => ({ execute: atribuirMock }),
   makeListarResponsaveisElegiveis: () => ({ execute: listarMock }),
@@ -40,22 +43,16 @@ jest.mock("@/main/clientes.factory", () => ({
   makeObterLinkDocumentoContratual: () => ({ execute: jest.fn() }),
 }));
 
-const dados: CadastroOperacionalClienteDto = {
-  id: "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d",
-  empresa: "Padaria Pão Quente Ltda",
-  cnpj: "11444777000161",
-  regime: "simples_nacional",
-  formaEnvio: "whatsapp",
+// O Admin só cadastra contatos (sem Setor, não define destinos): os testes de contatos e do resto do cadastro.
+const ADMIN = { papel: "admin", setor: "administrativo" };
+
+const dados: CadastroOperacionalClienteDto = cadastroOperacionalDeTeste({
   contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", email: "" }],
   documentoObrigatorio: "positivo",
   dasStatus: "pronto",
-  dataEnvioDas: null,
-  parcelamentos: [],
   observacoesGerais: "Cliente pontual.",
   atividadeMes: { industria: false, comercio: true, servico: false },
-  responsavelId: null,
-  responsavelNome: null,
-};
+});
 
 // Sem retry: o backoff do React Query travaria os findBy.
 function render(ui: React.ReactElement) {
@@ -79,38 +76,16 @@ describe("EditarCadastroOperacionalContainer", () => {
     ["lucro_presumido", "Lucro Presumido"],
     ["lucro_real", "Lucro Real"],
   ])("Regime %s: avisa que não se aplica e não renderiza o formulário", (regime, rotulo) => {
-    render(<EditarCadastroOperacionalContainer dados={{ ...dados, regime }} readOnly={false} />);
+    render(
+      <EditarCadastroOperacionalContainer
+        dados={{ ...dados, regime }}
+        ator={ADMIN}
+        readOnly={false}
+      />,
+    );
 
     expect(screen.getByRole("status")).toHaveTextContent(`não se aplica ao Regime ${rotulo}`);
     expect(screen.queryByRole("button", { name: /salvar/i })).not.toBeInTheDocument();
-  });
-
-  it("Regime sem cadastro SN: o Admin ainda vê o mês do acompanhamento do RH, que a lista de serviços usa", () => {
-    render(
-      <EditarCadastroOperacionalContainer
-        dados={{ ...dados, regime: "lucro_presumido" }}
-        readOnly={false}
-        mesDoAcompanhamento={<a href="?mes=2026-10">Mês anterior</a>}
-      />,
-    );
-
-    expect(screen.getByRole("link", { name: "Mês anterior" })).toBeInTheDocument();
-  });
-
-  it("Admin: o mês do acompanhamento do RH abre o cartão, depois da nota e antes da Empresa", () => {
-    render(
-      <EditarCadastroOperacionalContainer
-        dados={dados}
-        readOnly={false}
-        mesDoAcompanhamento={<a href="?mes=2026-10">Mês anterior</a>}
-      />,
-    );
-
-    const antes = (a: Node, b: Node) =>
-      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
-    const mes = screen.getByRole("link", { name: "Mês anterior" });
-    expect(antes(screen.getByText(/são obrigatórios/), mes)).toBeTruthy();
-    expect(antes(mes, screen.getByLabelText(/Empresa/))).toBeTruthy();
   });
 
   it.each(["lucro_presumido", "lucro_real"])(
@@ -119,6 +94,7 @@ describe("EditarCadastroOperacionalContainer", () => {
       render(
         <EditarCadastroOperacionalContainer
           dados={{ ...dados, regime }}
+          ator={ADMIN}
           readOnly={false}
           documentosContratuais={[]}
           podeAnexar
@@ -132,7 +108,7 @@ describe("EditarCadastroOperacionalContainer", () => {
 
   it("Responsável: sem permissão mostra o nome (campo desabilitado); Líder escolhe e salva via atribuir", async () => {
     const { unmount } = render(
-      <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />,
+      <EditarCadastroOperacionalContainer dados={dados} ator={ADMIN} readOnly={false} />,
     );
     expect(screen.getByLabelText("Responsável")).toBeDisabled();
     expect(screen.getByLabelText("Responsável")).toHaveValue("Sem responsável");
@@ -143,6 +119,7 @@ describe("EditarCadastroOperacionalContainer", () => {
     render(
       <EditarCadastroOperacionalContainer
         dados={dados}
+        ator={ADMIN}
         readOnly={false}
         podeAtribuirResponsavel
         aoSalvar={{ tipo: "voltar", href: "/simples-nacional" }}
@@ -171,7 +148,12 @@ describe("EditarCadastroOperacionalContainer", () => {
   it("Responsável: falha ao carregar a lista mostra aviso com Tentar de novo, que busca de novo", async () => {
     listarMock.mockResolvedValueOnce(err(new ForbiddenError("falhou")));
     render(
-      <EditarCadastroOperacionalContainer dados={dados} readOnly={false} podeAtribuirResponsavel />,
+      <EditarCadastroOperacionalContainer
+        dados={dados}
+        ator={ADMIN}
+        readOnly={false}
+        podeAtribuirResponsavel
+      />,
     );
 
     await userEvent.click(screen.getByLabelText("Responsável"));
@@ -188,6 +170,7 @@ describe("EditarCadastroOperacionalContainer", () => {
     render(
       <EditarCadastroOperacionalContainer
         dados={dados}
+        ator={ADMIN}
         readOnly={false}
         podeAtribuirResponsavel
         aoSalvar={{ tipo: "voltar", href: "/simples-nacional" }}
@@ -215,6 +198,7 @@ describe("EditarCadastroOperacionalContainer", () => {
       render(
         <EditarCadastroOperacionalContainer
           dados={dados}
+          ator={ADMIN}
           readOnly={false}
           podeAtribuirResponsavel
           aoSalvar={{ tipo: "voltar", href: "/simples-nacional" }}
@@ -247,6 +231,7 @@ describe("EditarCadastroOperacionalContainer", () => {
       render(
         <EditarCadastroOperacionalContainer
           dados={dados}
+          ator={ADMIN}
           readOnly={false}
           podeAtribuirResponsavel
           aoSalvar={{ tipo: "voltar", href: "/simples-nacional" }}
@@ -297,6 +282,7 @@ describe("EditarCadastroOperacionalContainer", () => {
       render(
         <EditarCadastroOperacionalContainer
           dados={{ ...dados, regime }}
+          ator={ADMIN}
           readOnly={false}
           documentosContratuais={documentos}
           alteracaoEmFoco={1}
@@ -311,7 +297,7 @@ describe("EditarCadastroOperacionalContainer", () => {
   });
 
   it("modo readOnly: nunca renderiza contrato social/alterações e não mostra Salvar/Limpar/Cancelar", () => {
-    render(<EditarCadastroOperacionalContainer dados={dados} readOnly />);
+    render(<EditarCadastroOperacionalContainer dados={dados} ator={ADMIN} readOnly />);
 
     expect(screen.queryByText(/contrato social/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/alteraç(ão|ões) contratua/i)).not.toBeInTheDocument();
@@ -321,16 +307,285 @@ describe("EditarCadastroOperacionalContainer", () => {
   });
 
   it("modo edição: campos ficam habilitados e os botões Salvar/Limpar/Cancelar aparecem", () => {
-    render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
+    render(<EditarCadastroOperacionalContainer dados={dados} ator={ADMIN} readOnly={false} />);
 
-    expect(screen.getByLabelText(/forma de envio/i)).toBeEnabled();
+    expect(screen.getByLabelText(/documento recebido/i)).toBeEnabled();
+    expect(screen.queryByLabelText(/forma de envio/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /salvar/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /limpar/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /cancelar/i })).toHaveAttribute("href", "/");
   });
 
+  describe("o que cada contato recebe do Setor", () => {
+    const FUNCIONARIO_SN = { papel: "funcionario", setor: "simples_nacional" };
+    // A action valida o id como UUID antes de chamar o caso de uso.
+    const PAULO_ID = "22222222-2222-4222-8222-222222222222";
+    const MARIA_ID = "11111111-1111-4111-8111-111111111111";
+    const dadosComEnvios: CadastroOperacionalClienteDto = {
+      ...dados,
+      contatos: [
+        {
+          id: MARIA_ID,
+          nome: "Maria",
+          telefone: "11999990000",
+          email: "",
+          donoSetor: "simples_nacional",
+        },
+        {
+          id: PAULO_ID,
+          nome: "Paulo",
+          telefone: "",
+          email: "paulo@exemplo.com",
+          donoSetor: "rh",
+          setores: ["simples_nacional"],
+        },
+      ],
+      tiposDeEnvio: [
+        { slug: "das", rotulo: "DAS" },
+        { slug: "avisos", rotulo: "Avisos" },
+      ],
+      destinos: [{ id: "d1", contatoId: MARIA_ID, tipo: "das", canal: "whatsapp" }],
+    };
+
+    beforeEach(() => {
+      definirTiposMock.mockReset();
+      salvarContatoMock.mockReset();
+    });
+
+    const abrir = (ator = FUNCIONARIO_SN) =>
+      render(
+        <EditarCadastroOperacionalContainer dados={dadosComEnvios} ator={ator} readOnly={false} />,
+      );
+
+    it("cada contato mostra, só em leitura, o que já recebe; Editar e lixeira ficam na linha do dono", () => {
+      abrir();
+
+      const maria = screen.getByRole("group", { name: "Envios do contato 1" });
+      expect(within(maria).getByLabelText("DAS")).toBeChecked();
+      expect(within(maria).getByLabelText("DAS")).toBeDisabled();
+      expect(within(maria).getByLabelText("Avisos")).not.toBeChecked();
+      expect(screen.getByRole("button", { name: "Editar contato 1" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Remover contato 1" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Adicionar contato" })).toBeInTheDocument();
+      expect(screen.queryByText("Destinos de envio")).toBeNull();
+    });
+
+    it("contato de outro Setor: campos só de leitura, lixeira só deixa de usar; o Setor edita os envios dele", async () => {
+      definirTiposMock.mockResolvedValue(ok(undefined));
+      const usuario = userEvent.setup();
+      abrir();
+
+      expect(screen.queryByRole("button", { name: "Remover contato 2" })).toBeNull();
+      await usuario.click(screen.getByRole("button", { name: "Editar contato 2" }));
+      const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
+      expect(nomes[1]).toHaveAttribute("readonly");
+      const paulo = screen.getByRole("group", { name: "Envios do contato 2" });
+      await usuario.click(within(paulo).getByLabelText("Avisos"));
+      await usuario.click(screen.getByRole("button", { name: "Salvar contato 2" }));
+
+      await waitFor(() =>
+        expect(definirTiposMock).toHaveBeenCalledWith({
+          clienteId: dados.id,
+          contatoId: PAULO_ID,
+          tipos: ["avisos"],
+        }),
+      );
+      expect(salvarContatoMock).not.toHaveBeenCalled();
+      expect(await screen.findByRole("button", { name: "Editar contato 2" })).toBeInTheDocument();
+      expect(within(paulo).getByLabelText("Avisos")).toBeChecked();
+    });
+
+    it("contato com os dois canais: pede por onde enviar e grava com o canal escolhido", async () => {
+      definirTiposMock.mockResolvedValue(ok(undefined));
+      const RITA_ID = "33333333-3333-4333-8333-333333333333";
+      const usuario = userEvent.setup();
+      render(
+        <EditarCadastroOperacionalContainer
+          dados={{
+            ...dadosComEnvios,
+            contatos: [
+              {
+                id: RITA_ID,
+                nome: "Rita",
+                telefone: "11999991111",
+                email: "rita@exemplo.com",
+                donoSetor: "simples_nacional",
+              },
+            ],
+            destinos: [],
+          }}
+          ator={FUNCIONARIO_SN}
+          readOnly={false}
+        />,
+      );
+
+      await usuario.click(screen.getByRole("button", { name: "Editar contato 1" }));
+      const rita = screen.getByRole("group", { name: "Envios do contato 1" });
+      expect(screen.queryByLabelText(/^Enviar por/)).toBeNull();
+      await usuario.click(within(rita).getByLabelText("Avisos"));
+      await usuario.click(screen.getByRole("button", { name: "Salvar contato 1" }));
+
+      expect(
+        await screen.findByText("Escolha por onde enviar a este contato."),
+      ).toBeInTheDocument();
+      expect(definirTiposMock).not.toHaveBeenCalled();
+      await usuario.selectOptions(screen.getByLabelText(/^Enviar por/), "E-mail");
+      await usuario.click(screen.getByRole("button", { name: "Salvar contato 1" }));
+
+      await waitFor(() =>
+        expect(definirTiposMock).toHaveBeenCalledWith({
+          clienteId: dados.id,
+          contatoId: RITA_ID,
+          tipos: ["avisos"],
+          canal: "email",
+        }),
+      );
+      expect(await screen.findByText(/Enviar por:\s*E-mail/)).toBeInTheDocument();
+    });
+
+    it("linha nova: o número digitado que já é de um contato do Cliente avisa ao sair do campo, e 'Usar este contato' o escolhe", async () => {
+      const usuario = userEvent.setup();
+      const BIA_ID = "33333333-3333-4333-8333-333333333333";
+      render(
+        <EditarCadastroOperacionalContainer
+          dados={{
+            ...dadosComEnvios,
+            contatos: [
+              ...dadosComEnvios.contatos,
+              {
+                id: BIA_ID,
+                nome: "Bia",
+                telefone: "11977770000",
+                email: "",
+                donoSetor: "rh",
+              },
+            ],
+          }}
+          ator={FUNCIONARIO_SN}
+          readOnly={false}
+        />,
+      );
+
+      await usuario.click(screen.getByRole("button", { name: "Adicionar contato" }));
+      await usuario.selectOptions(screen.getByLabelText(/^Nome/, { selector: "select" }), [
+        "__novo__",
+      ]);
+      const telefone = screen.getAllByLabelText("WhatsApp").at(-1) as HTMLElement;
+      await usuario.type(telefone, "11999990000");
+      await usuario.tab();
+      expect(
+        screen.getByText("Este número já é do contato Maria, que já está na lista deste Setor."),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Usar este contato" })).toBeNull();
+
+      await usuario.clear(telefone);
+      await usuario.type(telefone, "11977770000");
+      await usuario.tab();
+      expect(screen.getByText("Este número já é do contato Bia.")).toBeInTheDocument();
+      await usuario.click(screen.getByRole("button", { name: "Usar este contato" }));
+
+      expect(await screen.findByRole("group", { name: "Envios do contato 3" })).toBeInTheDocument();
+      expect(screen.queryByText("Este número já é do contato Bia.")).toBeNull();
+    });
+
+    it("editar o contato do Setor grava o contato e os envios juntos no Salvar da linha", async () => {
+      salvarContatoMock.mockResolvedValue({ ok: true, value: { id: MARIA_ID } });
+      definirTiposMock.mockResolvedValue(ok(undefined));
+      const usuario = userEvent.setup();
+      abrir();
+
+      await usuario.click(screen.getByRole("button", { name: "Editar contato 1" }));
+      await usuario.type(screen.getAllByLabelText(/^Nome/)[0], " Silva");
+      await usuario.click(
+        within(screen.getByRole("group", { name: "Envios do contato 1" })).getByLabelText(
+          "Todos os envios",
+        ),
+      );
+      await usuario.click(screen.getByRole("button", { name: "Salvar contato 1" }));
+
+      await waitFor(() =>
+        expect(definirTiposMock).toHaveBeenCalledWith({
+          clienteId: dados.id,
+          contatoId: MARIA_ID,
+          tipos: ["todos", "das", "avisos"],
+        }),
+      );
+      expect(salvarContatoMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contato: expect.objectContaining({ id: MARIA_ID, nome: "Maria Silva" }),
+        }),
+      );
+    });
+
+    it("Cancelar desfaz o que se marcou e não chama o servidor", async () => {
+      const usuario = userEvent.setup();
+      abrir();
+
+      await usuario.click(screen.getByRole("button", { name: "Editar contato 1" }));
+      const maria = screen.getByRole("group", { name: "Envios do contato 1" });
+      await usuario.click(within(maria).getByLabelText("Avisos"));
+      expect(within(maria).getByLabelText("Todos os envios")).toBeChecked();
+      await usuario.click(screen.getByRole("button", { name: "Cancelar edição do contato 1" }));
+
+      expect(within(maria).getByLabelText("Avisos")).not.toBeChecked();
+      expect(within(maria).getByLabelText("Todos os envios")).not.toBeChecked();
+      expect(definirTiposMock).not.toHaveBeenCalled();
+    });
+
+    it("falha do servidor ao salvar os envios aparece na linha e ela segue em edição", async () => {
+      definirTiposMock.mockResolvedValue(err(new ForbiddenError("Sem permissão.")));
+      const usuario = userEvent.setup();
+      abrir();
+
+      await usuario.click(screen.getByRole("button", { name: "Editar contato 1" }));
+      await usuario.click(
+        within(screen.getByRole("group", { name: "Envios do contato 1" })).getByLabelText("DAS"),
+      );
+      await usuario.click(screen.getByRole("button", { name: "Salvar contato 1" }));
+
+      expect(await screen.findByText("Sem permissão.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Salvar contato 1" })).toBeInTheDocument();
+    });
+
+    it("linha em edição segura o Salvar do cadastro, com o motivo", async () => {
+      const usuario = userEvent.setup();
+      abrir();
+
+      await usuario.click(screen.getByRole("button", { name: "Editar contato 1" }));
+
+      expect(screen.getByRole("button", { name: /^Salvar$/ })).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+      expect(
+        screen.getByText("Salve ou cancele a edição do contato 1 para salvar o cadastro."),
+      ).toBeInTheDocument();
+    });
+
+    it("avisa quando o contato deixou de ter o canal que o envio usa", async () => {
+      const usuario = userEvent.setup();
+      abrir();
+
+      await usuario.click(screen.getByRole("button", { name: "Editar contato 1" }));
+      await usuario.clear(screen.getAllByLabelText("WhatsApp")[0]);
+
+      expect(await screen.findByText(/deixou de ter o WhatsApp/)).toBeInTheDocument();
+    });
+
+    it("o Admin edita e remove qualquer contato, sem checkboxes de envio", async () => {
+      const usuario = userEvent.setup();
+      abrir(ADMIN);
+
+      expect(screen.queryByRole("group", { name: /Envios do contato/ })).toBeNull();
+      expect(screen.getByRole("button", { name: "Remover contato 2" })).toBeInTheDocument();
+      await usuario.click(screen.getByRole("button", { name: "Editar contato 2" }));
+      const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
+      expect(nomes[1]).not.toHaveAttribute("readonly");
+    });
+  });
+
   it("DAS: 'Enviado' não é opção escolhível; a data de envio é sempre só leitura e desativada (#108)", () => {
-    render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
+    render(<EditarCadastroOperacionalContainer dados={dados} ator={ADMIN} readOnly={false} />);
 
     expect(screen.queryByRole("option", { name: "Enviado" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("DAS")).toBeEnabled();
@@ -343,6 +598,7 @@ describe("EditarCadastroOperacionalContainer", () => {
     render(
       <EditarCadastroOperacionalContainer
         dados={{ ...dados, dasStatus: "enviado", dataEnvioDas: "2026-10-05" }}
+        ator={ADMIN}
         readOnly={false}
       />,
     );
@@ -355,7 +611,7 @@ describe("EditarCadastroOperacionalContainer", () => {
   });
 
   it("modo readOnly não oferece adicionar nem remover contato", () => {
-    render(<EditarCadastroOperacionalContainer dados={dados} readOnly />);
+    render(<EditarCadastroOperacionalContainer dados={dados} ator={ADMIN} readOnly />);
 
     expect(screen.getByLabelText(/^Nome/, { selector: "input" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Adicionar contato" })).not.toBeInTheDocument();
@@ -363,7 +619,7 @@ describe("EditarCadastroOperacionalContainer", () => {
   });
 
   it("editando, adicionar e remover contato continuam disponíveis", () => {
-    render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
+    render(<EditarCadastroOperacionalContainer dados={dados} ator={ADMIN} readOnly={false} />);
 
     expect(screen.getByRole("button", { name: "Adicionar contato" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Remover contato 1" })).toBeEnabled();
@@ -373,7 +629,7 @@ describe("EditarCadastroOperacionalContainer", () => {
     const client = new QueryClient();
     const html = renderToString(
       <QueryClientProvider client={client}>
-        <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />
+        <EditarCadastroOperacionalContainer dados={dados} ator={ADMIN} readOnly={false} />
       </QueryClientProvider>,
     );
 
@@ -383,14 +639,14 @@ describe("EditarCadastroOperacionalContainer", () => {
 
   it("depois de hidratar, o formulário fica visível", () => {
     const { container } = render(
-      <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />,
+      <EditarCadastroOperacionalContainer dados={dados} ator={ADMIN} readOnly={false} />,
     );
 
     expect(container.querySelector("form")).not.toHaveClass("rc-oculto-ate-hidratar");
   });
 
   it("Empresa, CNPJ, Regime e Responsável têm rótulo ligado ao campo e estão desativados", () => {
-    render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
+    render(<EditarCadastroOperacionalContainer dados={dados} ator={ADMIN} readOnly={false} />);
 
     for (const [rotulo, valor] of [
       ["Empresa", "Padaria Pão Quente Ltda"],
@@ -406,7 +662,7 @@ describe("EditarCadastroOperacionalContainer", () => {
 
   it("explica por que a data de envio e o DAS enviado estão travados", () => {
     const { unmount } = render(
-      <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />,
+      <EditarCadastroOperacionalContainer dados={dados} ator={ADMIN} readOnly={false} />,
     );
 
     expect(screen.getByLabelText(/data de envio/i)).toHaveAccessibleDescription(
@@ -419,6 +675,7 @@ describe("EditarCadastroOperacionalContainer", () => {
     render(
       <EditarCadastroOperacionalContainer
         dados={{ ...dados, dasStatus: "enviado", dataEnvioDas: "2026-10-05" }}
+        ator={ADMIN}
         readOnly={false}
       />,
     );
@@ -431,6 +688,7 @@ describe("EditarCadastroOperacionalContainer", () => {
     render(
       <EditarCadastroOperacionalContainer
         dados={{ ...dados, dasStatus: "enviado", dataEnvioDas: "2026-10-05" }}
+        ator={ADMIN}
         readOnly={false}
       />,
     );
@@ -445,7 +703,7 @@ describe("EditarCadastroOperacionalContainer", () => {
 
   it("'Limpar' desfaz uma edição não salva, voltando ao valor carregado do servidor", async () => {
     const usuario = userEvent.setup();
-    render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
+    render(<EditarCadastroOperacionalContainer dados={dados} ator={ADMIN} readOnly={false} />);
 
     await usuario.clear(screen.getByLabelText(/observações gerais/i));
     await usuario.type(screen.getByLabelText(/observações gerais/i), "Rascunho não salvo.");
@@ -458,7 +716,7 @@ describe("EditarCadastroOperacionalContainer", () => {
   it("submete os dados editados e mostra confirmação", async () => {
     executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
     const usuario = userEvent.setup();
-    render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
+    render(<EditarCadastroOperacionalContainer dados={dados} ator={ADMIN} readOnly={false} />);
 
     await usuario.clear(screen.getByLabelText(/observações gerais/i));
     await usuario.type(screen.getByLabelText(/observações gerais/i), "Atualizado.");
@@ -488,7 +746,9 @@ describe("EditarCadastroOperacionalContainer", () => {
       ],
     } as CadastroOperacionalClienteDto;
     const usuario = userEvent.setup();
-    render(<EditarCadastroOperacionalContainer dados={comParcelamento} readOnly={false} />);
+    render(
+      <EditarCadastroOperacionalContainer dados={comParcelamento} ator={ADMIN} readOnly={false} />,
+    );
 
     await usuario.clear(screen.getByLabelText(/observações gerais/i));
     await usuario.type(screen.getByLabelText(/observações gerais/i), "Atualizado.");
@@ -506,6 +766,7 @@ describe("EditarCadastroOperacionalContainer", () => {
     render(
       <EditarCadastroOperacionalContainer
         dados={{ ...dados, contatos: [], parcelamentos: [] }}
+        ator={ADMIN}
         readOnly={false}
       />,
     );
@@ -521,11 +782,15 @@ describe("EditarCadastroOperacionalContainer", () => {
   it("linha de Contato preenchida pela metade acusa o erro na linha certa", async () => {
     const usuario = userEvent.setup();
     render(
-      <EditarCadastroOperacionalContainer dados={{ ...dados, contatos: [] }} readOnly={false} />,
+      <EditarCadastroOperacionalContainer
+        dados={{ ...dados, contatos: [] }}
+        ator={ADMIN}
+        readOnly={false}
+      />,
     );
 
     await usuario.type(screen.getByLabelText(/^nome/i), "Maria");
-    await usuario.click(screen.getByRole("button", { name: /^salvar$/i }));
+    await usuario.click(screen.getByRole("button", { name: "Salvar contato 1" }));
 
     expect(await screen.findByText("Informe o WhatsApp ou o e-mail")).toBeInTheDocument();
     expect(executeMock).not.toHaveBeenCalled();
@@ -535,7 +800,11 @@ describe("EditarCadastroOperacionalContainer", () => {
     salvarContatoMock.mockResolvedValue({ ok: true, value: { id: "novo-id" } });
     const usuario = userEvent.setup();
     render(
-      <EditarCadastroOperacionalContainer dados={{ ...dados, contatos: [] }} readOnly={false} />,
+      <EditarCadastroOperacionalContainer
+        dados={{ ...dados, contatos: [] }}
+        ator={ADMIN}
+        readOnly={false}
+      />,
     );
 
     expect(screen.queryByRole("button", { name: /remover contato/i })).not.toBeInTheDocument();
@@ -544,9 +813,13 @@ describe("EditarCadastroOperacionalContainer", () => {
     await usuario.click(screen.getByRole("button", { name: "Salvar contato 1" }));
 
     expect(await screen.findByRole("button", { name: "Remover contato 1" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^nome/i)).toHaveAttribute("readonly");
     expect(screen.getByText("Contato 1 salvo.")).toHaveAttribute("aria-live", "polite");
-    expect(screen.getByLabelText(/^nome/i)).toHaveFocus();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Editar contato 1" })).toHaveFocus(),
+    );
     expect(screen.queryByRole("button", { name: "Salvar contato 1" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancelar edição do contato 1" })).toBeNull();
     expect(salvarContatoMock).toHaveBeenCalledWith(
       expect.objectContaining({
         clienteId: dados.id,
@@ -559,7 +832,11 @@ describe("EditarCadastroOperacionalContainer", () => {
   it("Salvar com a linha incompleta acusa o erro e não grava", async () => {
     const usuario = userEvent.setup();
     render(
-      <EditarCadastroOperacionalContainer dados={{ ...dados, contatos: [] }} readOnly={false} />,
+      <EditarCadastroOperacionalContainer
+        dados={{ ...dados, contatos: [] }}
+        ator={ADMIN}
+        readOnly={false}
+      />,
     );
 
     await usuario.type(screen.getByLabelText(/^nome/i), "Joana");
@@ -569,15 +846,19 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(salvarContatoMock).not.toHaveBeenCalled();
   });
 
-  it("Limpar zera a linha nova para o padrão", async () => {
+  it("Cancelar na única linha nova a esvazia", async () => {
     const usuario = userEvent.setup();
     render(
-      <EditarCadastroOperacionalContainer dados={{ ...dados, contatos: [] }} readOnly={false} />,
+      <EditarCadastroOperacionalContainer
+        dados={{ ...dados, contatos: [] }}
+        ator={ADMIN}
+        readOnly={false}
+      />,
     );
 
     await usuario.type(screen.getByLabelText(/^nome/i), "Joana");
     await usuario.type(screen.getByLabelText(/e-mail/i), "joana@exemplo.com");
-    await usuario.click(screen.getByRole("button", { name: "Limpar contato 1" }));
+    await usuario.click(screen.getByRole("button", { name: "Cancelar edição do contato 1" }));
 
     expect(screen.getByLabelText(/^nome/i)).toHaveValue("");
     expect(screen.getByLabelText(/e-mail/i)).toHaveValue("");
@@ -587,7 +868,7 @@ describe("EditarCadastroOperacionalContainer", () => {
   it("Promise rejeitada da Server Action não prende o botão em 'Salvando…'", async () => {
     executeMock.mockRejectedValue(new Error("falha de rede"));
     const usuario = userEvent.setup();
-    render(<EditarCadastroOperacionalContainer dados={dados} readOnly={false} />);
+    render(<EditarCadastroOperacionalContainer dados={dados} ator={ADMIN} readOnly={false} />);
 
     await usuario.click(screen.getByRole("button", { name: /salvar/i }));
 
@@ -603,6 +884,7 @@ describe("EditarCadastroOperacionalContainer", () => {
     render(
       <EditarCadastroOperacionalContainer
         dados={dados}
+        ator={ADMIN}
         readOnly={false}
         aoSalvar={{ tipo: "voltar", href: "/clientes/resumo/sem_documento" }}
       />,
@@ -624,6 +906,7 @@ describe("EditarCadastroOperacionalContainer", () => {
     render(
       <EditarCadastroOperacionalContainer
         dados={dados}
+        ator={ADMIN}
         readOnly={false}
         aoSalvar={{ tipo: "fechar", executar: aoSalvarComSucesso }}
       />,
@@ -637,7 +920,7 @@ describe("EditarCadastroOperacionalContainer", () => {
   });
 
   it("cliente não encontrado: mostra mensagem em vez do formulário", () => {
-    render(<EditarCadastroOperacionalContainer dados={null} readOnly={false} />);
+    render(<EditarCadastroOperacionalContainer dados={null} ator={ADMIN} readOnly={false} />);
 
     expect(screen.getByText(/cliente não encontrado/i)).toBeInTheDocument();
   });

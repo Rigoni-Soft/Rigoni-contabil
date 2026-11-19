@@ -11,6 +11,7 @@ import { EditarCadastroRhForm } from "@/presentation/components/organisms/editar
 import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { CadastroRhClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import { SETOR_RH } from "@/shared/kernel/setores";
 
 import { guiasDaParcela } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
 import {
@@ -19,8 +20,10 @@ import {
   mensagemDeFalhaDeEtapa,
   parcelamentoNovo,
   reposicionarErros,
+  semChaves,
 } from "../editar-cadastro-operacional/editar-cadastro-operacional.presenter";
-import { useContatosDaLinha } from "../editar-cadastro-operacional/use-contatos-da-linha.hook";
+import { contatosIniciais } from "../editar-cadastro-operacional/tipos-de-envio.presenter";
+import { useContatosDoCadastro } from "../editar-cadastro-operacional/use-contatos-do-cadastro.hook";
 import { useParcelamentosDoCadastro } from "../editar-cadastro-operacional/use-parcelamentos-do-cadastro.hook";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
@@ -29,12 +32,13 @@ import { editarCadastroRhFormSchema } from "./editar-cadastro-rh.schema";
 type Props = {
   dados: CadastroRhClienteDto | null;
   readOnly: boolean;
+  // Quem abre o cadastro: o RH define os destinos dele; o Admin só cadastra contatos (não tem Setor).
+  ator: { papel: string; setor: string };
   // De onde a tela foi aberta: depois de salvar, volta para lá.
   voltarHref: string;
   documentosContratuais?: DocumentoContratualVisivelDto[];
   // Montados no servidor e encaixados no cartão: o Responsável do RH e o acompanhamento do mês.
   responsavel?: React.ReactNode;
-  mesDoAcompanhamento?: React.ReactNode;
   acompanhamento?: React.ReactNode;
 };
 
@@ -42,9 +46,17 @@ type Valores = EditarCadastroOperacionalFormValues;
 
 // O formulário reaproveita os campos do formulário do SN (contatos e observações gerais); os do SN ficam
 // com o valor neutro e nunca são enviados.
-const valoresIniciaisDe = (dados: CadastroRhClienteDto, readOnly: boolean): Valores => ({
+const valoresIniciaisDe = (
+  dados: CadastroRhClienteDto,
+  readOnly: boolean,
+  ator: { papel: string },
+): Valores => ({
   formaEnvio: "whatsapp",
-  contatos: dados.contatos.length || readOnly ? dados.contatos : [contatoNovo()],
+  contatos: contatosIniciais(dados.contatos, dados.destinos, {
+    verTodos: ator.papel === "admin" || readOnly,
+    setor: SETOR_RH,
+    somenteLeitura: readOnly,
+  }),
   documentoObrigatorio: null,
   dasStatus: null,
   dataEnvioDas: null,
@@ -58,10 +70,10 @@ const valoresIniciaisDe = (dados: CadastroRhClienteDto, readOnly: boolean): Valo
 export function EditarCadastroRhContainer({
   dados,
   readOnly,
+  ator,
   voltarHref,
   documentosContratuais,
   responsavel,
-  mesDoAcompanhamento,
   acompanhamento,
 }: Props) {
   const router = useRouter();
@@ -74,7 +86,8 @@ export function EditarCadastroRhContainer({
   const [erroServidor, setErroServidor] = useState<string>();
   const [sucesso, setSucesso] = useState(false);
 
-  const valoresIniciais = dados ? valoresIniciaisDe(dados, readOnly) : undefined;
+  const admin = ator.papel === "admin";
+  const valoresIniciais = dados ? valoresIniciaisDe(dados, readOnly, ator) : undefined;
   const form = useForm<Valores>({
     // Valida sem as linhas de contato em branco, como o formulário do SN.
     resolver: async (valores, contexto, opcoes) => {
@@ -114,7 +127,17 @@ export function EditarCadastroRhContainer({
     formState: { errors },
   } = form;
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
-  const linhasDeContato = useContatosDaLinha({ clienteId: dados?.id ?? "", form });
+  const linhasDeContato = useContatosDoCadastro({
+    clienteId: dados?.id ?? "",
+    form,
+    campos: fields,
+    remover: remove,
+    destinos: dados?.destinos ?? [],
+    tiposDeEnvio: dados?.tiposDeEnvio ?? [],
+    setorDoCadastro: SETOR_RH,
+    admin,
+    verTodos: admin || readOnly,
+  });
   const parcelamentos = useParcelamentosDoCadastro({
     clienteId: dados?.id ?? "",
     setor: "rh",
@@ -131,7 +154,10 @@ export function EditarCadastroRhContainer({
     setErroServidor(undefined);
     setSucesso(false);
     try {
-      const { contatos } = descartarLinhasEmBranco(getValues()).valores;
+      // O que o contato recebe do Setor (`tipos`, `canal`) grava por ação própria: não vai neste payload.
+      const contatos = descartarLinhasEmBranco(getValues()).valores.contatos.map((c) =>
+        semChaves(c, "tipos", "canal"),
+      );
       const resultado = await editarCadastroRhAction({
         clienteId: dados.id,
         observacoes: valores.observacoesGerais,
@@ -176,7 +202,6 @@ export function EditarCadastroRhContainer({
       oculto={!hidratado}
       contatos={fields}
       onAdicionarContato={() => append(contatoNovo())}
-      onRemoverContato={remove}
       linhasDeContato={linhasDeContato}
       parcelamentos={parcelamentos.parcelamentos}
       parcelamentoCampos={parcelamentos.parcelamentoCampos}
@@ -186,7 +211,6 @@ export function EditarCadastroRhContainer({
       onArquivoEscolhido={parcelamentos.onArquivoEscolhido}
       guiasDaParcela={guiasDaParcela}
       responsavel={responsavel}
-      mesDoAcompanhamento={mesDoAcompanhamento}
       acompanhamento={acompanhamento}
       onLimpar={() => {
         reset(valoresIniciais);

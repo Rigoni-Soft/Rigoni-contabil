@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render as renderRtl, screen, waitFor } from "@testing-library/react";
+import { render as renderRtl, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { CadastroRhClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
@@ -7,6 +7,7 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok } from "@/shared/kernel/result";
 
+import { cadastroRhDeTeste } from "../../../../../../test-support/cadastro-de-teste";
 import { salvarParcelamentosAction } from "../editar-cadastro-operacional/salvar-parcelamentos.actions";
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
 import { EditarCadastroRhContainer } from "./editar-cadastro-rh.container";
@@ -28,18 +29,19 @@ jest.mock("next/navigation", () => ({
 const executeMock = jest.fn();
 jest.mock("@/main/clientes.factory", () => ({
   makeEditarCadastroRhCliente: () => ({ execute: executeMock }),
+  makeDefinirTiposDeEnvioDoContato: () => ({ execute: jest.fn() }),
   makeListarDocumentosContratuaisCliente: () => ({ execute: async () => ok([]) }),
   makeObterLinkDocumentoContratual: () => ({ execute: jest.fn() }),
 }));
 
-const dados: CadastroRhClienteDto = {
-  id: "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d",
-  empresa: "Padaria Pão Quente Ltda",
+// O Admin só cadastra contatos (sem Setor, não define destinos): os testes de contatos e do resto do cadastro.
+const ADMIN = { papel: "admin", setor: "administrativo" };
+
+const dados: CadastroRhClienteDto = cadastroRhDeTeste({
   cnpj: "11.444.777/0001-61",
   contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", email: "" }],
   observacoes: "Folha no 5º dia útil.",
-  parcelamentos: [],
-};
+});
 
 function render(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -47,7 +49,15 @@ function render(ui: React.ReactElement) {
 }
 
 const montar = (props: Partial<React.ComponentProps<typeof EditarCadastroRhContainer>> = {}) =>
-  render(<EditarCadastroRhContainer dados={dados} readOnly={false} voltarHref="/rh" {...props} />);
+  render(
+    <EditarCadastroRhContainer
+      dados={dados}
+      ator={ADMIN}
+      readOnly={false}
+      voltarHref="/rh"
+      {...props}
+    />,
+  );
 
 describe("EditarCadastroRhContainer", () => {
   beforeEach(() => {
@@ -155,6 +165,103 @@ describe("EditarCadastroRhContainer", () => {
 
     expect(await screen.findByText(new RegExp(texto))).toBeInTheDocument();
     expect(routerPush).not.toHaveBeenCalled();
+  });
+
+  describe("o que cada contato recebe do RH", () => {
+    const FUNCIONARIO_RH = { papel: "funcionario", setor: "rh" };
+    const dadosComEnvios: CadastroRhClienteDto = {
+      ...dados,
+      contatos: [
+        { id: "c1", nome: "Maria", telefone: "11999990000", email: "", donoSetor: "rh" },
+        {
+          id: "c2",
+          nome: "Paulo",
+          telefone: "",
+          email: "paulo@exemplo.com",
+          donoSetor: "simples_nacional",
+          setores: ["rh"],
+        },
+      ],
+      tiposDeEnvio: [
+        { slug: "guia_parcelamento", rotulo: "Guia de parcelamento" },
+        { slug: "avisos", rotulo: "Avisos" },
+      ],
+      destinos: [{ id: "d1", contatoId: "c1", tipo: "guia_parcelamento", canal: "whatsapp" }],
+    };
+
+    it("linha nova: o número que já é de um contato da lista do RH avisa ao sair do campo", async () => {
+      const usuario = userEvent.setup();
+      montar({ dados: dadosComEnvios, ator: FUNCIONARIO_RH });
+
+      await usuario.click(await screen.findByRole("button", { name: "Adicionar contato" }));
+      const telefone = screen.getAllByLabelText("WhatsApp").at(-1) as HTMLElement;
+      await usuario.type(telefone, "11999990000");
+      await usuario.tab();
+
+      expect(
+        screen.getByText("Este número já é do contato Maria, que já está na lista deste Setor."),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Usar este contato" })).toBeNull();
+    });
+
+    it("cada contato tem os checkboxes do catálogo do RH, com o que já recebe marcado", async () => {
+      montar({ dados: dadosComEnvios, ator: FUNCIONARIO_RH });
+
+      const maria = await screen.findByRole("group", { name: "Envios do contato 1" });
+      expect(within(maria).getByLabelText("Guia de parcelamento")).toBeChecked();
+      expect(within(maria).getByLabelText("Avisos")).not.toBeChecked();
+      expect(within(maria).queryByLabelText("DAS")).toBeNull();
+      expect(screen.getByRole("button", { name: "Adicionar contato" })).toBeInTheDocument();
+    });
+
+    it("contato de outro Setor: campos só de leitura mesmo editando, lixeira só deixa de usar; os envios seguem do RH", async () => {
+      montar({ dados: dadosComEnvios, ator: FUNCIONARIO_RH });
+      await userEvent
+        .setup()
+        .click(await screen.findByRole("button", { name: "Editar contato 2" }));
+      expect(screen.queryByRole("button", { name: "Remover contato 2" })).toBeNull();
+      expect(screen.getByRole("group", { name: "Envios do contato 2" })).toBeInTheDocument();
+
+      const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
+      expect(nomes[1]).toHaveAttribute("readonly");
+    });
+
+    it("contato com os dois canais traz o canal já escolhido e o RH o troca", async () => {
+      const usuario = userEvent.setup();
+      montar({
+        dados: {
+          ...dadosComEnvios,
+          contatos: [
+            {
+              id: "c1",
+              nome: "Maria",
+              telefone: "11999990000",
+              email: "maria@exemplo.com",
+              donoSetor: "rh",
+            },
+          ],
+          destinos: [{ id: "d1", contatoId: "c1", tipo: "avisos", canal: "whatsapp" }],
+        },
+        ator: FUNCIONARIO_RH,
+      });
+
+      expect(await screen.findByText(/Enviar por:\s*WhatsApp/)).toBeInTheDocument();
+      await usuario.click(screen.getByRole("button", { name: "Editar contato 1" }));
+      const select = screen.getByLabelText(/^Enviar por/);
+      expect(select).toHaveValue("whatsapp");
+      await usuario.selectOptions(select, "WhatsApp e E-mail");
+      expect(select).toHaveValue("whatsapp_e_email");
+    });
+
+    it("o Admin edita qualquer contato, sem checkboxes", async () => {
+      montar({ dados: dadosComEnvios, ator: ADMIN });
+
+      expect(await screen.findByRole("button", { name: "Adicionar contato" })).toBeInTheDocument();
+      expect(screen.queryByRole("group", { name: /Envios do contato/ })).toBeNull();
+      await userEvent.setup().click(screen.getByRole("button", { name: "Editar contato 2" }));
+      const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
+      expect(nomes[1]).not.toHaveAttribute("readonly");
+    });
   });
 
   it("somente leitura não oferece Salvar", async () => {

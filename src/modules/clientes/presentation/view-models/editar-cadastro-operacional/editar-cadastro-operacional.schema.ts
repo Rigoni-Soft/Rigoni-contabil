@@ -14,6 +14,9 @@ export const contatoSchema = z
     telefone: z.string(),
     // O número como veio do banco: o DDD só é cobrado de número novo ou trocado.
     telefoneOriginal: z.string().optional(),
+    // Setor dono do contato (null = Admin): a tela deixa em leitura o que é de outro Setor. Nunca vai
+    // ao banco: só o dono e o Admin gravam, e quem decide é a RLS.
+    donoSetor: z.string().nullable().optional(),
     email: z
       .string()
       .refine(
@@ -152,5 +155,12 @@ export const editarCadastroOperacionalFormSchema = editarCadastroOperacionalSche
 // fora do tipo, o RHF não ganha mais um caminho (`contatos.N.telefoneOriginal`) e os hooks de Control seguem compatíveis.
 type ValoresDoSchema = z.infer<typeof editarCadastroOperacionalFormSchema>;
 export type EditarCadastroOperacionalFormValues = Omit<ValoresDoSchema, "contatos"> & {
-  contatos: Omit<ValoresDoSchema["contatos"][number], "telefoneOriginal">[];
+  // `tipos` (o que o contato recebe do Setor) é estado da linha: grava por ação própria e nunca vai no payload do cadastro.
+  contatos: (Omit<ValoresDoSchema["contatos"][number], "telefoneOriginal"> & {
+    tipos?: string[];
+    // Por onde o Setor envia ao contato com os dois canais ("" = não escolhido); também grava com os `tipos`.
+    canal?: string;
+    // Os Setores que usam o contato (vem do servidor): decide quem o vê na lista do Setor.
+    setores?: readonly string[];
+  })[];
 };

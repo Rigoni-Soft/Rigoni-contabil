@@ -16,6 +16,7 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
+import { cadastroOperacionalDeTeste } from "../../../../../test-support/cadastro-de-teste";
 import { AtribuirResponsavelCliente } from "./atribuir-responsavel-cliente.use-case";
 
 const CLIENTE_ID = "11111111-1111-1111-1111-111111111111";
@@ -23,22 +24,7 @@ const FUNC_ID = "22222222-2222-2222-2222-222222222222";
 const OUTRO_FUNC_ID = "33333333-3333-3333-3333-333333333333";
 
 function cadastro(regime = "simples_nacional"): CadastroOperacionalClienteDto {
-  return {
-    id: CLIENTE_ID,
-    empresa: "Padaria Pão Quente Ltda",
-    cnpj: "11444777000161",
-    regime,
-    formaEnvio: "whatsapp",
-    contatos: [],
-    documentoObrigatorio: null,
-    dasStatus: null,
-    dataEnvioDas: null,
-    parcelamentos: [],
-    observacoesGerais: "",
-    atividadeMes: { industria: false, comercio: false, servico: false },
-    responsavelId: null,
-    responsavelNome: null,
-  };
+  return cadastroOperacionalDeTeste({ id: CLIENTE_ID, regime });
 }
 
 class SessaoFalsa implements SessaoPort {

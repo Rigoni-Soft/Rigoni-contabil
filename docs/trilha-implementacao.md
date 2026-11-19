@@ -40,9 +40,9 @@ As quatro entregas da spec (Dados, Cadastro, Envios e aviso, Recepção) vão **
 
 ### Etapa B2: Cadastro
 
-- [ ] **PR B3: Campo de contatos e destinos no SN, no RH e no Admin** (depende do #292, na PR B2)
-  - [ ] #293 (ambas): "editar cadastro" do SN com contatos e destinos por Setor (bloqueado por #292)
-  - [ ] #294 (frontend): mesmo campo no Cadastro do Cliente do RH e no Admin (bloqueado por #293)
+- [x] **PR B3: Campo de contatos e destinos no SN, no RH e no Admin** (depende do #292, na PR B2)
+  - [x] #293 (ambas): "editar cadastro" do SN com contatos e destinos por Setor (bloqueado por #292)
+  - [x] #294 (frontend): mesmo campo no Cadastro do Cliente do RH e no Admin (bloqueado por #293)
 
 ### Etapa B3: Envios e aviso
 

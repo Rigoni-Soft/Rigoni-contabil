@@ -1,16 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { useForm } from "react-hook-form";
 
+import { LINHAS_DE_CONTATO_DE_TESTE } from "../../../../test-support/linhas-de-contato-de-teste";
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
 import { EditarCadastroRhForm } from "./editar-cadastro-rh-form.component";
-
-const LINHAS_DE_CONTATO = {
-  salvos: [],
-  salvando: null,
-  erroDaLinha: () => undefined,
-  onSalvar: jest.fn(),
-  onLimpar: jest.fn(),
-};
 
 // Props dos Parcelamentos do RH, sem nenhum cadastrado.
 const SEM_PARCELAMENTOS = {
@@ -29,7 +22,6 @@ function Montado({
   readOnly: boolean;
   extras?: {
     responsavel?: React.ReactNode;
-    mesDoAcompanhamento?: React.ReactNode;
     acompanhamento?: React.ReactNode;
   };
 }) {
@@ -47,8 +39,7 @@ function Montado({
       readOnly={readOnly}
       contatos={[]}
       onAdicionarContato={jest.fn()}
-      onRemoverContato={jest.fn()}
-      linhasDeContato={LINHAS_DE_CONTATO}
+      linhasDeContato={LINHAS_DE_CONTATO_DE_TESTE}
       onLimpar={jest.fn()}
       {...SEM_PARCELAMENTOS}
       {...extras}
@@ -104,8 +95,7 @@ describe("EditarCadastroRhForm", () => {
           readOnly={false}
           contatos={[]}
           onAdicionarContato={jest.fn()}
-          onRemoverContato={jest.fn()}
-          linhasDeContato={LINHAS_DE_CONTATO}
+          linhasDeContato={LINHAS_DE_CONTATO_DE_TESTE}
           onLimpar={jest.fn()}
           {...SEM_PARCELAMENTOS}
         />
@@ -140,22 +130,5 @@ describe("EditarCadastroRhForm", () => {
       acompanhamento.compareDocumentPosition(screen.getByText("Contatos")) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-  });
-
-  it("a nota de obrigatórios vem primeiro, depois o mês, e só então o cabeçalho do cadastro (ordem do foco)", () => {
-    render(
-      <Montado
-        readOnly={false}
-        extras={{ mesDoAcompanhamento: <a href="?mes=2026-10">Mês anterior</a> }}
-      />,
-    );
-
-    const nota = screen.getByText(/são obrigatórios/);
-    const mes = screen.getByRole("link", { name: "Mês anterior" });
-    const empresa = screen.getByLabelText("Empresa");
-    const antes = (a: Node, b: Node) =>
-      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
-    expect(antes(nota, mes)).toBeTruthy();
-    expect(antes(mes, empresa)).toBeTruthy();
   });
 });

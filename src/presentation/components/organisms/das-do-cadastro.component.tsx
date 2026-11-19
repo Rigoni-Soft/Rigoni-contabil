@@ -13,22 +13,16 @@ type Opcao = { valor: string; rotulo: string };
 type DasDoCadastroProps = {
   register: UseFormRegister<EditarCadastroOperacionalFormValues>;
   // Opções dos selects (valor/rótulo), já montadas pelo Container.
-  opcoes: { formaEnvio: Opcao[]; documento: Opcao[]; das: Opcao[] };
+  opcoes: { documento: Opcao[]; das: Opcao[] };
   // DAS já `enviado` pelo sistema: o select fica travado, exibindo o valor atual.
   dasEnviadoPeloSistema: boolean;
 };
 
-// Células da grade do fieldset: forma de envio, documento, DAS, data de envio e atividade do mês.
+// Células da grade do fieldset: documento, DAS, data de envio e atividade do mês. A forma de envio saiu
+// daqui: é o canal de cada Destino de envio.
 export function DasDoCadastro({ register, opcoes, dasEnviadoPeloSistema }: DasDoCadastroProps) {
   return (
     <>
-      <CampoDeOpcoes
-        id="formaEnvio"
-        rotulo="Forma de envio"
-        opcoes={opcoes.formaEnvio}
-        className="gap-1"
-        {...register("formaEnvio")}
-      />
       <CampoDeOpcoes
         id="documentoObrigatorio"
         rotulo="Documento recebido"

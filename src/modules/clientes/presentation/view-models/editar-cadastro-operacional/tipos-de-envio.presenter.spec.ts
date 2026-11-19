@@ -1,0 +1,194 @@
+import {
+  avisoDeCanalPerdido,
+  canalDoContato,
+  contatoDoMesmoNumero,
+  contatoEditavel,
+  contatosComTipos,
+  contatosIniciais,
+  OPCOES_DE_CANAL,
+  opcoesDeTipos,
+  textoDoNumeroRepetido,
+  tiposAposAlternar,
+  tiposDoContato,
+} from "./tipos-de-envio.presenter";
+
+const TIPOS = [
+  { slug: "das", rotulo: "DAS" },
+  { slug: "avisos", rotulo: "Avisos" },
+];
+
+describe("opcoesDeTipos", () => {
+  it("começa por 'Todos os envios' e segue o catálogo do Setor", () => {
+    expect(opcoesDeTipos(TIPOS)).toEqual([
+      { valor: "todos", rotulo: "Todos os envios" },
+      { valor: "das", rotulo: "DAS" },
+      { valor: "avisos", rotulo: "Avisos" },
+    ]);
+  });
+});
+
+describe("tiposDoContato", () => {
+  it("lista o que o contato recebe; o destino sem tipo é 'todos'", () => {
+    const destinos = [
+      { contatoId: "c-1", tipo: "das", canal: "whatsapp" },
+      { contatoId: "c-1", tipo: null, canal: "whatsapp" },
+      { contatoId: "c-2", tipo: "avisos", canal: "email" },
+    ];
+
+    expect(tiposDoContato(destinos, "c-1")).toEqual(["das", "todos"]);
+    expect(tiposDoContato(destinos, "c-3")).toEqual([]);
+    expect(tiposDoContato(destinos, undefined)).toEqual([]);
+  });
+});
+
+describe("tiposAposAlternar", () => {
+  const OPCOES = ["todos", "das", "avisos"];
+
+  it("marcar 'Todos os envios' marca todos os outros", () => {
+    expect(tiposAposAlternar([], "todos", OPCOES)).toEqual(["todos", "das", "avisos"]);
+    expect(tiposAposAlternar(["das"], "todos", OPCOES)).toEqual(["todos", "das", "avisos"]);
+  });
+
+  it("desmarcar 'Todos os envios' desmarca todos os outros", () => {
+    expect(tiposAposAlternar(["todos", "das", "avisos"], "todos", OPCOES)).toEqual([]);
+  });
+
+  it("desmarcar um dos outros desmarca o 'Todos' e mantém os demais", () => {
+    expect(tiposAposAlternar(["todos", "das", "avisos"], "avisos", OPCOES)).toEqual(["das"]);
+  });
+
+  it("marcar o último que faltava marca o 'Todos'", () => {
+    expect(tiposAposAlternar(["das"], "avisos", OPCOES)).toEqual(["todos", "das", "avisos"]);
+  });
+
+  it("marcar um só não marca o 'Todos'", () => {
+    expect(tiposAposAlternar([], "das", OPCOES)).toEqual(["das"]);
+  });
+});
+
+describe("contatosComTipos", () => {
+  it("devolve cada contato com o que ele recebe", () => {
+    const r = contatosComTipos(
+      [
+        { id: "c-1", nome: "Ana", telefone: "", email: "a@b.com" },
+        { nome: "Sem id", telefone: "", email: "" },
+      ],
+      [{ contatoId: "c-1", tipo: "das", canal: "email" }],
+    );
+
+    expect(r).toEqual([
+      { id: "c-1", nome: "Ana", telefone: "", email: "a@b.com", tipos: ["das"], canal: "" },
+      { nome: "Sem id", telefone: "", email: "", tipos: [], canal: "" },
+    ]);
+  });
+
+  it("o contato com os dois canais traz o canal que o Setor escolheu", () => {
+    const [r] = contatosComTipos(
+      [{ id: "c-1", telefone: "11999990000", email: "a@b.com" }],
+      [{ contatoId: "c-1", tipo: null, canal: "whatsapp_e_email" }],
+    );
+
+    expect(r.canal).toBe("whatsapp_e_email");
+  });
+});
+
+describe("canalDoContato", () => {
+  const destinos = [{ contatoId: "c-1", tipo: "das", canal: "whatsapp" }];
+
+  it("só o contato com os dois canais guarda o canal; sem Destino, não há escolha", () => {
+    const dois = { id: "c-1", telefone: "11999990000", email: "a@b.com" };
+
+    expect(canalDoContato(destinos, dois)).toBe("whatsapp");
+    expect(canalDoContato([], dois)).toBe("");
+    expect(canalDoContato(destinos, { ...dois, email: "" })).toBe("");
+    expect(canalDoContato(destinos, { ...dois, telefone: "" })).toBe("");
+  });
+});
+
+describe("OPCOES_DE_CANAL", () => {
+  it("lista os três canais, sem valor padrão", () => {
+    expect(OPCOES_DE_CANAL).toEqual([
+      { valor: "whatsapp", rotulo: "WhatsApp" },
+      { valor: "email", rotulo: "E-mail" },
+      { valor: "whatsapp_e_email", rotulo: "WhatsApp e E-mail" },
+    ]);
+  });
+});
+
+describe("contatosIniciais", () => {
+  it("a linha em branco que a seção abre já vem sem canal", () => {
+    const r = contatosIniciais([], [], { verTodos: false, setor: "rh", somenteLeitura: false });
+
+    expect(r).toEqual([{ nome: "", telefone: "", email: "", tipos: [], canal: "" }]);
+  });
+});
+
+describe("avisoDeCanalPerdido", () => {
+  const destinos = [{ contatoId: "c-1", tipo: "das", canal: "whatsapp_e_email" }];
+
+  it("avisa o canal que algum envio usa e o contato deixou de ter, já na tela", () => {
+    expect(avisoDeCanalPerdido(destinos, { id: "c-1", telefone: "", email: "a@b.com" })).toContain(
+      "deixou de ter o WhatsApp",
+    );
+    expect(
+      avisoDeCanalPerdido(destinos, { id: "c-1", telefone: "11999990000", email: "" }),
+    ).toContain("deixou de ter o e-mail");
+  });
+
+  it("sem aviso quando o contato mantém os canais ou não recebe nada", () => {
+    const completo = { id: "c-1", telefone: "11999990000", email: "a@b.com" };
+
+    expect(avisoDeCanalPerdido(destinos, completo)).toBeUndefined();
+    expect(avisoDeCanalPerdido(destinos, { ...completo, id: "c-9", telefone: "" })).toBeUndefined();
+  });
+});
+
+describe("contatoEditavel", () => {
+  const rh = { admin: false, setorDoCadastro: "rh" };
+
+  it("o dono edita; outro Setor e o contato do Admin ficam em leitura", () => {
+    expect(contatoEditavel({ id: "c", donoSetor: "rh" }, rh)).toBe(true);
+    expect(contatoEditavel({ id: "c", donoSetor: "simples_nacional" }, rh)).toBe(false);
+    expect(contatoEditavel({ id: "c", donoSetor: null }, rh)).toBe(false);
+  });
+
+  it("o Admin edita todos e a linha nova é de quem a digita", () => {
+    const admin = { admin: true, setorDoCadastro: "rh" };
+
+    expect(contatoEditavel({ id: "c", donoSetor: "simples_nacional" }, admin)).toBe(true);
+    expect(contatoEditavel({ donoSetor: undefined }, rh)).toBe(true);
+    expect(contatoEditavel({ id: "c", donoSetor: undefined }, rh)).toBe(true);
+  });
+});
+
+describe("contatoDoMesmoNumero", () => {
+  const contatos = [
+    { id: "c-1", nome: "Ana", telefone: "(11) 99999-0000", email: "" },
+    { id: "c-2", nome: "Bia", telefone: "", email: "bia@exemplo.com" },
+    { nome: "Nova", telefone: "(11) 98888-0000", email: "" },
+  ];
+
+  it("acha o contato salvo pela chave do número: sem máscara e sem o DDI 55", () => {
+    expect(contatoDoMesmoNumero(contatos, 2, "11999990000")?.contato.nome).toBe("Ana");
+    expect(contatoDoMesmoNumero(contatos, 2, "+55 11 99999-0000")?.indice).toBe(0);
+  });
+
+  it("ignora a própria linha, o número vazio, o número novo e a linha ainda sem id", () => {
+    expect(contatoDoMesmoNumero(contatos, 0, "(11) 99999-0000")).toBeUndefined();
+    expect(contatoDoMesmoNumero(contatos, 2, "")).toBeUndefined();
+    expect(contatoDoMesmoNumero(contatos, 2, "(11) 97777-0000")).toBeUndefined();
+    expect(contatoDoMesmoNumero(contatos, 0, "(11) 98888-0000")).toBeUndefined();
+  });
+});
+
+describe("textoDoNumeroRepetido", () => {
+  it("fora da lista só informa de quem é o número; na lista diz que o contato já está nela", () => {
+    expect(textoDoNumeroRepetido("Ana", false, true)).toBe("Este número já é do contato Ana.");
+    expect(textoDoNumeroRepetido("Ana", true, true)).toBe(
+      "Este número já é do contato Ana, que já está na lista deste Setor.",
+    );
+    expect(textoDoNumeroRepetido("Ana", true, false)).toBe(
+      "Este número já é do contato Ana, que já está na lista.",
+    );
+  });
+});

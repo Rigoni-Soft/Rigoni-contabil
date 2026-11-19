@@ -86,6 +86,43 @@ describe("Cadastro do Cliente no RH (integração)", () => {
     expect(lido.ok && lido.value?.observacoes).toBe("Nova.");
   });
 
+  it("o cadastro traz só os Destinos do RH e os tipos de envio do RH", async () => {
+    const supabase = await comoFuncionarioRH();
+    await salvar(supabase);
+    const contato = await servico
+      .from("cliente_contatos")
+      .select("id")
+      .eq("cliente_id", clienteId)
+      .single();
+    await servico.from("destinos_de_envio").insert([
+      {
+        cliente_id: clienteId,
+        setor: "rh",
+        tipo: "avisos",
+        contato_id: contato.data!.id,
+        canal: "whatsapp",
+      },
+      {
+        cliente_id: clienteId,
+        setor: "simples_nacional",
+        tipo: null,
+        contato_id: contato.data!.id,
+        canal: "whatsapp",
+      },
+    ]);
+
+    const lido = await new SupabaseClienteQueryGateway(supabase).buscarCadastroRh(clienteId);
+
+    expect(lido.ok && lido.value?.destinos).toEqual([
+      { id: expect.any(String), contatoId: contato.data!.id, tipo: "avisos", canal: "whatsapp" },
+    ]);
+    expect(lido.ok && lido.value?.tiposDeEnvio.map((t) => t.slug).sort()).toEqual([
+      "avisos",
+      "guia_parcelamento",
+    ]);
+    await servico.from("destinos_de_envio").delete().eq("cliente_id", clienteId);
+  });
+
   it("o Funcionário do RH que não é o Responsável do Cliente é recusado", async () => {
     const r = await salvar(await comoFuncionario2RH());
 

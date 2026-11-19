@@ -29,7 +29,18 @@ export type { LeituraDaLinha, ParcelamentoLinha };
 // por import; o Container (dentro do módulo) garante a compatibilidade.
 export type EditarCadastroOperacionalFormValues = {
   formaEnvio: FormaEnvioValor;
-  contatos: { id?: string; nome: string; telefone: string; email: string }[];
+  contatos: {
+    id?: string;
+    nome: string;
+    telefone: string;
+    email: string;
+    donoSetor?: string | null;
+    tipos?: string[];
+    // Por onde o Setor envia ao contato com os dois canais ("" = não escolhido).
+    canal?: string;
+    // Os Setores que usam o contato (vem do servidor): decide quem o vê na lista do Setor.
+    setores?: readonly string[];
+  }[];
   documentoObrigatorio: DocumentoObrigatorioStatusValor | null;
   dasStatus: DasStatusValor | null;
   dataEnvioDas: string | null;
@@ -54,7 +65,7 @@ type EditarCadastroOperacionalFormProps = ParcelamentosProps & {
   // DAS já `enviado` pelo sistema: a opção aparece só pra exibir o valor atual.
   dasEnviadoPeloSistema: boolean;
   // Opções dos selects de status (valor/rótulo), vindas do Container (dado de domínio fora da View).
-  opcoes: { formaEnvio: Opcao[]; documento: Opcao[]; das: Opcao[] };
+  opcoes: { documento: Opcao[]; das: Opcao[] };
   erroServidor?: string;
   sucesso?: boolean;
   // Até hidratar, os campos (não controlados) ainda não têm os valores: o HTML do servidor mostraria
@@ -63,7 +74,6 @@ type EditarCadastroOperacionalFormProps = ParcelamentosProps & {
   // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
   contatos: { id: string }[];
   onAdicionarContato: () => void;
-  onRemoverContato: (indice: number) => void;
   linhasDeContato: AcoesDasLinhasDeContato;
   onLimpar: () => void;
   // Sem callback (uso em /clientes/[id]): "Cancelar" navega pro mesmo destino
@@ -73,8 +83,6 @@ type EditarCadastroOperacionalFormProps = ParcelamentosProps & {
   onCancelar?: () => void;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura); ausente = ator sem acesso.
   documentoContratual?: React.ReactNode;
-  // O mês do acompanhamento do RH (só o Admin): o cabeçalho do cartão, logo depois da nota de obrigatórios.
-  mesDoAcompanhamento?: React.ReactNode;
 };
 
 export function EditarCadastroOperacionalForm({
@@ -94,7 +102,6 @@ export function EditarCadastroOperacionalForm({
   oculto,
   contatos,
   onAdicionarContato,
-  onRemoverContato,
   linhasDeContato,
   parcelamentoCampos,
   onAdicionarParcelamento,
@@ -104,7 +111,6 @@ export function EditarCadastroOperacionalForm({
   onLimpar,
   onCancelar,
   documentoContratual,
-  mesDoAcompanhamento,
   guiasDaParcela,
 }: EditarCadastroOperacionalFormProps) {
   return (
@@ -114,7 +120,6 @@ export function EditarCadastroOperacionalForm({
       pendente={pendente}
       readOnly={readOnly}
       oculto={oculto}
-      mesDoAcompanhamento={mesDoAcompanhamento}
       documentoContratual={documentoContratual}
       responsavel={
         <ResponsavelDoCadastro
@@ -126,7 +131,9 @@ export function EditarCadastroOperacionalForm({
       acoes={
         <AcoesDoFormulario
           pendente={pendente}
-          motivoDoBloqueio={motivoDeLeituraEmAndamento(leituras)}
+          motivoDoBloqueio={
+            motivoDeLeituraEmAndamento(leituras) ?? linhasDeContato.motivoDoBloqueio
+          }
           onLimpar={onLimpar}
           onCancelar={onCancelar}
         />
@@ -149,7 +156,6 @@ export function EditarCadastroOperacionalForm({
         readOnly={readOnly}
         contatos={contatos}
         onAdicionar={onAdicionarContato}
-        onRemover={onRemoverContato}
         linhas={linhasDeContato}
       />
 

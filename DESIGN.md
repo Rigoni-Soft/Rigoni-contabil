@@ -139,7 +139,7 @@ em monitores largos):
 
 Formulário com elevação (edição do cadastro operacional do Simples Nacional, #34):
 cartão `rounded-lg border bg-card p-5 shadow-sm` dentro do container `cadastro`, em 4 colunas
-em tela larga (Forma de envio, Documento, DAS, Data de envio na mesma linha; ver
+em tela larga (Documento, DAS, Data de envio e Atividade do mês na mesma linha; ver
 "Cadastro de Cliente e documentos contratuais").
 
 Painel de filtro: campos em grid (`grid-cols-2 sm:grid-cols-4`), e as ações
@@ -474,6 +474,32 @@ O contato novo (ainda sem `id`) tem, no lugar dela, dois botões de ícone junto
 levam `title` igual ao `aria-label`, e o Salvar mostra um spinner e `aria-busy` enquanto grava. Ao concluir, o foco
 volta ao Nome da linha e uma região `aria-live="polite"` oculta (`sr-only`) anuncia "Contato N salvo."
 ou "Contato N limpo."; a falha do servidor aparece sob a linha (`FieldError`, `role="alert"`).
+
+**Contato de outro Setor:** a linha fica só de leitura (`readOnly`, não `disabled`: o valor volta intacto no Salvar do cadastro) com o **mesmo visual dos campos travados da tela** (Empresa, CNPJ: opacidade de desabilitado e cursor `not-allowed`, vindos do `Input` readOnly), sem asterisco, sem lixeira e sem nota. Só o Setor dono e o Admin editam. Ele só aparece na lista do Setor que o cadastrou ou escolheu; os dos outros Setores ficam fora da lista e entram pelo select "Contato já cadastrado" da linha nova. Os checkboxes de envio da linha seguem editáveis: marcar é do Setor de quem abre o cadastro.
+
+**Contato já cadastrado:** na linha nova do Setor, quando outros Setores já cadastraram contatos neste Cliente, Nome, WhatsApp e E-mail são três seleções (`CampoDeOpcoes`, placeholder "Escolher contato"): cada uma lista o que esse campo tem nos contatos existentes e termina com "+ Cadastrar novo". Escolher um contato traz a linha dele para a lista, em edição, com os campos travados e os checkboxes para marcar; "Salvar" exige ao menos um envio (sem ele o contato não entra na lista do Setor) e "Cancelar" o devolve aos disponíveis. "+ Cadastrar novo" em qualquer um dos três troca os três por campos de texto, e o contato é cadastrado. Sem contatos de outros Setores, a linha nova já tem campos de texto.
+
+**Número já cadastrado:** na linha nova em campos de texto, ao sair do WhatsApp com um número que já é de outro contato do Cliente (a mesma chave do banco: dígitos sem o DDI 55; qualquer contato do formulário, até os escondidos de outros Setores), aparece sob a linha um `AvisoDeStatus` `atencao` legível (14 px, ícone e texto) ligado ao campo por `aria-describedby`: "Este número já é do contato Nome." com o botão "Usar este contato" (`outline`, 44 px em toque), que faz o mesmo que escolher o contato já cadastrado. Se o contato já está na lista, o aviso diz "...que já está na lista deste Setor." e não há botão. O aviso some quando o número muda ou fica vazio; o erro do banco no Salvar segue como rede de segurança.
+
+**Botões da linha, sempre em par e com a mesma forma e tamanho (`icon`, `size-8`, 44 px em toque):** o par positivo/negativo do ciclo de edição, "Salvar" (`primary`, verde, `Check`) e "Cancelar" (`destructive`, vermelho, `X`), e o par da visualização, "Editar" (`outline`, neutro, `Pencil`) e a lixeira (`destructive`, vermelha, `Trash2`). A cor segue a hierarquia do produto: verde para confirmar, neutro para abrir a edição, vermelho para o que descarta. No contato de outro dono a lixeira é "Deixar de usar o contato N": tira os envios do Setor na hora e o contato sai da lista dele, sem apagá-lo.
+
+**Contato (o que ele recebe):** dentro da moldura da linha, separado por uma borda de cima, o grupo
+"Envios do contato N" (`fieldset`) com o rótulo "Recebe" e um `CaixaDeMarcacao` por tipo: "Todos os
+envios" e o catálogo do Setor (SN: Lembrete de documento, DAS, Guia de parcelamento, Avisos; RH: Guia de
+parcelamento, Avisos). "Todos os envios" é o marcador geral: marcá-lo marca todos os outros, desmarcá-lo
+desmarca todos, desmarcar um dos outros o desmarca, e marcar o último que faltava o marca de volta. Quem
+tem Setor (Líder e Funcionário do SN e do RH) vê o grupo; o Admin não (não tem Setor e só cadastra contatos). Marcar ou desmarcar grava na hora e uma região `aria-live="polite"`
+oculta anuncia "DAS marcado no contato 1."; durante a gravação os checkboxes ficam `aria-disabled`, e a falha
+do servidor volta a marca e aparece na linha. Na linha ainda não salva os checkboxes ficam `disabled` com a
+dica "Salve o contato para escolher os envios." (a marca se perderia). O canal do envio sai do
+contato: com um canal só, esse (sem campo); com os dois, o select **"Enviar por"** (`CampoDeOpcoes`,
+obrigatório, placeholder "Escolher", sem valor padrão: WhatsApp, E-mail, WhatsApp e E-mail) aparece ao lado
+dos checkboxes assim que há um envio marcado, vale para todos os envios do contato e o erro "Escolha por
+onde enviar a este contato." fica ligado ao select (`aria-invalid` e descrição). Fora da edição a linha
+mostra o texto "Enviar por: WhatsApp e E-mail" (ou "não escolhido" no dado antigo), sem select
+desabilitado nem esmaecido. Quando o contato apaga o número ou o
+e-mail que um envio usa, o `AvisoDeStatus` `atencao` (14 px) aparece na linha: "O contato deixou de ter o
+WhatsApp: os envios deste Setor não saem por ele."
 
 ### Campo obrigatório e máscara de entrada
 
@@ -882,8 +908,8 @@ semibold; o avanço do mês corrente fica apagado (`muted-foreground`), sem link
 ouve "indisponível: este é o mês corrente" (a cor carrega o estado, o texto dá o motivo). O mês
 fica no centro mesmo sem próximo; no celular vai para a linha de cima. Com `destaque`, é o
 cabeçalho de um cartão: faixa `bg-muted/50` com borda e o mês em `text-lg`. Dois usos: no
-acompanhamento dos funcionários (sem destaque, solto sobre a página) e no cadastro do Cliente,
-como primeiro bloco do cartão, depois da nota de obrigatórios e sem título próprio.
+acompanhamento dos funcionários (sem destaque, solto sobre a página) e na folha de ponto (o cartão),
+com destaque. O cadastro do Cliente não a usa: mostra sempre o mês corrente, como o DAS do SN.
 
 **Acompanhamento do mês no cadastro do Cliente (`AcompanhamentoDoClienteRh`):** um `Select` por
 Serviço, numa grade `1>2>4` com o `Label` em cima, como os campos do SN. O estado muda a cor do
@@ -940,7 +966,7 @@ padrão; "Sem movimento no mês" e "Inativar empregado" ao fim. O escolhido leva
 ligado ao campo Nome, e o formulário só é limpo no sucesso. Em leitura (Líder, Admin ou outro
 Responsável) só a lista e os dados aparecem, sem formulário nem botão de escrita.
 
-A tela do quadro abre com a `NavegacaoDeMes` em destaque (a mesma do cartão: Mês anterior, o mês, Próximo mês; sem próximo no mês corrente), logo acima do formulário de leitura: o mês de referência da leitura é o que se vê, e trocá-lo não exige mexer na URL.
+A tela do quadro abre com a `NavegacaoDeMes` em destaque (Mês anterior, o mês, Próximo mês; sem próximo no mês corrente), logo acima do formulário de leitura: o mês de referência da leitura é o que se vê, e trocá-lo não exige mexer na URL.
 
 **`LeituraDeCartao` (organismo):** formulário "Ler foto do cartão de ponto", num `CartaoDaTela` acima do
 `QuadroDeFuncionarios` (só o Responsável do RH o recebe): `NotaDeObrigatorio`, o texto de apoio (a foto vira o
@@ -1377,7 +1403,7 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
   1440 px com nome de empresa de 250+ caracteres e emoji: sem rolagem horizontal no cadastro nem na
   edição.
 - **Editar cadastro operacional em 4 colunas**: cabeçalho (Empresa, CNPJ, Regime, Responsável),
-  cartão do documento, e Forma de envio, Documento recebido, DAS, Data de envio na mesma linha;
+  cartão do documento, e Documento recebido, DAS, Data de envio na mesma linha (a forma de envio é o canal de cada destino);
   parcelamento e atividade do mês em 2 colunas cada; Contatos, Observações e as ações na linha
   toda. Abaixo de `lg`, 2 colunas; no celular, 1.
 - **Navegação por abas (`ShellNav`)**: só a aba da tela aberta ganha o destaque cheio e

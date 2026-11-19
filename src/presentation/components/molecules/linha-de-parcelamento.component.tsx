@@ -9,6 +9,7 @@ import {
   type SeloDoParcelamento,
 } from "@/presentation/components/molecules/selo-do-parcelamento.component";
 import { Button } from "@/presentation/components/ui/button";
+import { BOTAO_OCUPADO } from "@/presentation/lib/botao-ocupado";
 import { cn } from "@/presentation/lib/utils";
 
 const DICA_INTERNO = "Marcado: a guia vai ao WhatsApp do financeiro, não ao Cliente.";
@@ -110,7 +111,7 @@ export function LinhaDeParcelamento({
               // aria-disabled, não disabled: o botão segue focável e o leitor de tela ouve o motivo.
               onClick={bloqueadoPorEnvio ? undefined : onRemover}
               aria-disabled={bloqueadoPorEnvio || undefined}
-              className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
+              className={BOTAO_OCUPADO}
               aria-label={`Remover parcelamento ${indice + 1}`}
               aria-describedby={bloqueadoPorEnvio ? idDoMotivo : undefined}
             >

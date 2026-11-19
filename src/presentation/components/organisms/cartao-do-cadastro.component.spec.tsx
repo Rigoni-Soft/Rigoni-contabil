@@ -10,11 +10,10 @@ const BASE = {
 };
 
 describe("CartaoDoCadastro", () => {
-  it("monta a nota, o mês, o cabeçalho, o acompanhamento, os campos, as ações e o resultado nessa ordem", () => {
+  it("monta a nota, o cabeçalho, o acompanhamento, os campos, as ações e o resultado nessa ordem", () => {
     const { container } = render(
       <CartaoDoCadastro
         {...BASE}
-        mesDoAcompanhamento={<p>Mês</p>}
         responsavel={<p>Responsável</p>}
         acompanhamento={<p>Serviços</p>}
         acoes={<button type="submit">Salvar</button>}
@@ -28,7 +27,6 @@ describe("CartaoDoCadastro", () => {
     const texto = container.textContent ?? "";
     expect(screen.getByDisplayValue("Padaria Sol")).toBeInTheDocument();
     const posicoes = [
-      "Mês",
       "Responsável",
       "Serviços",
       "Campos do Setor",

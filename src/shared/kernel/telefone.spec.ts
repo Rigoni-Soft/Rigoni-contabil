@@ -1,4 +1,17 @@
-import { telefoneAceito, telefoneTemDdd } from "./telefone";
+import { chaveDoTelefone, telefoneAceito, telefoneTemDdd } from "./telefone";
+
+describe("chaveDoTelefone", () => {
+  it("só dígitos e sem o DDI 55, como no banco", () => {
+    expect(chaveDoTelefone("(11) 99999-0000")).toBe("11999990000");
+    expect(chaveDoTelefone("+55 11 99999-0000")).toBe("11999990000");
+    expect(chaveDoTelefone("5511999990000")).toBe("11999990000");
+  });
+
+  it("número de 11 dígitos que começa com 55 (DDD 55) não perde o prefixo; sem dígitos é null", () => {
+    expect(chaveDoTelefone("55999990000")).toBe("55999990000");
+    expect(chaveDoTelefone("  ")).toBeNull();
+  });
+});
 
 describe("telefoneAceito", () => {
   it("o número gravado passa como veio, mesmo sem DDD, em qualquer formatação", () => {

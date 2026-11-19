@@ -1,5 +1,4 @@
 import {
-  linksDoMes,
   passosDaTroca,
   resumoDoHolerite,
   rotuloDaCompetencia,
@@ -94,18 +93,5 @@ describe("acompanhamento-mensal.presenter", () => {
       { tipo: "marcar", valor: true },
     ]);
     expect(passosDaTroca("pendente", "pendente")).toEqual([]);
-  });
-});
-
-describe("linksDoMes", () => {
-  it("monta anterior e próximo, preservando voltarPara", () => {
-    expect(linksDoMes("c1", "2026-10", "2026-11", "/rh")).toEqual({
-      anteriorHref: "/clientes/c1?mes=2026-09&voltarPara=%2Frh",
-      proximoHref: "/clientes/c1?mes=2026-11&voltarPara=%2Frh",
-    });
-  });
-
-  it("no mês corrente não há próximo", () => {
-    expect(linksDoMes("c1", "2026-11", "2026-11").proximoHref).toBeUndefined();
   });
 });

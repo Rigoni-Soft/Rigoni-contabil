@@ -6,24 +6,10 @@ import type { SessaoPort } from "@/modules/clientes/application/ports/out/sessao
 import type { AppError } from "@/shared/errors/app.error";
 import { ok, type Result } from "@/shared/kernel/result";
 
+import { cadastroOperacionalDeTeste } from "../../../../../test-support/cadastro-de-teste";
 import { ConsultarCadastroOperacionalCliente } from "./consultar-cadastro-operacional-cliente.use-case";
 
-const DTO: CadastroOperacionalClienteDto = {
-  id: "11111111-1111-1111-1111-111111111111",
-  empresa: "Padaria Pão Quente Ltda",
-  cnpj: "11444777000161",
-  regime: "simples_nacional",
-  formaEnvio: "whatsapp",
-  contatos: [],
-  documentoObrigatorio: null,
-  dasStatus: null,
-  dataEnvioDas: null,
-  parcelamentos: [],
-  observacoesGerais: "",
-  atividadeMes: { industria: false, comercio: false, servico: false },
-  responsavelId: null,
-  responsavelNome: null,
-};
+const DTO: CadastroOperacionalClienteDto = cadastroOperacionalDeTeste();
 
 const sessaoCom = (
   autenticado: boolean,

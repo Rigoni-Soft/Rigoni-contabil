@@ -88,6 +88,7 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
       >
         <EditarCadastroOperacionalContainer
           dados={clienteSelecionado}
+          ator={{ papel, setor }}
           readOnly={readOnly}
           podeAtribuirResponsavel={podeAtribuirResponsavel}
           onCancelar={fecharPainel}
