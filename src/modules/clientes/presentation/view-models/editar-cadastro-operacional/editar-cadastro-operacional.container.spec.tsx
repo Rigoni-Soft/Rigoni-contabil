@@ -395,6 +395,54 @@ describe("EditarCadastroOperacionalContainer", () => {
       expect(within(paulo).getByLabelText("Avisos")).toBeChecked();
     });
 
+    it("contato com os dois canais: pede por onde enviar e grava com o canal escolhido", async () => {
+      definirTiposMock.mockResolvedValue(ok(undefined));
+      const RITA_ID = "33333333-3333-4333-8333-333333333333";
+      const usuario = userEvent.setup();
+      render(
+        <EditarCadastroOperacionalContainer
+          dados={{
+            ...dadosComEnvios,
+            contatos: [
+              {
+                id: RITA_ID,
+                nome: "Rita",
+                telefone: "11999991111",
+                email: "rita@exemplo.com",
+                donoSetor: "simples_nacional",
+              },
+            ],
+            destinos: [],
+          }}
+          ator={FUNCIONARIO_SN}
+          readOnly={false}
+        />,
+      );
+
+      await usuario.click(screen.getByRole("button", { name: "Editar contato 1" }));
+      const rita = screen.getByRole("group", { name: "Envios do contato 1" });
+      expect(screen.queryByLabelText(/^Enviar por/)).toBeNull();
+      await usuario.click(within(rita).getByLabelText("Avisos"));
+      await usuario.click(screen.getByRole("button", { name: "Salvar contato 1" }));
+
+      expect(
+        await screen.findByText("Escolha por onde enviar a este contato."),
+      ).toBeInTheDocument();
+      expect(definirTiposMock).not.toHaveBeenCalled();
+      await usuario.selectOptions(screen.getByLabelText(/^Enviar por/), "E-mail");
+      await usuario.click(screen.getByRole("button", { name: "Salvar contato 1" }));
+
+      await waitFor(() =>
+        expect(definirTiposMock).toHaveBeenCalledWith({
+          clienteId: dados.id,
+          contatoId: RITA_ID,
+          tipos: ["avisos"],
+          canal: "email",
+        }),
+      );
+      expect(await screen.findByText(/Enviar por:\s*E-mail/)).toBeInTheDocument();
+    });
+
     it("editar o contato do Setor grava o contato e os envios juntos no Salvar da linha", async () => {
       salvarContatoMock.mockResolvedValue({ ok: true, value: { id: MARIA_ID } });
       definirTiposMock.mockResolvedValue(ok(undefined));

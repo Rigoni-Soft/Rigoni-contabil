@@ -3,7 +3,20 @@ import {
   formaEnvioUsaEmail,
   formaEnvioUsaWhatsapp,
   temDestinatario,
+  temOsDoisCanais,
 } from "./forma-envio";
+
+describe("temOsDoisCanais", () => {
+  it.each([
+    ["11999990000", "a@b.com", true],
+    ["11999990000", "", false],
+    ["", "a@b.com", false],
+    ["", "", false],
+    ["(11) 99999-0000", " a@b.com ", true],
+  ])("telefone '%s' e e-mail '%s': %s", (telefone, email, esperado) => {
+    expect(temOsDoisCanais({ telefone, email })).toBe(esperado);
+  });
+});
 
 describe("canalPerdidoDoDestino", () => {
   it.each([

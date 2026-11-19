@@ -31,11 +31,13 @@ const repositorioDe = async (email: string) =>
 
 let clienteId: string;
 let contatoId: string;
+let contatoComOsDoisId: string;
 
 beforeAll(async () => {
   await removerClientesDeTeste([CNPJ]);
   clienteId = crypto.randomUUID();
   contatoId = crypto.randomUUID();
+  contatoComOsDoisId = crypto.randomUUID();
   const cliente = await servico.from("clientes").insert({
     id: clienteId,
     empresa: "Tipos de envio Ltda",
@@ -57,6 +59,15 @@ beforeAll(async () => {
     dono_setor: "simples_nacional",
   });
   if (contato.error) throw contato.error;
+  const comOsDois = await servico.from("cliente_contatos").insert({
+    id: contatoComOsDoisId,
+    cliente_id: clienteId,
+    nome: "Davi Exemplo",
+    telefone: "11966660000",
+    email: "davi@exemplo.com",
+    dono_setor: "simples_nacional",
+  });
+  if (comOsDois.error) throw comOsDois.error;
 });
 
 beforeEach(async () => {
@@ -76,6 +87,15 @@ const tiposGravados = async () => {
   return data?.map((d) => d.tipo);
 };
 
+const canaisGravados = async (contato: string) => {
+  const { data } = await servico
+    .from("destinos_de_envio")
+    .select("canal")
+    .eq("cliente_id", clienteId)
+    .eq("contato_id", contato);
+  return data?.map((d) => d.canal);
+};
+
 describe("SupabaseTiposDeEnvioDoContatoRepository (integração)", () => {
   it("define e redefine os tipos do contato pelo Setor de quem chama", async () => {
     const sn = await repositorioDe("funcionario.sn@rigonicontabil.local");
@@ -86,6 +106,46 @@ describe("SupabaseTiposDeEnvioDoContatoRepository (integração)", () => {
     expect(primeiro.ok).toBe(true);
     expect(segundo.ok).toBe(true);
     expect(await tiposGravados()).toEqual(["avisos"]);
+  });
+
+  it("contato com os dois canais: sem o canal é recusado com a mensagem certa, sem gravar", async () => {
+    const sn = await repositorioDe("funcionario.sn@rigonicontabil.local");
+
+    const r = await sn.definir(clienteId, contatoComOsDoisId, ["das"]);
+
+    expect(!r.ok && r.error.message).toBe("Escolha por onde enviar ao contato.");
+    expect(await tiposGravados()).toEqual([]);
+  });
+
+  it("contato com os dois canais: grava o canal escolhido e o troca na regravação", async () => {
+    const sn = await repositorioDe("funcionario.sn@rigonicontabil.local");
+
+    const primeiro = await sn.definir(clienteId, contatoComOsDoisId, ["das", "todos"], "email");
+    expect(primeiro.ok).toBe(true);
+    expect(await canaisGravados(contatoComOsDoisId)).toEqual(["email", "email"]);
+
+    const segundo = await sn.definir(clienteId, contatoComOsDoisId, ["das", "todos"], "whatsapp");
+    expect(segundo.ok).toBe(true);
+    expect(await canaisGravados(contatoComOsDoisId)).toEqual(["whatsapp", "whatsapp"]);
+  });
+
+  it("deixar de usar (sem tipos) não pede o canal", async () => {
+    const sn = await repositorioDe("funcionario.sn@rigonicontabil.local");
+    await sn.definir(clienteId, contatoComOsDoisId, ["das"], "email");
+
+    const r = await sn.definir(clienteId, contatoComOsDoisId, []);
+
+    expect(r.ok).toBe(true);
+    expect(await tiposGravados()).toEqual([]);
+  });
+
+  it("contato com um canal só ignora o canal informado e usa o dele", async () => {
+    const sn = await repositorioDe("funcionario.sn@rigonicontabil.local");
+
+    const r = await sn.definir(clienteId, contatoId, ["das"], "email");
+
+    expect(r.ok).toBe(true);
+    expect(await canaisGravados(contatoId)).toEqual(["whatsapp"]);
   });
 
   it("quem não gere o Cliente no Setor é recusado, sem gravar", async () => {

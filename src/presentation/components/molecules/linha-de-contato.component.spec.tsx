@@ -147,6 +147,86 @@ describe("LinhaDeContato", () => {
     expect(screen.getByLabelText("DAS")).toBeDisabled();
   });
 
+  describe("Enviar por (contato com os dois canais)", () => {
+    const CANAL = {
+      opcoes: [
+        { valor: "whatsapp", rotulo: "WhatsApp" },
+        { valor: "email", rotulo: "E-mail" },
+        { valor: "whatsapp_e_email", rotulo: "WhatsApp e E-mail" },
+      ],
+      valor: "",
+      onMudar: jest.fn(),
+    };
+
+    it("editando: select obrigatório sem valor padrão; escolher chama o callback", async () => {
+      const aoMudar = jest.fn();
+      const usuario = userEvent.setup();
+      render(
+        <LinhaDeContato
+          indice={0}
+          {...CAMPOS}
+          editando
+          envios={{ ...ENVIOS, canal: { ...CANAL, onMudar: aoMudar } }}
+        />,
+      );
+
+      const select = screen.getByLabelText(/^Enviar por/);
+      expect(select).toHaveValue("");
+      expect(select).toBeRequired();
+      await usuario.selectOptions(select, "WhatsApp e E-mail");
+
+      expect(aoMudar).toHaveBeenCalledWith("whatsapp_e_email");
+    });
+
+    it("o erro vai ao select (aria-invalid e descrição)", () => {
+      render(
+        <LinhaDeContato
+          indice={0}
+          {...CAMPOS}
+          editando
+          envios={{ ...ENVIOS, canal: { ...CANAL, erro: "Escolha por onde enviar." } }}
+        />,
+      );
+
+      const select = screen.getByLabelText(/^Enviar por/);
+      expect(select).toHaveAttribute("aria-invalid", "true");
+      expect(select).toHaveAccessibleDescription("Escolha por onde enviar.");
+    });
+
+    it("só mostrando: o canal escolhido aparece como texto, sem select", () => {
+      render(
+        <LinhaDeContato
+          indice={0}
+          {...CAMPOS}
+          editando={false}
+          envios={{ ...ENVIOS, canal: { ...CANAL, valor: "email" } }}
+        />,
+      );
+
+      expect(screen.getByText(/Enviar por:\s*E-mail/)).toBeInTheDocument();
+      expect(screen.queryByLabelText(/^Enviar por/)).toBeNull();
+    });
+
+    it("só mostrando sem escolha (dado antigo): diz que não foi escolhido", () => {
+      render(
+        <LinhaDeContato
+          indice={0}
+          {...CAMPOS}
+          editando={false}
+          envios={{ ...ENVIOS, canal: CANAL }}
+        />,
+      );
+
+      expect(screen.getByText(/Enviar por:\s*não escolhido/)).toBeInTheDocument();
+    });
+
+    it("contato com um canal só: sem 'Enviar por'", () => {
+      render(<LinhaDeContato indice={0} {...CAMPOS} editando envios={ENVIOS} />);
+
+      expect(screen.queryByText(/Enviar por/)).toBeNull();
+    });
+  });
+
   it("salvando: Salvar e Cancelar ficam aria-disabled (mantêm o foco) e não disparam", async () => {
     const aoSalvar = jest.fn();
     const aoCancelar = jest.fn();

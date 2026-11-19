@@ -489,8 +489,13 @@ desmarca todos, desmarcar um dos outros o desmarca, e marcar o último que falta
 tem Setor (Líder e Funcionário do SN e do RH) vê o grupo; o Admin não (não tem Setor e só cadastra contatos). Marcar ou desmarcar grava na hora e uma região `aria-live="polite"`
 oculta anuncia "DAS marcado no contato 1."; durante a gravação os checkboxes ficam `aria-disabled`, e a falha
 do servidor volta a marca e aparece na linha. Na linha ainda não salva os checkboxes ficam `disabled` com a
-dica "Salve o contato para escolher os envios." (a marca se perderia). A forma de envio não é campo: o
-canal sai do contato (um canal só, esse; os dois, WhatsApp e e-mail). Quando o contato apaga o número ou o
+dica "Salve o contato para escolher os envios." (a marca se perderia). O canal do envio sai do
+contato: com um canal só, esse (sem campo); com os dois, o select **"Enviar por"** (`CampoDeOpcoes`,
+obrigatório, placeholder "Escolher", sem valor padrão: WhatsApp, E-mail, WhatsApp e E-mail) aparece ao lado
+dos checkboxes assim que há um envio marcado, vale para todos os envios do contato e o erro "Escolha por
+onde enviar a este contato." fica ligado ao select (`aria-invalid` e descrição). Fora da edição a linha
+mostra o texto "Enviar por: WhatsApp e E-mail" (ou "não escolhido" no dado antigo), sem select
+desabilitado nem esmaecido. Quando o contato apaga o número ou o
 e-mail que um envio usa, o `AvisoDeStatus` `atencao` (14 px) aparece na linha: "O contato deixou de ter o
 WhatsApp: os envios deste Setor não saem por ele."
 

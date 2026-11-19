@@ -36,6 +36,8 @@ export type EditarCadastroOperacionalFormValues = {
     email: string;
     donoSetor?: string | null;
     tipos?: string[];
+    // Por onde o Setor envia ao contato com os dois canais ("" = não escolhido).
+    canal?: string;
     // Os Setores que usam o contato (vem do servidor): decide quem o vê na lista do Setor.
     setores?: readonly string[];
   }[];

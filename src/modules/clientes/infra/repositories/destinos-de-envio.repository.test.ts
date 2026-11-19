@@ -444,11 +444,18 @@ describe("Destinos de envio (integração)", () => {
 });
 
 describe("definir_tipos_de_envio_do_contato (integração)", () => {
-  const definir = (supabase: SupabaseClient, contatoId: string, tipos: string[]) =>
+  // A Ana tem os dois canais: o Setor escolhe por onde enviar (o banco recusa sem o canal).
+  const definir = (
+    supabase: SupabaseClient,
+    contatoId: string,
+    tipos: string[],
+    canal: string | null = null,
+  ) =>
     supabase.rpc("definir_tipos_de_envio_do_contato", {
       p_cliente_id: clienteId,
       p_contato_id: contatoId,
       p_tipos: tipos,
+      p_canal: canal,
     });
 
   const destinosDe = async (contatoId: string) => {
@@ -465,7 +472,7 @@ describe("definir_tipos_de_envio_do_contato (integração)", () => {
     const ana = await contatoPorNome("Ana Exemplo");
     const sn = await comoFuncionarioSN();
 
-    const r = await definir(sn, ana.id, ["das", "todos"]);
+    const r = await definir(sn, ana.id, ["das", "todos"], "whatsapp_e_email");
 
     expect(r.error).toBeNull();
     expect(await destinosDe(ana.id)).toEqual([
@@ -490,10 +497,39 @@ describe("definir_tipos_de_envio_do_contato (integração)", () => {
     ]);
   });
 
+  it("contato com os dois canais exige o canal; com um canal só, o canal informado é ignorado", async () => {
+    const ana = await contatoPorNome("Ana Exemplo");
+    const bia = await contatoPorNome("Bia Exemplo");
+    const sn = await comoFuncionarioSN();
+
+    const semCanal = await definir(sn, ana.id, ["das"]);
+    expect(semCanal.error?.code).toBe("22023");
+    expect(semCanal.error?.message).toContain("Escolha o canal");
+    expect(await destinosDe(ana.id)).toEqual([]);
+
+    const escolhido = await definir(sn, ana.id, ["das"], "email");
+    expect(escolhido.error).toBeNull();
+    expect(await destinosDe(ana.id)).toEqual([
+      { setor: "simples_nacional", tipo: "das", canal: "email" },
+    ]);
+
+    // Deixar de usar não tem envio, então não pede canal.
+    const vazio = await definir(sn, ana.id, []);
+    expect(vazio.error).toBeNull();
+    expect(await destinosDe(ana.id)).toEqual([]);
+
+    // A Bia só tem WhatsApp: o canal é o dela, não o informado.
+    const umCanal = await definir(sn, bia.id, ["das"], "email");
+    expect(umCanal.error).toBeNull();
+    expect(await destinosDe(bia.id)).toEqual([
+      { setor: "simples_nacional", tipo: "das", canal: "whatsapp" },
+    ]);
+  });
+
   it("regravar troca a lista: o que saiu é apagado, o que ficou segue e o canal acompanha o contato", async () => {
     const ana = await contatoPorNome("Ana Exemplo");
     const sn = await comoFuncionarioSN();
-    await definir(sn, ana.id, ["das", "avisos"]);
+    await definir(sn, ana.id, ["das", "avisos"], "whatsapp_e_email");
     await servico.from("cliente_contatos").update({ email: null }).eq("id", ana.id);
 
     const r = await definir(sn, ana.id, ["das"]);
@@ -508,8 +544,8 @@ describe("definir_tipos_de_envio_do_contato (integração)", () => {
     const ana = await contatoPorNome("Ana Exemplo");
     const sn = await comoFuncionarioSN();
     const rh = await comoFuncionarioRH();
-    await definir(sn, ana.id, ["das"]);
-    await definir(rh, ana.id, ["avisos"]);
+    await definir(sn, ana.id, ["das"], "whatsapp");
+    await definir(rh, ana.id, ["avisos"], "whatsapp_e_email");
 
     await definir(sn, ana.id, []);
 
@@ -522,7 +558,7 @@ describe("definir_tipos_de_envio_do_contato (integração)", () => {
     const ana = await contatoPorNome("Ana Exemplo");
     const rh = await comoFuncionarioRH();
 
-    const r = await definir(rh, ana.id, ["das"]);
+    const r = await definir(rh, ana.id, ["das"], "whatsapp");
 
     expect(r.error).not.toBeNull();
     expect(await destinosDe(ana.id)).toEqual([]);

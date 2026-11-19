@@ -211,6 +211,33 @@ describe("EditarCadastroRhContainer", () => {
       expect(nomes[1]).toHaveAttribute("readonly");
     });
 
+    it("contato com os dois canais traz o canal já escolhido e o RH o troca", async () => {
+      const usuario = userEvent.setup();
+      montar({
+        dados: {
+          ...dadosComEnvios,
+          contatos: [
+            {
+              id: "c1",
+              nome: "Maria",
+              telefone: "11999990000",
+              email: "maria@exemplo.com",
+              donoSetor: "rh",
+            },
+          ],
+          destinos: [{ id: "d1", contatoId: "c1", tipo: "avisos", canal: "whatsapp" }],
+        },
+        ator: FUNCIONARIO_RH,
+      });
+
+      expect(await screen.findByText(/Enviar por:\s*WhatsApp/)).toBeInTheDocument();
+      await usuario.click(screen.getByRole("button", { name: "Editar contato 1" }));
+      const select = screen.getByLabelText(/^Enviar por/);
+      expect(select).toHaveValue("whatsapp");
+      await usuario.selectOptions(select, "WhatsApp e E-mail");
+      expect(select).toHaveValue("whatsapp_e_email");
+    });
+
     it("o Admin edita qualquer contato, sem checkboxes", async () => {
       montar({ dados: dadosComEnvios, ator: ADMIN });
 

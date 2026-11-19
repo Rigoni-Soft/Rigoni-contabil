@@ -17,8 +17,20 @@ describe("definirTiposSchema", () => {
     ).toBe(true);
   });
 
+  it.each(["whatsapp", "email", "whatsapp_e_email"])("aceita o canal %s", (canal) => {
+    expect(
+      definirTiposSchema.safeParse({
+        clienteId: CLIENTE,
+        contatoId: CONTATO,
+        tipos: ["das"],
+        canal,
+      }).success,
+    ).toBe(true);
+  });
+
   it.each([
     ["Cliente que não é UUID", { clienteId: "x" }],
+    ["canal fora da lista", { canal: "sms" }],
     ["contato que não é UUID", { contatoId: "x" }],
     ["tipo em branco", { tipos: [" "] }],
     ["tipos demais", { tipos: Array.from({ length: 13 }, (_, i) => `t${i}`) }],

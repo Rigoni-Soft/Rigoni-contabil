@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useWatch, type UseFormReturn } from "react-hook-form";
 
 import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
+import { temOsDoisCanais } from "@/shared/kernel/forma-envio";
 
 import { contatoNovo } from "./editar-cadastro-operacional.presenter";
 import {
@@ -14,6 +15,7 @@ import {
   avisoDeCanalPerdido,
   contatoDoSetor,
   contatoEditavel,
+  OPCOES_DE_CANAL,
   opcoesDeTipos,
   tiposAposAlternar,
 } from "./tipos-de-envio.presenter";
@@ -37,12 +39,20 @@ type Parametros = {
 };
 
 type Linha = EditarCadastroOperacionalFormValues["contatos"][number];
-type Instantaneo = { nome: string; telefone: string; email: string; tipos: string[] };
+type Instantaneo = {
+  nome: string;
+  telefone: string;
+  email: string;
+  tipos: string[];
+  canal: string;
+};
 
 const CAMPOS_DO_CONTATO = ["nome", "telefone", "email"] as const;
 
 // A mesma ação repetida não muda o texto e o leitor de tela não a anunciaria de novo; o espaço no fim alterna.
 const ESPACO_ALTERNADO = " ";
+
+const MENSAGEM_SEM_CANAL = "Escolha por onde enviar a este contato.";
 
 const soDigitos = (texto: string) => texto.replace(/\D/g, "");
 const emBranco = (c: Linha) =>
@@ -88,6 +98,13 @@ export function useContatosDoCadastro({
   const instantaneos = useRef<Record<string, Instantaneo>>({});
   const [salvando, setSalvando] = useState<number | null>(null);
   const [falha, setFalha] = useState<{ indice: number; mensagem: string } | null>(null);
+  // Linhas em que o Salvar foi recusado por falta do canal (contato com os dois canais e envios marcados).
+  const [semCanal, setSemCanal] = useState<Record<string, true>>({});
+  const limparSemCanal = (chave: string) =>
+    setSemCanal((atuais) => {
+      const { [chave]: _, ...resto } = atuais;
+      return resto;
+    });
   const [anuncio, setAnuncio] = useState({ texto: "", vez: 0 });
   const anunciar = (texto: string) => setAnuncio((atual) => ({ texto, vez: atual.vez + 1 }));
   const aviso = anuncio.texto && anuncio.texto + (anuncio.vez % 2 ? ESPACO_ALTERNADO : "");
@@ -122,6 +139,7 @@ export function useContatosDoCadastro({
       telefone: contato.telefone,
       email: contato.email,
       tipos: [...tiposDa(indice)],
+      canal: contato.canal ?? "",
     };
     setAbertas((atuais) => ({ ...atuais, [chaveDe(indice)]: true }));
     focar(editavel(indice) ? `contatos.${indice}.nome` : `contatos.${indice}.tipo-todos`);
@@ -154,12 +172,14 @@ export function useContatosDoCadastro({
   const onCancelar = (indice: number) => {
     setFalha(null);
     clearErrors(`contatos.${indice}`);
+    limparSemCanal(chaveDe(indice));
     const antes = instantaneos.current[chaveDe(indice)];
     if (salvo(indice) && antes) {
       setValue(`contatos.${indice}.nome`, antes.nome);
       setValue(`contatos.${indice}.telefone`, antes.telefone);
       setValue(`contatos.${indice}.email`, antes.email);
       setValue(`contatos.${indice}.tipos`, antes.tipos);
+      setValue(`contatos.${indice}.canal`, antes.canal);
       fechar(indice);
       // O contato escolhido e ainda não salvo volta à lista dos disponíveis.
       if (adotados[chaveDe(indice)] === "novo") {
@@ -176,7 +196,7 @@ export function useContatosDoCadastro({
     const visiveis = contatos.filter((_, i) => visivel(i)).length;
     if (visiveis > 1) remover(indice);
     else {
-      setValue(`contatos.${indice}`, { ...contatoNovo(), tipos: [] });
+      setValue(`contatos.${indice}`, { ...contatoNovo(), tipos: [], canal: "" });
       setNovos((atuais) => ({ ...atuais, [chaveDe(indice)]: false }));
     }
     anunciar(`Contato ${numero(indice)} descartado.`);
@@ -189,6 +209,7 @@ export function useContatosDoCadastro({
     const chave = chaveDe(indice);
     setFalha(null);
     clearErrors(`contatos.${indice}`);
+    limparSemCanal(chave);
     if (camposEditaveis) {
       const valido = contatoSchema.safeParse(contato);
       if (!valido.success) {
@@ -211,13 +232,22 @@ export function useContatosDoCadastro({
       setFalha({ indice, mensagem: "Marque ao menos um envio para usar este contato." });
       return;
     }
+    // O contato com os dois canais e envios marcados precisa dizer por onde enviar (sem padrão).
+    const exigeCanal = !admin && tipos.length > 0 && temOsDoisCanais(contato);
+    if (exigeCanal && !contato.canal) {
+      setSemCanal((atuais) => ({ ...atuais, [chave]: true }));
+      focar(`contatos.${indice}.canal`);
+      return;
+    }
     const camposMudaram =
       !contato.id ||
       !antes ||
       antes.nome.trim() !== contato.nome.trim() ||
       soDigitos(antes.telefone) !== soDigitos(contato.telefone) ||
       antes.email.trim().toLowerCase() !== contato.email.trim().toLowerCase();
-    const tiposMudaram = antes ? !mesmosTipos(antes.tipos, tipos) : tipos.length > 0;
+    const tiposMudaram = antes
+      ? !mesmosTipos(antes.tipos, tipos) || (exigeCanal && antes.canal !== (contato.canal ?? ""))
+      : tipos.length > 0;
 
     setSalvando(indice);
     try {
@@ -242,10 +272,16 @@ export function useContatosDoCadastro({
           telefone: contato.telefone,
           email: contato.email,
           tipos: antes?.tipos ?? [],
+          canal: antes?.canal ?? "",
         };
       }
       if (!admin && id && tiposMudaram) {
-        const envios = await definirTiposDoContatoAction({ clienteId, contatoId: id, tipos });
+        const envios = await definirTiposDoContatoAction({
+          clienteId,
+          contatoId: id,
+          tipos,
+          canal: exigeCanal ? contato.canal : undefined,
+        });
         if (!envios.ok) {
           setFalha({
             indice,
@@ -285,8 +321,10 @@ export function useContatosDoCadastro({
       telefone: alvo.contato.telefone,
       email: alvo.contato.email,
       tipos: [],
+      canal: "",
     };
     setValue(`contatos.${alvo.indice}.tipos`, []);
+    setValue(`contatos.${alvo.indice}.canal`, "");
     setAdotados((atuais) => ({ ...atuais, [chave]: "novo" }));
     setAbertas((atuais) => ({ ...atuais, [chave]: true }));
     const novoIndice = alvo.indice > indiceDaLinha ? alvo.indice - 1 : alvo.indice;
@@ -333,9 +371,23 @@ export function useContatosDoCadastro({
     envios: (indice: number) => {
       const contato = contatos[indice];
       if (admin || !contato) return undefined;
+      const marcados = contato.tipos ?? [];
       return {
         opcoes,
-        marcados: contato.tipos ?? [],
+        marcados,
+        // "Enviar por": só o contato com os dois canais e ao menos um envio marcado.
+        canal:
+          marcados.length > 0 && temOsDoisCanais(contato)
+            ? {
+                opcoes: OPCOES_DE_CANAL,
+                valor: contato.canal ?? "",
+                erro: semCanal[chaveDe(indice)] ? MENSAGEM_SEM_CANAL : undefined,
+                onMudar: (valor: string) => {
+                  setValue(`contatos.${indice}.canal`, valor);
+                  limparSemCanal(chaveDe(indice));
+                },
+              }
+            : undefined,
         aviso: avisoDeCanalPerdido(destinos, contato),
         onAlternar: (valor: string) =>
           setValue(

@@ -91,8 +91,16 @@ test.describe("O que cada contato recebe do Setor", () => {
     }
     await grupoNina.getByLabel("Avisos").uncheck();
     await expect(grupoNina.getByLabel("Todos os envios")).not.toBeChecked();
+    // A Nina tem WhatsApp e e-mail: o Setor escolhe por onde enviar, sem valor padrão.
+    const enviarPor = page.getByLabel("Enviar por");
+    await expect(enviarPor).toHaveValue("");
+    await page.getByRole("button", { name: "Salvar contato 2" }).click();
+    await expect(page.getByText("Escolha por onde enviar a este contato.")).toBeVisible();
+    expect(await destinosDe(clienteId)).toHaveLength(1);
+    await enviarPor.selectOption("whatsapp_e_email");
     await page.getByRole("button", { name: "Salvar contato 2" }).click();
     await expect(page.getByRole("button", { name: "Editar contato 2" })).toBeVisible();
+    await expect(page.getByText(/Enviar por:\s*WhatsApp e E-mail/)).toBeVisible();
     const daNina = async () => (await destinosDe(clienteId)).filter((d) => d.contato_id !== paulo);
     expect((await daNina()).map((d) => d.tipo)).toEqual([
       "das",

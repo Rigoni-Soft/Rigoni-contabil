@@ -154,9 +154,9 @@ export function EditarCadastroRhContainer({
     setErroServidor(undefined);
     setSucesso(false);
     try {
-      // O que o contato recebe do Setor (`tipos`) grava por ação própria: não vai neste payload.
+      // O que o contato recebe do Setor (`tipos`, `canal`) grava por ação própria: não vai neste payload.
       const contatos = descartarLinhasEmBranco(getValues()).valores.contatos.map((c) =>
-        semChaves(c, "tipos"),
+        semChaves(c, "tipos", "canal"),
       );
       const resultado = await editarCadastroRhAction({
         clienteId: dados.id,

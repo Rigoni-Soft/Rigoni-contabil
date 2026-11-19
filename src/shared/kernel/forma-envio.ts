@@ -12,6 +12,9 @@ type CanaisDoContato = { telefone: string | null; email: string | null };
 const temWhatsapp = (c: CanaisDoContato) => /\d/.test(c.telefone ?? "");
 const temEmail = (c: CanaisDoContato) => Boolean(c.email?.trim());
 
+// O contato tem os dois canais: só nele o Setor escolhe por onde enviar (com um canal só, é o dele).
+export const temOsDoisCanais = (c: CanaisDoContato) => temWhatsapp(c) && temEmail(c);
+
 // O canal do Destino que o Contato deixou de ter (o número ou o e-mail foi removido); null = tudo certo.
 export function canalPerdidoDoDestino(
   canal: FormaEnvioValor,

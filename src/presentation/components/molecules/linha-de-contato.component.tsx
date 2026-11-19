@@ -17,6 +17,13 @@ export type EnviosDaLinha = {
   marcados: string[];
   // O canal que o envio usa e o contato deixou de ter.
   aviso?: string;
+  // "Enviar por": só o contato com os dois canais e envios marcados; sem valor padrão ("" = não escolhido).
+  canal?: {
+    opcoes: readonly { valor: string; rotulo: string }[];
+    valor: string;
+    erro?: string;
+    onMudar: (valor: string) => void;
+  };
   onAlternar: (valor: string) => void;
 };
 
@@ -290,6 +297,27 @@ export function LinhaDeContato({
                 onChange={() => envios.onAlternar(opcao.valor)}
               />
             ))}
+            {envios.canal &&
+              (editando ? (
+                <CampoDeOpcoes
+                  id={`contatos.${indice}.canal`}
+                  rotulo="Enviar por"
+                  obrigatorio
+                  opcoes={envios.canal.opcoes}
+                  placeholder="Escolher"
+                  placeholderDesabilitado
+                  erro={envios.canal.erro}
+                  className="min-w-[12rem] gap-1"
+                  value={envios.canal.valor}
+                  onChange={(evento) => envios.canal?.onMudar(evento.target.value)}
+                />
+              ) : (
+                <Texto variante="apoio" como="span">
+                  Enviar por:{" "}
+                  {envios.canal.opcoes.find((opcao) => opcao.valor === envios.canal?.valor)
+                    ?.rotulo ?? "não escolhido"}
+                </Texto>
+              ))}
             {envios.aviso && <AvisoDeStatus tipo="atencao" legivel texto={envios.aviso} />}
           </Caixa>
         )}

@@ -21,6 +21,8 @@ const ANA = {
   email: "ana@exemplo.com",
   donoSetor: "simples_nacional",
   tipos: ["das"],
+  // Ana tem os dois canais: o Setor já escolheu por onde enviar.
+  canal: "whatsapp",
 };
 const BIA = {
   id: "c-2",
@@ -29,8 +31,15 @@ const BIA = {
   email: "bia@exemplo.com",
   donoSetor: "rh",
   tipos: [],
+  canal: "",
 };
-const NOVA = { nome: "Nova", telefone: "(11) 98888-0000", email: "", tipos: [] as string[] };
+const NOVA = {
+  nome: "Nova",
+  telefone: "(11) 98888-0000",
+  email: "",
+  tipos: [] as string[],
+  canal: "",
+};
 const TIPOS = [
   { slug: "das", rotulo: "DAS" },
   { slug: "avisos", rotulo: "Avisos" },
@@ -160,6 +169,7 @@ describe("useContatosDoCadastro", () => {
       clienteId: "cli-1",
       contatoId: "c-1",
       tipos: ["todos", "das", "avisos"],
+      canal: "whatsapp",
     });
     expect(result.current.linhas.editando(0)).toBe(false);
     expect(result.current.linhas.aviso?.trim()).toBe("Contato 1 salvo.");
@@ -201,6 +211,102 @@ describe("useContatosDoCadastro", () => {
       tipos: ["avisos"],
     });
     expect(result.current.linhas.editando(1)).toBe(false);
+  });
+
+  describe("canal do envio (contato com os dois canais)", () => {
+    const SEM_CANAL = { ...ANA, canal: "" };
+
+    it("o 'Enviar por' só aparece com os dois canais e ao menos um envio marcado", () => {
+      const { result } = montar([ANA, BIA, NOVA]);
+
+      expect(result.current.linhas.envios(0)?.canal?.valor).toBe("whatsapp");
+      expect(result.current.linhas.envios(0)?.canal?.opcoes.map((o) => o.valor)).toEqual([
+        "whatsapp",
+        "email",
+        "whatsapp_e_email",
+      ]);
+      // Um canal só (e-mail ou WhatsApp): sem escolha.
+      expect(result.current.linhas.envios(1)?.canal).toBeUndefined();
+      expect(result.current.linhas.envios(2)?.canal).toBeUndefined();
+      // Sem envio marcado não há por onde enviar.
+      const vazio = montar([{ ...ANA, tipos: [] }]);
+      expect(vazio.result.current.linhas.envios(0)?.canal).toBeUndefined();
+    });
+
+    it("Salvar sem o canal escolhido não grava nada e o erro vai ao campo", async () => {
+      const { result } = montar([SEM_CANAL]);
+      act(() => result.current.linhas.onEditar(0));
+
+      await act(() => result.current.linhas.onSalvar(0));
+
+      expect(salvarContato).not.toHaveBeenCalled();
+      expect(definirTipos).not.toHaveBeenCalled();
+      expect(result.current.linhas.editando(0)).toBe(true);
+      expect(result.current.linhas.envios(0)?.canal?.erro).toBe(
+        "Escolha por onde enviar a este contato.",
+      );
+    });
+
+    it("escolher o canal limpa o erro e Salvar grava os envios com o canal", async () => {
+      definirTipos.mockResolvedValue({ ok: true, data: undefined });
+      const { result } = montar([SEM_CANAL]);
+      act(() => result.current.linhas.onEditar(0));
+      await act(() => result.current.linhas.onSalvar(0));
+
+      act(() => result.current.linhas.envios(0)!.canal!.onMudar("email"));
+      expect(result.current.linhas.envios(0)?.canal?.erro).toBeUndefined();
+      await act(() => result.current.linhas.onSalvar(0));
+
+      expect(definirTipos).toHaveBeenCalledWith({
+        clienteId: "cli-1",
+        contatoId: "c-1",
+        tipos: ["das"],
+        canal: "email",
+      });
+      expect(result.current.linhas.editando(0)).toBe(false);
+    });
+
+    it("trocar só o canal grava de novo, sem regravar o contato", async () => {
+      definirTipos.mockResolvedValue({ ok: true, data: undefined });
+      const { result } = montar([ANA]);
+      act(() => result.current.linhas.onEditar(0));
+      act(() => result.current.linhas.envios(0)!.canal!.onMudar("whatsapp_e_email"));
+
+      await act(() => result.current.linhas.onSalvar(0));
+
+      expect(salvarContato).not.toHaveBeenCalled();
+      expect(definirTipos).toHaveBeenCalledWith({
+        clienteId: "cli-1",
+        contatoId: "c-1",
+        tipos: ["das"],
+        canal: "whatsapp_e_email",
+      });
+    });
+
+    it("Cancelar devolve o canal de antes da edição", () => {
+      const { result } = montar([ANA]);
+      act(() => result.current.linhas.onEditar(0));
+      act(() => result.current.linhas.envios(0)!.canal!.onMudar("email"));
+
+      act(() => result.current.linhas.onCancelar(0));
+
+      expect(result.current.form.getValues("contatos.0.canal")).toBe("whatsapp");
+    });
+
+    it("contato com um canal só grava sem canal", async () => {
+      definirTipos.mockResolvedValue({ ok: true, data: undefined });
+      const { result } = montar([BIA]);
+      act(() => result.current.linhas.onEditar(0));
+      act(() => result.current.linhas.envios(0)!.onAlternar("avisos"));
+
+      await act(() => result.current.linhas.onSalvar(0));
+
+      expect(definirTipos).toHaveBeenCalledWith({
+        clienteId: "cli-1",
+        contatoId: "c-2",
+        tipos: ["avisos"],
+      });
+    });
   });
 
   it("sem mudança nos envios nem nos campos, Salvar só fecha a linha", async () => {

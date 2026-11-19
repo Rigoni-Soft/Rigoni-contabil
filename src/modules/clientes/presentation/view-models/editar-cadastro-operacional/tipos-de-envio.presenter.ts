@@ -1,5 +1,10 @@
 import { TIPO_TODOS_OS_ENVIOS } from "@/modules/clientes/application/ports/in/definir-tipos-de-envio-do-contato.provider";
-import { canalPerdidoDoDestino, type FormaEnvioValor } from "@/shared/kernel/forma-envio";
+import {
+  canalPerdidoDoDestino,
+  FORMAS_ENVIO,
+  temOsDoisCanais,
+  type FormaEnvioValor,
+} from "@/shared/kernel/forma-envio";
 
 type DestinoSalvo = { contatoId: string; tipo: string | null; canal: string };
 type TipoDeEnvio = { slug: string; rotulo: string };
@@ -13,7 +18,31 @@ export type ContatoDaLinha = {
   donoSetor?: string | null;
   // Os Setores que usam o contato (a URA e o dono entram sempre): só quem o usa o vê na lista.
   setores?: readonly string[];
+  // Por onde o Setor envia ao contato quando ele tem os dois canais; "" = ainda não escolhido.
+  canal?: string;
 };
+
+const ROTULO_DO_CANAL: Record<FormaEnvioValor, string> = {
+  whatsapp: "WhatsApp",
+  email: "E-mail",
+  whatsapp_e_email: "WhatsApp e E-mail",
+};
+
+// As opções do "Enviar por" (o contato com os dois canais; sem valor padrão).
+export const OPCOES_DE_CANAL = FORMAS_ENVIO.map((valor) => ({
+  valor,
+  rotulo: ROTULO_DO_CANAL[valor],
+}));
+
+// Por onde o Setor envia ao contato que tem os dois canais: o canal dos Destinos dele ("" sem Destino). Com um
+// canal só não há o que escolher (o canal é o do contato), então a linha não guarda valor.
+export function canalDoContato(
+  destinos: DestinoSalvo[],
+  contato: Pick<ContatoDaLinha, "id" | "telefone" | "email">,
+): string {
+  if (!temOsDoisCanais(contato)) return "";
+  return destinos.find((d) => d.contatoId === contato.id)?.canal ?? "";
+}
 
 export const ROTULO_TODOS_OS_ENVIOS = "Todos os envios";
 
@@ -92,18 +121,22 @@ export function contatosIniciais<T extends ContatoDaLinha>(
   contatos: T[],
   destinos: DestinoSalvo[],
   opcoes: { verTodos: boolean; setor: string; somenteLeitura: boolean },
-): (T | { nome: string; telefone: string; email: string; tipos: string[] })[] {
+): (T | { nome: string; telefone: string; email: string; tipos: string[]; canal: string })[] {
   const comTipos = contatosComTipos(contatos, destinos);
   const semNenhum = !comTipos.some((c) => opcoes.verTodos || contatoDoSetor(c, opcoes.setor));
   return semNenhum && !opcoes.somenteLeitura
-    ? [...comTipos, { nome: "", telefone: "", email: "", tipos: [] }]
+    ? [...comTipos, { nome: "", telefone: "", email: "", tipos: [], canal: "" }]
     : comTipos;
 }
 
-// Os contatos do servidor já com o que cada um recebe do Setor (os checkboxes da linha).
-export function contatosComTipos<T extends { id?: string }>(
+// Os contatos do servidor já com o que cada um recebe do Setor (os checkboxes da linha) e por qual canal.
+export function contatosComTipos<T extends { id?: string; telefone: string; email: string }>(
   contatos: T[],
   destinos: DestinoSalvo[],
-): (T & { tipos: string[] })[] {
-  return contatos.map((contato) => ({ ...contato, tipos: tiposDoContato(destinos, contato.id) }));
+): (T & { tipos: string[]; canal: string })[] {
+  return contatos.map((contato) => ({
+    ...contato,
+    tipos: tiposDoContato(destinos, contato.id),
+    canal: canalDoContato(destinos, contato),
+  }));
 }

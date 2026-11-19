@@ -33,7 +33,15 @@ describe("DefinirTiposDeEnvioDoContato", () => {
     });
 
     expect(r.ok).toBe(true);
-    expect(chamadas).toEqual([[CLIENTE, CONTATO, ["das", "todos"]]]);
+    expect(chamadas).toEqual([[CLIENTE, CONTATO, ["das", "todos"], undefined]]);
+  });
+
+  it("repassa o canal escolhido para o contato com os dois canais", async () => {
+    const { caso, chamadas } = montar();
+
+    await caso.execute({ clienteId: CLIENTE, contatoId: CONTATO, tipos: ["das"], canal: "email" });
+
+    expect(chamadas).toEqual([[CLIENTE, CONTATO, ["das"], "email"]]);
   });
 
   it("lista vazia tira o contato dos envios do Setor", async () => {
@@ -41,7 +49,7 @@ describe("DefinirTiposDeEnvioDoContato", () => {
 
     await caso.execute({ clienteId: CLIENTE, contatoId: CONTATO, tipos: [] });
 
-    expect(chamadas).toEqual([[CLIENTE, CONTATO, []]]);
+    expect(chamadas).toEqual([[CLIENTE, CONTATO, [], undefined]]);
   });
 
   it("recusa sem sessão e o Admin (sem Setor), sem gravar", async () => {

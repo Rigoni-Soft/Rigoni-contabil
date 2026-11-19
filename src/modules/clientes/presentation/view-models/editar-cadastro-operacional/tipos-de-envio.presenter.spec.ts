@@ -1,7 +1,10 @@
 import {
   avisoDeCanalPerdido,
+  canalDoContato,
   contatoEditavel,
   contatosComTipos,
+  contatosIniciais,
+  OPCOES_DE_CANAL,
   opcoesDeTipos,
   tiposAposAlternar,
   tiposDoContato,
@@ -64,14 +67,57 @@ describe("tiposAposAlternar", () => {
 describe("contatosComTipos", () => {
   it("devolve cada contato com o que ele recebe", () => {
     const r = contatosComTipos(
-      [{ id: "c-1", nome: "Ana" }, { nome: "Sem id" }],
+      [
+        { id: "c-1", nome: "Ana", telefone: "", email: "a@b.com" },
+        { nome: "Sem id", telefone: "", email: "" },
+      ],
       [{ contatoId: "c-1", tipo: "das", canal: "email" }],
     );
 
     expect(r).toEqual([
-      { id: "c-1", nome: "Ana", tipos: ["das"] },
-      { nome: "Sem id", tipos: [] },
+      { id: "c-1", nome: "Ana", telefone: "", email: "a@b.com", tipos: ["das"], canal: "" },
+      { nome: "Sem id", telefone: "", email: "", tipos: [], canal: "" },
     ]);
+  });
+
+  it("o contato com os dois canais traz o canal que o Setor escolheu", () => {
+    const [r] = contatosComTipos(
+      [{ id: "c-1", telefone: "11999990000", email: "a@b.com" }],
+      [{ contatoId: "c-1", tipo: null, canal: "whatsapp_e_email" }],
+    );
+
+    expect(r.canal).toBe("whatsapp_e_email");
+  });
+});
+
+describe("canalDoContato", () => {
+  const destinos = [{ contatoId: "c-1", tipo: "das", canal: "whatsapp" }];
+
+  it("só o contato com os dois canais guarda o canal; sem Destino, não há escolha", () => {
+    const dois = { id: "c-1", telefone: "11999990000", email: "a@b.com" };
+
+    expect(canalDoContato(destinos, dois)).toBe("whatsapp");
+    expect(canalDoContato([], dois)).toBe("");
+    expect(canalDoContato(destinos, { ...dois, email: "" })).toBe("");
+    expect(canalDoContato(destinos, { ...dois, telefone: "" })).toBe("");
+  });
+});
+
+describe("OPCOES_DE_CANAL", () => {
+  it("lista os três canais, sem valor padrão", () => {
+    expect(OPCOES_DE_CANAL).toEqual([
+      { valor: "whatsapp", rotulo: "WhatsApp" },
+      { valor: "email", rotulo: "E-mail" },
+      { valor: "whatsapp_e_email", rotulo: "WhatsApp e E-mail" },
+    ]);
+  });
+});
+
+describe("contatosIniciais", () => {
+  it("a linha em branco que a seção abre já vem sem canal", () => {
+    const r = contatosIniciais([], [], { verTodos: false, setor: "rh", somenteLeitura: false });
+
+    expect(r).toEqual([{ nome: "", telefone: "", email: "", tipos: [], canal: "" }]);
   });
 });
 

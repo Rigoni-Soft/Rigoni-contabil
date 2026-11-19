@@ -1,4 +1,5 @@
 import type { AppError } from "@/shared/errors/app.error";
+import type { FormaEnvioValor } from "@/shared/kernel/forma-envio";
 import type { Result } from "@/shared/kernel/result";
 
 // O tipo que vale para "todos os envios do Setor".
@@ -9,6 +10,9 @@ export type DefinirTiposDeEnvioDoContatoInput = {
   contatoId: string;
   // Os tipos do catálogo do Setor (ou "todos") que este contato recebe; vazio = nenhum.
   tipos: string[];
+  // Por onde o Setor envia quando o contato tem os dois canais (sem padrão: o banco exige a escolha);
+  // com um canal só, o canal é o do contato e este valor é ignorado.
+  canal?: FormaEnvioValor;
 };
 
 export interface DefinirTiposDeEnvioDoContatoPort {

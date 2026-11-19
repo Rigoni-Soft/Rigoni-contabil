@@ -38,6 +38,17 @@ describe("definirTiposDoContatoAction (integração)", () => {
     expect(resultado.ok).toBe(true);
   });
 
+  it("o canal escolhido segue para o caso de uso; canal inválido é recusado", async () => {
+    executeMock.mockResolvedValue(ok(undefined));
+
+    await definirTiposDoContatoAction({ ...VALIDO, canal: "email" });
+    const invalido = await definirTiposDoContatoAction({ ...VALIDO, canal: "sms" });
+
+    expect(executeMock).toHaveBeenCalledTimes(1);
+    expect(executeMock).toHaveBeenCalledWith({ ...VALIDO, canal: "email" });
+    expect(invalido).toMatchObject({ ok: false, error: { code: "VALIDATION_ERROR" } });
+  });
+
   it("erro do caso de uso vira ActionResult de falha", async () => {
     executeMock.mockResolvedValue(err(new ForbiddenError("Sem permissão.")));
 

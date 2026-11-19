@@ -21,6 +21,10 @@ estável entre Contato e destino.
 - **O banco resolve "quem recebe este envio".** Uma peça no banco devolve os Destinos já resolvidos por
   Setor, Tipo e canal; os jobs só entregam. Mesma linha do ADR 0009 ("o banco manda") e do 0008 (estado
   do sistema fica no banco).
+- **O canal é escolhido por Contato e Setor, não por tipo.** Contato com um canal só: o canal é o dele.
+  Com WhatsApp e e-mail, `definir_tipos_de_envio_do_contato` exige o canal (sem padrão; recusa com
+  `22023`) e o aplica a todos os Destinos do Contato naquele Setor; deixar de usar o Contato (sem tipos)
+  não pede canal (#293).
 - **Id estável**: a edição de Contatos cria, atualiza e remove por identificador, num caminho único.
 - **Sem "Contato padrão".** A migration não cria Contatos nem Destinos; os Contatos que existem ficam com
   setor URA e o SN fica sem Destino até cadastrar, com aviso do job.

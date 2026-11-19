@@ -158,6 +158,8 @@ export type EditarCadastroOperacionalFormValues = Omit<ValoresDoSchema, "contato
   // `tipos` (o que o contato recebe do Setor) é estado da linha: grava por ação própria e nunca vai no payload do cadastro.
   contatos: (Omit<ValoresDoSchema["contatos"][number], "telefoneOriginal"> & {
     tipos?: string[];
+    // Por onde o Setor envia ao contato com os dois canais ("" = não escolhido); também grava com os `tipos`.
+    canal?: string;
     // Os Setores que usam o contato (vem do servidor): decide quem o vê na lista do Setor.
     setores?: readonly string[];
   })[];

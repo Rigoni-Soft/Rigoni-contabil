@@ -22,6 +22,6 @@ export class DefinirTiposDeEnvioDoContato implements DefinirTiposDeEnvioDoContat
       return err(new ForbiddenError("Só um Setor define os destinos de envio do Cliente."));
     }
     const tipos = [...new Set(input.tipos.map((tipo) => tipo.trim()).filter(Boolean))];
-    return this.repositorio.definir(input.clienteId, input.contatoId, tipos);
+    return this.repositorio.definir(input.clienteId, input.contatoId, tipos, input.canal);
   }
 }
