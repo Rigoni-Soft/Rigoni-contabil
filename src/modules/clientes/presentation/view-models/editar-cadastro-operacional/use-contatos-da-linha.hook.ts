@@ -39,8 +39,12 @@ export function useContatosDaLinha({
   const contatos = useWatch({ control, name: "contatos" });
   const [salvando, setSalvando] = useState<number | null>(null);
   const [falha, setFalha] = useState<{ indice: number; mensagem: string } | null>(null);
-  // Lido pelo leitor de tela (região role="status"): o sucesso não tem outro sinal além da troca dos botões.
-  const [aviso, setAviso] = useState<string>();
+  // Lido pelo leitor de tela (região aria-live): o sucesso não tem outro sinal além da troca dos botões.
+  // Repetir a mesma ação não mudaria o texto e não seria anunciado de novo; por isso cada anúncio
+  // alterna um espaço invisível no fim.
+  const [anuncio, setAnuncio] = useState({ texto: "", vez: 0 });
+  const anunciar = (texto: string) => setAnuncio((atual) => ({ texto, vez: atual.vez + 1 }));
+  const aviso = anuncio.texto && anuncio.texto + (anuncio.vez % 2 ? " " : "");
 
   // Os botões somem da tela ao salvar/cancelar: o foco volta ao Nome da própria linha, que sempre existe.
   const focarNome = (indice: number) => document.getElementById(`contatos.${indice}.nome`)?.focus();
@@ -65,7 +69,7 @@ export function useContatosDaLinha({
       });
       if (resultado.ok) {
         setValue(`contatos.${indice}.id`, resultado.data.id);
-        setAviso(`Contato ${indice + 1} salvo.`);
+        anunciar(`Contato ${indice + 1} salvo.`);
         focarNome(indice);
       } else setFalha({ indice, mensagem: resultado.error.message });
     } catch (erro) {
@@ -81,7 +85,7 @@ export function useContatosDaLinha({
     setFalha(null);
     clearErrors(`contatos.${indice}`);
     setValue(`contatos.${indice}`, contatoNovo());
-    setAviso(`Contato ${indice + 1} limpo.`);
+    anunciar(`Contato ${indice + 1} limpo.`);
     focarNome(indice);
   };
 
