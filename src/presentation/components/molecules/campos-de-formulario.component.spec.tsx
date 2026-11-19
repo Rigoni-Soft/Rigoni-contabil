@@ -143,9 +143,9 @@ describe("linhas de lista do formulário", () => {
     expect(screen.queryByRole("button", { name: /Salvar contato/ })).not.toBeInTheDocument();
   });
 
-  it("LinhaDeContato nova oferece Salvar e Cancelar, e não a lixeira", async () => {
+  it("LinhaDeContato nova oferece Salvar e Limpar, e não a lixeira", async () => {
     const aoSalvar = jest.fn();
-    const aoCancelar = jest.fn();
+    const aoLimpar = jest.fn();
     const usuario = userEvent.setup();
     render(
       <LinhaDeContato
@@ -154,7 +154,7 @@ describe("linhas de lista do formulário", () => {
         telefone={{}}
         email={{}}
         onSalvar={aoSalvar}
-        onCancelar={aoCancelar}
+        onLimpar={aoLimpar}
         onRemover={jest.fn()}
         erroDaLinha="Este Cliente já tem o contato."
       />,
@@ -162,9 +162,9 @@ describe("linhas de lista do formulário", () => {
 
     expect(screen.queryByRole("button", { name: /Remover contato/ })).not.toBeInTheDocument();
     await usuario.click(screen.getByRole("button", { name: "Salvar contato 1" }));
-    await usuario.click(screen.getByRole("button", { name: "Cancelar contato 1" }));
+    await usuario.click(screen.getByRole("button", { name: "Limpar contato 1" }));
     expect(aoSalvar).toHaveBeenCalledTimes(1);
-    expect(aoCancelar).toHaveBeenCalledTimes(1);
+    expect(aoLimpar).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Este Cliente já tem o contato.")).toBeInTheDocument();
   });
 

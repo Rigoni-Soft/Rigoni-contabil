@@ -470,7 +470,8 @@ qualquer lista dinâmica de campos, não só o par data+arquivo do #33.
 **Contato (ações da linha):** o contato já salvo tem só a lixeira ("Remover contato N", `ghost`).
 O contato novo (ainda sem `id`) tem, no lugar dela, dois botões de ícone juntos (`gap-1`, `size-8`,
 44 px em toque): "Salvar contato N" (`Check`, `primary`, o verde) grava só aquele contato na hora, e
-"Cancelar contato N" (`X`, `destructive`, o vermelho) limpa a linha para o padrão. Ao concluir, o foco
+"Limpar contato N" (`X`, `destructive`, o vermelho) limpa a linha para o padrão. Os botões de ícone
+levam `title` igual ao `aria-label`, e o Salvar mostra um spinner e `aria-busy` enquanto grava. Ao concluir, o foco
 volta ao Nome da linha e uma região `aria-live="polite"` oculta (`sr-only`) anuncia "Contato N salvo."
 ou "Contato N limpo."; a falha do servidor aparece sob a linha (`FieldError`, `role="alert"`).
 

@@ -20,7 +20,6 @@ src/presentation/components/molecules/indicador-de-leitura.component.tsx
 src/presentation/components/molecules/item-de-aviso.component.tsx
 src/presentation/components/molecules/linha-de-alteracao.component.tsx
 src/presentation/components/molecules/linha-de-cliente.component.tsx
-src/presentation/components/molecules/linha-de-contato.component.tsx
 src/presentation/components/molecules/linha-de-parcelamento.component.tsx
 src/presentation/components/molecules/linha-de-registro.component.tsx
 src/presentation/components/molecules/linha-de-usuario.component.tsx

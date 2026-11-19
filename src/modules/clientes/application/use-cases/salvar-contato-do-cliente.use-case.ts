@@ -24,12 +24,8 @@ export class SalvarContatoDoCliente implements SalvarContatoDoClientePort {
     const valido = Contato.criar(input.contato);
     if (!valido.ok) return valido;
 
-    const salvo = await this.repositorio.salvar(input.clienteId, {
-      id: valido.value.id,
-      nome: valido.value.nome,
-      telefone: valido.value.telefone,
-      email: valido.value.email,
-    });
+    const { id, nome, telefone, email } = valido.value;
+    const salvo = await this.repositorio.salvar(input.clienteId, { id, nome, telefone, email });
     return salvo.ok ? ok({ id: salvo.value }) : salvo;
   }
 }

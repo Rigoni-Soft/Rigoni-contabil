@@ -569,7 +569,7 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(salvarContatoMock).not.toHaveBeenCalled();
   });
 
-  it("Cancelar limpa a linha nova para o padrão", async () => {
+  it("Limpar zera a linha nova para o padrão", async () => {
     const usuario = userEvent.setup();
     render(
       <EditarCadastroOperacionalContainer dados={{ ...dados, contatos: [] }} readOnly={false} />,
@@ -577,7 +577,7 @@ describe("EditarCadastroOperacionalContainer", () => {
 
     await usuario.type(screen.getByLabelText(/^nome/i), "Joana");
     await usuario.type(screen.getByLabelText(/e-mail/i), "joana@exemplo.com");
-    await usuario.click(screen.getByRole("button", { name: "Cancelar contato 1" }));
+    await usuario.click(screen.getByRole("button", { name: "Limpar contato 1" }));
 
     expect(screen.getByLabelText(/^nome/i)).toHaveValue("");
     expect(screen.getByLabelText(/e-mail/i)).toHaveValue("");

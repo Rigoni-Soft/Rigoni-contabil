@@ -1,9 +1,10 @@
-import { Check, Trash2, X } from "lucide-react";
+import { Check, LoaderCircle, Trash2, X } from "lucide-react";
 
 import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
+import { Label } from "@/presentation/components/ui/label";
 
 type LinhaDeContatoProps = {
   indice: number;
@@ -14,19 +15,33 @@ type LinhaDeContatoProps = {
   erroNome?: string;
   erroTelefone?: string;
   erroEmail?: string;
-  // Contato já gravado na tabela: a ação é a lixeira. Sem esta marca, a linha é nova e as ações são
-  // Salvar (grava só este contato) e Cancelar (volta a linha ao padrão).
+  // Contato já gravado: a ação é a lixeira. Sem a marca, a linha é nova: Salvar e Limpar.
   salvo?: boolean;
   salvando?: boolean;
-  // Falha ao salvar esta linha (a do servidor, que não é de um campo).
+  // Falha do servidor ao salvar esta linha (não é de um campo).
   erroDaLinha?: string;
   onSalvar?: () => void;
-  onCancelar?: () => void;
-  // Sem callback (visualização): não há o que remover, o botão nem aparece.
+  onLimpar?: () => void;
+  // Sem callback (visualização): o botão nem aparece.
   onRemover?: () => void;
-  // Visualização: nada é obrigatório (não há o que preencher), então sem asterisco.
+  // Visualização: nada é obrigatório, então sem asterisco.
   somenteLeitura?: boolean;
 };
+
+// Botões na altura do input: o espaçador invisível ocupa o lugar do rótulo, e a mensagem de erro
+// sob o campo não os empurra.
+function AcoesDaLinha({ children }: { children: React.ReactNode }) {
+  return (
+    <Pilha espaco="campo">
+      <Label aria-hidden="true" className="invisible">
+        &nbsp;
+      </Label>
+      <Linha alinhar="centro" espaco={1} className="h-9 pointer-coarse:h-11">
+        {children}
+      </Linha>
+    </Pilha>
+  );
+}
 
 // Um Contato do Cliente: nome, telefone, e-mail (ao menos um dos dois canais) e as ações da linha.
 // A numeração é 1-based.
@@ -42,20 +57,25 @@ export function LinhaDeContato({
   salvando,
   erroDaLinha,
   onSalvar,
-  onCancelar,
+  onLimpar,
   onRemover,
   somenteLeitura,
 }: LinhaDeContatoProps) {
   const numero = indice + 1;
-  const acoesDeLinhaNova = !salvo && !somenteLeitura && onSalvar && onCancelar;
+  const acoesDeLinhaNova = !salvo && !somenteLeitura && onSalvar && onLimpar;
+  const idDoErroDaLinha = `contatos.${indice}.linha-mensagem`;
+  const rotuloSalvar = `Salvar contato ${numero}`;
+  const rotuloLimpar = `Limpar contato ${numero}`;
+  const rotuloRemover = `Remover contato ${numero}`;
   return (
     <Pilha espaco={1}>
       <Linha
-        alinhar="fim"
+        alinhar="inicio"
         espaco={3}
         quebra
         role="group"
         aria-label={`Contato ${numero}`}
+        aria-describedby={erroDaLinha ? idDoErroDaLinha : undefined}
         className="rounded-md border border-border p-3"
       >
         <CampoDeTexto
@@ -87,44 +107,53 @@ export function LinhaDeContato({
           {...email}
         />
         {salvo && onRemover && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={onRemover}
-            aria-label={`Remover contato ${numero}`}
-          >
-            <Trash2 className="size-4" aria-hidden="true" />
-          </Button>
+          <AcoesDaLinha>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onRemover}
+              aria-label={rotuloRemover}
+              title={rotuloRemover}
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+            </Button>
+          </AcoesDaLinha>
         )}
         {acoesDeLinhaNova && (
-          // Salvar (verde, `primary`) e Cancelar (vermelho, `destructive`) juntos, menores que o ícone padrão.
-          <Linha espaco={1}>
+          <AcoesDaLinha>
             <Button
               type="button"
               size="icon"
               className="size-8 pointer-coarse:size-11"
               onClick={onSalvar}
               disabled={salvando}
-              aria-label={`Salvar contato ${numero}`}
+              aria-busy={salvando}
+              aria-label={rotuloSalvar}
+              title={rotuloSalvar}
             >
-              <Check className="size-4" aria-hidden="true" />
+              {salvando ? (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Check className="size-4" aria-hidden="true" />
+              )}
             </Button>
             <Button
               type="button"
               variant="destructive"
               size="icon"
               className="size-8 pointer-coarse:size-11"
-              onClick={onCancelar}
+              onClick={onLimpar}
               disabled={salvando}
-              aria-label={`Cancelar contato ${numero}`}
+              aria-label={rotuloLimpar}
+              title={rotuloLimpar}
             >
               <X className="size-4" aria-hidden="true" />
             </Button>
-          </Linha>
+          </AcoesDaLinha>
         )}
       </Linha>
-      {erroDaLinha && <FieldError>{erroDaLinha}</FieldError>}
+      {erroDaLinha && <FieldError id={idDoErroDaLinha}>{erroDaLinha}</FieldError>}
     </Pilha>
   );
 }

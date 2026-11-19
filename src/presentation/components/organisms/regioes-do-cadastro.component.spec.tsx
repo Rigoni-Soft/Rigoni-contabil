@@ -65,7 +65,7 @@ function Wrapper({ dasEnviado = false }: { dasEnviado?: boolean }) {
           salvando: null,
           erroDaLinha: () => undefined,
           onSalvar: jest.fn(),
-          onCancelar: jest.fn(),
+          onLimpar: jest.fn(),
         }}
       />
       <ParcelamentosDoCadastro

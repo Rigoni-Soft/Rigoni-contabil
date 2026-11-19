@@ -1,33 +1,23 @@
 import { useState } from "react";
-import {
-  useWatch,
-  type Control,
-  type UseFormClearErrors,
-  type UseFormGetValues,
-  type UseFormSetError,
-  type UseFormSetValue,
-} from "react-hook-form";
+import { useWatch, type UseFormReturn } from "react-hook-form";
 
 import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 
 import { contatoNovo } from "./editar-cadastro-operacional.presenter";
 import {
   contatoSchema,
-  type EditarCadastroOperacionalFormValues as Valores,
+  type EditarCadastroOperacionalFormValues,
 } from "./editar-cadastro-operacional.schema";
 import { salvarContatoAction } from "./salvar-contato.actions";
 
-type Params = {
-  clienteId: string;
-  control: Control<Valores>;
-  getValues: UseFormGetValues<Valores>;
-  setValue: UseFormSetValue<Valores>;
-  setError: UseFormSetError<Valores>;
-  clearErrors: UseFormClearErrors<Valores>;
-};
+type ParametrosDeContatosDaLinha = Pick<
+  UseFormReturn<EditarCadastroOperacionalFormValues>,
+  "control" | "getValues" | "setValue" | "setError" | "clearErrors"
+> & { clienteId: string };
 
-// As ações por linha de contato: uma linha sem `id` é nova (ainda não está na tabela) e tem Salvar e
-// Cancelar; com `id` já está salva e tem a lixeira. Salvar grava só aquele contato e dá o `id` à linha.
+// A mesma ação repetida não muda o texto e o leitor de tela não a anunciaria de novo; o espaço no fim alterna.
+const ESPACO_ALTERNADO = " ";
+
 export function useContatosDaLinha({
   clienteId,
   control,
@@ -35,30 +25,31 @@ export function useContatosDaLinha({
   setValue,
   setError,
   clearErrors,
-}: Params) {
+}: ParametrosDeContatosDaLinha) {
   const contatos = useWatch({ control, name: "contatos" });
   const [salvando, setSalvando] = useState<number | null>(null);
   const [falha, setFalha] = useState<{ indice: number; mensagem: string } | null>(null);
-  // Lido pelo leitor de tela (região aria-live): o sucesso não tem outro sinal além da troca dos botões.
-  // Repetir a mesma ação não mudaria o texto e não seria anunciado de novo; por isso cada anúncio
-  // alterna um espaço invisível no fim.
   const [anuncio, setAnuncio] = useState({ texto: "", vez: 0 });
   const anunciar = (texto: string) => setAnuncio((atual) => ({ texto, vez: atual.vez + 1 }));
-  const aviso = anuncio.texto && anuncio.texto + (anuncio.vez % 2 ? " " : "");
+  const aviso = anuncio.texto && anuncio.texto + (anuncio.vez % 2 ? ESPACO_ALTERNADO : "");
 
-  // Os botões somem da tela ao salvar/cancelar: o foco volta ao Nome da própria linha, que sempre existe.
   const focarNome = (indice: number) => document.getElementById(`contatos.${indice}.nome`)?.focus();
 
-  const salvarLinha = async (indice: number) => {
+  const onSalvar = async (indice: number) => {
+    if (salvando !== null) return;
     const contato = getValues(`contatos.${indice}`);
     setFalha(null);
     clearErrors(`contatos.${indice}`);
     const valido = contatoSchema.safeParse(contato);
     if (!valido.success) {
-      for (const problema of valido.error.issues) {
+      valido.error.issues.forEach((problema, posicao) => {
         const campo = String(problema.path[0] ?? "nome") as "nome" | "telefone" | "email";
-        setError(`contatos.${indice}.${campo}`, { message: problema.message });
-      }
+        setError(
+          `contatos.${indice}.${campo}`,
+          { message: problema.message },
+          { shouldFocus: posicao === 0 },
+        );
+      });
       return;
     }
     setSalvando(indice);
@@ -80,8 +71,7 @@ export function useContatosDaLinha({
     }
   };
 
-  // Volta a linha ao estado padrão (campos vazios), sem tocar nas outras.
-  const cancelarLinha = (indice: number) => {
+  const onLimpar = (indice: number) => {
     setFalha(null);
     clearErrors(`contatos.${indice}`);
     setValue(`contatos.${indice}`, contatoNovo());
@@ -89,12 +79,13 @@ export function useContatosDaLinha({
     focarNome(indice);
   };
 
+  // Já no formato `AcoesDasLinhasDeContato` que os Containers repassam ao formulário.
   return {
     salvos: (contatos ?? []).map((contato) => Boolean(contato?.id)),
     salvando,
     aviso,
     erroDaLinha: (indice: number) => (falha?.indice === indice ? falha.mensagem : undefined),
-    salvarLinha,
-    cancelarLinha,
+    onSalvar,
+    onLimpar,
   };
 }

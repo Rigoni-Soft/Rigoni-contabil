@@ -9,7 +9,7 @@ const LINHAS_DE_CONTATO = {
   salvando: null,
   erroDaLinha: () => undefined,
   onSalvar: jest.fn(),
-  onCancelar: jest.fn(),
+  onLimpar: jest.fn(),
 };
 
 // Props dos Parcelamentos do RH, sem nenhum cadastrado.

@@ -221,14 +221,7 @@ export function EditarCadastroOperacionalContainer({
       contatos={fields}
       onAdicionarContato={() => append(contatoNovo())}
       onRemoverContato={remove}
-      linhasDeContato={{
-        salvos: linhasDeContato.salvos,
-        salvando: linhasDeContato.salvando,
-        aviso: linhasDeContato.aviso,
-        erroDaLinha: linhasDeContato.erroDaLinha,
-        onSalvar: linhasDeContato.salvarLinha,
-        onCancelar: linhasDeContato.cancelarLinha,
-      }}
+      linhasDeContato={linhasDeContato}
       parcelamentoCampos={parcelamentos.parcelamentoCampos}
       parcelamentos={parcelamentos.parcelamentos}
       onAdicionarParcelamento={parcelamentos.onAdicionarParcelamento}
