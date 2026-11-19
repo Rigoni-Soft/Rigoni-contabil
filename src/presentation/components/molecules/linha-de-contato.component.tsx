@@ -117,37 +117,42 @@ export function LinhaDeContato({
   // (cada uma lista o que esse campo tem nos contatos já cadastrados, mais "Cadastrar novo"). Escolher um
   // contato preenche a linha; "Cadastrar novo" em qualquer um dos três troca os três por campos de texto.
   // Sem nenhum contato de outro Setor para escolher, a linha nova já tem campos de texto.
-  const escolhendo = Boolean(
+  const escolha =
     existentes &&
     existentes.opcoes.length > 0 &&
     !existentes.modoNovo &&
     editando &&
     comAcoes &&
-    !camposTravados,
+    !camposTravados
+      ? existentes
+      : undefined;
+  const selecao = (
+    escolha: ExistentesDaLinha,
+    campo: "nome" | "telefone" | "email",
+    rotulo: string,
+    erro?: string,
+  ) => (
+    <CampoDeOpcoes
+      id={`contatos.${indice}.${campo}`}
+      rotulo={rotulo}
+      obrigatorio={campo === "nome"}
+      erro={erro}
+      opcoes={[
+        ...escolha.opcoes
+          .filter((opcao) => opcao[campo].trim())
+          .map((opcao) => ({ valor: opcao.id, rotulo: opcao[campo] })),
+        { valor: NOVO_CONTATO, rotulo: "+ Cadastrar novo" },
+      ]}
+      placeholder="Escolher contato"
+      className="min-w-[10rem] flex-1 gap-1"
+      value=""
+      onChange={(evento) =>
+        evento.target.value === NOVO_CONTATO
+          ? escolha.onNovo()
+          : escolha.onEscolher(evento.target.value)
+      }
+    />
   );
-  const selecao = (campo: "nome" | "telefone" | "email", rotulo: string, erro?: string) =>
-    existentes ? (
-      <CampoDeOpcoes
-        id={`contatos.${indice}.${campo}`}
-        rotulo={rotulo}
-        obrigatorio={campo === "nome"}
-        erro={erro}
-        opcoes={[
-          ...existentes.opcoes
-            .filter((opcao) => opcao[campo].trim())
-            .map((opcao) => ({ valor: opcao.id, rotulo: opcao[campo] })),
-          { valor: NOVO_CONTATO, rotulo: "+ Cadastrar novo" },
-        ]}
-        placeholder="Escolher contato"
-        className="min-w-[10rem] flex-1 gap-1"
-        value=""
-        onChange={(evento) =>
-          evento.target.value === NOVO_CONTATO
-            ? existentes.onNovo()
-            : existentes.onEscolher(evento.target.value)
-        }
-      />
-    ) : null;
   const idDoErroDaLinha = `contatos.${indice}.linha-mensagem`;
   const rotuloEditar = `Editar contato ${numero}`;
   const rotuloSalvar = `Salvar contato ${numero}`;
@@ -164,11 +169,11 @@ export function LinhaDeContato({
         aria-describedby={erroDaLinha ? idDoErroDaLinha : undefined}
         className="rounded-md border border-border p-3"
       >
-        {escolhendo ? (
+        {escolha ? (
           <>
-            {selecao("nome", "Nome", erroNome)}
-            {selecao("telefone", "WhatsApp", erroTelefone)}
-            {selecao("email", "E-mail", erroEmail)}
+            {selecao(escolha, "nome", "Nome", erroNome)}
+            {selecao(escolha, "telefone", "WhatsApp", erroTelefone)}
+            {selecao(escolha, "email", "E-mail", erroEmail)}
           </>
         ) : (
           <>

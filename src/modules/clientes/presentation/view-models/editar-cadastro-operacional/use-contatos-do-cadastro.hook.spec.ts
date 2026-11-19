@@ -87,8 +87,6 @@ describe("useContatosDoCadastro", () => {
 
     expect(result.current.linhas.camposTravados(0)).toBe(false);
     expect(result.current.linhas.camposTravados(1)).toBe(true);
-    expect(result.current.linhas.podeRemover(0)).toBe(true);
-    expect(result.current.linhas.podeRemover(1)).toBe(true);
     expect(result.current.linhas.rotuloDaLixeira(1)).toMatch(/^Deixar de usar/);
   });
 
@@ -96,7 +94,6 @@ describe("useContatosDoCadastro", () => {
     const { result } = montar([ANA, BIA], true);
 
     expect(result.current.linhas.camposTravados(1)).toBe(false);
-    expect(result.current.linhas.podeRemover(1)).toBe(true);
     expect(result.current.linhas.envios(0)).toBeUndefined();
   });
 

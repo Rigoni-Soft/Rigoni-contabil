@@ -23,8 +23,6 @@ export type AcoesDasLinhasDeContato = {
   salvando: number | null;
   // Contato de outro Setor: nome, WhatsApp e e-mail só de leitura (os envios seguem do Setor).
   camposTravados: (indice: number) => boolean;
-  // Só o Setor dono e o Admin removem o contato.
-  podeRemover: (indice: number) => boolean;
   // Nome da lixeira quando o contato é de outro dono ("Deixar de usar…"); sem texto, "Remover contato N".
   rotuloDaLixeira: (indice: number) => string | undefined;
   // O dono remove o contato (o Salvar do cadastro persiste); quem só o usa deixa de usá-lo na hora.
@@ -114,11 +112,7 @@ export function ContatosDoCadastro({
                 onEditar={() => linhas.onEditar(indice)}
                 onSalvar={() => linhas.onSalvar(indice)}
                 onCancelar={() => linhas.onCancelar(indice)}
-                onRemover={
-                  readOnly || !linhas.podeRemover(indice)
-                    ? undefined
-                    : () => linhas.onRemover(indice)
-                }
+                onRemover={readOnly ? undefined : () => linhas.onRemover(indice)}
               />
             )}
           />

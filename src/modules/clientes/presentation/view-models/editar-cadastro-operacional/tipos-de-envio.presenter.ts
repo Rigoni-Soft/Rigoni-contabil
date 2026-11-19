@@ -71,13 +71,6 @@ export function contatoDoSetor(
   return contato.donoSetor === setor || (contato.setores ?? []).includes(setor);
 }
 
-// Como o contato aparece no select dos já cadastrados: o nome e o WhatsApp (ou o e-mail).
-export function rotuloDoContatoExistente(
-  contato: Pick<ContatoDaLinha, "nome" | "telefone" | "email">,
-): string {
-  return `${contato.nome} · ${contato.telefone.trim() || contato.email.trim()}`;
-}
-
 // Os checkboxes da linha depois de um clique. "Todos os envios" marca todos os outros (e, desmarcado,
 // desmarca todos); desmarcar um dos outros desmarca o "Todos"; marcar o último que faltava o marca.
 export function tiposAposAlternar(marcados: string[], valor: string, opcoes: string[]): string[] {

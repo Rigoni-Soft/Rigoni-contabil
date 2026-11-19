@@ -309,7 +309,6 @@ export function useContatosDoCadastro({
     numero,
     camposTravados: (indice: number) => !editavel(indice),
     // Editar e a lixeira andam em par em todo contato: o dono remove; quem só usa o contato deixa de usá-lo.
-    podeRemover: (indice: number) => salvo(indice),
     rotuloDaLixeira: (indice: number) =>
       editavel(indice) ? undefined : `Deixar de usar o contato ${numero(indice)}`,
     onRemover: (indice: number) => (editavel(indice) ? remover(indice) : void deixarDeUsar(indice)),
