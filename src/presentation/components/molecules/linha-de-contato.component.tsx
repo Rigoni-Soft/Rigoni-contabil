@@ -116,6 +116,7 @@ export function LinhaDeContato({
   // Linha nova do Setor com contatos de outros Setores para escolher: Nome, WhatsApp e E-mail são seleções
   // (cada uma lista o que esse campo tem nos contatos já cadastrados, mais "Cadastrar novo"). Escolher um
   // contato preenche a linha; "Cadastrar novo" em qualquer um dos três troca os três por campos de texto.
+  // Sem nenhum contato de outro Setor para escolher, a linha nova já tem campos de texto.
   const escolhendo = Boolean(
     existentes &&
     existentes.opcoes.length > 0 &&
@@ -239,6 +240,7 @@ export function LinhaDeContato({
             <Button
               id={`contatos.${indice}.editar`}
               type="button"
+              variant="outline"
               size="icon"
               className={ICONE_PEQUENO}
               onClick={onEditar}
