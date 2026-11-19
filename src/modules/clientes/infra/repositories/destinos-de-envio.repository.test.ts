@@ -403,3 +403,108 @@ describe("Destinos de envio (integração)", () => {
     expect(sobrou.data).toEqual([]);
   });
 });
+
+describe("salvar_destino_de_envio (integração)", () => {
+  const definir = (
+    supabase: SupabaseClient,
+    args: { contatoId?: string; contato?: unknown; tipo?: string | null; canal: string },
+  ) =>
+    supabase.rpc("salvar_destino_de_envio", {
+      p_cliente_id: clienteId,
+      p_contato_id: args.contatoId ?? null,
+      p_contato: args.contato ?? null,
+      p_tipo: args.tipo ?? null,
+      p_canal: args.canal,
+    });
+
+  it("grava o Destino do Setor de quem chama com um contato já cadastrado", async () => {
+    const ana = await contatoPorNome("Ana Exemplo");
+    const sn = await comoFuncionarioSN();
+
+    const resultado = await definir(sn, { contatoId: ana.id, tipo: "das", canal: "whatsapp" });
+
+    expect(resultado.error).toBeNull();
+    const gravado = await servico
+      .from("destinos_de_envio")
+      .select("setor, tipo, contato_id, canal")
+      .eq("id", resultado.data as string)
+      .single();
+    expect(gravado.data).toEqual({
+      setor: "simples_nacional",
+      tipo: "das",
+      contato_id: ana.id,
+      canal: "whatsapp",
+    });
+  });
+
+  it("cria o contato novo e o Destino juntos, com o Setor como dono", async () => {
+    const sn = await comoFuncionarioSN();
+
+    const resultado = await definir(sn, {
+      contato: { nome: "Dora Exemplo", telefone: "11977770000", email: "" },
+      canal: "whatsapp",
+    });
+
+    expect(resultado.error).toBeNull();
+    const dora = await servico
+      .from("cliente_contatos")
+      .select("dono_setor")
+      .eq("cliente_id", clienteId)
+      .eq("nome", "Dora Exemplo")
+      .single();
+    expect(dora.data).toEqual({ dono_setor: "simples_nacional" });
+  });
+
+  it("contato novo inválido não deixa Destino pendurado", async () => {
+    const sn = await comoFuncionarioSN();
+
+    const resultado = await definir(sn, {
+      contato: { nome: "Sem DDD", telefone: "99999", email: "" },
+      canal: "whatsapp",
+    });
+
+    expect(resultado.error).not.toBeNull();
+    const destinos = await servico
+      .from("destinos_de_envio")
+      .select("id")
+      .eq("cliente_id", clienteId);
+    expect(destinos.data).toEqual([]);
+  });
+
+  it("recusa canal que o contato não tem e Destino repetido", async () => {
+    const bia = await contatoPorNome("Bia Exemplo");
+    const sn = await comoFuncionarioSN();
+
+    const semEmail = await definir(sn, { contatoId: bia.id, canal: "email" });
+    const primeiro = await definir(sn, { contatoId: bia.id, canal: "whatsapp" });
+    const repetido = await definir(sn, { contatoId: bia.id, canal: "whatsapp" });
+
+    expect(semEmail.error?.code).toBe("23514");
+    expect(primeiro.error).toBeNull();
+    expect(repetido.error?.code).toBe("23505");
+  });
+
+  it("exige contato já cadastrado ou novo, nunca os dois nem nenhum", async () => {
+    const ana = await contatoPorNome("Ana Exemplo");
+    const sn = await comoFuncionarioSN();
+
+    const nenhum = await definir(sn, { canal: "whatsapp" });
+    const dois = await definir(sn, {
+      contatoId: ana.id,
+      contato: { nome: "X", telefone: "11955550000" },
+      canal: "whatsapp",
+    });
+
+    expect(nenhum.error?.code).toBe("22023");
+    expect(dois.error?.code).toBe("22023");
+  });
+
+  it("o Admin não define Destino (não tem Setor)", async () => {
+    const ana = await contatoPorNome("Ana Exemplo");
+    const admin = await entrar("admin@rigonicontabil.local", "admin123");
+
+    const resultado = await definir(admin, { contatoId: ana.id, canal: "whatsapp" });
+
+    expect(resultado.error?.code).toBe("42501");
+  });
+});
