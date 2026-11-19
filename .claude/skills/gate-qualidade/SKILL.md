@@ -9,7 +9,7 @@ Argumento: `$ARGUMENTS` = base do diff. Sem base: `gh pr view --json baseRefName
 ## Preparação
 
 1. `git status --porcelain` sem alteração de arquivo rastreado (senão pare: o gate revisa o que está commitado). `M` com `git diff` vazio é só fim de linha (CRLF x LF): `git add <arquivo>` normaliza e o status limpa.
-2. Ledger: `.claude/state/<branch com / trocado por ->/ledger.md` (ignorado pelo git). Crie com o cabeçalho `ID | etapa | resumo | status | commit` se não existir. **Todo apontamento tratado entra aqui** (`resolvido` ou `recusado`); nada que conste no ledger volta a ser apontado.
+2. Ledger: `.claude/state/<branch com / trocado por ->/ledger.md` (ignorado pelo git). Crie com o cabeçalho `ID | etapa | resumo | status | commit` se não existir. **Todo apontamento tratado entra aqui** (`resolvido` ou `recusado`); nada que conste no ledger volta a ser apontado. Anexe com `printf '%s\n' "linha" >> <caminho absoluto>`, texto em ASCII, sem heredoc (o hook barra português) e sem `cd` para a pasta do estado (muda o diretório de trabalho). **Decisão do dono** (o que ele pediu para manter ou disse ser intencional) entra como linha `decisao-do-dono:<tema> | decisao | resumo | recusado | usuario` e o gate cola essas linhas em todo prompt de auditor: o subagent não herda a conversa.
 3. Argumento igual à branch atual: o diff `base...HEAD` fica vazio; pare e pergunte a base.
 4. Liste os arquivos do diff. Há UI (`*.tsx`, `*.css`, `DESIGN.md`)? Isso decide a etapa 1.
 
