@@ -3,6 +3,7 @@ import { useWatch, type UseFormReturn } from "react-hook-form";
 
 import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import { temOsDoisCanais } from "@/shared/kernel/forma-envio";
+import { chaveDoTelefone } from "@/shared/kernel/telefone";
 
 import { contatoNovo } from "./editar-cadastro-operacional.presenter";
 import {
@@ -13,10 +14,12 @@ import { salvarContatoAction } from "./salvar-contato.actions";
 import { definirTiposDoContatoAction } from "./tipos-de-envio.actions";
 import {
   avisoDeCanalPerdido,
+  contatoDoMesmoNumero,
   contatoDoSetor,
   contatoEditavel,
   OPCOES_DE_CANAL,
   opcoesDeTipos,
+  textoDoNumeroRepetido,
   tiposAposAlternar,
 } from "./tipos-de-envio.presenter";
 
@@ -105,6 +108,9 @@ export function useContatosDoCadastro({
       const { [chave]: _, ...resto } = atuais;
       return resto;
     });
+  // O número (chave) de cada linha nova na última vez em que se saiu do campo WhatsApp: o aviso de número
+  // repetido só vale para esse número e some quando ele muda.
+  const [verificados, setVerificados] = useState<Record<string, string>>({});
   const [anuncio, setAnuncio] = useState({ texto: "", vez: 0 });
   const anunciar = (texto: string) => setAnuncio((atual) => ({ texto, vez: atual.vez + 1 }));
   const aviso = anuncio.texto && anuncio.texto + (anuncio.vez % 2 ? ESPACO_ALTERNADO : "");
@@ -332,6 +338,33 @@ export function useContatosDoCadastro({
     focar(`contatos.${novoIndice}.tipo-todos`);
   };
 
+  // Ao sair do WhatsApp da linha nova: confere se o número já é de um contato do Cliente.
+  const onSairDoTelefone = (indice: number) => {
+    const contato = getValues(`contatos.${indice}`);
+    if (!contato || salvo(indice)) return;
+    setVerificados((atuais) => ({
+      ...atuais,
+      [chaveDe(indice)]: chaveDoTelefone(contato.telefone) ?? "",
+    }));
+  };
+
+  // O aviso do número repetido da linha nova: o contato do Cliente que já o tem. Fora da lista do Setor, a linha
+  // oferece usá-lo (o mesmo fluxo de escolher um contato já cadastrado).
+  const numeroRepetido = (indice: number) => {
+    const contato = contatos[indice];
+    if (!contato || salvo(indice) || !editando(indice)) return undefined;
+    const chave = chaveDoTelefone(contato.telefone);
+    if (!chave || verificados[chaveDe(indice)] !== chave) return undefined;
+    const achado = contatoDoMesmoNumero(contatos, indice, contato.telefone);
+    if (!achado) return undefined;
+    const naLista = visivel(achado.indice);
+    const idDoContato = achado.contato.id;
+    return {
+      texto: textoDoNumeroRepetido(achado.contato.nome, naLista, !admin),
+      onUsar: naLista || !idDoContato ? undefined : () => onEscolherExistente(indice, idDoContato),
+    };
+  };
+
   // Linha em edição (com algo nela) segura o Salvar do cadastro: o que se digitou ou marcou ali só vale com o
   // Salvar da própria linha. A linha nova em branco, que ninguém tocou, não segura.
   const abertaComConteudo = contatos.findIndex(
@@ -400,6 +433,8 @@ export function useContatosDoCadastro({
           ),
       };
     },
+    numeroRepetido,
+    onSairDoTelefone,
     aviso,
     erroDaLinha: (indice: number) => (falha?.indice === indice ? falha.mensagem : undefined),
     onEditar,

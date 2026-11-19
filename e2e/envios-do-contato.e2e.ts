@@ -109,6 +109,16 @@ test.describe("O que cada contato recebe do Setor", () => {
     ]);
     expect((await daNina()).every((d) => d.canal === "whatsapp_e_email")).toBe(true);
 
+    // Número que já é de um contato do Cliente: o aviso aparece ao sair do WhatsApp e some ao descartar a linha.
+    await page.getByRole("button", { name: "Adicionar contato" }).click();
+    await page.locator("[id='contatos.2.telefone']").fill("11977776666");
+    await page.locator("[id='contatos.2.telefone']").blur();
+    await expect(
+      page.getByText("Este número já é do contato Nina Exemplo, que já está na lista deste Setor."),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Cancelar edição do contato 3" }).click();
+    await expect(page.locator("[id='contatos.2.telefone']")).toHaveCount(0);
+
     // Editar de novo: Cancelar desfaz o que se marcou; Salvar do cadastro grava o resto sem apagar nada.
     await page.getByRole("button", { name: "Editar contato 2" }).click();
     await grupoNina.getByLabel("Avisos").check();

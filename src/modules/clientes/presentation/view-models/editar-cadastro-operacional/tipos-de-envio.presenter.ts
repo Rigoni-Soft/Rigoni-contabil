@@ -5,6 +5,7 @@ import {
   temOsDoisCanais,
   type FormaEnvioValor,
 } from "@/shared/kernel/forma-envio";
+import { chaveDoTelefone } from "@/shared/kernel/telefone";
 
 type DestinoSalvo = { contatoId: string; tipo: string | null; canal: string };
 type TipoDeEnvio = { slug: string; rotulo: string };
@@ -98,6 +99,28 @@ export function contatoDoSetor(
   setor: string,
 ): boolean {
   return contato.donoSetor === setor || (contato.setores ?? []).includes(setor);
+}
+
+// O contato já salvo do Cliente que tem o número digitado (a mesma chave do banco: dígitos sem o DDI 55),
+// fora a própria linha. Qualquer contato do formulário vale, inclusive os escondidos de outros Setores.
+export function contatoDoMesmoNumero<T extends ContatoDaLinha>(
+  contatos: readonly T[],
+  indiceDaLinha: number,
+  telefone: string,
+): { indice: number; contato: T } | undefined {
+  const chave = chaveDoTelefone(telefone);
+  if (!chave) return undefined;
+  const indice = contatos.findIndex(
+    (c, i) => i !== indiceDaLinha && Boolean(c.id) && chaveDoTelefone(c.telefone) === chave,
+  );
+  return indice < 0 ? undefined : { indice, contato: contatos[indice] };
+}
+
+// O aviso sob o WhatsApp: o número já é de um contato do Cliente. Na lista (do Setor, ou toda para o Admin) não
+// há o que escolher; fora dela, a linha oferece usar esse contato.
+export function textoDoNumeroRepetido(nome: string, naLista: boolean, porSetor: boolean): string {
+  if (!naLista) return `Este número já é do contato ${nome}.`;
+  return `Este número já é do contato ${nome}, que já está na lista${porSetor ? " deste Setor" : ""}.`;
 }
 
 // Os checkboxes da linha depois de um clique. "Todos os envios" marca todos os outros (e, desmarcado,

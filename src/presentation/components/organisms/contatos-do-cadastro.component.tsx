@@ -8,6 +8,7 @@ import {
   LinhaDeContato,
   type EnviosDaLinha,
   type ExistentesDaLinha,
+  type NumeroRepetidoDaLinha,
 } from "@/presentation/components/molecules/linha-de-contato.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
@@ -31,6 +32,10 @@ export type AcoesDasLinhasDeContato = {
   envios: (indice: number) => EnviosDaLinha | undefined;
   // Linha nova do Setor: os contatos de outros Setores que ele pode escolher em vez de digitar um novo.
   existentes: (indice: number) => ExistentesDaLinha | undefined;
+  // Linha nova: o aviso de que o número digitado já é de um contato do Cliente (com "Usar este contato" quando
+  // ele está fora da lista), conferido ao sair do WhatsApp.
+  numeroRepetido: (indice: number) => NumeroRepetidoDaLinha | undefined;
+  onSairDoTelefone: (indice: number) => void;
   // Contato de outro Setor que o Setor ainda não usa não aparece na lista; a numeração só conta os visíveis.
   visivel: (indice: number) => boolean;
   numero: (indice: number) => number;
@@ -89,13 +94,17 @@ export function ContatosDoCadastro({
                 indice={indice}
                 numero={linhas.numero(indice)}
                 existentes={linhas.existentes(indice)}
+                numeroRepetido={linhas.numeroRepetido(indice)}
                 somenteLeitura={readOnly}
                 nome={register(`contatos.${indice}.nome`)}
                 telefone={{
                   name,
                   value,
                   ref,
-                  onBlur,
+                  onBlur: () => {
+                    onBlur();
+                    linhas.onSairDoTelefone(indice);
+                  },
                   onChange: (evento) => onChange(formatarTelefone(evento.target.value)),
                 }}
                 email={register(`contatos.${indice}.email`)}

@@ -406,4 +406,60 @@ describe("useContatosDoCadastro", () => {
     expect(result.current.linhas.envios(0)?.aviso).toContain("deixou de ter o WhatsApp");
     expect(result.current.linhas.envios(1)?.aviso).toBeUndefined();
   });
+
+  describe("número que já é de um contato do Cliente", () => {
+    const BIA_COM_NUMERO = { ...BIA, telefone: "(11) 97777-0000" };
+    const digitar = (result: ReturnType<typeof montar>["result"], telefone: string) => {
+      act(() => result.current.form.setValue("contatos.2.telefone", telefone));
+      act(() => result.current.linhas.onSairDoTelefone(2));
+    };
+
+    it("só avisa depois de sair do campo, e o aviso some quando o número muda ou fica vazio", () => {
+      const { result } = montar([ANA, BIA_COM_NUMERO, { ...NOVA, telefone: "" }]);
+
+      act(() => result.current.form.setValue("contatos.2.telefone", "(11) 99999-0000"));
+      expect(result.current.linhas.numeroRepetido(2)).toBeUndefined();
+
+      act(() => result.current.linhas.onSairDoTelefone(2));
+      expect(result.current.linhas.numeroRepetido(2)?.texto).toBe(
+        "Este número já é do contato Ana, que já está na lista deste Setor.",
+      );
+
+      act(() => result.current.form.setValue("contatos.2.telefone", "(11) 99999-000"));
+      expect(result.current.linhas.numeroRepetido(2)).toBeUndefined();
+      digitar(result, "");
+      expect(result.current.linhas.numeroRepetido(2)).toBeUndefined();
+    });
+
+    it("contato da lista do Setor: só informa, sem 'Usar este contato'", () => {
+      const { result } = montar([ANA, BIA_COM_NUMERO, { ...NOVA, telefone: "" }]);
+
+      digitar(result, "11999990000");
+
+      expect(result.current.linhas.numeroRepetido(2)?.onUsar).toBeUndefined();
+    });
+
+    it("contato de outro Setor fora da lista: oferece usá-lo e a linha vira o contato escolhido", () => {
+      const { result } = montar([ANA, BIA_COM_NUMERO, { ...NOVA, telefone: "" }]);
+
+      digitar(result, "(11) 97777-0000");
+      const repetido = result.current.linhas.numeroRepetido(2);
+      expect(repetido?.texto).toBe("Este número já é do contato Bia.");
+
+      act(() => repetido?.onUsar?.());
+
+      expect(result.current.linhas.visivel(1)).toBe(true);
+      expect(result.current.linhas.editando(1)).toBe(true);
+      expect(result.current.fields).toHaveLength(2);
+    });
+
+    it("linha já salva não é conferida", () => {
+      const { result } = montar([ANA, BIA_COM_NUMERO, { ...NOVA, telefone: "" }]);
+
+      act(() => result.current.form.setValue("contatos.0.telefone", "(11) 97777-0000"));
+      act(() => result.current.linhas.onSairDoTelefone(0));
+
+      expect(result.current.linhas.numeroRepetido(0)).toBeUndefined();
+    });
+  });
 });

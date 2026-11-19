@@ -189,6 +189,21 @@ describe("EditarCadastroRhContainer", () => {
       destinos: [{ id: "d1", contatoId: "c1", tipo: "guia_parcelamento", canal: "whatsapp" }],
     };
 
+    it("linha nova: o número que já é de um contato da lista do RH avisa ao sair do campo", async () => {
+      const usuario = userEvent.setup();
+      montar({ dados: dadosComEnvios, ator: FUNCIONARIO_RH });
+
+      await usuario.click(await screen.findByRole("button", { name: "Adicionar contato" }));
+      const telefone = screen.getAllByLabelText("WhatsApp").at(-1) as HTMLElement;
+      await usuario.type(telefone, "11999990000");
+      await usuario.tab();
+
+      expect(
+        screen.getByText("Este número já é do contato Maria, que já está na lista deste Setor."),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Usar este contato" })).toBeNull();
+    });
+
     it("cada contato tem os checkboxes do catálogo do RH, com o que já recebe marcado", async () => {
       montar({ dados: dadosComEnvios, ator: FUNCIONARIO_RH });
 

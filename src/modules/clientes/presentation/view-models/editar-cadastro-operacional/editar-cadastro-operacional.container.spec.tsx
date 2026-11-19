@@ -443,6 +443,51 @@ describe("EditarCadastroOperacionalContainer", () => {
       expect(await screen.findByText(/Enviar por:\s*E-mail/)).toBeInTheDocument();
     });
 
+    it("linha nova: o número digitado que já é de um contato do Cliente avisa ao sair do campo, e 'Usar este contato' o escolhe", async () => {
+      const usuario = userEvent.setup();
+      const BIA_ID = "33333333-3333-4333-8333-333333333333";
+      render(
+        <EditarCadastroOperacionalContainer
+          dados={{
+            ...dadosComEnvios,
+            contatos: [
+              ...dadosComEnvios.contatos,
+              {
+                id: BIA_ID,
+                nome: "Bia",
+                telefone: "11977770000",
+                email: "",
+                donoSetor: "rh",
+              },
+            ],
+          }}
+          ator={FUNCIONARIO_SN}
+          readOnly={false}
+        />,
+      );
+
+      await usuario.click(screen.getByRole("button", { name: "Adicionar contato" }));
+      await usuario.selectOptions(screen.getByLabelText(/^Nome/, { selector: "select" }), [
+        "__novo__",
+      ]);
+      const telefone = screen.getAllByLabelText("WhatsApp").at(-1) as HTMLElement;
+      await usuario.type(telefone, "11999990000");
+      await usuario.tab();
+      expect(
+        screen.getByText("Este número já é do contato Maria, que já está na lista deste Setor."),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Usar este contato" })).toBeNull();
+
+      await usuario.clear(telefone);
+      await usuario.type(telefone, "11977770000");
+      await usuario.tab();
+      expect(screen.getByText("Este número já é do contato Bia.")).toBeInTheDocument();
+      await usuario.click(screen.getByRole("button", { name: "Usar este contato" }));
+
+      expect(await screen.findByRole("group", { name: "Envios do contato 3" })).toBeInTheDocument();
+      expect(screen.queryByText("Este número já é do contato Bia.")).toBeNull();
+    });
+
     it("editar o contato do Setor grava o contato e os envios juntos no Salvar da linha", async () => {
       salvarContatoMock.mockResolvedValue({ ok: true, value: { id: MARIA_ID } });
       definirTiposMock.mockResolvedValue(ok(undefined));

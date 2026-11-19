@@ -9,6 +9,8 @@ export const LINHAS_DE_CONTATO_DE_TESTE = {
   onRemover: jest.fn(),
   envios: () => undefined,
   existentes: () => undefined,
+  numeroRepetido: () => undefined,
+  onSairDoTelefone: jest.fn(),
   visivel: () => true,
   numero: (indice: number) => indice + 1,
   erroDaLinha: () => undefined,

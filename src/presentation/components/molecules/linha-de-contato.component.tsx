@@ -61,7 +61,10 @@ type LinhaDeContatoProps = {
   envios?: EnviosDaLinha;
   // Linha nova do Setor: escolher um contato que outro Setor já cadastrou, em vez de digitar um novo.
   existentes?: ExistentesDaLinha;
+  // Linha nova: o número digitado já é de um contato do Cliente; `onUsar` ausente = ele já está na lista.
+  numeroRepetido?: NumeroRepetidoDaLinha;
 };
+export type NumeroRepetidoDaLinha = { texto: string; onUsar?: () => void };
 // Os contatos que outro Setor já cadastrou: na linha nova do Setor, Nome, WhatsApp e E-mail viram seleções
 // (escolher um preenche e trava a linha) com a opção "+ Cadastrar novo", que troca os três por campos de
 // texto (`modoNovo`).
@@ -115,6 +118,7 @@ export function LinhaDeContato({
   somenteLeitura,
   envios,
   existentes,
+  numeroRepetido,
 }: LinhaDeContatoProps) {
   const numero = numeroDaTela ?? indice + 1;
   const comAcoes = !somenteLeitura;
@@ -161,6 +165,7 @@ export function LinhaDeContato({
     />
   );
   const idDoErroDaLinha = `contatos.${indice}.linha-mensagem`;
+  const idDoNumeroRepetido = `contatos.${indice}.telefone-repetido`;
   const rotuloEditar = `Editar contato ${numero}`;
   const rotuloSalvar = `Salvar contato ${numero}`;
   const rotuloCancelar = `Cancelar edição do contato ${numero}`;
@@ -198,6 +203,7 @@ export function LinhaDeContato({
               rotulo="WhatsApp"
               inputMode="tel"
               erro={erroTelefone}
+              aria-describedby={numeroRepetido ? idDoNumeroRepetido : undefined}
               className="min-w-[10rem] flex-1 gap-1"
               {...telefone}
               {...travado}
@@ -277,6 +283,27 @@ export function LinhaDeContato({
               </Button>
             )}
           </AcoesDaLinha>
+        )}
+        {numeroRepetido && !escolha && (
+          <Linha alinhar="centro" espaco={3} quebra className="basis-full">
+            <AvisoDeStatus
+              tipo="atencao"
+              legivel
+              id={idDoNumeroRepetido}
+              texto={numeroRepetido.texto}
+            />
+            {numeroRepetido.onUsar && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="pointer-coarse:h-11"
+                onClick={numeroRepetido.onUsar}
+              >
+                Usar este contato
+              </Button>
+            )}
+          </Linha>
         )}
         {envios && (
           <Caixa

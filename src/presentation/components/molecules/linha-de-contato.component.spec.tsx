@@ -310,4 +310,44 @@ describe("LinhaDeContato", () => {
       "contatos.0.linha-mensagem",
     );
   });
+
+  it("número repetido: o aviso liga ao WhatsApp e 'Usar este contato' chama o callback", async () => {
+    const aoUsar = jest.fn();
+    const usuario = userEvent.setup();
+    render(
+      <LinhaDeContato
+        indice={0}
+        {...CAMPOS}
+        editando
+        numeroRepetido={{ texto: "Este número já é do contato Bia.", onUsar: aoUsar }}
+        onSalvar={jest.fn()}
+        onCancelar={jest.fn()}
+      />,
+    );
+
+    const aviso = screen.getByText("Este número já é do contato Bia.");
+    expect(aviso.closest("p")).toHaveAttribute("id", "contatos.0.telefone-repetido");
+    expect(screen.getByLabelText("WhatsApp")).toHaveAttribute(
+      "aria-describedby",
+      "contatos.0.telefone-repetido",
+    );
+    await usuario.click(screen.getByRole("button", { name: "Usar este contato" }));
+    expect(aoUsar).toHaveBeenCalledTimes(1);
+  });
+
+  it("número repetido de contato que já está na lista: só o aviso, sem botão", () => {
+    render(
+      <LinhaDeContato
+        indice={0}
+        {...CAMPOS}
+        editando
+        numeroRepetido={{ texto: "Este número já é do contato Ana, que já está na lista." }}
+        onSalvar={jest.fn()}
+        onCancelar={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/que já está na lista/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Usar este contato" })).toBeNull();
+  });
 });
