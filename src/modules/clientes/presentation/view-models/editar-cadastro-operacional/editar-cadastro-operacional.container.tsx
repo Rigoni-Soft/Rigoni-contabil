@@ -92,17 +92,7 @@ export function EditarCadastroOperacionalContainer({
       }
     : undefined;
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    reset,
-    getValues,
-    setValue,
-    setError,
-    clearErrors,
-    formState: { errors },
-  } = useForm<EditarCadastroOperacionalFormValues>({
+  const form = useForm<EditarCadastroOperacionalFormValues>({
     // Valida sem as linhas em branco; o que sai daqui (inclusive para o submit) já vem sem elas.
     resolver: async (valores, contexto, opcoes) => {
       const semBranco = descartarLinhasEmBranco(valores);
@@ -129,19 +119,22 @@ export function EditarCadastroOperacionalContainer({
     },
     defaultValues: valoresIniciais,
   });
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    getValues,
+    setValue,
+    setError,
+    formState: { errors },
+  } = form;
 
   // Lista de Funcionários só é buscada quando o Líder abre o Select.
   const [listaAberta, setListaAberta] = useState(false);
   const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
-  const linhasDeContato = useContatosDaLinha({
-    clienteId: dados?.id ?? "",
-    control,
-    getValues,
-    setValue,
-    setError,
-    clearErrors,
-  });
+  const linhasDeContato = useContatosDaLinha({ clienteId: dados?.id ?? "", form });
   // Esta tela é o cadastro operacional do Simples Nacional.
   const parcelamentos = useParcelamentosDoCadastro({
     clienteId: dados?.id ?? "",

@@ -76,15 +76,24 @@ describe("LinhaDeContato", () => {
     expect(screen.getByLabelText("Nome")).not.toBeRequired();
   });
 
-  it("salvando desabilita os dois botões e marca o Salvar como ocupado", () => {
+  it("salvando, os botões ficam aria-disabled (sem perder o foco), não agem e o Salvar fica ocupado", async () => {
+    const aoSalvar = jest.fn();
+    const aoLimpar = jest.fn();
     render(
-      <LinhaDeContato indice={0} {...CAMPOS} salvando onSalvar={jest.fn()} onLimpar={jest.fn()} />,
+      <LinhaDeContato indice={0} {...CAMPOS} salvando onSalvar={aoSalvar} onLimpar={aoLimpar} />,
     );
 
     const salvar = screen.getByRole("button", { name: "Salvar contato 1" });
-    expect(salvar).toBeDisabled();
+    const limpar = screen.getByRole("button", { name: "Limpar contato 1" });
+    expect(salvar).toHaveAttribute("aria-disabled", "true");
+    expect(salvar).not.toBeDisabled();
     expect(salvar).toHaveAttribute("aria-busy", "true");
-    expect(screen.getByRole("button", { name: "Limpar contato 1" })).toBeDisabled();
+    expect(limpar).toHaveAttribute("aria-disabled", "true");
+
+    salvar.click();
+    limpar.click();
+    expect(aoSalvar).not.toHaveBeenCalled();
+    expect(aoLimpar).not.toHaveBeenCalled();
   });
 
   it("a falta dos dois canais marca o E-mail como inválido e aponta a mensagem do Telefone", () => {

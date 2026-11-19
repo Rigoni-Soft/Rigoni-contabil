@@ -10,22 +10,18 @@ import {
 } from "./editar-cadastro-operacional.schema";
 import { salvarContatoAction } from "./salvar-contato.actions";
 
-type ParametrosDeContatosDaLinha = Pick<
-  UseFormReturn<EditarCadastroOperacionalFormValues>,
-  "control" | "getValues" | "setValue" | "setError" | "clearErrors"
-> & { clienteId: string };
+type ParametrosDeContatosDaLinha = {
+  clienteId: string;
+  form: UseFormReturn<EditarCadastroOperacionalFormValues>;
+};
+
+const CAMPOS_DO_CONTATO = ["nome", "telefone", "email"] as const;
 
 // A mesma ação repetida não muda o texto e o leitor de tela não a anunciaria de novo; o espaço no fim alterna.
 const ESPACO_ALTERNADO = " ";
 
-export function useContatosDaLinha({
-  clienteId,
-  control,
-  getValues,
-  setValue,
-  setError,
-  clearErrors,
-}: ParametrosDeContatosDaLinha) {
+export function useContatosDaLinha({ clienteId, form }: ParametrosDeContatosDaLinha) {
+  const { control, getValues, setValue, setError, clearErrors } = form;
   const contatos = useWatch({ control, name: "contatos" });
   const [salvando, setSalvando] = useState<number | null>(null);
   const [falha, setFalha] = useState<{ indice: number; mensagem: string } | null>(null);
@@ -43,7 +39,7 @@ export function useContatosDaLinha({
     const valido = contatoSchema.safeParse(contato);
     if (!valido.success) {
       valido.error.issues.forEach((problema, posicao) => {
-        const campo = String(problema.path[0] ?? "nome") as "nome" | "telefone" | "email";
+        const campo = CAMPOS_DO_CONTATO.find((c) => c === problema.path[0]) ?? "nome";
         setError(
           `contatos.${indice}.${campo}`,
           { message: problema.message },

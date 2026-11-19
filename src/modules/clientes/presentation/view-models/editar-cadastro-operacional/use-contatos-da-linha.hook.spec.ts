@@ -17,14 +17,7 @@ function montar(contatos: { id?: string; nome: string; telefone: string; email: 
     const form = useForm<EditarCadastroOperacionalFormValues>({
       defaultValues: { contatos } as Partial<EditarCadastroOperacionalFormValues>,
     });
-    const linhas = useContatosDaLinha({
-      clienteId: "c1",
-      control: form.control,
-      getValues: form.getValues,
-      setValue: form.setValue,
-      setError: form.setError,
-      clearErrors: form.clearErrors,
-    });
+    const linhas = useContatosDaLinha({ clienteId: "c1", form });
     return { form, linhas, erros: form.formState.errors };
   });
 }

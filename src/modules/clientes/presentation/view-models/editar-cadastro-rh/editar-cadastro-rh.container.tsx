@@ -75,17 +75,7 @@ export function EditarCadastroRhContainer({
   const [sucesso, setSucesso] = useState(false);
 
   const valoresIniciais = dados ? valoresIniciaisDe(dados, readOnly) : undefined;
-  const {
-    register,
-    control,
-    handleSubmit,
-    reset,
-    getValues,
-    setValue,
-    setError,
-    clearErrors,
-    formState: { errors },
-  } = useForm<Valores>({
+  const form = useForm<Valores>({
     // Valida sem as linhas de contato em branco, como o formulário do SN.
     resolver: async (valores, contexto, opcoes) => {
       const semBranco = descartarLinhasEmBranco(valores);
@@ -113,15 +103,18 @@ export function EditarCadastroRhContainer({
     },
     defaultValues: valoresIniciais,
   });
-  const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
-  const linhasDeContato = useContatosDaLinha({
-    clienteId: dados?.id ?? "",
+  const {
+    register,
     control,
+    handleSubmit,
+    reset,
     getValues,
     setValue,
     setError,
-    clearErrors,
-  });
+    formState: { errors },
+  } = form;
+  const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
+  const linhasDeContato = useContatosDaLinha({ clienteId: dados?.id ?? "", form });
   const parcelamentos = useParcelamentosDoCadastro({
     clienteId: dados?.id ?? "",
     setor: "rh",

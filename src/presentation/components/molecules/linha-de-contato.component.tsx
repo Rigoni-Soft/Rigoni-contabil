@@ -28,6 +28,9 @@ type LinhaDeContatoProps = {
   somenteLeitura?: boolean;
 };
 
+// Ocupado, o botão fica `aria-disabled` e não `disabled`: o navegador não solta o foco dele.
+const OCUPADO = "aria-disabled:pointer-events-none aria-disabled:opacity-50";
+
 // Botões na altura do input: o espaçador invisível ocupa o lugar do rótulo, e a mensagem de erro
 // sob o campo não os empurra.
 function AcoesDaLinha({ children }: { children: React.ReactNode }) {
@@ -88,7 +91,7 @@ export function LinhaDeContato({
         />
         <CampoDeTexto
           id={`contatos.${indice}.telefone`}
-          rotulo="Telefone"
+          rotulo="WhatsApp"
           inputMode="tel"
           erro={erroTelefone}
           className="min-w-[10rem] flex-1 gap-1"
@@ -125,9 +128,9 @@ export function LinhaDeContato({
             <Button
               type="button"
               size="icon"
-              className="size-8 pointer-coarse:size-11"
-              onClick={onSalvar}
-              disabled={salvando}
+              className={`size-8 pointer-coarse:size-11 ${OCUPADO}`}
+              onClick={() => !salvando && onSalvar()}
+              aria-disabled={salvando || undefined}
               aria-busy={salvando}
               aria-label={rotuloSalvar}
               title={rotuloSalvar}
@@ -142,9 +145,9 @@ export function LinhaDeContato({
               type="button"
               variant="destructive"
               size="icon"
-              className="size-8 pointer-coarse:size-11"
-              onClick={onLimpar}
-              disabled={salvando}
+              className={`size-8 pointer-coarse:size-11 ${OCUPADO}`}
+              onClick={() => !salvando && onLimpar()}
+              aria-disabled={salvando || undefined}
               aria-label={rotuloLimpar}
               title={rotuloLimpar}
             >
