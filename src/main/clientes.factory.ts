@@ -15,6 +15,7 @@ import type { AtribuirResponsavelClientePort } from "@/modules/clientes/applicat
 import type { ConfirmarGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/confirmar-guia-parcela-pgfn.provider";
 import type { ContarAvisosNaoVistosPort } from "@/modules/clientes/application/ports/in/contar-avisos-nao-vistos.provider";
 import type { CriarClientePort } from "@/modules/clientes/application/ports/in/criar-cliente.provider";
+import type { DefinirDestinoDeEnvioPort } from "@/modules/clientes/application/ports/in/definir-destino-de-envio.provider";
 import type {
   ListarDocumentosContratuaisClientePort,
   ObterLinkDocumentoContratualPort,
@@ -26,9 +27,8 @@ import type { ListarAvisosCadastroPort } from "@/modules/clientes/application/po
 import type { ListarGuiasParcelaPgfnPort } from "@/modules/clientes/application/ports/in/listar-guias-parcela-pgfn.provider";
 import type { MarcarAvisoVistoPort } from "@/modules/clientes/application/ports/in/marcar-aviso-visto.provider";
 import type { ObterLinkGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/obter-link-guia-parcela-pgfn.provider";
-import type { RemoverGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/remover-guia-parcela-pgfn.provider";
-import type { DefinirDestinoDeEnvioPort } from "@/modules/clientes/application/ports/in/definir-destino-de-envio.provider";
 import type { RemoverDestinoDeEnvioPort } from "@/modules/clientes/application/ports/in/remover-destino-de-envio.provider";
+import type { RemoverGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/remover-guia-parcela-pgfn.provider";
 import type { SalvarContatoDoClientePort } from "@/modules/clientes/application/ports/in/salvar-contato-do-cliente.provider";
 import type { SalvarParcelamentosClientePort } from "@/modules/clientes/application/ports/in/salvar-parcelamentos-cliente.provider";
 import type { TrocarGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/trocar-guia-parcela-pgfn.provider";
@@ -48,6 +48,7 @@ import { ConsultarCadastroRhCliente } from "@/modules/clientes/application/use-c
 import { ConsultarResponsavelDoSetor } from "@/modules/clientes/application/use-cases/consultar-responsavel-do-setor.use-case";
 import { ContarAvisosNaoVistos } from "@/modules/clientes/application/use-cases/contar-avisos-nao-vistos.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
+import { DefinirDestinoDeEnvio } from "@/modules/clientes/application/use-cases/definir-destino-de-envio.use-case";
 import { EditarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-operacional-cliente.use-case";
 import { EditarCadastroRhCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-rh-cliente.use-case";
 import { LerPdfDeParcelamento } from "@/modules/clientes/application/use-cases/ler-pdf-de-parcelamento.use-case";
@@ -60,9 +61,8 @@ import { ObterLinkDocumentoContratual } from "@/modules/clientes/application/use
 import { ObterLinkGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/obter-link-guia-parcela-pgfn.use-case";
 import { ObterResumoSetorRh } from "@/modules/clientes/application/use-cases/obter-resumo-setor-rh.use-case";
 import { ObterResumoSetorSn } from "@/modules/clientes/application/use-cases/obter-resumo-setor-sn.use-case";
-import { RemoverGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/remover-guia-parcela-pgfn.use-case";
-import { DefinirDestinoDeEnvio } from "@/modules/clientes/application/use-cases/definir-destino-de-envio.use-case";
 import { RemoverDestinoDeEnvio } from "@/modules/clientes/application/use-cases/remover-destino-de-envio.use-case";
+import { RemoverGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/remover-guia-parcela-pgfn.use-case";
 import { SalvarContatoDoCliente } from "@/modules/clientes/application/use-cases/salvar-contato-do-cliente.use-case";
 import { SalvarParcelamentosCliente } from "@/modules/clientes/application/use-cases/salvar-parcelamentos-cliente.use-case";
 import { TrocarGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/trocar-guia-parcela-pgfn.use-case";

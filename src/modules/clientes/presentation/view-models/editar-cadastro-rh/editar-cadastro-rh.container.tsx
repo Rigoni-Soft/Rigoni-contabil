@@ -14,6 +14,7 @@ import type { CadastroRhClienteDto } from "@/modules/clientes/application/ports/
 import { SETOR_RH } from "@/shared/kernel/setores";
 
 import { guiasDaParcela } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
+import { avisoDeContatoDeOutroSetor } from "../editar-cadastro-operacional/destinos-de-envio.presenter";
 import {
   contatoNovo,
   descartarLinhasEmBranco,
@@ -21,7 +22,6 @@ import {
   parcelamentoNovo,
   reposicionarErros,
 } from "../editar-cadastro-operacional/editar-cadastro-operacional.presenter";
-import { avisoDeContatoDeOutroSetor } from "../editar-cadastro-operacional/destinos-de-envio.presenter";
 import { useContatosDaLinha } from "../editar-cadastro-operacional/use-contatos-da-linha.hook";
 import { useDestinosDoCadastro } from "../editar-cadastro-operacional/use-destinos-do-cadastro.hook";
 import { useParcelamentosDoCadastro } from "../editar-cadastro-operacional/use-parcelamentos-do-cadastro.hook";

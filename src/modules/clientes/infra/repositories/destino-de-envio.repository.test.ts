@@ -52,22 +52,18 @@ const destinoNovo = (telefone: string, tipo: string | null = null) => {
 beforeAll(async () => {
   await removerClientesDeTeste([CNPJ]);
   clienteId = crypto.randomUUID();
-  const cliente = await servico
-    .from("clientes")
-    .insert({
-      id: clienteId,
-      empresa: "Repositório Destinos Ltda",
-      cnpj: CNPJ,
-      regime: "simples_nacional",
-    });
+  const cliente = await servico.from("clientes").insert({
+    id: clienteId,
+    empresa: "Repositório Destinos Ltda",
+    cnpj: CNPJ,
+    regime: "simples_nacional",
+  });
   if (cliente.error) throw cliente.error;
-  const responsavel = await servico
-    .from("cliente_responsaveis")
-    .insert({
-      cliente_id: clienteId,
-      setor: "simples_nacional",
-      responsavel_id: FUNCIONARIO_SN_ID,
-    });
+  const responsavel = await servico.from("cliente_responsaveis").insert({
+    cliente_id: clienteId,
+    setor: "simples_nacional",
+    responsavel_id: FUNCIONARIO_SN_ID,
+  });
   if (responsavel.error) throw responsavel.error;
 });
 

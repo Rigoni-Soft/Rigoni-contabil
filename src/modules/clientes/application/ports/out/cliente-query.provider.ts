@@ -39,11 +39,11 @@ export type CadastroOperacionalClienteDto = DestinosDoSetorDto & {
 // Não traz o Regime nem nada do cadastro operacional do SN.
 export type CadastroRhClienteDto = SugestaoClienteDto &
   DestinosDoSetorDto & {
-  contatos: ContatoProps[];
-  observacoes: string;
-  // Os Parcelamentos do RH (os do SN não aparecem aqui).
-  parcelamentos: ParcelamentoDto[];
-};
+    contatos: ContatoProps[];
+    observacoes: string;
+    // Os Parcelamentos do RH (os do SN não aparecem aqui).
+    parcelamentos: ParcelamentoDto[];
+  };
 
 export type ResponsavelOpcaoDto = { id: string; nome: string };
 

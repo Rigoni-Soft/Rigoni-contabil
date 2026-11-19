@@ -6,7 +6,6 @@ import {
   DOCUMENTO_OBRIGATORIO_STATUS_LABEL,
   DOCUMENTO_OBRIGATORIO_STATUSES,
 } from "@/shared/kernel/documento-obrigatorio-status";
-
 import { opcoesDe } from "@/shared/kernel/opcoes";
 import { rotuloResponsavel } from "@/shared/kernel/papeis";
 

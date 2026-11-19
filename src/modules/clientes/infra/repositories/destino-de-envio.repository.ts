@@ -12,7 +12,8 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const MENSAGEM_REPETIDO = "Este contato já está definido para este tipo de envio.";
-const MENSAGEM_CANAL = "O contato não tem o canal escolhido. Atualize a página e confira o contato.";
+const MENSAGEM_CANAL =
+  "O contato não tem o canal escolhido. Atualize a página e confira o contato.";
 const MENSAGEM_SEM_PERMISSAO = "Sem permissão para definir os destinos de envio deste Cliente.";
 
 // `salvar_destino_de_envio` grava o Destino do Setor de quem chama (e o Contato novo, na mesma

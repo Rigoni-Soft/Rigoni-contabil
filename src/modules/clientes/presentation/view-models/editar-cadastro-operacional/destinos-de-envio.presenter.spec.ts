@@ -134,7 +134,10 @@ describe("avisoDeContatoDeOutroSetor", () => {
   it("sem texto quando o contato é editável", () => {
     expect(avisoDeContatoDeOutroSetor({ id: "c", donoSetor: "rh" }, rh)).toBeUndefined();
     expect(
-      avisoDeContatoDeOutroSetor({ id: "c", donoSetor: "rh" }, { admin: true, setorDoCadastro: "x" }),
+      avisoDeContatoDeOutroSetor(
+        { id: "c", donoSetor: "rh" },
+        { admin: true, setorDoCadastro: "x" },
+      ),
     ).toBeUndefined();
   });
 });

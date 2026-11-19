@@ -224,7 +224,6 @@ export function EditarCadastroOperacionalContainer({
       }}
       dasEnviadoPeloSistema={dados?.dasStatus === "enviado"}
       opcoes={{
-
         documento: OPCOES_DOCUMENTO,
         das: opcoesDeDas(dados.dasStatus === "enviado"),
       }}

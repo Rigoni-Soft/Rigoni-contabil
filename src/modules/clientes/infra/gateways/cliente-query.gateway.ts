@@ -4,8 +4,8 @@ import { z } from "zod";
 import type {
   CadastroOperacionalClienteDto,
   CadastroRhClienteDto,
-  DestinosDoSetorDto,
   ClienteQueryPort,
+  DestinosDoSetorDto,
   ResponsavelOpcaoDto,
   ResumoOperacionalRow,
   SugestaoClienteDto,
@@ -193,7 +193,8 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
         .eq("setor", setor),
     ]);
     const falha = destinos.error ?? tipos.error;
-    if (falha) return err(new ConsultaError(`Erro ao buscar os destinos de envio: ${falha.message}`));
+    if (falha)
+      return err(new ConsultaError(`Erro ao buscar os destinos de envio: ${falha.message}`));
 
     const lidos = destinosRowsSchema.safeParse(destinos.data);
     const catalogo = tiposRowsSchema.safeParse(tipos.data);
