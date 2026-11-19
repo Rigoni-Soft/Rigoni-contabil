@@ -16,7 +16,7 @@ export type ContatoDoDestino = {
   donoSetor?: string | null;
 };
 
-type DestinoSalvo = { id: string; contatoId: string; tipo: string | null; canal: string };
+export type DestinoSalvo = { id: string; contatoId: string; tipo: string | null; canal: string };
 type TipoDeEnvio = { slug: string; rotulo: string };
 
 export type Opcao = { valor: string; rotulo: string };

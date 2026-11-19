@@ -7,6 +7,7 @@ import { definirDestinoAction, removerDestinoAction } from "./destinos-de-envio.
 import {
   canaisDaEscolha,
   contatoComOMesmoCanal,
+  type DestinoSalvo,
   linhasDeDestino,
   opcoesDeContato,
   opcoesDeTipo,
@@ -16,7 +17,6 @@ import {
   type EditarCadastroOperacionalFormValues,
 } from "./editar-cadastro-operacional.schema";
 
-type DestinoSalvo = { id: string; contatoId: string; tipo: string | null; canal: string };
 
 type Parametros = {
   clienteId: string;
