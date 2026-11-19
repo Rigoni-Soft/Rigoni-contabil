@@ -224,6 +224,7 @@ export function EditarCadastroOperacionalContainer({
       linhasDeContato={{
         salvos: linhasDeContato.salvos,
         salvando: linhasDeContato.salvando,
+        aviso: linhasDeContato.aviso,
         erroDaLinha: linhasDeContato.erroDaLinha,
         onSalvar: linhasDeContato.salvarLinha,
         onCancelar: linhasDeContato.cancelarLinha,

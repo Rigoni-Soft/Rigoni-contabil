@@ -15,6 +15,8 @@ import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-oper
 export type AcoesDasLinhasDeContato = {
   salvos: boolean[];
   salvando: number | null;
+  // Confirmação dita ao leitor de tela ("Contato 1 salvo."), já que salvar só troca os botões.
+  aviso?: string;
   erroDaLinha: (indice: number) => string | undefined;
   onSalvar: (indice: number) => void;
   onCancelar: (indice: number) => void;
@@ -87,6 +89,9 @@ export function ContatosDoCadastro({
           )}
         />
       ))}
+      <Texto variante="nota" aria-live="polite" className="sr-only">
+        {linhas.aviso}
+      </Texto>
       {errors.contatos && typeof errors.contatos.message === "string" && (
         <FieldError>{errors.contatos.message}</FieldError>
       )}

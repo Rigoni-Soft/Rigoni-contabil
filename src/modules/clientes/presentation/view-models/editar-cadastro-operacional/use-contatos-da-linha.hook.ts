@@ -39,6 +39,11 @@ export function useContatosDaLinha({
   const contatos = useWatch({ control, name: "contatos" });
   const [salvando, setSalvando] = useState<number | null>(null);
   const [falha, setFalha] = useState<{ indice: number; mensagem: string } | null>(null);
+  // Lido pelo leitor de tela (região role="status"): o sucesso não tem outro sinal além da troca dos botões.
+  const [aviso, setAviso] = useState<string>();
+
+  // Os botões somem da tela ao salvar/cancelar: o foco volta ao Nome da própria linha, que sempre existe.
+  const focarNome = (indice: number) => document.getElementById(`contatos.${indice}.nome`)?.focus();
 
   const salvarLinha = async (indice: number) => {
     const contato = getValues(`contatos.${indice}`);
@@ -58,8 +63,11 @@ export function useContatosDaLinha({
         clienteId,
         contato: { nome: contato.nome, telefone: contato.telefone, email: contato.email },
       });
-      if (resultado.ok) setValue(`contatos.${indice}.id`, resultado.data.id);
-      else setFalha({ indice, mensagem: resultado.error.message });
+      if (resultado.ok) {
+        setValue(`contatos.${indice}.id`, resultado.data.id);
+        setAviso(`Contato ${indice + 1} salvo.`);
+        focarNome(indice);
+      } else setFalha({ indice, mensagem: resultado.error.message });
     } catch (erro) {
       console.error("Falha ao salvar o contato", erro);
       setFalha({ indice, mensagem: mensagemDaFalha(erro) });
@@ -73,11 +81,14 @@ export function useContatosDaLinha({
     setFalha(null);
     clearErrors(`contatos.${indice}`);
     setValue(`contatos.${indice}`, contatoNovo());
+    setAviso(`Contato ${indice + 1} limpo.`);
+    focarNome(indice);
   };
 
   return {
     salvos: (contatos ?? []).map((contato) => Boolean(contato?.id)),
     salvando,
+    aviso,
     erroDaLinha: (indice: number) => (falha?.indice === indice ? falha.mensagem : undefined),
     salvarLinha,
     cancelarLinha,

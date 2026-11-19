@@ -544,6 +544,8 @@ describe("EditarCadastroOperacionalContainer", () => {
     await usuario.click(screen.getByRole("button", { name: "Salvar contato 1" }));
 
     expect(await screen.findByRole("button", { name: "Remover contato 1" })).toBeInTheDocument();
+    expect(screen.getByText("Contato 1 salvo.")).toHaveAttribute("aria-live", "polite");
+    expect(screen.getByLabelText(/^nome/i)).toHaveFocus();
     expect(screen.queryByRole("button", { name: "Salvar contato 1" })).not.toBeInTheDocument();
     expect(salvarContatoMock).toHaveBeenCalledWith(
       expect.objectContaining({
