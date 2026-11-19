@@ -4,6 +4,7 @@ import type { SalvarContatoDoClienteInput } from "@/modules/clientes/application
 import type { ContatoDoClienteRepository } from "@/modules/clientes/application/ports/out/contato-do-cliente.repository";
 import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
 import { ConsoleRegistroDeErrosGateway } from "@/modules/clientes/infra/gateways/console-registro-de-erros.gateway";
+import { contatoParaRpc } from "@/modules/clientes/infra/mappers/contato-row.mapper";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { PersistenciaError } from "@/shared/errors/persistencia.error";
@@ -23,12 +24,7 @@ export class SupabaseContatoDoClienteRepository implements ContatoDoClienteRepos
   ): Promise<Result<string, AppError>> {
     const { data, error } = await this.supabase.rpc("salvar_contato_do_cliente", {
       p_cliente_id: clienteId,
-      p_contato: {
-        id: contato.id ?? null,
-        nome: contato.nome,
-        telefone: contato.telefone,
-        email: contato.email,
-      },
+      p_contato: contatoParaRpc(contato),
     });
     if (error) {
       if (error.code === "42501") return err(new ForbiddenError(error.message));

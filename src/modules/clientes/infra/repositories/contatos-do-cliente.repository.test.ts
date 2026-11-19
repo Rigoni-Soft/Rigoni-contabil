@@ -6,7 +6,13 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { PersistenciaError } from "@/shared/errors/persistencia.error";
+import { ValidationError } from "@/shared/errors/validation.error";
+
 import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
+
+import { SupabaseContatoDoClienteRepository } from "./contato-do-cliente.repository";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -337,6 +343,106 @@ describe("Contato do Cliente (integração)", () => {
     expect(repetido.error?.code).toBe("23505");
     expect(deOutroSetor.error?.code).toBe("42501");
     expect((await ler(clienteA)).map((c) => c.nome)).toEqual(["Maria Exemplo"]);
+  });
+
+  describe("SupabaseContatoDoClienteRepository", () => {
+    const registrar = jest.fn();
+
+    beforeEach(() => registrar.mockClear());
+
+    it("devolve o id gravado ao criar e ao atualizar", async () => {
+      const repositorio = new SupabaseContatoDoClienteRepository(await comoFuncionarioRH(), {
+        registrar,
+      });
+
+      const criado = await repositorio.salvar(clienteA, {
+        nome: "Maria Exemplo",
+        telefone: "11999990000",
+        email: "",
+      });
+      const atualizado = await repositorio.salvar(clienteA, {
+        id: criado.ok ? criado.value : undefined,
+        nome: "Maria Silva Exemplo",
+        telefone: "11999990000",
+        email: "",
+      });
+
+      expect(criado.ok).toBe(true);
+      expect(atualizado).toEqual(criado);
+      expect((await ler(clienteA)).map((c) => c.nome)).toEqual(["Maria Silva Exemplo"]);
+    });
+
+    it("traduz 42501 em Forbidden quando o contato é de outro Setor", async () => {
+      const rh = await comoFuncionarioRH();
+      const { data: idRh } = await rh.rpc("salvar_contato_do_cliente", {
+        p_cliente_id: clienteA,
+        p_contato: { nome: "Maria Exemplo", telefone: "11999990000" },
+      });
+      const repositorio = new SupabaseContatoDoClienteRepository(await comoFuncionarioSN(), {
+        registrar,
+      });
+
+      const resultado = await repositorio.salvar(clienteA, {
+        id: idRh as string,
+        nome: "Invadido",
+        telefone: "11999990000",
+        email: "",
+      });
+
+      expect(!resultado.ok && resultado.error).toBeInstanceOf(ForbiddenError);
+    });
+
+    it("traduz 23505 (WhatsApp repetido) e 22023 (sem DDD) em Validation", async () => {
+      const repositorio = new SupabaseContatoDoClienteRepository(await comoFuncionarioRH(), {
+        registrar,
+      });
+      await repositorio.salvar(clienteA, { nome: "Maria", telefone: "11999990000", email: "" });
+
+      const repetido = await repositorio.salvar(clienteA, {
+        nome: "Outra",
+        telefone: "(11) 99999-0000",
+        email: "",
+      });
+      const semDdd = await repositorio.salvar(clienteA, {
+        nome: "Sem DDD",
+        telefone: "999990001",
+        email: "",
+      });
+
+      expect(!repetido.ok && repetido.error).toBeInstanceOf(ValidationError);
+      expect(!semDdd.ok && semDdd.error).toBeInstanceOf(ValidationError);
+      expect(registrar).not.toHaveBeenCalled();
+    });
+
+    it("traduz qualquer outro erro em Persistencia com mensagem fixa e registra o detalhe", async () => {
+      const supabaseComFalha = {
+        rpc: async () => ({ data: null, error: { code: "XX000", message: "detalhe interno" } }),
+      } as unknown as SupabaseClient;
+      const repositorio = new SupabaseContatoDoClienteRepository(supabaseComFalha, { registrar });
+
+      const resultado = await repositorio.salvar(clienteA, {
+        nome: "Maria",
+        telefone: "11999990000",
+        email: "",
+      });
+
+      expect(!resultado.ok && resultado.error).toBeInstanceOf(PersistenciaError);
+      expect(!resultado.ok && resultado.error.message).not.toContain("detalhe interno");
+      expect(registrar).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("salvar_contato_do_cliente recusa id que não é UUID com 22023", async () => {
+    const rh = await comoFuncionarioRH();
+
+    const invalido = await rh.rpc("salvar_contato_do_cliente", {
+      p_cliente_id: clienteA,
+      p_contato: { id: "não-é-uuid", nome: "Maria", telefone: "11999990000" },
+    });
+    const lote = await salvar(rh, clienteA, [{ id: "não-é-uuid", nome: "Maria" }]);
+
+    expect(invalido.error?.code).toBe("22023");
+    expect(lote.error?.code).toBe("22023");
   });
 
   it("anon não lê contatos nem a lista de Setores", async () => {

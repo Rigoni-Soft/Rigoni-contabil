@@ -23,12 +23,17 @@ export function contatoDoRow(row: ContatoRow): ContatoProps {
   };
 }
 
-// O que vai ao banco (`salvar_contatos_do_cliente`): só o que o dono edita, sempre com id.
-export function contatoParaSalvar(contato: ContatoProps) {
+// O que vai ao banco: só o que o dono edita. Sem `id` o contato é novo (`salvar_contato_do_cliente`).
+export function contatoParaRpc(contato: Pick<ContatoProps, "id" | "nome" | "telefone" | "email">) {
   return {
-    id: contato.id ?? crypto.randomUUID(),
+    id: contato.id ?? null,
     nome: contato.nome,
     telefone: contato.telefone,
     email: contato.email,
   };
+}
+
+// Na lista (`salvar_contatos_do_cliente`) todo contato leva id.
+export function contatoParaSalvar(contato: ContatoProps) {
+  return { ...contatoParaRpc(contato), id: contato.id ?? crypto.randomUUID() };
 }
