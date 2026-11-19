@@ -139,7 +139,7 @@ em monitores largos):
 
 Formulário com elevação (edição do cadastro operacional do Simples Nacional, #34):
 cartão `rounded-lg border bg-card p-5 shadow-sm` dentro do container `cadastro`, em 4 colunas
-em tela larga (Forma de envio, Documento, DAS, Data de envio na mesma linha; ver
+em tela larga (Documento, DAS, Data de envio e Atividade do mês na mesma linha; ver
 "Cadastro de Cliente e documentos contratuais").
 
 Painel de filtro: campos em grid (`grid-cols-2 sm:grid-cols-4`), e as ações
@@ -156,7 +156,7 @@ Moléculas de formulário reaproveitáveis (`molecules/`): `campo-de-texto`,
 `campo-de-opcoes` (rótulo + campo + erro/aviso, `aria-invalid`/`aria-required`
 vindos das props), `confirmacao-de-cadastro`, `botao-de-envio`,
 `acoes-do-formulario`, `linha-de-contato`, `linha-de-alteracao`,
-`campo-responsavel`. Formulário novo compõe estas peças em vez de repetir
+`campo-responsavel`, `formulario-de-destino`. Formulário novo compõe estas peças em vez de repetir
 rótulo + campo + erro à mão. Gráficos do dashboard: `cartao-de-grafico` (átomo),
 `donut-de-fatias` e `barras-de-fatias` (moléculas).
 
@@ -474,6 +474,38 @@ O contato novo (ainda sem `id`) tem, no lugar dela, dois botões de ícone junto
 levam `title` igual ao `aria-label`, e o Salvar mostra um spinner e `aria-busy` enquanto grava. Ao concluir, o foco
 volta ao Nome da linha e uma região `aria-live="polite"` oculta (`sr-only`) anuncia "Contato N salvo."
 ou "Contato N limpo."; a falha do servidor aparece sob a linha (`FieldError`, `role="alert"`).
+
+**Contato de outro Setor:** a linha fica só de leitura (`readOnly`, não `disabled`: o valor volta intacto
+no Salvar do cadastro), sem asterisco e sem ação, com uma nota abaixo ("Contato do RH: só o RH e o Admin
+editam. Você pode usá-lo como destino."). Só o Setor dono e o Admin editam; o do Admin só ele.
+
+### Destinos de envio (`DestinosDoCadastro`, `FormularioDeDestino`)
+
+Bloco do cadastro do Setor (SN e RH), logo depois dos Contatos: o Admin não o vê (não tem Setor, só
+cadastra contatos). Segue "Tela de lista + formulário": título "Destinos de envio" e a nota do que é, a
+tabela e, por último, o formulário.
+
+- **Tabela.** `ListaComDivisores` em cartão: cada item traz o tipo de envio em destaque (`Texto destaque`),
+  "Contato · WhatsApp ou e-mail · forma de envio" em `apoio` e, quando o contato perdeu o canal que o destino
+  usa, um `AvisoDeStatus` `atencao` na linha ("O contato deixou de ter o WhatsApp: este envio não sai por ele").
+  A ação é só a lixeira (`Trash2`, `ghost`, `icon`, `aria-label` "Remover destino <tipo> de <contato>"),
+  que grava na hora; sem destino, o texto de apoio diz que o Setor ainda não tem. Em leitura, sem lixeira
+  nem formulário.
+- **Formulário** (moldura tracejada, grupo "Adicionar destino de envio", malha `1>2>4`). Contato já
+  cadastrado: select "WhatsApp ou e-mail do contato" (placeholder "Escolha…", sem padrão) e, ao lado, Nome e
+  E-mail do contato travados e preenchidos ao escolher. O botão "Novo contato" (`outline`, `Plus`) troca o
+  select pelos campos do contato novo (Nome obrigatório, WhatsApp, E-mail) e vira "Escolher contato já
+  cadastrado". Depois, "Tipo de envio" ("Todos os envios do Setor" mais o catálogo do Setor) e "Forma de
+  envio": um canal só no contato trava nele (campo travado, preenchido); com os dois, select "Escolha…" sem
+  padrão (WhatsApp, E-mail, WhatsApp e E-mail).
+- **Número ou e-mail já do Cliente.** Ao digitar, o formulário mostra o contato existente (`AvisoDeStatus`
+  `atencao`) com o botão "Usar este contato" (`outline`, `sm`); adicionar o repetido é barrado.
+- **Ação.** "Adicionar destino" (primário, `Plus`) fica `aria-disabled` e mostra spinner enquanto grava (o
+  foco não se perde). Enter num campo adiciona o destino, sem enviar o cadastro que envolve o bloco. Ao
+  adicionar ou remover, o foco volta ao select de contato e uma região `aria-live="polite"` oculta anuncia
+  "Destino adicionado." ou "Destino removido."; a falha do servidor aparece sob o formulário (`FieldError`).
+- **Contato novo** entra na lista de Contatos do cadastro no mesmo gesto e o botão "Adicionar contato" some
+  do Setor (o Admin o mantém): contato novo do Setor se cadastra por aqui.
 
 ### Campo obrigatório e máscara de entrada
 
@@ -1377,7 +1409,7 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
   1440 px com nome de empresa de 250+ caracteres e emoji: sem rolagem horizontal no cadastro nem na
   edição.
 - **Editar cadastro operacional em 4 colunas**: cabeçalho (Empresa, CNPJ, Regime, Responsável),
-  cartão do documento, e Forma de envio, Documento recebido, DAS, Data de envio na mesma linha;
+  cartão do documento, e Documento recebido, DAS, Data de envio na mesma linha (a forma de envio é o canal de cada destino);
   parcelamento e atividade do mês em 2 colunas cada; Contatos, Observações e as ações na linha
   toda. Abaixo de `lg`, 2 colunas; no celular, 1.
 - **Navegação por abas (`ShellNav`)**: só a aba da tela aberta ganha o destaque cheio e
