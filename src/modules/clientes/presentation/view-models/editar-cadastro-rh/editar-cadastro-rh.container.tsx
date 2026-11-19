@@ -39,7 +39,6 @@ type Props = {
   documentosContratuais?: DocumentoContratualVisivelDto[];
   // Montados no servidor e encaixados no cartão: o Responsável do RH e o acompanhamento do mês.
   responsavel?: React.ReactNode;
-  mesDoAcompanhamento?: React.ReactNode;
   acompanhamento?: React.ReactNode;
 };
 
@@ -75,7 +74,6 @@ export function EditarCadastroRhContainer({
   voltarHref,
   documentosContratuais,
   responsavel,
-  mesDoAcompanhamento,
   acompanhamento,
 }: Props) {
   const router = useRouter();
@@ -213,7 +211,6 @@ export function EditarCadastroRhContainer({
       onArquivoEscolhido={parcelamentos.onArquivoEscolhido}
       guiasDaParcela={guiasDaParcela}
       responsavel={responsavel}
-      mesDoAcompanhamento={mesDoAcompanhamento}
       acompanhamento={acompanhamento}
       onLimpar={() => {
         reset(valoresIniciais);

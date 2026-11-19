@@ -179,6 +179,7 @@ describe("EditarCadastroRhContainer", () => {
           telefone: "",
           email: "paulo@exemplo.com",
           donoSetor: "simples_nacional",
+          setores: ["rh"],
         },
       ],
       tiposDeEnvio: [
@@ -198,7 +199,7 @@ describe("EditarCadastroRhContainer", () => {
       expect(screen.getByRole("button", { name: "Adicionar contato" })).toBeInTheDocument();
     });
 
-    it("contato de outro Setor: campos só de leitura mesmo editando, sem lixeira; os envios seguem do RH", async () => {
+    it("contato de outro Setor: campos só de leitura mesmo editando, lixeira só deixa de usar; os envios seguem do RH", async () => {
       montar({ dados: dadosComEnvios, ator: FUNCIONARIO_RH });
       await userEvent
         .setup()

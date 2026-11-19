@@ -4,7 +4,6 @@ import type {
   EscopoDoAplica,
   HoleriteDaLinhaDto,
 } from "@/modules/rh/application/dtos/acompanhamento.dto";
-import { mesVizinho } from "@/shared/kernel/mes-atual";
 
 const MES_POR_EXTENSO = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "UTC" });
 
@@ -31,20 +30,6 @@ export function resumoDoHolerite(h: HoleriteDaLinhaDto): string {
   const { exigidos } = h;
   const semMovimento = h.semMovimento > 0 ? `, ${h.semMovimento} sem movimento` : "";
   return `${plural(h.cadastrados, "empregado cadastrado", "empregados cadastrados")}${semMovimento} · ${h.cartoes} de ${plural(exigidos, "cartão", "cartões")} ${exigidos === 1 ? "feito" : "feitos"} no mês`;
-}
-
-// Os links de mês do painel do Cliente: o próximo some no mês corrente. Preserva `voltarPara`.
-export function linksDoMes(
-  clienteId: string,
-  competencia: string,
-  atual: string,
-  voltarPara?: string,
-) {
-  const href = (delta: number) =>
-    `/clientes/${encodeURIComponent(clienteId)}?mes=${mesVizinho(competencia, delta)}${
-      voltarPara ? `&voltarPara=${encodeURIComponent(voltarPara)}` : ""
-    }`;
-  return { anteriorHref: href(-1), proximoHref: competencia < atual ? href(1) : undefined };
 }
 
 export type PassoDaTroca =

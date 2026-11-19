@@ -81,8 +81,6 @@ type EditarCadastroOperacionalFormProps = ParcelamentosProps & {
   onCancelar?: () => void;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura); ausente = ator sem acesso.
   documentoContratual?: React.ReactNode;
-  // O mês do acompanhamento do RH (só o Admin): o cabeçalho do cartão, logo depois da nota de obrigatórios.
-  mesDoAcompanhamento?: React.ReactNode;
 };
 
 export function EditarCadastroOperacionalForm({
@@ -111,7 +109,6 @@ export function EditarCadastroOperacionalForm({
   onLimpar,
   onCancelar,
   documentoContratual,
-  mesDoAcompanhamento,
   guiasDaParcela,
 }: EditarCadastroOperacionalFormProps) {
   return (
@@ -121,7 +118,6 @@ export function EditarCadastroOperacionalForm({
       pendente={pendente}
       readOnly={readOnly}
       oculto={oculto}
-      mesDoAcompanhamento={mesDoAcompanhamento}
       documentoContratual={documentoContratual}
       responsavel={
         <ResponsavelDoCadastro

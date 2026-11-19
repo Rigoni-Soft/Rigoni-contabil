@@ -88,36 +88,6 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(screen.queryByRole("button", { name: /salvar/i })).not.toBeInTheDocument();
   });
 
-  it("Regime sem cadastro SN: o Admin ainda vê o mês do acompanhamento do RH, que a lista de serviços usa", () => {
-    render(
-      <EditarCadastroOperacionalContainer
-        dados={{ ...dados, regime: "lucro_presumido" }}
-        ator={ADMIN}
-        readOnly={false}
-        mesDoAcompanhamento={<a href="?mes=2026-10">Mês anterior</a>}
-      />,
-    );
-
-    expect(screen.getByRole("link", { name: "Mês anterior" })).toBeInTheDocument();
-  });
-
-  it("Admin: o mês do acompanhamento do RH abre o cartão, depois da nota e antes da Empresa", () => {
-    render(
-      <EditarCadastroOperacionalContainer
-        dados={dados}
-        ator={ADMIN}
-        readOnly={false}
-        mesDoAcompanhamento={<a href="?mes=2026-10">Mês anterior</a>}
-      />,
-    );
-
-    const antes = (a: Node, b: Node) =>
-      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
-    const mes = screen.getByRole("link", { name: "Mês anterior" });
-    expect(antes(screen.getByText(/são obrigatórios/), mes)).toBeTruthy();
-    expect(antes(mes, screen.getByLabelText(/Empresa/))).toBeTruthy();
-  });
-
   it.each(["lucro_presumido", "lucro_real"])(
     "Regime %s: Admin ainda tem como anexar a alteração contratual",
     (regime) => {
@@ -361,7 +331,14 @@ describe("EditarCadastroOperacionalContainer", () => {
           email: "",
           donoSetor: "simples_nacional",
         },
-        { id: PAULO_ID, nome: "Paulo", telefone: "", email: "paulo@exemplo.com", donoSetor: "rh" },
+        {
+          id: PAULO_ID,
+          nome: "Paulo",
+          telefone: "",
+          email: "paulo@exemplo.com",
+          donoSetor: "rh",
+          setores: ["simples_nacional"],
+        },
       ],
       tiposDeEnvio: [
         { slug: "das", rotulo: "DAS" },
@@ -393,7 +370,7 @@ describe("EditarCadastroOperacionalContainer", () => {
       expect(screen.queryByText("Destinos de envio")).toBeNull();
     });
 
-    it("contato de outro Setor: campos só de leitura, sem lixeira; o Setor edita os envios dele", async () => {
+    it("contato de outro Setor: campos só de leitura, lixeira só deixa de usar; o Setor edita os envios dele", async () => {
       definirTiposMock.mockResolvedValue(ok(undefined));
       const usuario = userEvent.setup();
       abrir();

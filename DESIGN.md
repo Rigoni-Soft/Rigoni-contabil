@@ -901,8 +901,8 @@ semibold; o avanço do mês corrente fica apagado (`muted-foreground`), sem link
 ouve "indisponível: este é o mês corrente" (a cor carrega o estado, o texto dá o motivo). O mês
 fica no centro mesmo sem próximo; no celular vai para a linha de cima. Com `destaque`, é o
 cabeçalho de um cartão: faixa `bg-muted/50` com borda e o mês em `text-lg`. Dois usos: no
-acompanhamento dos funcionários (sem destaque, solto sobre a página) e no cadastro do Cliente,
-como primeiro bloco do cartão, depois da nota de obrigatórios e sem título próprio.
+acompanhamento dos funcionários (sem destaque, solto sobre a página) e na folha de ponto (o cartão),
+com destaque. O cadastro do Cliente não a usa: mostra sempre o mês corrente, como o DAS do SN.
 
 **Acompanhamento do mês no cadastro do Cliente (`AcompanhamentoDoClienteRh`):** um `Select` por
 Serviço, numa grade `1>2>4` com o `Label` em cima, como os campos do SN. O estado muda a cor do
@@ -959,7 +959,7 @@ padrão; "Sem movimento no mês" e "Inativar empregado" ao fim. O escolhido leva
 ligado ao campo Nome, e o formulário só é limpo no sucesso. Em leitura (Líder, Admin ou outro
 Responsável) só a lista e os dados aparecem, sem formulário nem botão de escrita.
 
-A tela do quadro abre com a `NavegacaoDeMes` em destaque (a mesma do cartão: Mês anterior, o mês, Próximo mês; sem próximo no mês corrente), logo acima do formulário de leitura: o mês de referência da leitura é o que se vê, e trocá-lo não exige mexer na URL.
+A tela do quadro abre com a `NavegacaoDeMes` em destaque (Mês anterior, o mês, Próximo mês; sem próximo no mês corrente), logo acima do formulário de leitura: o mês de referência da leitura é o que se vê, e trocá-lo não exige mexer na URL.
 
 **`LeituraDeCartao` (organismo):** formulário "Ler foto do cartão de ponto", num `CartaoDaTela` acima do
 `QuadroDeFuncionarios` (só o Responsável do RH o recebe): `NotaDeObrigatorio`, o texto de apoio (a foto vira o

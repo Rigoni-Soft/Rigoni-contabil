@@ -82,13 +82,14 @@ describe("useContatosDoCadastro", () => {
     expect([0, 1, 2].map(result.current.linhas.salvo)).toEqual([true, true, false]);
   });
 
-  it("contato de outro Setor tem os campos travados e não se remove; o do Setor sim", () => {
+  it("contato de outro Setor tem os campos travados e só se deixa de usar; o do Setor se remove", () => {
     const { result } = montar();
 
     expect(result.current.linhas.camposTravados(0)).toBe(false);
     expect(result.current.linhas.camposTravados(1)).toBe(true);
     expect(result.current.linhas.podeRemover(0)).toBe(true);
-    expect(result.current.linhas.podeRemover(1)).toBe(false);
+    expect(result.current.linhas.podeRemover(1)).toBe(true);
+    expect(result.current.linhas.rotuloDaLixeira(1)).toMatch(/^Deixar de usar/);
   });
 
   it("o Admin edita e remove qualquer contato e não tem checkboxes de envio", () => {

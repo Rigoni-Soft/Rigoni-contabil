@@ -22,7 +22,6 @@ function Montado({
   readOnly: boolean;
   extras?: {
     responsavel?: React.ReactNode;
-    mesDoAcompanhamento?: React.ReactNode;
     acompanhamento?: React.ReactNode;
   };
 }) {
@@ -131,22 +130,5 @@ describe("EditarCadastroRhForm", () => {
       acompanhamento.compareDocumentPosition(screen.getByText("Contatos")) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-  });
-
-  it("a nota de obrigatórios vem primeiro, depois o mês, e só então o cabeçalho do cadastro (ordem do foco)", () => {
-    render(
-      <Montado
-        readOnly={false}
-        extras={{ mesDoAcompanhamento: <a href="?mes=2026-10">Mês anterior</a> }}
-      />,
-    );
-
-    const nota = screen.getByText(/são obrigatórios/);
-    const mes = screen.getByRole("link", { name: "Mês anterior" });
-    const empresa = screen.getByLabelText("Empresa");
-    const antes = (a: Node, b: Node) =>
-      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
-    expect(antes(nota, mes)).toBeTruthy();
-    expect(antes(mes, empresa)).toBeTruthy();
   });
 });
