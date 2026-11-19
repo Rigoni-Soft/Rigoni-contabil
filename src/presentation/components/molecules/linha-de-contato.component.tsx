@@ -125,11 +125,13 @@ export function LinhaDeContato({
     comAcoes &&
     !camposTravados,
   );
-  const selecao = (campo: "nome" | "telefone" | "email", rotulo: string) =>
+  const selecao = (campo: "nome" | "telefone" | "email", rotulo: string, erro?: string) =>
     existentes ? (
       <CampoDeOpcoes
         id={`contatos.${indice}.${campo}`}
         rotulo={rotulo}
+        obrigatorio={campo === "nome"}
+        erro={erro}
         opcoes={[
           ...existentes.opcoes
             .filter((opcao) => opcao[campo].trim())
@@ -164,9 +166,9 @@ export function LinhaDeContato({
       >
         {escolhendo ? (
           <>
-            {selecao("nome", "Nome")}
-            {selecao("telefone", "WhatsApp")}
-            {selecao("email", "E-mail")}
+            {selecao("nome", "Nome", erroNome)}
+            {selecao("telefone", "WhatsApp", erroTelefone)}
+            {selecao("email", "E-mail", erroEmail)}
           </>
         ) : (
           <>

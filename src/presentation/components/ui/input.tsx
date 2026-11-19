@@ -8,7 +8,7 @@ export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInp
         "placeholder:text-muted-foreground",
         "transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         "aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive",
-        "read-only:cursor-not-allowed read-only:opacity-50 disabled:cursor-not-allowed disabled:opacity-50",
+        "read-only:cursor-default read-only:bg-muted disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       {...props}
