@@ -13,15 +13,16 @@ import {
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
+import { SETOR_SN } from "@/shared/kernel/setores";
 
 import { guiasDaParcela } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
+import { avisoDeContatoDeOutroSetor } from "./destinos-de-envio.presenter";
 import {
   contatoNovo,
   descartarLinhasEmBranco,
   nomeResponsavelAtual,
   OPCOES_DOCUMENTO,
-  OPCOES_FORMA_ENVIO,
   opcoesDeDas,
   opcoesResponsavel,
   parcelamentoNovo,
@@ -30,12 +31,16 @@ import {
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
 import { useResponsaveisElegiveis } from "./responsaveis.queries";
 import { useContatosDaLinha } from "./use-contatos-da-linha.hook";
+import { useDestinosDoCadastro } from "./use-destinos-do-cadastro.hook";
 import { useParcelamentosDoCadastro } from "./use-parcelamentos-do-cadastro.hook";
 import { useSalvarCadastroOperacional } from "./use-salvar-cadastro-operacional.hook";
 
 type Props = {
   dados: CadastroOperacionalClienteDto | null;
   readOnly: boolean;
+  // Quem abre o cadastro: o Admin só cadastra contatos (não tem Setor, então não define destinos); o
+  // Setor SN define os destinos dele e edita só os contatos que cadastrou.
+  ator: { papel: string; setor: string };
   // Só o Líder do SN, neste cadastro (os outros Setores têm o bloco próprio): troca o Select de Responsável editável.
   podeAtribuirResponsavel?: boolean;
   onCancelar?: () => void;
@@ -57,6 +62,7 @@ type Props = {
 export function EditarCadastroOperacionalContainer({
   dados,
   readOnly,
+  ator,
   podeAtribuirResponsavel = false,
   onCancelar,
   aoSalvar,
@@ -71,6 +77,10 @@ export function EditarCadastroOperacionalContainer({
     () => true,
     () => false,
   );
+  const admin = ator.papel === "admin";
+  // O Setor SN define destinos aqui; o Admin e os outros Setores (que só leem) não.
+  const comDestinos = !admin && ator.setor === SETOR_SN;
+  const donoDoAtor = { admin, setorDoCadastro: SETOR_SN };
   // Extraído pra reusar no reset() do botão "Limpar" — reverte pro que veio
   // do servidor, não esvazia campos (formaEnvio é enum obrigatório, sem opção
   // em branco no Select; "limpar" um form de edição significa desfazer, não zerar).
@@ -78,8 +88,10 @@ export function EditarCadastroOperacionalContainer({
     ? {
         formaEnvio:
           (dados.formaEnvio as EditarCadastroOperacionalFormValues["formaEnvio"]) ?? "whatsapp",
-        // Seção sem registros abre com uma linha em branco (descartada se ninguém a tocar).
-        contatos: dados.contatos.length || readOnly ? dados.contatos : [contatoNovo()],
+        // Seção sem registros abre com uma linha em branco (descartada se ninguém a tocar); com destinos,
+        // o contato novo entra pelo formulário de destino e não há linha em branco.
+        contatos:
+          dados.contatos.length || readOnly || comDestinos ? dados.contatos : [contatoNovo()],
         documentoObrigatorio:
           dados.documentoObrigatorio as EditarCadastroOperacionalFormValues["documentoObrigatorio"],
         dasStatus: dados.dasStatus as EditarCadastroOperacionalFormValues["dasStatus"],
@@ -135,6 +147,14 @@ export function EditarCadastroOperacionalContainer({
   const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
   const linhasDeContato = useContatosDaLinha({ clienteId: dados?.id ?? "", form });
+  const destinos = useDestinosDoCadastro({
+    clienteId: dados?.id ?? "",
+    destinosIniciais: dados?.destinos ?? [],
+    tiposDeEnvio: dados?.tiposDeEnvio ?? [],
+    setorDoCadastro: SETOR_SN,
+    form,
+    adicionarContato: append,
+  });
   // Esta tela é o cadastro operacional do Simples Nacional.
   const parcelamentos = useParcelamentosDoCadastro({
     clienteId: dados?.id ?? "",
@@ -204,7 +224,7 @@ export function EditarCadastroOperacionalContainer({
       }}
       dasEnviadoPeloSistema={dados?.dasStatus === "enviado"}
       opcoes={{
-        formaEnvio: OPCOES_FORMA_ENVIO,
+
         documento: OPCOES_DOCUMENTO,
         das: opcoesDeDas(dados.dasStatus === "enviado"),
       }}
@@ -215,6 +235,11 @@ export function EditarCadastroOperacionalContainer({
       onAdicionarContato={() => append(contatoNovo())}
       onRemoverContato={remove}
       linhasDeContato={linhasDeContato}
+      destinos={comDestinos ? destinos : undefined}
+      contatoDoutroSetor={(indice) => {
+        const contato = form.getValues(`contatos.${indice}`);
+        return contato && avisoDeContatoDeOutroSetor(contato, donoDoAtor);
+      }}
       parcelamentoCampos={parcelamentos.parcelamentoCampos}
       parcelamentos={parcelamentos.parcelamentos}
       onAdicionarParcelamento={parcelamentos.onAdicionarParcelamento}

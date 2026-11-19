@@ -14,6 +14,9 @@ export const contatoSchema = z
     telefone: z.string(),
     // O número como veio do banco: o DDD só é cobrado de número novo ou trocado.
     telefoneOriginal: z.string().optional(),
+    // Setor dono do contato (null = Admin): a tela deixa em leitura o que é de outro Setor. Nunca vai
+    // ao banco: só o dono e o Admin gravam, e quem decide é a RLS.
+    donoSetor: z.string().nullable().optional(),
     email: z
       .string()
       .refine(

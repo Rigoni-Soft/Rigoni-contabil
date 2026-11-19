@@ -61,6 +61,7 @@ function montarFormulario(
     return (
       <EditarCadastroRhContainer
         dados={rh.value}
+        ator={{ papel: sessao.papel, setor: sessao.setor }}
         readOnly={opcoes.readOnly}
         voltarHref={hrefSeguro(opcoes.voltarPara)}
         documentosContratuais={documentos?.ok ? documentos.value : undefined}
@@ -74,6 +75,7 @@ function montarFormulario(
   return (
     <EditarCadastroOperacionalContainer
       dados={operacional.value}
+      ator={{ papel: sessao.papel, setor: sessao.setor }}
       readOnly={opcoes.readOnly}
       // Se a carga do servidor falhar, o botão se lê por action (com aviso e "Tentar novamente").
       documentosContratuais={documentos?.ok ? documentos.value : undefined}

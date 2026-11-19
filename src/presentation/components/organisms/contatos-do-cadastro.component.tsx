@@ -32,6 +32,10 @@ type ContatosDoCadastroProps = {
   onAdicionar: () => void;
   onRemover: (indice: number) => void;
   linhas: AcoesDasLinhasDeContato;
+  // Sem o botão "Adicionar contato": o Setor cadastra contato novo pelo formulário de destino (padrão: com botão).
+  semAdicionar?: boolean;
+  // De quem é o contato, quando é de outro Setor: a linha fica só de leitura. Sem isso, é editável.
+  doutroSetor?: (indice: number) => string | undefined;
 };
 
 export function ContatosDoCadastro({
@@ -43,12 +47,14 @@ export function ContatosDoCadastro({
   onAdicionar,
   onRemover,
   linhas,
+  semAdicionar = false,
+  doutroSetor,
 }: ContatosDoCadastroProps) {
   return (
     <Pilha espaco={3} className="sm:col-span-2 lg:col-span-4">
       <Linha alinhar="centro" justificar="entre" espaco={4}>
         <Label className="block">Contatos</Label>
-        {!readOnly && (
+        {!readOnly && !semAdicionar && (
           <Button type="button" variant="ghost" size="sm" onClick={onAdicionar}>
             <Plus className="size-4" aria-hidden="true" />
             Adicionar contato
@@ -56,7 +62,11 @@ export function ContatosDoCadastro({
         )}
       </Linha>
       {!readOnly && (
-        <Texto variante="nota">Em cada contato, informe ao menos o WhatsApp ou o e-mail.</Texto>
+        <Texto variante="nota">
+          {semAdicionar
+            ? "Contato novo se cadastra ao adicionar um destino de envio. Só o Setor dono edita nome, WhatsApp e e-mail."
+            : "Em cada contato, informe ao menos o WhatsApp ou o e-mail."}
+        </Texto>
       )}
       {contatos.map((campo, indice) => (
         <Controller
@@ -84,6 +94,7 @@ export function ContatosDoCadastro({
               erroDaLinha={linhas.erroDaLinha(indice)}
               onSalvar={() => linhas.onSalvar(indice)}
               onLimpar={() => linhas.onLimpar(indice)}
+              doutroSetor={doutroSetor?.(indice)}
               onRemover={readOnly ? undefined : () => onRemover(indice)}
             />
           )}

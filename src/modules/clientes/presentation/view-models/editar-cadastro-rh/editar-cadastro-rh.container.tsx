@@ -11,6 +11,7 @@ import { EditarCadastroRhForm } from "@/presentation/components/organisms/editar
 import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { CadastroRhClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import { SETOR_RH } from "@/shared/kernel/setores";
 
 import { guiasDaParcela } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
 import {
@@ -20,7 +21,9 @@ import {
   parcelamentoNovo,
   reposicionarErros,
 } from "../editar-cadastro-operacional/editar-cadastro-operacional.presenter";
+import { avisoDeContatoDeOutroSetor } from "../editar-cadastro-operacional/destinos-de-envio.presenter";
 import { useContatosDaLinha } from "../editar-cadastro-operacional/use-contatos-da-linha.hook";
+import { useDestinosDoCadastro } from "../editar-cadastro-operacional/use-destinos-do-cadastro.hook";
 import { useParcelamentosDoCadastro } from "../editar-cadastro-operacional/use-parcelamentos-do-cadastro.hook";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
@@ -29,6 +32,8 @@ import { editarCadastroRhFormSchema } from "./editar-cadastro-rh.schema";
 type Props = {
   dados: CadastroRhClienteDto | null;
   readOnly: boolean;
+  // Quem abre o cadastro: o RH define os destinos dele; o Admin só cadastra contatos (não tem Setor).
+  ator: { papel: string; setor: string };
   // De onde a tela foi aberta: depois de salvar, volta para lá.
   voltarHref: string;
   documentosContratuais?: DocumentoContratualVisivelDto[];
@@ -42,9 +47,13 @@ type Valores = EditarCadastroOperacionalFormValues;
 
 // O formulário reaproveita os campos do formulário do SN (contatos e observações gerais); os do SN ficam
 // com o valor neutro e nunca são enviados.
-const valoresIniciaisDe = (dados: CadastroRhClienteDto, readOnly: boolean): Valores => ({
+const valoresIniciaisDe = (
+  dados: CadastroRhClienteDto,
+  readOnly: boolean,
+  comDestinos: boolean,
+): Valores => ({
   formaEnvio: "whatsapp",
-  contatos: dados.contatos.length || readOnly ? dados.contatos : [contatoNovo()],
+  contatos: dados.contatos.length || readOnly || comDestinos ? dados.contatos : [contatoNovo()],
   documentoObrigatorio: null,
   dasStatus: null,
   dataEnvioDas: null,
@@ -58,6 +67,7 @@ const valoresIniciaisDe = (dados: CadastroRhClienteDto, readOnly: boolean): Valo
 export function EditarCadastroRhContainer({
   dados,
   readOnly,
+  ator,
   voltarHref,
   documentosContratuais,
   responsavel,
@@ -74,7 +84,11 @@ export function EditarCadastroRhContainer({
   const [erroServidor, setErroServidor] = useState<string>();
   const [sucesso, setSucesso] = useState(false);
 
-  const valoresIniciais = dados ? valoresIniciaisDe(dados, readOnly) : undefined;
+  const admin = ator.papel === "admin";
+  // O RH define os destinos dele aqui; o Admin só cadastra contatos.
+  const comDestinos = !admin && ator.setor === SETOR_RH;
+  const donoDoAtor = { admin, setorDoCadastro: SETOR_RH };
+  const valoresIniciais = dados ? valoresIniciaisDe(dados, readOnly, comDestinos) : undefined;
   const form = useForm<Valores>({
     // Valida sem as linhas de contato em branco, como o formulário do SN.
     resolver: async (valores, contexto, opcoes) => {
@@ -115,6 +129,14 @@ export function EditarCadastroRhContainer({
   } = form;
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
   const linhasDeContato = useContatosDaLinha({ clienteId: dados?.id ?? "", form });
+  const destinos = useDestinosDoCadastro({
+    clienteId: dados?.id ?? "",
+    destinosIniciais: dados?.destinos ?? [],
+    tiposDeEnvio: dados?.tiposDeEnvio ?? [],
+    setorDoCadastro: SETOR_RH,
+    form,
+    adicionarContato: append,
+  });
   const parcelamentos = useParcelamentosDoCadastro({
     clienteId: dados?.id ?? "",
     setor: "rh",
@@ -178,6 +200,11 @@ export function EditarCadastroRhContainer({
       onAdicionarContato={() => append(contatoNovo())}
       onRemoverContato={remove}
       linhasDeContato={linhasDeContato}
+      destinos={comDestinos ? destinos : undefined}
+      contatoDoutroSetor={(indice) => {
+        const contato = form.getValues(`contatos.${indice}`);
+        return contato && avisoDeContatoDeOutroSetor(contato, donoDoAtor);
+      }}
       parcelamentos={parcelamentos.parcelamentos}
       parcelamentoCampos={parcelamentos.parcelamentoCampos}
       onAdicionarParcelamento={parcelamentos.onAdicionarParcelamento}

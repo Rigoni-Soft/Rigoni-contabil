@@ -13,6 +13,7 @@ import type { CabecalhoCliente } from "./cabecalho-do-cadastro.component";
 import { CartaoDoCadastro } from "./cartao-do-cadastro.component";
 import { ContatosDoCadastro, type AcoesDasLinhasDeContato } from "./contatos-do-cadastro.component";
 import { DasDoCadastro } from "./das-do-cadastro.component";
+import { DestinosDoCadastro, type DestinosDoCadastroProps } from "./destinos-do-cadastro.component";
 import {
   motivoDeLeituraEmAndamento,
   ParcelamentosDoCadastro,
@@ -29,7 +30,13 @@ export type { LeituraDaLinha, ParcelamentoLinha };
 // por import; o Container (dentro do módulo) garante a compatibilidade.
 export type EditarCadastroOperacionalFormValues = {
   formaEnvio: FormaEnvioValor;
-  contatos: { id?: string; nome: string; telefone: string; email: string }[];
+  contatos: {
+    id?: string;
+    nome: string;
+    telefone: string;
+    email: string;
+    donoSetor?: string | null;
+  }[];
   documentoObrigatorio: DocumentoObrigatorioStatusValor | null;
   dasStatus: DasStatusValor | null;
   dataEnvioDas: string | null;
@@ -54,7 +61,7 @@ type EditarCadastroOperacionalFormProps = ParcelamentosProps & {
   // DAS já `enviado` pelo sistema: a opção aparece só pra exibir o valor atual.
   dasEnviadoPeloSistema: boolean;
   // Opções dos selects de status (valor/rótulo), vindas do Container (dado de domínio fora da View).
-  opcoes: { formaEnvio: Opcao[]; documento: Opcao[]; das: Opcao[] };
+  opcoes: { documento: Opcao[]; das: Opcao[] };
   erroServidor?: string;
   sucesso?: boolean;
   // Até hidratar, os campos (não controlados) ainda não têm os valores: o HTML do servidor mostraria
@@ -65,6 +72,10 @@ type EditarCadastroOperacionalFormProps = ParcelamentosProps & {
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
   linhasDeContato: AcoesDasLinhasDeContato;
+  // Os destinos de envio do Setor (ausente: o ator não define destinos, como o Admin, que só cadastra contatos).
+  destinos?: Omit<DestinosDoCadastroProps, "somenteLeitura">;
+  // Com destinos, o contato novo entra pelo formulário de destino; o de outro Setor fica só de leitura.
+  contatoDoutroSetor?: (indice: number) => string | undefined;
   onLimpar: () => void;
   // Sem callback (uso em /clientes/[id]): "Cancelar" navega pro mesmo destino
   // do "Voltar" do topo. Com callback (uso inline na busca do dashboard):
@@ -96,6 +107,8 @@ export function EditarCadastroOperacionalForm({
   onAdicionarContato,
   onRemoverContato,
   linhasDeContato,
+  destinos,
+  contatoDoutroSetor,
   parcelamentoCampos,
   onAdicionarParcelamento,
   onRemoverParcelamento,
@@ -151,7 +164,11 @@ export function EditarCadastroOperacionalForm({
         onAdicionar={onAdicionarContato}
         onRemover={onRemoverContato}
         linhas={linhasDeContato}
+        semAdicionar={Boolean(destinos)}
+        doutroSetor={contatoDoutroSetor}
       />
+
+      {destinos && <DestinosDoCadastro {...destinos} somenteLeitura={readOnly} />}
 
       <ParcelamentosDoCadastro
         register={register}

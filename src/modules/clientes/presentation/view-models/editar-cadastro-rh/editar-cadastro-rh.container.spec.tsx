@@ -28,9 +28,14 @@ jest.mock("next/navigation", () => ({
 const executeMock = jest.fn();
 jest.mock("@/main/clientes.factory", () => ({
   makeEditarCadastroRhCliente: () => ({ execute: executeMock }),
+  makeDefinirDestinoDeEnvio: () => ({ execute: jest.fn() }),
+  makeRemoverDestinoDeEnvio: () => ({ execute: jest.fn() }),
   makeListarDocumentosContratuaisCliente: () => ({ execute: async () => ok([]) }),
   makeObterLinkDocumentoContratual: () => ({ execute: jest.fn() }),
 }));
+
+// O Admin só cadastra contatos (sem Setor, não define destinos): os testes de contatos e do resto do cadastro.
+const ADMIN = { papel: "admin", setor: "administrativo" };
 
 const dados: CadastroRhClienteDto = {
   id: "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d",
@@ -49,7 +54,15 @@ function render(ui: React.ReactElement) {
 }
 
 const montar = (props: Partial<React.ComponentProps<typeof EditarCadastroRhContainer>> = {}) =>
-  render(<EditarCadastroRhContainer dados={dados} readOnly={false} voltarHref="/rh" {...props} />);
+  render(
+    <EditarCadastroRhContainer
+      dados={dados}
+      ator={ADMIN}
+      readOnly={false}
+      voltarHref="/rh"
+      {...props}
+    />,
+  );
 
 describe("EditarCadastroRhContainer", () => {
   beforeEach(() => {
@@ -157,6 +170,58 @@ describe("EditarCadastroRhContainer", () => {
 
     expect(await screen.findByText(new RegExp(texto))).toBeInTheDocument();
     expect(routerPush).not.toHaveBeenCalled();
+  });
+
+  describe("destinos de envio do RH", () => {
+    const FUNCIONARIO_RH = { papel: "funcionario", setor: "rh" };
+    const dadosComDestinos: CadastroRhClienteDto = {
+      ...dados,
+      contatos: [
+        { id: "c1", nome: "Maria", telefone: "11999990000", email: "", donoSetor: "rh" },
+        {
+          id: "c2",
+          nome: "Paulo",
+          telefone: "",
+          email: "paulo@exemplo.com",
+          donoSetor: "simples_nacional",
+        },
+      ],
+      tiposDeEnvio: [
+        { slug: "guia_parcelamento", rotulo: "Guia de parcelamento" },
+        { slug: "avisos", rotulo: "Avisos" },
+      ],
+      destinos: [{ id: "d1", contatoId: "c1", tipo: "guia_parcelamento", canal: "whatsapp" }],
+    };
+
+    it("o RH escolhe os tipos do RH e vê os destinos dele, sem 'Adicionar contato'", async () => {
+      montar({ dados: dadosComDestinos, ator: FUNCIONARIO_RH });
+
+      expect(await screen.findByText("Destinos de envio")).toBeInTheDocument();
+      expect(
+        screen.getByText(/Guia de parcelamento/, { selector: "p.font-medium" }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Avisos" })).toBeInTheDocument();
+      expect(screen.queryByRole("option", { name: "DAS" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Adicionar contato" })).toBeNull();
+    });
+
+    it("contato de outro Setor aparece só em leitura", async () => {
+      montar({ dados: dadosComDestinos, ator: FUNCIONARIO_RH });
+
+      expect(await screen.findByText(/Contato do Simples Nacional/)).toBeInTheDocument();
+      const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
+      expect(nomes[0]).not.toHaveAttribute("readonly");
+      expect(nomes[1]).toHaveAttribute("readonly");
+    });
+
+    it("o Admin edita qualquer contato e cadastra contatos, sem destinos", async () => {
+      montar({ dados: dadosComDestinos, ator: ADMIN });
+
+      expect(await screen.findByRole("button", { name: "Adicionar contato" })).toBeInTheDocument();
+      expect(screen.queryByText("Destinos de envio")).toBeNull();
+      const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
+      expect(nomes[1]).not.toHaveAttribute("readonly");
+    });
   });
 
   it("somente leitura não oferece Salvar", async () => {

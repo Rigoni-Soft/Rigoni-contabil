@@ -2,6 +2,7 @@ import { Check, LoaderCircle, Trash2, X } from "lucide-react";
 
 import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
+import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
@@ -26,6 +27,8 @@ type LinhaDeContatoProps = {
   onRemover?: () => void;
   // Visualização: nada é obrigatório, então sem asterisco.
   somenteLeitura?: boolean;
+  // Contato de outro Setor: os campos ficam só de leitura (o texto diz de quem é) e a linha não tem ação.
+  doutroSetor?: string;
 };
 
 // Ocupado, o botão fica `aria-disabled` e não `disabled`: o navegador não solta o foco dele.
@@ -62,9 +65,13 @@ export function LinhaDeContato({
   onSalvar,
   onLimpar,
   onRemover,
-  somenteLeitura,
+  somenteLeitura: somenteLeituraDaTela,
+  doutroSetor,
 }: LinhaDeContatoProps) {
   const numero = indice + 1;
+  const somenteLeitura = somenteLeituraDaTela || Boolean(doutroSetor);
+  // `readOnly` e não `disabled`: o valor segue no formulário e volta intacto ao salvar o cadastro.
+  const travado = doutroSetor ? { readOnly: true } : {};
   const acoesDeLinhaNova = !salvo && !somenteLeitura && onSalvar && onLimpar;
   const idDoErroDaLinha = `contatos.${indice}.linha-mensagem`;
   const rotuloSalvar = `Salvar contato ${numero}`;
@@ -88,6 +95,7 @@ export function LinhaDeContato({
           erro={erroNome}
           className="min-w-[10rem] flex-1 gap-1"
           {...nome}
+          {...travado}
         />
         <CampoDeTexto
           id={`contatos.${indice}.telefone`}
@@ -96,6 +104,7 @@ export function LinhaDeContato({
           erro={erroTelefone}
           className="min-w-[10rem] flex-1 gap-1"
           {...telefone}
+          {...travado}
         />
         <CampoDeTexto
           id={`contatos.${indice}.email`}
@@ -108,8 +117,9 @@ export function LinhaDeContato({
           erro={erroEmail}
           className="min-w-[10rem] flex-1 gap-1"
           {...email}
+          {...travado}
         />
-        {salvo && onRemover && (
+        {salvo && onRemover && !doutroSetor && (
           <AcoesDaLinha>
             <Button
               type="button"
@@ -156,6 +166,7 @@ export function LinhaDeContato({
           </AcoesDaLinha>
         )}
       </Linha>
+      {doutroSetor && <Texto variante="nota">{doutroSetor}</Texto>}
       {erroDaLinha && <FieldError id={idDoErroDaLinha}>{erroDaLinha}</FieldError>}
     </Pilha>
   );

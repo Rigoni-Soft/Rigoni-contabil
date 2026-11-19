@@ -10,6 +10,7 @@ import { Textarea } from "@/presentation/components/ui/textarea";
 import type { CabecalhoCliente } from "./cabecalho-do-cadastro.component";
 import { CartaoDoCadastro } from "./cartao-do-cadastro.component";
 import { ContatosDoCadastro, type AcoesDasLinhasDeContato } from "./contatos-do-cadastro.component";
+import { DestinosDoCadastro, type DestinosDoCadastroProps } from "./destinos-do-cadastro.component";
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
 import {
   motivoDeLeituraEmAndamento,
@@ -33,6 +34,10 @@ type EditarCadastroRhFormProps = ParcelamentosProps & {
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
   linhasDeContato: AcoesDasLinhasDeContato;
+  // Os destinos de envio do RH (ausente: o ator não define destinos, como o Admin, que só cadastra contatos).
+  destinos?: Omit<DestinosDoCadastroProps, "somenteLeitura">;
+  // Com destinos, o contato novo entra pelo formulário de destino; o de outro Setor fica só de leitura.
+  contatoDoutroSetor?: (indice: number) => string | undefined;
   onLimpar: () => void;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura).
   documentoContratual?: React.ReactNode;
@@ -61,6 +66,8 @@ export function EditarCadastroRhForm({
   onAdicionarContato,
   onRemoverContato,
   linhasDeContato,
+  destinos,
+  contatoDoutroSetor,
   parcelamentos,
   parcelamentoCampos,
   onAdicionarParcelamento,
@@ -106,7 +113,11 @@ export function EditarCadastroRhForm({
         onAdicionar={onAdicionarContato}
         onRemover={onRemoverContato}
         linhas={linhasDeContato}
+        semAdicionar={Boolean(destinos)}
+        doutroSetor={contatoDoutroSetor}
       />
+
+      {destinos && <DestinosDoCadastro {...destinos} somenteLeitura={readOnly} />}
 
       <ParcelamentosDoCadastro
         register={register}

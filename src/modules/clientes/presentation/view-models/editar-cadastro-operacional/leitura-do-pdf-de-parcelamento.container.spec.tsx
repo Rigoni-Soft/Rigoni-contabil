@@ -29,6 +29,9 @@ jest.mock("@/main/clientes.factory", () => ({
   makeObterLinkDocumentoContratual: () => ({ execute: jest.fn() }),
 }));
 
+// O Admin só cadastra contatos (sem Setor, não define destinos): os testes de contatos e do resto do cadastro.
+const ADMIN = { papel: "admin", setor: "administrativo" };
+
 const dados: CadastroOperacionalClienteDto = {
   id: "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d",
   empresa: "Padaria Pão Quente Ltda",
@@ -57,7 +60,7 @@ function render() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return renderRtl(
     <QueryClientProvider client={client}>
-      <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />
+      <EditarCadastroOperacionalContainer dados={dados} ator={ADMIN} readOnly={false} />
     </QueryClientProvider>,
   );
 }
