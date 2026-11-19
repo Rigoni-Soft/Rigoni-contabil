@@ -15,7 +15,6 @@ import {
   contatoDoSetor,
   contatoEditavel,
   opcoesDeTipos,
-  rotuloDoContatoExistente,
   tiposAposAlternar,
 } from "./tipos-de-envio.presenter";
 
@@ -50,6 +49,16 @@ const emBranco = (c: Linha) =>
   !c.nome.trim() && !soDigitos(c.telefone) && !c.email.trim() && !c.tipos?.length;
 const mesmosTipos = (a: string[], b: string[]) =>
   a.length === b.length && a.every((tipo) => b.includes(tipo));
+
+// Compara o que se digitou com o campo de um contato já cadastrado: número só pelos dígitos, o resto sem
+// caixa nem espaço nas pontas.
+const normalizar = (campo: "nome" | "telefone" | "email", texto: string) =>
+  campo === "telefone" ? soDigitos(texto) : texto.trim().toLowerCase();
+const igualA = (campo: "nome" | "telefone" | "email", existente: string, digitado: string) =>
+  normalizar(campo, digitado) !== "" &&
+  normalizar(campo, existente) === normalizar(campo, digitado);
+const comecaCom = (campo: "nome" | "telefone" | "email", existente: string, digitado: string) =>
+  normalizar(campo, existente).startsWith(normalizar(campo, digitado));
 
 // Depois de a tela se atualizar: o foco vai a um alvo estável da mesma linha (o botão que sumiu não pode
 // deixar o foco no <body>). O elemento novo só existe depois da atualização: tenta de novo por um instante.
@@ -243,6 +252,22 @@ export function useContatosDoCadastro({
     contato.id && !visivel(indice) ? [{ indice, contato }] : [],
   );
 
+  // O valor digitado ainda leva a algum contato já cadastrado (é o começo do nome, do número ou do e-mail dele)?
+  const levaAExistente = (campo: "nome" | "telefone" | "email", valor: string) => {
+    if (!valor.trim()) return true;
+    return disponiveis.some(({ contato }) => comecaCom(campo, contato[campo], valor));
+  };
+  // Digitou algo que não é de nenhum contato já cadastrado: é um contato novo, e os três campos viram comuns.
+  const digitouContatoNovo = (contato: Linha) =>
+    !levaAExistente("nome", contato.nome) ||
+    !levaAExistente("telefone", contato.telefone) ||
+    !levaAExistente("email", contato.email);
+  // O contato escolhido: o número ou o e-mail iguais ao de um deles, ou o nome igual ao de um só.
+  const contatoEscolhido = (campo: "nome" | "telefone" | "email", valor: string) => {
+    const iguais = disponiveis.filter(({ contato }) => igualA(campo, contato[campo], valor));
+    return iguais.length === 1 ? (iguais[0].contato.id ?? null) : null;
+  };
+
   // Escolher um contato já cadastrado: ele entra na lista, em edição, para o Setor marcar os envios; a linha em
   // branco de onde se escolheu sai.
   const onEscolherExistente = (indiceDaLinha: number, contatoId: string) => {
@@ -280,14 +305,20 @@ export function useContatosDoCadastro({
     podeRemover: (indice: number) => editavel(indice) && salvo(indice),
     // A linha nova do Setor oferece os contatos de outros Setores já cadastrados (o Admin não: vê todos).
     existentes: (indice: number) =>
-      admin || salvo(indice)
+      admin || salvo(indice) || disponiveis.length === 0
         ? undefined
         : {
             opcoes: disponiveis.map((d) => ({
-              valor: d.contato.id as string,
-              rotulo: rotuloDoContatoExistente(d.contato),
+              id: d.contato.id as string,
+              nome: d.contato.nome,
+              telefone: d.contato.telefone,
+              email: d.contato.email,
             })),
-            onEscolher: (contatoId: string) => onEscolherExistente(indice, contatoId),
+            modoNovo: contatos[indice] ? digitouContatoNovo(contatos[indice]) : false,
+            onDigitar: (campo: "nome" | "telefone" | "email", valor: string) => {
+              const achado = contatoEscolhido(campo, valor);
+              if (achado) onEscolherExistente(indice, achado);
+            },
           },
     // Os checkboxes: só o Setor os tem (o Admin não define o que cada Setor envia).
     envios: (indice: number) => {
