@@ -344,8 +344,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const nomes = await Promise.all(
       linhas.map((linha) => this.nomeDoContato(linha.cliente_id, linha.chave_telefone)),
     );
-    const falhou = nomes.find((nome) => !nome.ok);
-    if (falhou && !falhou.ok) return err(falhou.error);
+    // O nome é enfeite do painel: se a busca de um Contato falhar, o Atendimento aparece sem nome.
     return ok(
       linhas.map((linha, i) => ({
         id: linha.id,
