@@ -4,8 +4,8 @@ import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.c
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
 import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
-import { Opcao } from "@/presentation/components/atoms/opcao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
@@ -55,14 +55,14 @@ type LinhaDeContatoProps = {
   // Linha nova do Setor: escolher um contato que outro Setor já cadastrou, em vez de digitar um novo.
   existentes?: ExistentesDaLinha;
 };
-
-// Os contatos que outro Setor já cadastrou: na linha nova do Setor, Nome, WhatsApp e E-mail sugerem esses
-// contatos (escolher um preenche e trava a linha). Digitar algo que não é de nenhum deles é cadastrar um
-// contato novo: aí os três campos voltam a ser campos comuns (`modoNovo`).
+// Os contatos que outro Setor já cadastrou: na linha nova do Setor, Nome, WhatsApp e E-mail viram seleções
+// (escolher um preenche e trava a linha) com a opção "+ Cadastrar novo", que troca os três por campos de
+// texto (`modoNovo`).
 export type ExistentesDaLinha = {
   opcoes: { id: string; nome: string; telefone: string; email: string }[];
   modoNovo: boolean;
-  onDigitar: (campo: "nome" | "telefone" | "email", valor: string) => void;
+  onEscolher: (contatoId: string) => void;
+  onNovo: () => void;
 };
 
 // Botões na altura do input: o espaçador invisível ocupa o lugar do rótulo, e a mensagem de erro
@@ -81,7 +81,8 @@ function AcoesDaLinha({ children }: { children: React.ReactNode }) {
 }
 
 const ICONE_PEQUENO = "size-8 pointer-coarse:size-11";
-const CAMPOS_COM_SUGESTAO = ["nome", "telefone", "email"] as const;
+// O valor da opção "+ Cadastrar novo" nas seleções da linha nova (não é id de contato).
+const NOVO_CONTATO = "__novo__";
 
 // Um Contato do Cliente: nome, telefone, e-mail (ao menos um dos dois canais), o que ele recebe do Setor e as
 // ações da linha (Editar e Lixeira; editando, Salvar e Cancelar). A numeração é 1-based.
@@ -112,25 +113,38 @@ export function LinhaDeContato({
   const comAcoes = !somenteLeitura;
   // `readOnly` e não `disabled`: o valor segue no formulário e volta intacto ao salvar o cadastro.
   const travado = !editando || camposTravados ? { readOnly: true } : {};
-  // Linha nova do Setor: os três campos sugerem os contatos já cadastrados, até a pessoa digitar um novo.
-  const sugestoesAtivas = Boolean(
-    existentes && existentes.opcoes.length > 0 && !existentes.modoNovo && editando && comAcoes,
+  // Linha nova do Setor com contatos de outros Setores para escolher: Nome, WhatsApp e E-mail são seleções
+  // (cada uma lista o que esse campo tem nos contatos já cadastrados, mais "Cadastrar novo"). Escolher um
+  // contato preenche a linha; "Cadastrar novo" em qualquer um dos três troca os três por campos de texto.
+  const escolhendo = Boolean(
+    existentes &&
+    existentes.opcoes.length > 0 &&
+    !existentes.modoNovo &&
+    editando &&
+    comAcoes &&
+    !camposTravados,
   );
-  const sugerindo = (
-    campo: (typeof CAMPOS_COM_SUGESTAO)[number],
-    props: React.ComponentProps<"input">,
-  ): React.ComponentProps<"input"> =>
-    existentes && editando && comAcoes && !camposTravados
-      ? {
-          ...props,
-          list: sugestoesAtivas ? `contatos.${indice}.lista-${campo}` : undefined,
-          autoComplete: "off",
-          onChange: (evento) => {
-            props.onChange?.(evento);
-            existentes.onDigitar(campo, evento.target.value);
-          },
+  const selecao = (campo: "nome" | "telefone" | "email", rotulo: string) =>
+    existentes ? (
+      <CampoDeOpcoes
+        id={`contatos.${indice}.${campo}`}
+        rotulo={rotulo}
+        opcoes={[
+          ...existentes.opcoes
+            .filter((opcao) => opcao[campo].trim())
+            .map((opcao) => ({ valor: opcao.id, rotulo: opcao[campo] })),
+          { valor: NOVO_CONTATO, rotulo: "+ Cadastrar novo" },
+        ]}
+        placeholder="Escolher contato"
+        className="min-w-[10rem] flex-1 gap-1"
+        value=""
+        onChange={(evento) =>
+          evento.target.value === NOVO_CONTATO
+            ? existentes.onNovo()
+            : existentes.onEscolher(evento.target.value)
         }
-      : props;
+      />
+    ) : null;
   const idDoErroDaLinha = `contatos.${indice}.linha-mensagem`;
   const rotuloEditar = `Editar contato ${numero}`;
   const rotuloSalvar = `Salvar contato ${numero}`;
@@ -147,53 +161,47 @@ export function LinhaDeContato({
         aria-describedby={erroDaLinha ? idDoErroDaLinha : undefined}
         className="rounded-md border border-border p-3"
       >
-        {existentes && editando && comAcoes && !existentes.modoNovo && (
-          <Texto variante="nota" className="basis-full">
-            {existentes.opcoes.length > 0
-              ? "Escolha um contato já cadastrado por outro Setor (clique no campo e selecione) ou preencha para cadastrar um novo."
-              : "Nenhum contato de outro Setor neste Cliente: preencha para cadastrar um novo."}
-          </Texto>
+        {escolhendo ? (
+          <>
+            {selecao("nome", "Nome")}
+            {selecao("telefone", "WhatsApp")}
+            {selecao("email", "E-mail")}
+          </>
+        ) : (
+          <>
+            <CampoDeTexto
+              id={`contatos.${indice}.nome`}
+              rotulo="Nome"
+              obrigatorio={editando && !camposTravados && comAcoes}
+              erro={erroNome}
+              className="min-w-[10rem] flex-1 gap-1"
+              {...nome}
+              {...travado}
+            />
+            <CampoDeTexto
+              id={`contatos.${indice}.telefone`}
+              rotulo="WhatsApp"
+              inputMode="tel"
+              erro={erroTelefone}
+              className="min-w-[10rem] flex-1 gap-1"
+              {...telefone}
+              {...travado}
+            />
+            <CampoDeTexto
+              id={`contatos.${indice}.email`}
+              rotulo="E-mail"
+              type="email"
+              inputMode="email"
+              // A falta dos dois canais é erro da linha: o E-mail também fica inválido e aponta a mensagem.
+              aria-invalid={erroTelefone || erroEmail ? true : undefined}
+              aria-describedby={erroTelefone ? `contatos.${indice}.telefone-mensagem` : undefined}
+              erro={erroEmail}
+              className="min-w-[10rem] flex-1 gap-1"
+              {...email}
+              {...travado}
+            />
+          </>
         )}
-        <CampoDeTexto
-          id={`contatos.${indice}.nome`}
-          rotulo="Nome"
-          obrigatorio={editando && !camposTravados && comAcoes}
-          erro={erroNome}
-          className="min-w-[10rem] flex-1 gap-1"
-          {...sugerindo("nome", nome)}
-          {...travado}
-        />
-        <CampoDeTexto
-          id={`contatos.${indice}.telefone`}
-          rotulo="WhatsApp"
-          inputMode="tel"
-          erro={erroTelefone}
-          className="min-w-[10rem] flex-1 gap-1"
-          {...sugerindo("telefone", telefone)}
-          {...travado}
-        />
-        <CampoDeTexto
-          id={`contatos.${indice}.email`}
-          rotulo="E-mail"
-          type="email"
-          inputMode="email"
-          // A falta dos dois canais é erro da linha: o E-mail também fica inválido e aponta a mensagem.
-          aria-invalid={erroTelefone || erroEmail ? true : undefined}
-          aria-describedby={erroTelefone ? `contatos.${indice}.telefone-mensagem` : undefined}
-          erro={erroEmail}
-          className="min-w-[10rem] flex-1 gap-1"
-          {...sugerindo("email", email)}
-          {...travado}
-        />
-        {sugestoesAtivas &&
-          existentes &&
-          CAMPOS_COM_SUGESTAO.map((campo) => (
-            <Caixa como="datalist" key={campo} id={`contatos.${indice}.lista-${campo}`}>
-              {existentes.opcoes.map((opcao) => (
-                <Opcao key={opcao.id} value={opcao[campo]} />
-              ))}
-            </Caixa>
-          ))}
         {comAcoes && editando && onSalvar && onCancelar && (
           <AcoesDaLinha>
             <Button
@@ -231,7 +239,6 @@ export function LinhaDeContato({
             <Button
               id={`contatos.${indice}.editar`}
               type="button"
-              variant="outline"
               size="icon"
               className={ICONE_PEQUENO}
               onClick={onEditar}
@@ -243,7 +250,7 @@ export function LinhaDeContato({
             {salvo && onRemover && (
               <Button
                 type="button"
-                variant="ghost"
+                variant="destructive"
                 size="icon"
                 className={ICONE_PEQUENO}
                 onClick={onRemover}
