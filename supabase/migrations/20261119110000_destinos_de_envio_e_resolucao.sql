@@ -77,8 +77,9 @@ begin
     raise exception 'O contato "%" não tem e-mail.', v_contato.nome using errcode = '23514';
   end if;
   if tg_op = 'UPDATE' and (new.cliente_id is distinct from old.cliente_id
-                           or new.setor is distinct from old.setor) then
-    raise exception 'O Cliente e o Setor do destino não podem ser trocados.' using errcode = '23514';
+                           or new.setor is distinct from old.setor
+                           or new.contato_id is distinct from old.contato_id) then
+    raise exception 'O Cliente, o Setor e o contato do destino não podem ser trocados.' using errcode = '23514';
   end if;
   return new;
 end;
@@ -164,8 +165,9 @@ CREATE TRIGGER destinos_de_envio_auditar AFTER INSERT OR UPDATE OR DELETE ON pub
 
 -- Quem recebe este envio: os Destinos do Setor para o tipo e, sem nenhum para o tipo, os "todos". Um tipo
 -- pode ter vários Contatos. `valido` é falso quando o canal gravado no Destino sumiu do Contato
--- (`motivo` diz qual); quem consome entrega só os válidos e reporta os inválidos. Com `p_canal`, só os
--- Destinos cujo canal inclui aquele canal. `telefone_envio` já vem com o DDI 55.
+-- (`motivo` diz qual); quem consome entrega só os válidos e reporta os inválidos. O tipo (específico ou
+-- "todos") é escolhido antes; `p_canal` só filtra depois, então um tipo definido só por e-mail não deixa
+-- os "todos" entrarem numa consulta de WhatsApp. `telefone_envio` já vem com o DDI 55.
 CREATE FUNCTION public.destinos_de_envio_resolvidos(p_cliente_id uuid, p_setor public.setor_slug, p_tipo text, p_canal text DEFAULT NULL)
     RETURNS TABLE(destino_id uuid, tipo text, contato_id uuid, contato_nome text, canal public.forma_envio,
                   telefone_envio text, email text, valido boolean, motivo text)
@@ -177,9 +179,6 @@ CREATE FUNCTION public.destinos_de_envio_resolvidos(p_cliente_id uuid, p_setor p
     from public.destinos_de_envio d
     join public.cliente_contatos c on c.id = d.contato_id
     where d.cliente_id = p_cliente_id and d.setor = p_setor
-      and (p_canal is null
-           or d.canal = p_canal::public.forma_envio
-           or d.canal = 'whatsapp_e_email')
   ),
   escolhidos as (
     select * from candidatos where tipo = p_tipo
@@ -199,6 +198,9 @@ CREATE FUNCTION public.destinos_de_envio_resolvidos(p_cliente_id uuid, p_setor p
               when e.canal in ('email', 'whatsapp_e_email') and e.contato_email is null
               then 'sem_email' end
   from escolhidos e
+  where p_canal is null
+     or e.canal = p_canal::public.forma_envio
+     or e.canal = 'whatsapp_e_email'
   order by e.criado_em, e.id;
 $$;
 REVOKE ALL ON FUNCTION public.destinos_de_envio_resolvidos(uuid, public.setor_slug, text, text) FROM PUBLIC;

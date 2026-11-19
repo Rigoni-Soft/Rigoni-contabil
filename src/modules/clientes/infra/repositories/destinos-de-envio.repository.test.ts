@@ -185,6 +185,52 @@ describe("Destinos de envio (integração)", () => {
     expect(rhAvisosSoWhatsapp).toEqual([]);
   });
 
+  it("tipo específico só por e-mail e consulta por WhatsApp devolve vazio, sem cair nos 'todos'", async () => {
+    const ana = await contatoPorNome("Ana Exemplo");
+    const bia = await contatoPorNome("Bia Exemplo");
+    await servico
+      .from("destinos_de_envio")
+      .insert([
+        destino("simples_nacional", null, bia.id, "whatsapp"),
+        destino("simples_nacional", "das", ana.id, "email"),
+      ]);
+
+    const dasWhatsapp = await resolver("simples_nacional", "das", "whatsapp");
+    const dasEmail = await resolver("simples_nacional", "das", "email");
+    const lembreteWhatsapp = await resolver("simples_nacional", "lembrete_documento", "whatsapp");
+
+    expect(dasWhatsapp).toEqual([]);
+    expect(dasEmail.map((d) => d.contato_nome)).toEqual(["Ana Exemplo"]);
+    expect(lembreteWhatsapp.map((d) => d.contato_nome)).toEqual(["Bia Exemplo"]);
+  });
+
+  it("o Contato de um Destino não pode ser trocado por UPDATE", async () => {
+    const ana = await contatoPorNome("Ana Exemplo");
+    const bia = await contatoPorNome("Bia Exemplo");
+    const inserido = await servico
+      .from("destinos_de_envio")
+      .insert(destino("simples_nacional", "das", ana.id, "whatsapp"))
+      .select("id")
+      .single();
+
+    const troca = await servico
+      .from("destinos_de_envio")
+      .update({ contato_id: bia.id })
+      .eq("id", inserido.data?.id);
+
+    expect(troca.error?.code).toBe("23514");
+  });
+
+  it("WhatsApp sem DDD é recusado ao salvar o Contato", async () => {
+    const rh = await comoFuncionarioRH();
+
+    const semDdd = await salvarContatos(rh, [{ nome: "Dani Exemplo", telefone: "999990000" }]);
+    const comDdd = await salvarContatos(rh, [{ nome: "Dani Exemplo", telefone: "(11) 99999-0001" }]);
+
+    expect(semDdd.error?.code).toBe("22023");
+    expect(comDdd.error).toBeNull();
+  });
+
   it("o canal precisa existir no Contato ao gravar", async () => {
     const bia = await contatoPorNome("Bia Exemplo");
     const caio = await contatoPorNome("Caio Exemplo");
