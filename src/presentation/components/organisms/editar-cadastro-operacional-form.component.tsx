@@ -72,7 +72,6 @@ type EditarCadastroOperacionalFormProps = ParcelamentosProps & {
   // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
   contatos: { id: string }[];
   onAdicionarContato: () => void;
-  onRemoverContato: (indice: number) => void;
   linhasDeContato: AcoesDasLinhasDeContato;
   onLimpar: () => void;
   // Sem callback (uso em /clientes/[id]): "Cancelar" navega pro mesmo destino
@@ -103,7 +102,6 @@ export function EditarCadastroOperacionalForm({
   oculto,
   contatos,
   onAdicionarContato,
-  onRemoverContato,
   linhasDeContato,
   parcelamentoCampos,
   onAdicionarParcelamento,
@@ -160,7 +158,6 @@ export function EditarCadastroOperacionalForm({
         readOnly={readOnly}
         contatos={contatos}
         onAdicionar={onAdicionarContato}
-        onRemover={onRemoverContato}
         linhas={linhasDeContato}
       />
 

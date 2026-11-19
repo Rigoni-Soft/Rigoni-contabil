@@ -91,6 +91,8 @@ export function useContatosDoCadastro({
   // Contato de outro Setor trazido para a lista pelo "contato já cadastrado": "novo" até o Setor salvar os
   // envios (cancelar o devolve à lista dos disponíveis), "salvo" depois.
   const [adotados, setAdotados] = useState<Record<string, "novo" | "salvo">>({});
+  // Contato de outro Setor que o Setor deixou de usar: sai da lista agora (o servidor tirou os envios dele).
+  const [dispensados, setDispensados] = useState<Record<string, true>>({});
   const instantaneos = useRef<Record<string, Instantaneo>>({});
   const [salvando, setSalvando] = useState<number | null>(null);
   const [falha, setFalha] = useState<{ indice: number; mensagem: string } | null>(null);
@@ -108,6 +110,7 @@ export function useContatosDoCadastro({
   const visivel = (indice: number) => {
     const contato = contatos[indice];
     if (!contato || verTodos || !contato.id) return true;
+    if (dispensados[chaveDe(indice)]) return false;
     return Boolean(adotados[chaveDe(indice)]) || contatoDoSetor(contato, setorDoCadastro);
   };
   // A numeração é a da tela: contato escondido não conta.
@@ -130,6 +133,30 @@ export function useContatosDoCadastro({
     };
     setAbertas((atuais) => ({ ...atuais, [chaveDe(indice)]: true }));
     focar(editavel(indice) ? `contatos.${indice}.nome` : `contatos.${indice}.tipo-todos`);
+  };
+
+  // A lixeira do contato que o Setor só usa (é de outro dono): tira os envios do Setor e o contato sai da lista
+  // dele; o contato segue com o dono e com os outros Setores.
+  const deixarDeUsar = async (indice: number) => {
+    const id = getValues(`contatos.${indice}.id`);
+    if (salvando !== null || !id) return;
+    setFalha(null);
+    setSalvando(indice);
+    try {
+      const resultado = await definirTiposDoContatoAction({ clienteId, contatoId: id, tipos: [] });
+      if (!resultado.ok) {
+        setFalha({ indice, mensagem: resultado.error.message });
+        return;
+      }
+      anunciar(`Contato ${numero(indice)} deixou de ser usado por este Setor.`);
+      setValue(`contatos.${indice}.tipos`, []);
+      setDispensados((atuais) => ({ ...atuais, [chaveDe(indice)]: true }));
+    } catch (erro) {
+      console.error("Falha ao deixar de usar o contato", erro);
+      setFalha({ indice, mensagem: mensagemDaFalha(erro) });
+    } finally {
+      setSalvando(null);
+    }
   };
 
   const onCancelar = (indice: number) => {
@@ -302,10 +329,14 @@ export function useContatosDoCadastro({
     visivel,
     numero,
     camposTravados: (indice: number) => !editavel(indice),
-    podeRemover: (indice: number) => editavel(indice) && salvo(indice),
+    // Editar e a lixeira andam em par em todo contato: o dono remove; quem só usa o contato deixa de usá-lo.
+    podeRemover: (indice: number) => salvo(indice),
+    rotuloDaLixeira: (indice: number) =>
+      editavel(indice) ? undefined : `Deixar de usar o contato ${numero(indice)}`,
+    onRemover: (indice: number) => (editavel(indice) ? remover(indice) : void deixarDeUsar(indice)),
     // A linha nova do Setor oferece os contatos de outros Setores já cadastrados (o Admin não: vê todos).
     existentes: (indice: number) =>
-      admin || salvo(indice) || disponiveis.length === 0
+      admin || salvo(indice)
         ? undefined
         : {
             opcoes: disponiveis.map((d) => ({

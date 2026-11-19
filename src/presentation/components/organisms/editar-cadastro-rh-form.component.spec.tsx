@@ -40,7 +40,6 @@ function Montado({
       readOnly={readOnly}
       contatos={[]}
       onAdicionarContato={jest.fn()}
-      onRemoverContato={jest.fn()}
       linhasDeContato={LINHAS_DE_CONTATO_DE_TESTE}
       onLimpar={jest.fn()}
       {...SEM_PARCELAMENTOS}
@@ -97,7 +96,6 @@ describe("EditarCadastroRhForm", () => {
           readOnly={false}
           contatos={[]}
           onAdicionarContato={jest.fn()}
-          onRemoverContato={jest.fn()}
           linhasDeContato={LINHAS_DE_CONTATO_DE_TESTE}
           onLimpar={jest.fn()}
           {...SEM_PARCELAMENTOS}

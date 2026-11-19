@@ -46,6 +46,8 @@ type LinhaDeContatoProps = {
   onCancelar?: () => void;
   // Sem callback (visualização, ou contato que o Setor não remove): o botão nem aparece.
   onRemover?: () => void;
+  // Nome acessível da lixeira quando não é "Remover contato N" (contato de outro dono: "Deixar de usar…").
+  rotuloDaLixeira?: string;
   // Visualização da tela toda: sem botões nem asterisco.
   somenteLeitura?: boolean;
   // O que este contato recebe do Setor de quem edita (ausente: o ator não define envios, como o Admin).
@@ -101,6 +103,7 @@ export function LinhaDeContato({
   onSalvar,
   onCancelar,
   onRemover,
+  rotuloDaLixeira,
   somenteLeitura,
   envios,
   existentes,
@@ -132,7 +135,7 @@ export function LinhaDeContato({
   const rotuloEditar = `Editar contato ${numero}`;
   const rotuloSalvar = `Salvar contato ${numero}`;
   const rotuloCancelar = `Cancelar edição do contato ${numero}`;
-  const rotuloRemover = `Remover contato ${numero}`;
+  const rotuloRemover = rotuloDaLixeira ?? `Remover contato ${numero}`;
   return (
     <Pilha espaco={1}>
       <Linha
@@ -144,6 +147,13 @@ export function LinhaDeContato({
         aria-describedby={erroDaLinha ? idDoErroDaLinha : undefined}
         className="rounded-md border border-border p-3"
       >
+        {existentes && editando && comAcoes && !existentes.modoNovo && (
+          <Texto variante="nota" className="basis-full">
+            {existentes.opcoes.length > 0
+              ? "Escolha um contato já cadastrado por outro Setor (clique no campo e selecione) ou preencha para cadastrar um novo."
+              : "Nenhum contato de outro Setor neste Cliente: preencha para cadastrar um novo."}
+          </Texto>
+        )}
         <CampoDeTexto
           id={`contatos.${indice}.nome`}
           rotulo="Nome"

@@ -204,7 +204,6 @@ export function EditarCadastroRhContainer({
       oculto={!hidratado}
       contatos={fields}
       onAdicionarContato={() => append(contatoNovo())}
-      onRemoverContato={remove}
       linhasDeContato={linhasDeContato}
       parcelamentos={parcelamentos.parcelamentos}
       parcelamentoCampos={parcelamentos.parcelamentoCampos}

@@ -25,6 +25,10 @@ export type AcoesDasLinhasDeContato = {
   camposTravados: (indice: number) => boolean;
   // Só o Setor dono e o Admin removem o contato.
   podeRemover: (indice: number) => boolean;
+  // Nome da lixeira quando o contato é de outro dono ("Deixar de usar…"); sem texto, "Remover contato N".
+  rotuloDaLixeira: (indice: number) => string | undefined;
+  // O dono remove o contato (o Salvar do cadastro persiste); quem só o usa deixa de usá-lo na hora.
+  onRemover: (indice: number) => void;
   // O que o contato recebe do Setor; ausente quando o ator não define envios (Admin).
   envios: (indice: number) => EnviosDaLinha | undefined;
   // Linha nova do Setor: os contatos de outros Setores que ele pode escolher em vez de digitar um novo.
@@ -50,7 +54,6 @@ type ContatosDoCadastroProps = {
   // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
   contatos: { id: string }[];
   onAdicionar: () => void;
-  onRemover: (indice: number) => void;
   linhas: AcoesDasLinhasDeContato;
 };
 
@@ -61,7 +64,6 @@ export function ContatosDoCadastro({
   readOnly,
   contatos,
   onAdicionar,
-  onRemover,
   linhas,
 }: ContatosDoCadastroProps) {
   return (
@@ -112,7 +114,9 @@ export function ContatosDoCadastro({
                 onSalvar={() => linhas.onSalvar(indice)}
                 onCancelar={() => linhas.onCancelar(indice)}
                 onRemover={
-                  readOnly || !linhas.podeRemover(indice) ? undefined : () => onRemover(indice)
+                  readOnly || !linhas.podeRemover(indice)
+                    ? undefined
+                    : () => linhas.onRemover(indice)
                 }
               />
             )}

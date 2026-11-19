@@ -31,7 +31,6 @@ type EditarCadastroRhFormProps = ParcelamentosProps & {
   oculto?: boolean;
   contatos: { id: string }[];
   onAdicionarContato: () => void;
-  onRemoverContato: (indice: number) => void;
   linhasDeContato: AcoesDasLinhasDeContato;
   onLimpar: () => void;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura).
@@ -59,7 +58,6 @@ export function EditarCadastroRhForm({
   oculto,
   contatos,
   onAdicionarContato,
-  onRemoverContato,
   linhasDeContato,
   parcelamentos,
   parcelamentoCampos,
@@ -106,7 +104,6 @@ export function EditarCadastroRhForm({
         readOnly={readOnly}
         contatos={contatos}
         onAdicionar={onAdicionarContato}
-        onRemover={onRemoverContato}
         linhas={linhasDeContato}
       />
 

@@ -59,7 +59,6 @@ function Wrapper({ dasEnviado = false }: { dasEnviado?: boolean }) {
         readOnly={false}
         contatos={[]}
         onAdicionar={() => adicionar()}
-        onRemover={jest.fn()}
         linhas={LINHAS_DE_CONTATO_DE_TESTE}
       />
       <ParcelamentosDoCadastro

@@ -6,6 +6,8 @@ export const LINHAS_DE_CONTATO_DE_TESTE = {
   salvando: null,
   camposTravados: () => false,
   podeRemover: () => true,
+  rotuloDaLixeira: () => undefined,
+  onRemover: jest.fn(),
   envios: () => undefined,
   existentes: () => undefined,
   visivel: () => true,
