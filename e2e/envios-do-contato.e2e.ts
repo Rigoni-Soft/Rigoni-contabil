@@ -59,13 +59,13 @@ test.describe("O que cada contato recebe do Setor", () => {
     await expect(page).toHaveURL("/simples-nacional");
     await abrirCadastro(page, clienteId);
 
-    // Contato de outro Setor: só mostrando, sem lixeira; o Setor edita só o que ele recebe dele.
+    // Contato de outro Setor: fica fora da lista do Setor até ser escolhido na linha nova; depois só os
+    // envios se editam (nome, WhatsApp e e-mail ficam de leitura) e a lixeira só deixa de usar.
+    await expect(page.locator("[id='contatos.0.nome']")).toHaveCount(0);
+    await page.locator("[id='contatos.1.nome']").selectOption({ label: "Paulo do RH" });
     const grupoPaulo = page.getByRole("group", { name: "Envios do contato 1" });
     await expect(page.locator("[id='contatos.0.nome']")).toHaveAttribute("readonly", "");
     await expect(page.getByRole("button", { name: "Remover contato 1" })).toHaveCount(0);
-    await expect(grupoPaulo.getByLabel("DAS")).toBeDisabled();
-    await page.getByRole("button", { name: "Editar contato 1" }).click();
-    await expect(page.locator("[id='contatos.0.nome']")).toHaveAttribute("readonly", "");
     await grupoPaulo.getByLabel("DAS").check();
     // O Salvar do cadastro espera a linha em edição.
     await expect(page.getByRole("button", { name: "Salvar", exact: true })).toHaveAttribute(

@@ -108,7 +108,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page.getByLabel("Observações gerais")).toHaveValue("Observação de teste E2E.");
   });
 
-  test("contato por linha: Salvar mantém o id, Limpar zera a linha nova e o contato em uso por outro Setor não sai @smoke", async ({
+  test("contato por linha: Salvar mantém o id, Limpar zera a linha nova e o contato em uso por outro Setor passa à URA @smoke", async ({
     page,
   }) => {
     const cnpjDigits = await criarClienteComoAdmin(page, "Contato Por Linha E2E Ltda");
@@ -149,7 +149,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page.locator("[id='contatos.1.nome']")).toHaveCount(0);
     await expect(page.locator("[id='contatos.0.nome']")).toHaveValue("Ana Linha");
 
-    // Outro Setor (RH) usa o contato: excluí-lo pelo SN é recusado e ele continua gravado.
+    // Outro Setor (RH) usa o contato: o dono que o exclui não o apaga, ele passa à URA (sem dono).
     const uso = await admin.from("destinos_de_envio").insert({
       cliente_id: clienteId,
       setor: "rh",
@@ -159,9 +159,12 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     expect(uso.error).toBeNull();
     await page.getByRole("button", { name: "Remover contato 1" }).click();
     await page.getByRole("button", { name: "Salvar", exact: true }).click();
-    await expect(page.getByText("Não foi possível atualizar o cadastro operacional")).toBeVisible();
-    const aindaLa = await admin.from("cliente_contatos").select("id").eq("cliente_id", clienteId);
-    expect(aindaLa.data).toEqual([{ id: gravado.data?.id }]);
+    await expect(page).toHaveURL("/simples-nacional");
+    const aindaLa = await admin
+      .from("cliente_contatos")
+      .select("id, dono_setor")
+      .eq("cliente_id", clienteId);
+    expect(aindaLa.data).toEqual([{ id: gravado.data?.id, dono_setor: null }]);
   });
 
   test("DAS já enviado pelo sistema: DAS e data ficam desativados e o salvar preserva os dois", async ({
