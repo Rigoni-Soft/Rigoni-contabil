@@ -413,6 +413,34 @@ describe("Contato do Cliente (integração)", () => {
       expect(registrar).not.toHaveBeenCalled();
     });
 
+    it("23505 sem hint (corrida no índice, id forjado) e 23514 viram texto fixo, sem constraint nem valores", async () => {
+      const comErro = (error: object) =>
+        new SupabaseContatoDoClienteRepository(
+          { rpc: async () => ({ data: null, error }) } as unknown as SupabaseClient,
+          { registrar },
+        );
+      const contato = { nome: "Maria", telefone: "11999990000", email: "" };
+
+      const corrida = await comErro({
+        code: "23505",
+        message: 'duplicate key value violates unique constraint "cliente_contatos_pkey"',
+        details: "Key (id)=(abc) already exists.",
+        hint: "",
+      }).salvar(clienteA, contato);
+      const invalido = await comErro({
+        code: "23514",
+        message: 'violates check constraint "cliente_contatos_canal_check"',
+      }).salvar(clienteA, contato);
+
+      expect(!corrida.ok && corrida.error).toBeInstanceOf(ValidationError);
+      expect(!corrida.ok && corrida.error.message).toBe(
+        "Este Cliente já tem um contato com este WhatsApp ou e-mail.",
+      );
+      expect(!invalido.ok && invalido.error).toBeInstanceOf(ValidationError);
+      expect(!invalido.ok && invalido.error.message).not.toContain("constraint");
+      expect(registrar).not.toHaveBeenCalled();
+    });
+
     it("traduz qualquer outro erro em Persistencia com mensagem fixa e registra o detalhe", async () => {
       const supabaseComFalha = {
         rpc: async () => ({ data: null, error: { code: "XX000", message: "detalhe interno" } }),
