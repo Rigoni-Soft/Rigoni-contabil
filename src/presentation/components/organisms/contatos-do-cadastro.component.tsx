@@ -108,6 +108,7 @@ export function ContatosDoCadastro({
                 salvo={linhas.salvo(indice)}
                 salvando={linhas.salvando === indice}
                 camposTravados={linhas.camposTravados(indice)}
+                rotuloDaLixeira={linhas.rotuloDaLixeira(indice)}
                 erroDaLinha={linhas.erroDaLinha(indice)}
                 envios={readOnly ? undefined : linhas.envios(indice)}
                 onEditar={() => linhas.onEditar(indice)}
