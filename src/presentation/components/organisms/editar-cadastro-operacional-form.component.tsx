@@ -11,7 +11,7 @@ import type { FormaEnvioValor } from "@/shared/kernel/forma-envio";
 
 import type { CabecalhoCliente } from "./cabecalho-do-cadastro.component";
 import { CartaoDoCadastro } from "./cartao-do-cadastro.component";
-import { ContatosDoCadastro } from "./contatos-do-cadastro.component";
+import { ContatosDoCadastro, type AcoesDasLinhasDeContato } from "./contatos-do-cadastro.component";
 import { DasDoCadastro } from "./das-do-cadastro.component";
 import {
   motivoDeLeituraEmAndamento,
@@ -29,7 +29,7 @@ export type { LeituraDaLinha, ParcelamentoLinha };
 // por import; o Container (dentro do módulo) garante a compatibilidade.
 export type EditarCadastroOperacionalFormValues = {
   formaEnvio: FormaEnvioValor;
-  contatos: { id?: string; nome: string; telefone: string; padrao: boolean }[];
+  contatos: { id?: string; nome: string; telefone: string; email: string }[];
   documentoObrigatorio: DocumentoObrigatorioStatusValor | null;
   dasStatus: DasStatusValor | null;
   dataEnvioDas: string | null;
@@ -64,6 +64,7 @@ type EditarCadastroOperacionalFormProps = ParcelamentosProps & {
   contatos: { id: string }[];
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
+  linhasDeContato: AcoesDasLinhasDeContato;
   onLimpar: () => void;
   // Sem callback (uso em /clientes/[id]): "Cancelar" navega pro mesmo destino
   // do "Voltar" do topo. Com callback (uso inline na busca do dashboard):
@@ -94,6 +95,7 @@ export function EditarCadastroOperacionalForm({
   contatos,
   onAdicionarContato,
   onRemoverContato,
+  linhasDeContato,
   parcelamentoCampos,
   onAdicionarParcelamento,
   onRemoverParcelamento,
@@ -148,6 +150,7 @@ export function EditarCadastroOperacionalForm({
         contatos={contatos}
         onAdicionar={onAdicionarContato}
         onRemover={onRemoverContato}
+        linhas={linhasDeContato}
       />
 
       <ParcelamentosDoCadastro

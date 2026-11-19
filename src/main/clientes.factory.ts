@@ -27,6 +27,7 @@ import type { ListarGuiasParcelaPgfnPort } from "@/modules/clientes/application/
 import type { MarcarAvisoVistoPort } from "@/modules/clientes/application/ports/in/marcar-aviso-visto.provider";
 import type { ObterLinkGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/obter-link-guia-parcela-pgfn.provider";
 import type { RemoverGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/remover-guia-parcela-pgfn.provider";
+import type { SalvarContatoDoClientePort } from "@/modules/clientes/application/ports/in/salvar-contato-do-cliente.provider";
 import type { SalvarParcelamentosClientePort } from "@/modules/clientes/application/ports/in/salvar-parcelamentos-cliente.provider";
 import type { TrocarGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/trocar-guia-parcela-pgfn.provider";
 import type { LeitorDeGuiaDeParcelaPort } from "@/modules/clientes/application/ports/out/leitor-de-guia-de-parcela.provider";
@@ -58,6 +59,7 @@ import { ObterLinkGuiaParcelaPgfn } from "@/modules/clientes/application/use-cas
 import { ObterResumoSetorRh } from "@/modules/clientes/application/use-cases/obter-resumo-setor-rh.use-case";
 import { ObterResumoSetorSn } from "@/modules/clientes/application/use-cases/obter-resumo-setor-sn.use-case";
 import { RemoverGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/remover-guia-parcela-pgfn.use-case";
+import { SalvarContatoDoCliente } from "@/modules/clientes/application/use-cases/salvar-contato-do-cliente.use-case";
 import { SalvarParcelamentosCliente } from "@/modules/clientes/application/use-cases/salvar-parcelamentos-cliente.use-case";
 import { TrocarGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/trocar-guia-parcela-pgfn.use-case";
 import { SupabaseAvisosCadastroGateway } from "@/modules/clientes/infra/gateways/avisos-cadastro.gateway";
@@ -73,6 +75,7 @@ import { SupabaseArquivoStorageGateway } from "@/modules/clientes/infra/gateways
 import { SupabaseCadastroRhRepository } from "@/modules/clientes/infra/repositories/cadastro-rh.repository";
 import { SupabaseClienteParcelamentoRepository } from "@/modules/clientes/infra/repositories/cliente-parcelamento.repository";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
+import { SupabaseContatoDoClienteRepository } from "@/modules/clientes/infra/repositories/contato-do-cliente.repository";
 import { SupabaseGuiaParcelaPgfnRepository } from "@/modules/clientes/infra/repositories/guia-parcela-pgfn.repository";
 import { SupabaseResponsavelClienteRepository } from "@/modules/clientes/infra/repositories/responsavel-cliente.repository";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
@@ -263,6 +266,14 @@ export async function makeEditarCadastroRhCliente(): Promise<EditarCadastroRhCli
   return new EditarCadastroRhCliente(
     sessaoViaUsuarios(supabase),
     new SupabaseCadastroRhRepository(supabase),
+  );
+}
+
+export async function makeSalvarContatoDoCliente(): Promise<SalvarContatoDoClientePort> {
+  const supabase = await createSupabaseServer();
+  return new SalvarContatoDoCliente(
+    sessaoViaUsuarios(supabase),
+    new SupabaseContatoDoClienteRepository(supabase),
   );
 }
 

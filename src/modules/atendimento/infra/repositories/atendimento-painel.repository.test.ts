@@ -77,14 +77,12 @@ beforeAll(async () => {
       cliente_id: clienteId,
       nome: "Dona Padrão",
       telefone: "(61) 95557-9999",
-      padrao: true,
     },
     {
       id: crypto.randomUUID(),
       cliente_id: clienteId,
       nome: "Seu Painel",
       telefone: "(61) 95557-1001",
-      padrao: false,
     },
   ]);
   if (contatos.error) throw contatos.error;

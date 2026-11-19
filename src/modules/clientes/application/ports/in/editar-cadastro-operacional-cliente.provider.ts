@@ -1,7 +1,8 @@
+import type { ContatoProps } from "@/modules/clientes/domain/value-objects/contato.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
-export type ContatoInput = { id?: string; nome: string; telefone: string; padrao: boolean };
+export type ContatoInput = ContatoProps;
 
 export type AtividadeMensalInput = { industria: boolean; comercio: boolean; servico: boolean };
 

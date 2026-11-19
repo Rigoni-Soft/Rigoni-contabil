@@ -15,6 +15,12 @@ import {
   type ResponsavelRow,
 } from "@/modules/clientes/infra/mappers/cadastro-operacional-row.mapper";
 import {
+  contatoDoRow,
+  contatoRowSchema,
+  EMBED_CONTATOS,
+  type ContatoRow,
+} from "@/modules/clientes/infra/mappers/contato-row.mapper";
+import {
   EMBED_PARCELAMENTOS,
   estaQuitado,
   parcelaDoMesAtual,
@@ -32,13 +38,10 @@ const cadastroRhSchema = z.object({
   id: z.string(),
   empresa: z.string(),
   cnpj: z.string(),
-  cliente_contatos: z.array(
-    z.object({ id: z.string(), nome: z.string(), telefone: z.string(), padrao: z.boolean() }),
-  ),
+  cliente_contatos: z.array(contatoRowSchema),
   cliente_observacoes_setor: z.array(z.object({ observacoes: z.string() })),
 });
 
-type ContatoRow = { id: string; nome: string; telefone: string; padrao: boolean };
 type AtividadeMensalRow = { industria: boolean; comercio: boolean; servico: boolean };
 
 type ClienteBasicoRow = {
@@ -68,7 +71,7 @@ const SELECT_CADASTRO_BASICO = `
   id, empresa, cnpj, regime,
   ${EMBED_OPERACIONAL},
   ${EMBED_RESPONSAVEL},
-  cliente_contatos(*),
+  ${EMBED_CONTATOS},
   cliente_atividades_mensais(*),
   ${EMBED_PARCELAMENTOS}
 `;
@@ -137,12 +140,7 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       cnpj: row.cnpj,
       regime: row.regime,
       formaEnvio: operacional?.forma_envio ?? "whatsapp",
-      contatos: (row.cliente_contatos ?? []).map((contato) => ({
-        id: contato.id,
-        nome: contato.nome,
-        telefone: contato.telefone,
-        padrao: contato.padrao,
-      })),
+      contatos: (row.cliente_contatos ?? []).map(contatoDoRow),
       documentoObrigatorio: operacional?.documento_obrigatorio ?? null,
       dasStatus: operacional?.das_status ?? null,
       dataEnvioDas: operacional?.data_envio_das ?? null,
@@ -165,7 +163,7 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     const { data, error } = await this.supabase
       .from("clientes_basico")
       .select(
-        `id, empresa, cnpj, cliente_contatos(*), cliente_observacoes_setor(observacoes), ${EMBED_PARCELAMENTOS}`,
+        `id, empresa, cnpj, ${EMBED_CONTATOS}, cliente_observacoes_setor(observacoes), ${EMBED_PARCELAMENTOS}`,
       )
       .eq("id", clienteId)
       .eq("cliente_observacoes_setor.setor", "rh")
@@ -190,7 +188,7 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     };
     return ok({
       ...basicos,
-      contatos,
+      contatos: contatos.map(contatoDoRow),
       observacoes: observacoes[0]?.observacoes ?? "",
       parcelamentos: (linhas ?? [])
         .map(parcelamentoDoRow)

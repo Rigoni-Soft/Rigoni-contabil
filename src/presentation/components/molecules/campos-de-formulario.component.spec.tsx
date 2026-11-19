@@ -129,8 +129,9 @@ describe("linhas de lista do formulário", () => {
         indice={1}
         nome={{}}
         telefone={{}}
-        padrao={{}}
+        email={{}}
         erroTelefone="Telefone inválido."
+        salvo
         onRemover={aoRemover}
       />,
     );
@@ -139,6 +140,32 @@ describe("linhas de lista do formulário", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Telefone inválido.");
     await userEvent.setup().click(screen.getByRole("button", { name: "Remover contato 2" }));
     expect(aoRemover).toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: /Salvar contato/ })).not.toBeInTheDocument();
+  });
+
+  it("LinhaDeContato nova oferece Salvar e Limpar, e não a lixeira", async () => {
+    const aoSalvar = jest.fn();
+    const aoLimpar = jest.fn();
+    const usuario = userEvent.setup();
+    render(
+      <LinhaDeContato
+        indice={0}
+        nome={{}}
+        telefone={{}}
+        email={{}}
+        onSalvar={aoSalvar}
+        onLimpar={aoLimpar}
+        onRemover={jest.fn()}
+        erroDaLinha="Este Cliente já tem o contato."
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: /Remover contato/ })).not.toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Salvar contato 1" }));
+    await usuario.click(screen.getByRole("button", { name: "Limpar contato 1" }));
+    expect(aoSalvar).toHaveBeenCalledTimes(1);
+    expect(aoLimpar).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Este Cliente já tem o contato.")).toBeInTheDocument();
   });
 
   it("LinhaDeAlteracao entrega o id do arquivo ao campo e mostra os erros", () => {

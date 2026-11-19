@@ -338,7 +338,6 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
         cliente_id: clienteSnId,
         nome: "Intruso",
         telefone: "5545999990000",
-        padrao: true,
       });
       const cadastro = await rh
         .from("cliente_cadastro_operacional_sn")

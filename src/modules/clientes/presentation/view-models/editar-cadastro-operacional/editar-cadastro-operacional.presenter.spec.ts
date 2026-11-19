@@ -76,11 +76,11 @@ describe("leituraDaLinha", () => {
 });
 
 describe("linhas abertas de nascença", () => {
-  const contatoPreenchido = { nome: "Maria", telefone: "11999990000", padrao: true };
+  const contatoPreenchido = { nome: "Maria", telefone: "11999990000", email: "" };
 
   it("descarta contato e parcelamento que ninguém tocou e informa os índices mantidos", () => {
     const r = descartarLinhasEmBranco({
-      contatos: [contatoNovo(true), contatoPreenchido],
+      contatos: [contatoNovo(), contatoPreenchido],
       parcelamentos: [parcelamentoNovo(), { ...parcelamentoNovo(), codigo: "A-1" }],
     });
 
@@ -93,7 +93,7 @@ describe("linhas abertas de nascença", () => {
   it("linha com PDF, ou salva (com id), nunca é descartada", () => {
     const pdf = new File(["%PDF"], "a.pdf", { type: "application/pdf" });
     const r = descartarLinhasEmBranco({
-      contatos: [{ id: "c1", nome: "", telefone: "", padrao: true }],
+      contatos: [{ id: "c1", nome: "", telefone: "", email: "" }],
       parcelamentos: [
         { ...parcelamentoNovo(), arquivo: pdf },
         { ...parcelamentoNovo(), id: "p1" },

@@ -23,7 +23,6 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
       cliente_id: CLIENTE,
       nome: "Dona Painel",
       telefone: "(61) 95557-2001",
-      padrao: true,
     });
     if (contato.error) throw contato.error;
     const atendimento = await admin

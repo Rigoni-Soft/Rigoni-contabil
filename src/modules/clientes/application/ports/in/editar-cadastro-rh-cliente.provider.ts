@@ -1,3 +1,4 @@
+import type { ContatoProps } from "@/modules/clientes/domain/value-objects/contato.vo";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
@@ -6,7 +7,7 @@ export type EditarCadastroRhClienteInput = {
   // Observações gerais do RH: cada Setor tem as suas.
   observacoes: string;
   // Ausente: só as observações mudam e os contatos ficam como estão (o Admin edita só as do RH).
-  contatos?: { id?: string; nome: string; telefone: string; padrao: boolean }[];
+  contatos?: ContatoProps[];
 };
 
 export interface EditarCadastroRhClientePort {

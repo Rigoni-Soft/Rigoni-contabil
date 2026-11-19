@@ -33,7 +33,7 @@ test.describe("Responsável por Cliente (#65)", () => {
     const responsavel = page.getByLabel("Responsável", { exact: true });
     await responsavel.focus();
     await responsavel.selectOption({ label: "Funcionário Simples Nacional" });
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeHidden();
     await sair(page);
 

@@ -64,25 +64,13 @@ export const filaRowSchema = z.object({
   origem_nome: z.string().nullable(),
 });
 
-// `clientes` embutido num Atendimento, com os Contatos para achar quem escreve pelo telefone.
-const clienteComContatosRowSchema = z
-  .object({
-    empresa: z.string(),
-    cnpj: z.string(),
-    cliente_contatos: z.array(
-      z.object({
-        nome: z.string(),
-        telefone: z.string(),
-        padrao: z.boolean(),
-        criado_em: z.string(),
-      }),
-    ),
-  })
-  .nullable();
+// `clientes` embutido num Atendimento; quem escreve é achado pelo banco (`contato_por_telefone_no_cliente`).
+const clienteComContatosRowSchema = z.object({ empresa: z.string(), cnpj: z.string() }).nullable();
 
 export const atendimentoDoFuncionarioRowSchema = z.object({
   id: z.string(),
   funcionario_id: z.string().nullable(),
+  cliente_id: z.string().nullable(),
   dono: z.object({ nome: z.string() }).nullable(),
   telefone: z.string(),
   chave_telefone: z.string(),

@@ -131,7 +131,7 @@ export function mudouParcelamentos(
 
 // Linhas abertas de nascença (Contatos e Parcelamentos sem registros abrem com uma em branco, para a
 // seção não ficar vazia): a linha que ninguém tocou não conta e sai antes da validação e do envio.
-export const contatoNovo = (padrao: boolean) => ({ nome: "", telefone: "", padrao });
+export const contatoNovo = () => ({ nome: "", telefone: "", email: "" });
 
 export const parcelamentoNovo = (): ParcelamentoFormValues => ({
   codigo: "",

@@ -71,7 +71,8 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await page.getByLabel("Forma de envio").selectOption("email");
     await page.getByLabel("Nome").fill("Maria Contato");
-    await page.getByLabel("Telefone").fill("11999998888");
+    await page.getByLabel("WhatsApp").fill("11999998888");
+    await page.getByLabel("E-mail", { exact: true }).fill("maria.contato@exemplo.com");
     await page.getByLabel("Documento recebido").selectOption("positivo");
     // "Enviado" e a data de envio são só do sistema.
     await expect(
@@ -83,7 +84,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await page.getByRole("checkbox", { name: "Comércio" }).check();
     await page.getByLabel("Observações gerais").fill("Observação de teste E2E.");
 
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
 
     // Salvar fecha a tela e volta pro destino certo (sem ?voltarPara= nesta navegação, cai em "/",
     // que redireciona Funcionário SN de volta pra página principal do próprio setor).
@@ -94,11 +95,70 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await expect(page.getByLabel("Forma de envio")).toHaveValue("email");
     await expect(page.getByLabel("Nome")).toHaveValue("Maria Contato");
-    await expect(page.getByLabel("Telefone")).toHaveValue("(11) 99999-8888");
+    await expect(page.getByLabel("WhatsApp")).toHaveValue("(11) 99999-8888");
+    await expect(page.getByLabel("E-mail", { exact: true })).toHaveValue(
+      "maria.contato@exemplo.com",
+    );
     await expect(page.getByLabel("Documento recebido")).toHaveValue("positivo");
     await expect(page.getByLabel("DAS", { exact: true })).toHaveValue("pronto");
     await expect(page.getByRole("checkbox", { name: "Comércio" })).toBeChecked();
     await expect(page.getByLabel("Observações gerais")).toHaveValue("Observação de teste E2E.");
+  });
+
+  test("contato por linha: Salvar mantém o id, Limpar zera a linha nova e o contato em uso por outro Setor não sai @smoke", async ({
+    page,
+  }) => {
+    const cnpjDigits = await criarClienteComoAdmin(page, "Contato Por Linha E2E Ltda");
+    const clienteId = await buscarClienteIdPorCnpj(cnpjDigits);
+    await atribuirResponsavelComoLider(cnpjDigits);
+    await logout(page);
+    await login(page, "funcionario.sn@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/simples-nacional");
+    await page.goto(`/clientes/${clienteId}`);
+    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+
+    // Salvar da linha: grava só o contato, que vira "salvo" (lixeira) e anuncia.
+    await page.locator("[id='contatos.0.nome']").fill("Ana Linha");
+    await page.locator("[id='contatos.0.telefone']").fill("11988887777");
+    await page.getByRole("button", { name: "Salvar contato 1" }).click();
+    await expect(page.getByRole("button", { name: "Remover contato 1" })).toBeVisible();
+    await expect(page.getByText("Contato 1 salvo.")).toBeAttached();
+    await expect(page.locator("[id='contatos.0.nome']")).toBeFocused();
+
+    const admin = adminLocal();
+    const gravado = await admin
+      .from("cliente_contatos")
+      .select("id, nome")
+      .eq("cliente_id", clienteId)
+      .single();
+    expect(gravado.data?.nome).toBe("Ana Linha");
+
+    // O id é o mesmo depois de recarregar a tela.
+    await page.reload();
+    await expect(page.locator("[id='contatos.0.nome']")).toHaveValue("Ana Linha");
+    const depois = await admin.from("cliente_contatos").select("id").eq("cliente_id", clienteId);
+    expect(depois.data).toEqual([{ id: gravado.data?.id }]);
+
+    // Limpar na linha nova esvazia os campos dela e não mexe no contato salvo.
+    await page.getByRole("button", { name: "Adicionar contato" }).click();
+    await page.locator("[id='contatos.1.nome']").fill("Rascunho");
+    await page.getByRole("button", { name: "Limpar contato 2" }).click();
+    await expect(page.locator("[id='contatos.1.nome']")).toHaveValue("");
+    await expect(page.locator("[id='contatos.0.nome']")).toHaveValue("Ana Linha");
+
+    // Outro Setor (RH) usa o contato: excluí-lo pelo SN é recusado e ele continua gravado.
+    const uso = await admin.from("destinos_de_envio").insert({
+      cliente_id: clienteId,
+      setor: "rh",
+      contato_id: gravado.data?.id,
+      canal: "whatsapp",
+    });
+    expect(uso.error).toBeNull();
+    await page.getByRole("button", { name: "Remover contato 1" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect(page.getByText("Não foi possível atualizar o cadastro operacional")).toBeVisible();
+    const aindaLa = await admin.from("cliente_contatos").select("id").eq("cliente_id", clienteId);
+    expect(aindaLa.data).toEqual([{ id: gravado.data?.id }]);
   });
 
   test("DAS já enviado pelo sistema: DAS e data ficam desativados e o salvar preserva os dois", async ({
@@ -131,7 +191,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page.getByLabel("CNPJ", { exact: true })).toHaveCSS("opacity", "0.5");
 
     await page.getByLabel("Observações gerais").fill("Edição com DAS já enviado.");
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page).toHaveURL("/simples-nacional");
 
     await page.goto(`/clientes/${clienteId}`);

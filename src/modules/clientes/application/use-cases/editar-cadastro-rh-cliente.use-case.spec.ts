@@ -9,7 +9,7 @@ import { EditarCadastroRhCliente } from "./editar-cadastro-rh-cliente.use-case";
 const INPUT = {
   clienteId: "11111111-1111-1111-1111-111111111111",
   observacoes: "Folha no 5º dia útil.",
-  contatos: [{ nome: "Maria", telefone: "11999990000", padrao: true }],
+  contatos: [{ nome: "Maria", telefone: "11999990000", email: "" }],
 };
 
 const sessaoDe = (papel: string, setor: string): SessaoPort => ({
@@ -58,11 +58,11 @@ describe("EditarCadastroRhCliente", () => {
 
     const semNome = await caso.execute({
       ...INPUT,
-      contatos: [{ nome: " ", telefone: "11999990000", padrao: true }],
+      contatos: [{ nome: " ", telefone: "11999990000", email: "" }],
     });
     const semTelefone = await caso.execute({
       ...INPUT,
-      contatos: [{ nome: "Maria", telefone: "", padrao: true }],
+      contatos: [{ nome: "Maria", telefone: "", email: "" }],
     });
 
     expect(semNome.ok).toBe(false);

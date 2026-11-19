@@ -60,6 +60,13 @@ function Wrapper({ dasEnviado = false }: { dasEnviado?: boolean }) {
         contatos={[]}
         onAdicionar={() => adicionar()}
         onRemover={jest.fn()}
+        linhas={{
+          salvos: [],
+          salvando: null,
+          erroDaLinha: () => undefined,
+          onSalvar: jest.fn(),
+          onLimpar: jest.fn(),
+        }}
       />
       <ParcelamentosDoCadastro
         register={register}

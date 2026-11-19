@@ -4,6 +4,14 @@ import { useForm } from "react-hook-form";
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
 import { EditarCadastroRhForm } from "./editar-cadastro-rh-form.component";
 
+const LINHAS_DE_CONTATO = {
+  salvos: [],
+  salvando: null,
+  erroDaLinha: () => undefined,
+  onSalvar: jest.fn(),
+  onLimpar: jest.fn(),
+};
+
 // Props dos Parcelamentos do RH, sem nenhum cadastrado.
 const SEM_PARCELAMENTOS = {
   parcelamentos: [],
@@ -40,6 +48,7 @@ function Montado({
       contatos={[]}
       onAdicionarContato={jest.fn()}
       onRemoverContato={jest.fn()}
+      linhasDeContato={LINHAS_DE_CONTATO}
       onLimpar={jest.fn()}
       {...SEM_PARCELAMENTOS}
       {...extras}
@@ -96,6 +105,7 @@ describe("EditarCadastroRhForm", () => {
           contatos={[]}
           onAdicionarContato={jest.fn()}
           onRemoverContato={jest.fn()}
+          linhasDeContato={LINHAS_DE_CONTATO}
           onLimpar={jest.fn()}
           {...SEM_PARCELAMENTOS}
         />

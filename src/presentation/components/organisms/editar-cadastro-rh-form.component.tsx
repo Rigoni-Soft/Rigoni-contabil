@@ -9,7 +9,7 @@ import { Textarea } from "@/presentation/components/ui/textarea";
 
 import type { CabecalhoCliente } from "./cabecalho-do-cadastro.component";
 import { CartaoDoCadastro } from "./cartao-do-cadastro.component";
-import { ContatosDoCadastro } from "./contatos-do-cadastro.component";
+import { ContatosDoCadastro, type AcoesDasLinhasDeContato } from "./contatos-do-cadastro.component";
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
 import {
   motivoDeLeituraEmAndamento,
@@ -32,6 +32,7 @@ type EditarCadastroRhFormProps = ParcelamentosProps & {
   contatos: { id: string }[];
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
+  linhasDeContato: AcoesDasLinhasDeContato;
   onLimpar: () => void;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura).
   documentoContratual?: React.ReactNode;
@@ -59,6 +60,7 @@ export function EditarCadastroRhForm({
   contatos,
   onAdicionarContato,
   onRemoverContato,
+  linhasDeContato,
   parcelamentos,
   parcelamentoCampos,
   onAdicionarParcelamento,
@@ -103,6 +105,7 @@ export function EditarCadastroRhForm({
         contatos={contatos}
         onAdicionar={onAdicionarContato}
         onRemover={onRemoverContato}
+        linhas={linhasDeContato}
       />
 
       <ParcelamentosDoCadastro

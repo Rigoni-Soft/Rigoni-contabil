@@ -29,6 +29,7 @@ import {
 } from "./editar-cadastro-operacional.presenter";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
 import { useResponsaveisElegiveis } from "./responsaveis.queries";
+import { useContatosDaLinha } from "./use-contatos-da-linha.hook";
 import { useParcelamentosDoCadastro } from "./use-parcelamentos-do-cadastro.hook";
 import { useSalvarCadastroOperacional } from "./use-salvar-cadastro-operacional.hook";
 
@@ -78,7 +79,7 @@ export function EditarCadastroOperacionalContainer({
         formaEnvio:
           (dados.formaEnvio as EditarCadastroOperacionalFormValues["formaEnvio"]) ?? "whatsapp",
         // Seção sem registros abre com uma linha em branco (descartada se ninguém a tocar).
-        contatos: dados.contatos.length || readOnly ? dados.contatos : [contatoNovo(true)],
+        contatos: dados.contatos.length || readOnly ? dados.contatos : [contatoNovo()],
         documentoObrigatorio:
           dados.documentoObrigatorio as EditarCadastroOperacionalFormValues["documentoObrigatorio"],
         dasStatus: dados.dasStatus as EditarCadastroOperacionalFormValues["dasStatus"],
@@ -91,16 +92,7 @@ export function EditarCadastroOperacionalContainer({
       }
     : undefined;
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    reset,
-    getValues,
-    setValue,
-    setError,
-    formState: { errors },
-  } = useForm<EditarCadastroOperacionalFormValues>({
+  const form = useForm<EditarCadastroOperacionalFormValues>({
     // Valida sem as linhas em branco; o que sai daqui (inclusive para o submit) já vem sem elas.
     resolver: async (valores, contexto, opcoes) => {
       const semBranco = descartarLinhasEmBranco(valores);
@@ -127,11 +119,22 @@ export function EditarCadastroOperacionalContainer({
     },
     defaultValues: valoresIniciais,
   });
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    getValues,
+    setValue,
+    setError,
+    formState: { errors },
+  } = form;
 
   // Lista de Funcionários só é buscada quando o Líder abre o Select.
   const [listaAberta, setListaAberta] = useState(false);
   const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
+  const linhasDeContato = useContatosDaLinha({ clienteId: dados?.id ?? "", form });
   // Esta tela é o cadastro operacional do Simples Nacional.
   const parcelamentos = useParcelamentosDoCadastro({
     clienteId: dados?.id ?? "",
@@ -209,8 +212,9 @@ export function EditarCadastroOperacionalContainer({
       sucesso={sucesso}
       oculto={!hidratado}
       contatos={fields}
-      onAdicionarContato={() => append(contatoNovo(fields.length === 0))}
+      onAdicionarContato={() => append(contatoNovo())}
       onRemoverContato={remove}
+      linhasDeContato={linhasDeContato}
       parcelamentoCampos={parcelamentos.parcelamentoCampos}
       parcelamentos={parcelamentos.parcelamentos}
       onAdicionarParcelamento={parcelamentos.onAdicionarParcelamento}

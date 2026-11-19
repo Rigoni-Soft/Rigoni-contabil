@@ -72,7 +72,6 @@ beforeAll(async () => {
     cliente_id: clienteId,
     nome: "Dona Lia",
     telefone: "(61) 95555-0001",
-    padrao: true,
   });
   if (contato.error) throw contato.error;
   atendimentoId = await abrir(TELEFONE, clienteId, origemId);

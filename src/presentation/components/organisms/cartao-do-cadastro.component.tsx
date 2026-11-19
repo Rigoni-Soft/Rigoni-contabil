@@ -53,6 +53,7 @@ export function CartaoDoCadastro({
       espaco="formulario"
       como="form"
       onSubmit={onSubmit}
+      noValidate
       className={cn(MOLDURA_DO_CARTAO, oculto && "rc-oculto-ate-hidratar")}
     >
       {!readOnly && <NotaDeObrigatorio />}

@@ -67,14 +67,12 @@ if (!existente) {
       cliente_id: ID,
       nome: "Cledson",
       telefone: "(45) 99832-4311",
-      padrao: true,
     },
     {
       id: crypto.randomUUID(),
       cliente_id: ID,
       nome: "Patriki",
       telefone: "(45) 98821-2366",
-      padrao: false,
     },
   ]);
   falhou("contatos", contatos.error);

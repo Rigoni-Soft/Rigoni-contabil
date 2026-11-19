@@ -25,7 +25,6 @@ test.describe("Contexto da Transferência (#74)", () => {
       cliente_id: CLIENTE,
       nome: "Seu Contexto",
       telefone: "(61) 95557-4001",
-      padrao: true,
     });
     if (contato.error) throw contato.error;
     const atendimento = await admin.from("atendimentos").insert({

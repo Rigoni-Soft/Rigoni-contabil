@@ -36,7 +36,7 @@ const dados: CadastroRhClienteDto = {
   id: "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d",
   empresa: "Padaria Pão Quente Ltda",
   cnpj: "11.444.777/0001-61",
-  contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", padrao: true }],
+  contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", email: "" }],
   observacoes: "Folha no 5º dia útil.",
   parcelamentos: [],
 };
@@ -79,7 +79,7 @@ describe("EditarCadastroRhContainer", () => {
     expect(enviado).toEqual({
       clienteId: dados.id,
       observacoes: "Pagar no dia 10.",
-      contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", padrao: true }],
+      contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", email: "" }],
     });
   });
 

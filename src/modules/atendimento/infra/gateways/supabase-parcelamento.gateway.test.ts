@@ -111,7 +111,6 @@ async function criarCliente(
         cliente_id: fixture.id,
         nome: "Ângela",
         telefone: opcoes.telefone,
-        padrao: true,
       }),
     );
   }
