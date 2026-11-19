@@ -353,6 +353,36 @@ describe("Destinos de envio (integração)", () => {
     expect(restam.data).toEqual([]);
   });
 
+  it("Destino com Contato de outro Cliente (ou inexistente) é recusado pela FK, sem revelar o nome", async () => {
+    const outro = crypto.randomUUID();
+    await removerClientesDeTeste([CNPJ_CASCATA]);
+    await servico.from("clientes").insert({
+      id: outro,
+      empresa: "Alheio Ltda",
+      cnpj: CNPJ_CASCATA,
+      regime: "simples_nacional",
+    });
+    const alheio = crypto.randomUUID();
+    await servico.from("cliente_contatos").insert({
+      id: alheio,
+      cliente_id: outro,
+      nome: "Nome Secreto",
+      telefone: "11999990000",
+    });
+
+    // Canal que o contato alheio não tem: o DEFINER antigo recusava com o nome dele na mensagem.
+    const deOutroCliente = await servico
+      .from("destinos_de_envio")
+      .insert(destino("rh", null, alheio, "email"));
+    const inexistente = await servico
+      .from("destinos_de_envio")
+      .insert(destino("rh", null, crypto.randomUUID(), "whatsapp"));
+
+    expect(deOutroCliente.error?.code).toBe("23503");
+    expect(inexistente.error?.code).toBe("23503");
+    expect(deOutroCliente.error?.message).not.toContain("Nome Secreto");
+  });
+
   it("apagar o Cliente leva os Contatos e Destinos junto, sem recusa", async () => {
     const outro = crypto.randomUUID();
     const cnpj = CNPJ_CASCATA;

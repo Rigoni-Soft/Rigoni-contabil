@@ -343,6 +343,8 @@ begin
     delete from public.cliente_contatos where id = v_remover.id;
   end loop;
 
+  -- Limite: trocar os números entre dois contatos do mesmo lote (A fica com o de B e vice-versa) dá
+  -- duplicidade, porque só quem sai da lista libera o número; a troca se faz em duas etapas (um contato libera o número antes).
   for v_item in select * from jsonb_array_elements(p_contatos) loop
     perform public.contato_gravar(p_cliente_id, v_item);
   end loop;

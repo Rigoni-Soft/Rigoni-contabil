@@ -69,7 +69,13 @@ CREATE FUNCTION public.destino_validar() RETURNS trigger
 declare
   v_contato public.cliente_contatos;
 begin
-  select * into v_contato from public.cliente_contatos where id = new.contato_id;
+  -- DEFINER lê fora da RLS: só o contato do próprio Cliente do destino; o de outro Cliente (ou
+  -- inexistente) cai na FK composta, sem revelar o nome.
+  select * into v_contato from public.cliente_contatos
+  where id = new.contato_id and cliente_id = new.cliente_id;
+  if not found then
+    raise exception 'O contato do destino não pertence a este Cliente.' using errcode = '23503';
+  end if;
   if new.canal in ('whatsapp', 'whatsapp_e_email') and public.chave_telefone(v_contato.telefone) is null then
     raise exception 'O contato "%" não tem WhatsApp.', v_contato.nome using errcode = '23514';
   end if;
