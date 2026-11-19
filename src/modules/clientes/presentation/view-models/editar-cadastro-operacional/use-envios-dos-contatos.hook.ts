@@ -7,8 +7,9 @@ import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-oper
 import { definirTiposDoContatoAction } from "./tipos-de-envio.actions";
 import {
   avisoDeCanalPerdido,
-  avisoDeContatoDeOutroSetor,
+  contatoEditavel,
   opcoesDeTipos,
+  tiposAposAlternar,
 } from "./tipos-de-envio.presenter";
 
 type Parametros = {
@@ -50,7 +51,11 @@ export function useEnviosDosContatos({
     // Contato ainda não salvo: os checkboxes esperam o "Salvar contato" da linha.
     if (!id) return;
     const atuais = getValues(`contatos.${indice}.tipos`) ?? [];
-    const novos = atuais.includes(valor) ? atuais.filter((t) => t !== valor) : [...atuais, valor];
+    const novos = tiposAposAlternar(
+      atuais,
+      valor,
+      opcoes.map((o) => o.valor),
+    );
     setFalha(null);
     setValue(`contatos.${indice}.tipos`, novos);
     setOcupado(indice);
@@ -91,9 +96,10 @@ export function useEnviosDosContatos({
         onAlternar: (valor: string) => void alternar(indice, valor),
       };
     },
+    // Contato de outro Setor: nome, WhatsApp e e-mail só de leitura (os checkboxes seguem do Setor).
     contatoDoutroSetor: (indice: number) => {
       const contato = contatos[indice];
-      return contato && avisoDeContatoDeOutroSetor(contato, ator);
+      return Boolean(contato) && !contatoEditavel(contato, ator);
     },
     aviso: anuncio.texto && anuncio.texto + (anuncio.vez % 2 ? ESPACO_ALTERNADO : ""),
   };

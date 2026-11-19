@@ -1,6 +1,5 @@
 import { TIPO_TODOS_OS_ENVIOS } from "@/modules/clientes/application/ports/in/definir-tipos-de-envio-do-contato.provider";
 import { canalPerdidoDoDestino, type FormaEnvioValor } from "@/shared/kernel/forma-envio";
-import { SETOR_LABEL } from "@/shared/kernel/setores";
 
 type DestinoSalvo = { contatoId: string; tipo: string | null; canal: string };
 type TipoDeEnvio = { slug: string; rotulo: string };
@@ -61,15 +60,19 @@ export function contatoEditavel(
   return contato.donoSetor === ator.setorDoCadastro;
 }
 
-// O texto da linha em leitura ("Contato do RH: ..."); sem texto, a linha é editável.
-export function avisoDeContatoDeOutroSetor(
-  contato: Pick<ContatoDaLinha, "id" | "donoSetor">,
-  ator: AtorDoContato,
-): string | undefined {
-  if (contatoEditavel(contato, ator)) return undefined;
-  if (!contato.donoSetor) return "Contato do Admin: só o Admin edita nome, WhatsApp e e-mail.";
-  const dono = SETOR_LABEL[contato.donoSetor] ?? contato.donoSetor;
-  return `Contato do ${dono}: só o ${dono} e o Admin editam nome, WhatsApp e e-mail.`;
+// Os checkboxes da linha depois de um clique. "Todos os envios" marca todos os outros (e, desmarcado,
+// desmarca todos); desmarcar um dos outros desmarca o "Todos"; marcar o último que faltava o marca.
+export function tiposAposAlternar(marcados: string[], valor: string, opcoes: string[]): string[] {
+  const outros = opcoes.filter((o) => o !== TIPO_TODOS_OS_ENVIOS);
+  if (valor === TIPO_TODOS_OS_ENVIOS) {
+    return marcados.includes(valor) ? [] : [TIPO_TODOS_OS_ENVIOS, ...outros];
+  }
+  const outrosMarcados = marcados.includes(valor)
+    ? marcados.filter((t) => t !== valor && t !== TIPO_TODOS_OS_ENVIOS)
+    : [...marcados.filter((t) => t !== TIPO_TODOS_OS_ENVIOS), valor];
+  return outros.every((o) => outrosMarcados.includes(o))
+    ? [TIPO_TODOS_OS_ENVIOS, ...outrosMarcados]
+    : outrosMarcados;
 }
 
 // Os contatos do servidor já com o que cada um recebe do Setor (os checkboxes da linha).

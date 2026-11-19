@@ -476,16 +476,16 @@ volta ao Nome da linha e uma região `aria-live="polite"` oculta (`sr-only`) anu
 ou "Contato N limpo."; a falha do servidor aparece sob a linha (`FieldError`, `role="alert"`).
 
 **Contato de outro Setor:** a linha fica só de leitura (`readOnly`, não `disabled`: o valor volta intacto
-no Salvar do cadastro; o `Input` readOnly habilitado leva `bg-muted`), sem asterisco e sem lixeira, com uma
-nota abaixo ("Contato do RH: só o RH e o Admin editam nome, WhatsApp e e-mail."). Só o Setor dono e o Admin
-editam; o do Admin só ele. Os checkboxes de envio da linha seguem editáveis: marcar é do Setor de quem
-abre o cadastro.
+no Salvar do cadastro; o `Input` readOnly habilitado leva `bg-muted`), sem asterisco, sem lixeira e **sem nota**
+(o campo travado já diz que não se edita). Só o Setor dono e o Admin editam; o do Admin só ele. Os checkboxes
+de envio da linha seguem editáveis: marcar é do Setor de quem abre o cadastro.
 
 **Contato (o que ele recebe):** dentro da moldura da linha, separado por uma borda de cima, o grupo
 "Envios do contato N" (`fieldset`) com o rótulo "Recebe" e um `CaixaDeMarcacao` por tipo: "Todos os
 envios" e o catálogo do Setor (SN: Lembrete de documento, DAS, Guia de parcelamento, Avisos; RH: Guia de
-parcelamento, Avisos). Quem tem Setor (Líder e Funcionário do SN e do RH) vê o grupo; o Admin não (não
-tem Setor e só cadastra contatos). Marcar ou desmarcar grava na hora e uma região `aria-live="polite"`
+parcelamento, Avisos). "Todos os envios" é o marcador geral: marcá-lo marca todos os outros, desmarcá-lo
+desmarca todos, desmarcar um dos outros o desmarca, e marcar o último que faltava o marca de volta. Quem
+tem Setor (Líder e Funcionário do SN e do RH) vê o grupo; o Admin não (não tem Setor e só cadastra contatos). Marcar ou desmarcar grava na hora e uma região `aria-live="polite"`
 oculta anuncia "DAS marcado no contato 1."; durante a gravação os checkboxes ficam `aria-disabled`, e a falha
 do servidor volta a marca e aparece na linha. Na linha ainda não salva os checkboxes ficam `disabled` com a
 dica "Salve o contato para escolher os envios." (a marca se perderia). A forma de envio não é campo: o

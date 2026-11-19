@@ -201,7 +201,6 @@ describe("EditarCadastroRhContainer", () => {
     it("contato de outro Setor aparece só em leitura", async () => {
       montar({ dados: dadosComEnvios, ator: FUNCIONARIO_RH });
 
-      expect(await screen.findByText(/Contato do Simples Nacional/)).toBeInTheDocument();
       const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
       expect(nomes[0]).not.toHaveAttribute("readonly");
       expect(nomes[1]).toHaveAttribute("readonly");

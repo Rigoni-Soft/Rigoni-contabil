@@ -82,6 +82,25 @@ describe("useEnviosDosContatos", () => {
     expect(result.current.envios.aviso?.trim()).toBe("Avisos marcado no contato 2.");
   });
 
+  it("'Todos os envios' marca todos e grava a lista inteira; desmarcar um tira também o 'Todos'", async () => {
+    definir.mockResolvedValue({ ok: true, data: undefined });
+    const { result } = montar();
+
+    await act(() => result.current.envios.enviosDoContato(1)!.onAlternar("todos"));
+    expect(result.current.envios.enviosDoContato(1)?.marcados).toEqual(["todos", "das", "avisos"]);
+    expect(definir).toHaveBeenLastCalledWith({
+      clienteId: "cli-1",
+      contatoId: "c-2",
+      tipos: ["todos", "das", "avisos"],
+    });
+
+    await act(() => result.current.envios.enviosDoContato(1)!.onAlternar("das"));
+    expect(result.current.envios.enviosDoContato(1)?.marcados).toEqual(["avisos"]);
+    expect(definir).toHaveBeenLastCalledWith(
+      expect.objectContaining({ contatoId: "c-2", tipos: ["avisos"] }),
+    );
+  });
+
   it("desmarcar tira o tipo da lista", async () => {
     definir.mockResolvedValue({ ok: true, data: undefined });
     const { result } = montar();
@@ -120,10 +139,10 @@ describe("useEnviosDosContatos", () => {
     expect(result.current.envios.enviosDoContato(1)?.aviso).toContain("deixou de ter o WhatsApp");
   });
 
-  it("contato de outro Setor tem o texto de leitura; o do próprio Setor, não", () => {
+  it("contato de outro Setor fica só de leitura; o do próprio Setor, não", () => {
     const { result } = montar();
 
-    expect(result.current.envios.contatoDoutroSetor(0)).toBeUndefined();
-    expect(result.current.envios.contatoDoutroSetor(1)).toContain("Contato do RH");
+    expect(result.current.envios.contatoDoutroSetor(0)).toBe(false);
+    expect(result.current.envios.contatoDoutroSetor(1)).toBe(true);
   });
 });

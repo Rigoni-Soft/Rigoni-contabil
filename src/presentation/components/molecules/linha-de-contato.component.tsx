@@ -30,8 +30,8 @@ type LinhaDeContatoProps = {
   onRemover?: () => void;
   // Visualização: nada é obrigatório, então sem asterisco.
   somenteLeitura?: boolean;
-  // Contato de outro Setor: os campos ficam só de leitura (o texto diz de quem é) e a linha não tem ação.
-  doutroSetor?: string;
+  // Contato de outro Setor: os campos ficam só de leitura e a linha não tem lixeira nem botões.
+  doutroSetor?: boolean;
   // O que este contato recebe do Setor de quem edita: um checkbox por tipo de envio (ausente: o ator não
   // define envios, como o Admin). Marcar grava na hora, também no contato de outro Setor.
   envios?: EnviosDaLinha;
@@ -209,7 +209,6 @@ export function LinhaDeContato({
           </Caixa>
         )}
       </Linha>
-      {doutroSetor && <Texto variante="nota">{doutroSetor}</Texto>}
       {erroDaLinha && <FieldError id={idDoErroDaLinha}>{erroDaLinha}</FieldError>}
     </Pilha>
   );

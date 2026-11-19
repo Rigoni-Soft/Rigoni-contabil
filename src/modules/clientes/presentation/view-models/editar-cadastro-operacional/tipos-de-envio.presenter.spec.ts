@@ -1,9 +1,9 @@
 import {
   avisoDeCanalPerdido,
-  avisoDeContatoDeOutroSetor,
   contatoEditavel,
   contatosComTipos,
   opcoesDeTipos,
+  tiposAposAlternar,
   tiposDoContato,
 } from "./tipos-de-envio.presenter";
 
@@ -33,6 +33,31 @@ describe("tiposDoContato", () => {
     expect(tiposDoContato(destinos, "c-1")).toEqual(["das", "todos"]);
     expect(tiposDoContato(destinos, "c-3")).toEqual([]);
     expect(tiposDoContato(destinos, undefined)).toEqual([]);
+  });
+});
+
+describe("tiposAposAlternar", () => {
+  const OPCOES = ["todos", "das", "avisos"];
+
+  it("marcar 'Todos os envios' marca todos os outros", () => {
+    expect(tiposAposAlternar([], "todos", OPCOES)).toEqual(["todos", "das", "avisos"]);
+    expect(tiposAposAlternar(["das"], "todos", OPCOES)).toEqual(["todos", "das", "avisos"]);
+  });
+
+  it("desmarcar 'Todos os envios' desmarca todos os outros", () => {
+    expect(tiposAposAlternar(["todos", "das", "avisos"], "todos", OPCOES)).toEqual([]);
+  });
+
+  it("desmarcar um dos outros desmarca o 'Todos' e mantém os demais", () => {
+    expect(tiposAposAlternar(["todos", "das", "avisos"], "avisos", OPCOES)).toEqual(["das"]);
+  });
+
+  it("marcar o último que faltava marca o 'Todos'", () => {
+    expect(tiposAposAlternar(["das"], "avisos", OPCOES)).toEqual(["todos", "das", "avisos"]);
+  });
+
+  it("marcar um só não marca o 'Todos'", () => {
+    expect(tiposAposAlternar([], "das", OPCOES)).toEqual(["das"]);
   });
 });
 
@@ -70,18 +95,13 @@ describe("avisoDeCanalPerdido", () => {
   });
 });
 
-describe("contatoEditavel e avisoDeContatoDeOutroSetor", () => {
+describe("contatoEditavel", () => {
   const rh = { admin: false, setorDoCadastro: "rh" };
 
-  it("o dono edita; outro Setor e o contato do Admin ficam em leitura, com o texto de quem é", () => {
+  it("o dono edita; outro Setor e o contato do Admin ficam em leitura", () => {
     expect(contatoEditavel({ id: "c", donoSetor: "rh" }, rh)).toBe(true);
     expect(contatoEditavel({ id: "c", donoSetor: "simples_nacional" }, rh)).toBe(false);
-    expect(avisoDeContatoDeOutroSetor({ id: "c", donoSetor: "simples_nacional" }, rh)).toBe(
-      "Contato do Simples Nacional: só o Simples Nacional e o Admin editam nome, WhatsApp e e-mail.",
-    );
-    expect(avisoDeContatoDeOutroSetor({ id: "c", donoSetor: null }, rh)).toBe(
-      "Contato do Admin: só o Admin edita nome, WhatsApp e e-mail.",
-    );
+    expect(contatoEditavel({ id: "c", donoSetor: null }, rh)).toBe(false);
   });
 
   it("o Admin edita todos e a linha nova é de quem a digita", () => {
@@ -90,6 +110,5 @@ describe("contatoEditavel e avisoDeContatoDeOutroSetor", () => {
     expect(contatoEditavel({ id: "c", donoSetor: "simples_nacional" }, admin)).toBe(true);
     expect(contatoEditavel({ donoSetor: undefined }, rh)).toBe(true);
     expect(contatoEditavel({ id: "c", donoSetor: undefined }, rh)).toBe(true);
-    expect(avisoDeContatoDeOutroSetor({ id: "c", donoSetor: "rh" }, rh)).toBeUndefined();
   });
 });

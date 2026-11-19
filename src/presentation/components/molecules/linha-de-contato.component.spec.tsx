@@ -28,7 +28,7 @@ describe("LinhaDeContato", () => {
     expect(screen.queryByRole("button", { name: /Remover contato/ })).not.toBeInTheDocument();
   });
 
-  it("contato de outro Setor: campos só de leitura, texto de quem é e nenhuma ação na linha", () => {
+  it("contato de outro Setor: campos só de leitura e nenhuma ação na linha", () => {
     render(
       <LinhaDeContato
         indice={0}
@@ -37,14 +37,13 @@ describe("LinhaDeContato", () => {
         onSalvar={jest.fn()}
         onLimpar={jest.fn()}
         onRemover={jest.fn()}
-        doutroSetor="Contato do RH: só o RH e o Admin editam."
+        doutroSetor
       />,
     );
 
     expect(screen.getByLabelText("Nome")).toHaveAttribute("readonly");
     expect(screen.getByLabelText("WhatsApp")).toHaveAttribute("readonly");
     expect(screen.getByLabelText("E-mail")).toHaveAttribute("readonly");
-    expect(screen.getByText("Contato do RH: só o RH e o Admin editam.")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(screen.queryByText("*")).not.toBeInTheDocument();
   });

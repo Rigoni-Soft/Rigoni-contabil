@@ -400,7 +400,6 @@ describe("EditarCadastroOperacionalContainer", () => {
         />,
       );
 
-      expect(screen.getByText(/Contato do RH: só o RH e o Admin editam/)).toBeInTheDocument();
       const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
       expect(nomes[0]).not.toHaveAttribute("readonly");
       expect(nomes[1]).toHaveAttribute("readonly");
@@ -460,7 +459,6 @@ describe("EditarCadastroOperacionalContainer", () => {
       );
 
       expect(screen.queryByRole("group", { name: /Envios do contato/ })).toBeNull();
-      expect(screen.queryByText(/Contato do RH/)).toBeNull();
       const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
       expect(nomes[1]).not.toHaveAttribute("readonly");
     });

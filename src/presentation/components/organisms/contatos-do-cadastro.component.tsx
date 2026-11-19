@@ -35,8 +35,8 @@ type ContatosDoCadastroProps = {
   onAdicionar: () => void;
   onRemover: (indice: number) => void;
   linhas: AcoesDasLinhasDeContato;
-  // De quem é o contato, quando é de outro Setor: a linha fica só de leitura. Sem isso, é editável.
-  doutroSetor?: (indice: number) => string | undefined;
+  // Contato de outro Setor: nome, WhatsApp e e-mail ficam só de leitura. Sem isso, é editável.
+  doutroSetor?: (indice: number) => boolean;
   // O que o contato recebe (checkboxes da linha); ausente quando o ator não define envios.
   envios?: (indice: number) => EnviosDaLinha | undefined;
 };

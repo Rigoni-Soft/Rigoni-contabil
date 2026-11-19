@@ -34,7 +34,7 @@ type EditarCadastroRhFormProps = ParcelamentosProps & {
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
   linhasDeContato: AcoesDasLinhasDeContato;
-  contatoDoutroSetor?: (indice: number) => string | undefined;
+  contatoDoutroSetor?: (indice: number) => boolean;
   // O que cada contato recebe do Setor (checkboxes da linha); ausente quando o ator não define envios (Admin).
   enviosDoContato?: (indice: number) => EnviosDaLinha | undefined;
   onLimpar: () => void;

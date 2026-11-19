@@ -60,7 +60,6 @@ test.describe("O que cada contato recebe do Setor", () => {
     await abrirCadastro(page, clienteId);
 
     // Contato de outro Setor: campos só de leitura, mas o Setor marca o que ele recebe.
-    await expect(page.getByText(/Contato do RH: só o RH e o Admin editam/)).toBeVisible();
     await expect(page.locator("[id='contatos.0.nome']")).toHaveAttribute("readonly", "");
     const grupoPaulo = page.getByRole("group", { name: "Envios do contato 1" });
     await expect(grupoPaulo.getByLabel("Avisos")).not.toBeChecked();
@@ -83,31 +82,28 @@ test.describe("O que cada contato recebe do Setor", () => {
 
     // Os dois canais: o canal do envio é "WhatsApp e e-mail", derivado do contato.
     await expect(grupoNina.getByLabel("Avisos")).toBeEnabled();
+    // "Todos os envios" marca todos os outros; desmarcar um deles desmarca o "Todos".
     await grupoNina.getByLabel("Todos os envios").check();
-    await grupoNina.getByLabel("Avisos").check();
-    await expect(page.getByText("Avisos marcado no contato 2.")).toBeAttached();
-    const doSn = (await destinosDe(clienteId)).filter((d) => d.contato_id !== paulo);
-    expect(doSn).toEqual([
-      {
-        setor: "simples_nacional",
-        tipo: null,
-        canal: "whatsapp_e_email",
-        contato_id: expect.any(String),
-      },
-      {
-        setor: "simples_nacional",
-        tipo: "avisos",
-        canal: "whatsapp_e_email",
-        contato_id: expect.any(String),
-      },
-    ]);
+    for (const tipo of ["Lembrete de documento", "DAS", "Guia de parcelamento", "Avisos"]) {
+      await expect(grupoNina.getByLabel(tipo)).toBeChecked();
+    }
+    const daNina = async () =>
+      (await destinosDe(clienteId)).filter((d) => d.contato_id !== paulo).map((d) => d.tipo);
+    await expect
+      .poll(daNina)
+      .toEqual([null, "avisos", "das", "guia_parcelamento", "lembrete_documento"]);
 
-    // Desmarcar tira o envio; o Salvar do cadastro não apaga contato nem envios.
     await grupoNina.getByLabel("Avisos").uncheck();
-    await expect(page.getByText("Avisos desmarcado no contato 2.")).toBeAttached();
+    await expect(grupoNina.getByLabel("Todos os envios")).not.toBeChecked();
+    await expect(grupoNina.getByLabel("DAS")).toBeChecked();
+    await expect.poll(daNina).toEqual(["das", "guia_parcelamento", "lembrete_documento"]);
+
+    // Marcar o que faltava marca o "Todos" de volta; o Salvar do cadastro não apaga contato nem envios.
+    await grupoNina.getByLabel("Avisos").check();
+    await expect(grupoNina.getByLabel("Todos os envios")).toBeChecked();
     await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page).toHaveURL("/simples-nacional");
-    expect(await destinosDe(clienteId)).toHaveLength(2);
+    expect(await daNina()).toHaveLength(5);
     const contatos = await admin
       .from("cliente_contatos")
       .select("nome")
@@ -135,9 +131,7 @@ test.describe("O que cada contato recebe do Setor", () => {
     await expect(page).toHaveURL("/rh");
     await abrirCadastro(page, clienteId);
 
-    await expect(
-      page.getByText(/Contato do Simples Nacional: só o Simples Nacional e o Admin editam/),
-    ).toBeVisible();
+    await expect(page.locator("[id='contatos.0.nome']")).toHaveAttribute("readonly", "");
     const grupo = page.getByRole("group", { name: "Envios do contato 1" });
     await expect(grupo.getByRole("checkbox")).toHaveCount(3);
     await expect(grupo.getByLabel("DAS")).toHaveCount(0);
