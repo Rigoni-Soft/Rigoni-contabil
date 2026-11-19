@@ -29,6 +29,7 @@ import {
 } from "./editar-cadastro-operacional.presenter";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
 import { useResponsaveisElegiveis } from "./responsaveis.queries";
+import { useContatosDaLinha } from "./use-contatos-da-linha.hook";
 import { useParcelamentosDoCadastro } from "./use-parcelamentos-do-cadastro.hook";
 import { useSalvarCadastroOperacional } from "./use-salvar-cadastro-operacional.hook";
 
@@ -99,6 +100,7 @@ export function EditarCadastroOperacionalContainer({
     getValues,
     setValue,
     setError,
+    clearErrors,
     formState: { errors },
   } = useForm<EditarCadastroOperacionalFormValues>({
     // Valida sem as linhas em branco; o que sai daqui (inclusive para o submit) já vem sem elas.
@@ -132,6 +134,14 @@ export function EditarCadastroOperacionalContainer({
   const [listaAberta, setListaAberta] = useState(false);
   const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
+  const linhasDeContato = useContatosDaLinha({
+    clienteId: dados?.id ?? "",
+    control,
+    getValues,
+    setValue,
+    setError,
+    clearErrors,
+  });
   // Esta tela é o cadastro operacional do Simples Nacional.
   const parcelamentos = useParcelamentosDoCadastro({
     clienteId: dados?.id ?? "",
@@ -211,6 +221,13 @@ export function EditarCadastroOperacionalContainer({
       contatos={fields}
       onAdicionarContato={() => append(contatoNovo())}
       onRemoverContato={remove}
+      linhasDeContato={{
+        salvos: linhasDeContato.salvos,
+        salvando: linhasDeContato.salvando,
+        erroDaLinha: linhasDeContato.erroDaLinha,
+        onSalvar: linhasDeContato.salvarLinha,
+        onCancelar: linhasDeContato.cancelarLinha,
+      }}
       parcelamentoCampos={parcelamentos.parcelamentoCampos}
       parcelamentos={parcelamentos.parcelamentos}
       onAdicionarParcelamento={parcelamentos.onAdicionarParcelamento}

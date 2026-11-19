@@ -292,6 +292,53 @@ describe("Contato do Cliente (integração)", () => {
     );
   });
 
+  it("salvar_contato_do_cliente grava só aquele contato: cria, atualiza por id e não remove os outros", async () => {
+    const rh = await comoFuncionarioRH();
+    await salvar(rh, clienteA, [{ nome: "Maria Exemplo", telefone: "11999990000" }]);
+
+    const criado = await rh.rpc("salvar_contato_do_cliente", {
+      p_cliente_id: clienteA,
+      p_contato: { nome: "João Exemplo", email: "Joao@Exemplo.com" },
+    });
+    const id = criado.data as string;
+    const atualizado = await rh.rpc("salvar_contato_do_cliente", {
+      p_cliente_id: clienteA,
+      p_contato: { id, nome: "João Silva Exemplo", email: "joao@exemplo.com" },
+    });
+    const todos = await ler(clienteA);
+
+    expect(criado.error).toBeNull();
+    expect(atualizado.error).toBeNull();
+    expect(atualizado.data).toBe(id);
+    expect(todos.map((c) => c.nome).sort()).toEqual(["João Silva Exemplo", "Maria Exemplo"]);
+    expect(todos.find((c) => c.id === id)).toMatchObject({
+      email: "joao@exemplo.com",
+      dono_setor: "rh",
+    });
+  });
+
+  it("salvar_contato_do_cliente recusa repetir o WhatsApp no Cliente e o contato de outro Setor", async () => {
+    const rh = await comoFuncionarioRH();
+    const sn = await comoFuncionarioSN();
+    const { data: idRh } = await rh.rpc("salvar_contato_do_cliente", {
+      p_cliente_id: clienteA,
+      p_contato: { nome: "Maria Exemplo", telefone: "11999990000" },
+    });
+
+    const repetido = await rh.rpc("salvar_contato_do_cliente", {
+      p_cliente_id: clienteA,
+      p_contato: { nome: "Outra Exemplo", telefone: "(11) 99999-0000" },
+    });
+    const deOutroSetor = await sn.rpc("salvar_contato_do_cliente", {
+      p_cliente_id: clienteA,
+      p_contato: { id: idRh, nome: "Invadido", telefone: "11999990000" },
+    });
+
+    expect(repetido.error?.code).toBe("23505");
+    expect(deOutroSetor.error?.code).toBe("42501");
+    expect((await ler(clienteA)).map((c) => c.nome)).toEqual(["Maria Exemplo"]);
+  });
+
   it("anon não lê contatos nem a lista de Setores", async () => {
     const anon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 

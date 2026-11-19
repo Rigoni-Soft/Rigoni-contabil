@@ -20,6 +20,7 @@ import {
   parcelamentoNovo,
   reposicionarErros,
 } from "../editar-cadastro-operacional/editar-cadastro-operacional.presenter";
+import { useContatosDaLinha } from "../editar-cadastro-operacional/use-contatos-da-linha.hook";
 import { useParcelamentosDoCadastro } from "../editar-cadastro-operacional/use-parcelamentos-do-cadastro.hook";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
@@ -82,6 +83,7 @@ export function EditarCadastroRhContainer({
     getValues,
     setValue,
     setError,
+    clearErrors,
     formState: { errors },
   } = useForm<Valores>({
     // Valida sem as linhas de contato em branco, como o formulário do SN.
@@ -112,6 +114,14 @@ export function EditarCadastroRhContainer({
     defaultValues: valoresIniciais,
   });
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
+  const linhasDeContato = useContatosDaLinha({
+    clienteId: dados?.id ?? "",
+    control,
+    getValues,
+    setValue,
+    setError,
+    clearErrors,
+  });
   const parcelamentos = useParcelamentosDoCadastro({
     clienteId: dados?.id ?? "",
     setor: "rh",
@@ -174,6 +184,13 @@ export function EditarCadastroRhContainer({
       contatos={fields}
       onAdicionarContato={() => append(contatoNovo())}
       onRemoverContato={remove}
+      linhasDeContato={{
+        salvos: linhasDeContato.salvos,
+        salvando: linhasDeContato.salvando,
+        erroDaLinha: linhasDeContato.erroDaLinha,
+        onSalvar: linhasDeContato.salvarLinha,
+        onCancelar: linhasDeContato.cancelarLinha,
+      }}
       parcelamentos={parcelamentos.parcelamentos}
       parcelamentoCampos={parcelamentos.parcelamentoCampos}
       onAdicionarParcelamento={parcelamentos.onAdicionarParcelamento}

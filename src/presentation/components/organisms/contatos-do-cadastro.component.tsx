@@ -11,6 +11,15 @@ import { formatarTelefone } from "@/presentation/lib/telefone-mask";
 
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
 
+// As ações por linha (do hook do Container): linha sem `id` é nova (Salvar/Cancelar), com `id` já está salva (lixeira).
+export type AcoesDasLinhasDeContato = {
+  salvos: boolean[];
+  salvando: number | null;
+  erroDaLinha: (indice: number) => string | undefined;
+  onSalvar: (indice: number) => void;
+  onCancelar: (indice: number) => void;
+};
+
 type ContatosDoCadastroProps = {
   register: UseFormRegister<EditarCadastroOperacionalFormValues>;
   control: Control<EditarCadastroOperacionalFormValues>;
@@ -20,6 +29,7 @@ type ContatosDoCadastroProps = {
   contatos: { id: string }[];
   onAdicionar: () => void;
   onRemover: (indice: number) => void;
+  linhas: AcoesDasLinhasDeContato;
 };
 
 export function ContatosDoCadastro({
@@ -30,6 +40,7 @@ export function ContatosDoCadastro({
   contatos,
   onAdicionar,
   onRemover,
+  linhas,
 }: ContatosDoCadastroProps) {
   return (
     <Pilha espaco={3} className="sm:col-span-2 lg:col-span-4">
@@ -66,6 +77,11 @@ export function ContatosDoCadastro({
               erroNome={errors.contatos?.[indice]?.nome?.message}
               erroTelefone={errors.contatos?.[indice]?.telefone?.message}
               erroEmail={errors.contatos?.[indice]?.email?.message}
+              salvo={linhas.salvos[indice]}
+              salvando={linhas.salvando === indice}
+              erroDaLinha={linhas.erroDaLinha(indice)}
+              onSalvar={() => linhas.onSalvar(indice)}
+              onCancelar={() => linhas.onCancelar(indice)}
               onRemover={readOnly ? undefined : () => onRemover(indice)}
             />
           )}

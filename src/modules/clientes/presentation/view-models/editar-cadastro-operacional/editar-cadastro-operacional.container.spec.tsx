@@ -28,7 +28,9 @@ const executeMock = jest.fn();
 
 const atribuirMock = jest.fn();
 const listarMock = jest.fn();
+const salvarContatoMock = jest.fn();
 jest.mock("@/main/clientes.factory", () => ({
+  makeSalvarContatoDoCliente: () => ({ execute: salvarContatoMock }),
   makeEditarCadastroOperacionalCliente: () => ({ execute: executeMock }),
   makeAtribuirResponsavelCliente: () => ({ execute: atribuirMock }),
   makeListarResponsaveisElegiveis: () => ({ execute: listarMock }),
@@ -64,6 +66,7 @@ function render(ui: React.ReactElement) {
 describe("EditarCadastroOperacionalContainer", () => {
   beforeEach(() => {
     executeMock.mockReset();
+    salvarContatoMock.mockReset();
     atribuirMock.mockReset();
     listarMock.mockReset();
     listarMock.mockResolvedValue(
@@ -509,7 +512,7 @@ describe("EditarCadastroOperacionalContainer", () => {
 
     expect(screen.getByLabelText(/^nome/i)).toHaveValue("");
     expect(screen.getByLabelText(/código/i)).toHaveValue("");
-    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+    await usuario.click(screen.getByRole("button", { name: /^salvar$/i }));
 
     expect(await screen.findByText(/atualizado/i)).toBeInTheDocument();
     expect(executeMock).toHaveBeenCalledWith(expect.objectContaining({ contatos: [] }));
@@ -522,10 +525,61 @@ describe("EditarCadastroOperacionalContainer", () => {
     );
 
     await usuario.type(screen.getByLabelText(/^nome/i), "Maria");
-    await usuario.click(screen.getByRole("button", { name: /salvar/i }));
+    await usuario.click(screen.getByRole("button", { name: /^salvar$/i }));
 
     expect(await screen.findByText("Informe o WhatsApp ou o e-mail")).toBeInTheDocument();
     expect(executeMock).not.toHaveBeenCalled();
+  });
+
+  it("contato novo tem Salvar e Cancelar; Salvar grava só ele e a linha passa a ter a lixeira", async () => {
+    salvarContatoMock.mockResolvedValue({ ok: true, value: { id: "novo-id" } });
+    const usuario = userEvent.setup();
+    render(
+      <EditarCadastroOperacionalContainer dados={{ ...dados, contatos: [] }} readOnly={false} />,
+    );
+
+    expect(screen.queryByRole("button", { name: /remover contato/i })).not.toBeInTheDocument();
+    await usuario.type(screen.getByLabelText(/^nome/i), "Joana");
+    await usuario.type(screen.getByLabelText(/e-mail/i), "joana@exemplo.com");
+    await usuario.click(screen.getByRole("button", { name: "Salvar contato 1" }));
+
+    expect(await screen.findByRole("button", { name: "Remover contato 1" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Salvar contato 1" })).not.toBeInTheDocument();
+    expect(salvarContatoMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clienteId: dados.id,
+        contato: expect.objectContaining({ nome: "Joana", email: "joana@exemplo.com" }),
+      }),
+    );
+    expect(executeMock).not.toHaveBeenCalled();
+  });
+
+  it("Salvar com a linha incompleta acusa o erro e não grava", async () => {
+    const usuario = userEvent.setup();
+    render(
+      <EditarCadastroOperacionalContainer dados={{ ...dados, contatos: [] }} readOnly={false} />,
+    );
+
+    await usuario.type(screen.getByLabelText(/^nome/i), "Joana");
+    await usuario.click(screen.getByRole("button", { name: "Salvar contato 1" }));
+
+    expect(await screen.findByText("Informe o WhatsApp ou o e-mail")).toBeInTheDocument();
+    expect(salvarContatoMock).not.toHaveBeenCalled();
+  });
+
+  it("Cancelar limpa a linha nova para o padrão", async () => {
+    const usuario = userEvent.setup();
+    render(
+      <EditarCadastroOperacionalContainer dados={{ ...dados, contatos: [] }} readOnly={false} />,
+    );
+
+    await usuario.type(screen.getByLabelText(/^nome/i), "Joana");
+    await usuario.type(screen.getByLabelText(/e-mail/i), "joana@exemplo.com");
+    await usuario.click(screen.getByRole("button", { name: "Cancelar contato 1" }));
+
+    expect(screen.getByLabelText(/^nome/i)).toHaveValue("");
+    expect(screen.getByLabelText(/e-mail/i)).toHaveValue("");
+    expect(salvarContatoMock).not.toHaveBeenCalled();
   });
 
   it("Promise rejeitada da Server Action não prende o botão em 'Salvando…'", async () => {
