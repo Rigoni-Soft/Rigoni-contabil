@@ -280,7 +280,7 @@ export function useContatosDoCadastro({
     podeRemover: (indice: number) => editavel(indice) && salvo(indice),
     // A linha nova do Setor oferece os contatos de outros Setores já cadastrados (o Admin não: vê todos).
     existentes: (indice: number) =>
-      admin || salvo(indice) || disponiveis.length === 0
+      admin || salvo(indice)
         ? undefined
         : {
             opcoes: disponiveis.map((d) => ({

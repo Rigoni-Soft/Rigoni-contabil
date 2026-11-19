@@ -126,7 +126,12 @@ export function LinhaDeContato({
             id={`contatos.${indice}.existente`}
             rotulo="Contato já cadastrado"
             opcoes={existentes.opcoes}
-            placeholder="Novo contato: preencha abaixo"
+            placeholder={
+              existentes.opcoes.length
+                ? "Novo contato: preencha abaixo"
+                : "Nenhum contato de outro Setor neste Cliente: preencha abaixo"
+            }
+            disabled={existentes.opcoes.length === 0}
             className="basis-full gap-1"
             value=""
             onChange={(evento) => existentes.onEscolher(evento.target.value)}
