@@ -62,7 +62,7 @@ test.describe("Resumo do setor (#36)", () => {
     // Documento recebido vira positivo, DAS continua pendente -> card
     // "DAS pendente" (urgente), não mais "Sem documento".
     await page.getByLabel("Documento recebido").selectOption("positivo");
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
 
     // "Voltar" pro bucket de origem, com a lista já sem o cliente (saiu do
     // bucket "Sem documento" assim que salvou).

@@ -84,7 +84,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await page.getByRole("checkbox", { name: "Comércio" }).check();
     await page.getByLabel("Observações gerais").fill("Observação de teste E2E.");
 
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
 
     // Salvar fecha a tela e volta pro destino certo (sem ?voltarPara= nesta navegação, cai em "/",
     // que redireciona Funcionário SN de volta pra página principal do próprio setor).
@@ -135,7 +135,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page.getByLabel("CNPJ", { exact: true })).toHaveCSS("opacity", "0.5");
 
     await page.getByLabel("Observações gerais").fill("Edição com DAS já enviado.");
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page).toHaveURL("/simples-nacional");
 
     await page.goto(`/clientes/${clienteId}`);
