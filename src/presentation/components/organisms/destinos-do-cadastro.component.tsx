@@ -9,7 +9,6 @@ import {
   type FormularioDeDestinoValores,
 } from "@/presentation/components/molecules/formulario-de-destino.component";
 import { Button } from "@/presentation/components/ui/button";
-import { Label } from "@/presentation/components/ui/label";
 
 export type LinhaDeDestinoDaTela = {
   id: string;
@@ -60,7 +59,9 @@ export function DestinosDoCadastro({
 }: DestinosDoCadastroProps) {
   return (
     <Pilha espaco={3} className="sm:col-span-2 lg:col-span-4">
-      <Label className="block">Destinos de envio</Label>
+      <Texto variante="titulo" id="destinos-titulo">
+        Destinos de envio
+      </Texto>
       {!somenteLeitura && (
         <Texto variante="nota">
           Para quem este Setor envia os documentos e avisos deste Cliente, e por qual canal.
@@ -69,7 +70,7 @@ export function DestinosDoCadastro({
       {linhas.length === 0 ? (
         <Texto variante="apoio">Este Setor ainda não tem destino de envio neste Cliente.</Texto>
       ) : (
-        <ListaComDivisores cartao>
+        <ListaComDivisores cartao aria-labelledby="destinos-titulo">
           {linhas.map((linha) => (
             <Caixa como="li" key={linha.id} className="px-3 py-2">
               <Linha alinhar="centro" justificar="entre" espaco={3}>
@@ -79,7 +80,7 @@ export function DestinosDoCadastro({
                     {linha.contato}
                     {linha.identificador && ` · ${linha.identificador}`} · {linha.canal}
                   </Texto>
-                  {linha.aviso && <AvisoDeStatus tipo="atencao" texto={linha.aviso} />}
+                  {linha.aviso && <AvisoDeStatus tipo="atencao" legivel texto={linha.aviso} />}
                 </Pilha>
                 {!somenteLeitura && (
                   <Button

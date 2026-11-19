@@ -107,6 +107,7 @@ export function FormularioDeDestino({
               inputMode="email"
               // A falta dos dois canais é erro do contato: o E-mail também fica inválido.
               aria-invalid={erros.telefone || erros.email ? true : undefined}
+              aria-describedby={erros.telefone ? "destino-telefone-mensagem" : undefined}
               erro={erros.email}
               className="gap-1"
               value={valores.novo.email}
@@ -129,7 +130,6 @@ export function FormularioDeDestino({
               id="destino-nome-do-contato"
               rotulo="Nome"
               readOnly
-              disabled
               className="gap-1"
               value={valores.escolhido?.nome ?? ""}
               placeholder="Preenchido ao escolher"
@@ -138,7 +138,6 @@ export function FormularioDeDestino({
               id="destino-email-do-contato"
               rotulo="E-mail"
               readOnly
-              disabled
               className="gap-1"
               value={valores.escolhido?.email ?? ""}
             />
@@ -168,7 +167,6 @@ export function FormularioDeDestino({
             id="destino-canal"
             rotulo="Forma de envio"
             readOnly
-            disabled
             erro={erros.canal}
             className="gap-1"
             value={canais.opcoes[0]?.rotulo ?? ""}

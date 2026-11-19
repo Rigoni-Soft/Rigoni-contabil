@@ -58,7 +58,7 @@ describe("FormularioDeDestino", () => {
 
     expect(acoes.onEscolherContato).toHaveBeenCalledWith("c-1");
     expect(screen.getByLabelText("Nome")).toHaveValue("Bia");
-    expect(screen.getByLabelText("Nome")).toBeDisabled();
+    expect(screen.getByLabelText("Nome")).toHaveAttribute("readonly");
     expect(screen.getByLabelText("E-mail")).toHaveValue("bia@exemplo.com");
   });
 
@@ -90,7 +90,7 @@ describe("FormularioDeDestino", () => {
       canal: "email",
     });
     expect(screen.getByLabelText("Forma de envio")).toHaveValue("E-mail");
-    expect(screen.getByLabelText("Forma de envio")).toBeDisabled();
+    expect(screen.getByLabelText("Forma de envio")).toHaveAttribute("readonly");
     expect(unico.onMudarCanal).not.toHaveBeenCalled();
   });
 

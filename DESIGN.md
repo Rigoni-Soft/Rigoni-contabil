@@ -493,10 +493,10 @@ tabela e, por último, o formulário.
   nem formulário.
 - **Formulário** (moldura tracejada, grupo "Adicionar destino de envio", malha `1>2>4`). Contato já
   cadastrado: select "WhatsApp ou e-mail do contato" (placeholder "Escolha…", sem padrão) e, ao lado, Nome e
-  E-mail do contato travados e preenchidos ao escolher. O botão "Novo contato" (`outline`, `Plus`) troca o
+  E-mail do contato somente leitura (`readOnly`, fundo `bg-muted`, sem esmaecer: é informação a ler) e preenchidos ao escolher. O botão "Novo contato" (`outline`, `Plus`) troca o
   select pelos campos do contato novo (Nome obrigatório, WhatsApp, E-mail) e vira "Escolher contato já
   cadastrado". Depois, "Tipo de envio" ("Todos os envios do Setor" mais o catálogo do Setor) e "Forma de
-  envio": um canal só no contato trava nele (campo travado, preenchido); com os dois, select "Escolha…" sem
+  envio": um canal só no contato trava nele (campo somente leitura, preenchido); com os dois, select "Escolha…" sem
   padrão (WhatsApp, E-mail, WhatsApp e E-mail).
 - **Número ou e-mail já do Cliente.** Ao digitar, o formulário mostra o contato existente (`AvisoDeStatus`
   `atencao`) com o botão "Usar este contato" (`outline`, `sm`); adicionar o repetido é barrado.
