@@ -30,6 +30,12 @@ describe("Contato", () => {
     expect(resultado.ok).toBe(false);
   });
 
+  it("rejeita WhatsApp sem DDD", () => {
+    const resultado = Contato.criar({ nome: "Maria", telefone: "99999-0000", email: "" });
+
+    expect(resultado.ok).toBe(false);
+  });
+
   it("rejeita e-mail inválido", () => {
     const resultado = Contato.criar({ nome: "Maria", telefone: "", email: "maria" });
 

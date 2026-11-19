@@ -1,6 +1,7 @@
 import { Email } from "@/modules/clientes/domain/value-objects/email.vo";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import { telefoneTemDdd } from "@/shared/kernel/telefone";
 
 // A forma única do Contato do Cliente: as camadas (portas, builder, mapper, schema) derivam daqui.
 // `telefone` e `email` vazios = sem o canal. `donoSetor` null = Contato do Admin; `setores` vem do
@@ -24,6 +25,9 @@ export class Contato {
     if (!nome) return err(new ValidationError("Nome do contato é obrigatório"));
     if (!telefone && !email) {
       return err(new ValidationError("Informe o WhatsApp ou o e-mail do contato"));
+    }
+    if (telefone && !telefoneTemDdd(telefone)) {
+      return err(new ValidationError("Informe o WhatsApp com DDD"));
     }
     if (email && !Email.criar(email).ok) return err(new ValidationError("e-mail inválido"));
     return ok(new Contato({ ...entrada, nome, telefone, email }));

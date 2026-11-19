@@ -4,13 +4,16 @@ import { DAS_STATUSES } from "@/shared/kernel/das-status";
 import { DOCUMENTO_OBRIGATORIO_STATUSES } from "@/shared/kernel/documento-obrigatorio-status";
 import { FORMAS_ENVIO } from "@/shared/kernel/forma-envio";
 import { SETORES } from "@/shared/kernel/setores";
+import { telefoneTemDdd } from "@/shared/kernel/telefone";
 
 // O contato do Cliente: o mesmo no cadastro do SN e no do RH.
 export const contatoSchema = z
   .object({
     id: z.string().optional(),
     nome: z.string().trim().min(1, "obrigatório"),
-    telefone: z.string(),
+    telefone: z
+      .string()
+      .refine((valor) => !valor.trim() || telefoneTemDdd(valor), "Informe o WhatsApp com DDD"),
     email: z
       .string()
       .refine(
