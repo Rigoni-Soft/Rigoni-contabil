@@ -22,9 +22,8 @@ import {
   reposicionarErros,
   semChaves,
 } from "../editar-cadastro-operacional/editar-cadastro-operacional.presenter";
-import { contatosComTipos } from "../editar-cadastro-operacional/tipos-de-envio.presenter";
-import { useContatosDaLinha } from "../editar-cadastro-operacional/use-contatos-da-linha.hook";
-import { useEnviosDosContatos } from "../editar-cadastro-operacional/use-envios-dos-contatos.hook";
+import { contatosIniciais } from "../editar-cadastro-operacional/tipos-de-envio.presenter";
+import { useContatosDoCadastro } from "../editar-cadastro-operacional/use-contatos-do-cadastro.hook";
 import { useParcelamentosDoCadastro } from "../editar-cadastro-operacional/use-parcelamentos-do-cadastro.hook";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
@@ -48,12 +47,17 @@ type Valores = EditarCadastroOperacionalFormValues;
 
 // O formulário reaproveita os campos do formulário do SN (contatos e observações gerais); os do SN ficam
 // com o valor neutro e nunca são enviados.
-const valoresIniciaisDe = (dados: CadastroRhClienteDto, readOnly: boolean): Valores => ({
+const valoresIniciaisDe = (
+  dados: CadastroRhClienteDto,
+  readOnly: boolean,
+  ator: { papel: string },
+): Valores => ({
   formaEnvio: "whatsapp",
-  contatos:
-    dados.contatos.length || readOnly
-      ? contatosComTipos(dados.contatos, dados.destinos)
-      : [contatoNovo()],
+  contatos: contatosIniciais(dados.contatos, dados.destinos, {
+    verTodos: ator.papel === "admin" || readOnly,
+    setor: SETOR_RH,
+    somenteLeitura: readOnly,
+  }),
   documentoObrigatorio: null,
   dasStatus: null,
   dataEnvioDas: null,
@@ -85,7 +89,7 @@ export function EditarCadastroRhContainer({
   const [sucesso, setSucesso] = useState(false);
 
   const admin = ator.papel === "admin";
-  const valoresIniciais = dados ? valoresIniciaisDe(dados, readOnly) : undefined;
+  const valoresIniciais = dados ? valoresIniciaisDe(dados, readOnly, ator) : undefined;
   const form = useForm<Valores>({
     // Valida sem as linhas de contato em branco, como o formulário do SN.
     resolver: async (valores, contexto, opcoes) => {
@@ -125,14 +129,16 @@ export function EditarCadastroRhContainer({
     formState: { errors },
   } = form;
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
-  const linhasDeContato = useContatosDaLinha({ clienteId: dados?.id ?? "", form });
-  const envios = useEnviosDosContatos({
+  const linhasDeContato = useContatosDoCadastro({
     clienteId: dados?.id ?? "",
     form,
+    campos: fields,
+    remover: remove,
     destinos: dados?.destinos ?? [],
     tiposDeEnvio: dados?.tiposDeEnvio ?? [],
     setorDoCadastro: SETOR_RH,
     admin,
+    verTodos: admin || readOnly,
   });
   const parcelamentos = useParcelamentosDoCadastro({
     clienteId: dados?.id ?? "",
@@ -199,9 +205,7 @@ export function EditarCadastroRhContainer({
       contatos={fields}
       onAdicionarContato={() => append(contatoNovo())}
       onRemoverContato={remove}
-      linhasDeContato={{ ...linhasDeContato, aviso: envios.aviso || linhasDeContato.aviso }}
-      contatoDoutroSetor={envios.contatoDoutroSetor}
-      enviosDoContato={envios.enviosDoContato}
+      linhasDeContato={linhasDeContato}
       parcelamentos={parcelamentos.parcelamentos}
       parcelamentoCampos={parcelamentos.parcelamentoCampos}
       onAdicionarParcelamento={parcelamentos.onAdicionarParcelamento}

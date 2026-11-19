@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useForm } from "react-hook-form";
 
+import { LINHAS_DE_CONTATO_DE_TESTE } from "../../../../test-support/linhas-de-contato-de-teste";
 import { CabecalhoDoCadastro } from "./cabecalho-do-cadastro.component";
 import { ContatosDoCadastro } from "./contatos-do-cadastro.component";
 import { DasDoCadastro } from "./das-do-cadastro.component";
@@ -59,13 +60,7 @@ function Wrapper({ dasEnviado = false }: { dasEnviado?: boolean }) {
         contatos={[]}
         onAdicionar={() => adicionar()}
         onRemover={jest.fn()}
-        linhas={{
-          salvos: [],
-          salvando: null,
-          erroDaLinha: () => undefined,
-          onSalvar: jest.fn(),
-          onLimpar: jest.fn(),
-        }}
+        linhas={LINHAS_DE_CONTATO_DE_TESTE}
       />
       <ParcelamentosDoCadastro
         register={register}

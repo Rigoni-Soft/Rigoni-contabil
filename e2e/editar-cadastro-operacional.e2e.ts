@@ -74,6 +74,9 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await page.getByLabel("Nome").fill("Maria Contato");
     await page.getByLabel("WhatsApp").fill("11999998888");
     await page.getByLabel("E-mail", { exact: true }).fill("maria.contato@exemplo.com");
+    // O contato novo só entra no cadastro com o Salvar da própria linha.
+    await page.getByRole("button", { name: "Salvar contato 1" }).click();
+    await expect(page.getByRole("button", { name: "Remover contato 1" })).toBeVisible();
     await page.getByLabel("Documento recebido").selectOption("positivo");
     // "Enviado" e a data de envio são só do sistema.
     await expect(
@@ -123,7 +126,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await page.getByRole("button", { name: "Salvar contato 1" }).click();
     await expect(page.getByRole("button", { name: "Remover contato 1" })).toBeVisible();
     await expect(page.getByText("Contato 1 salvo.")).toBeAttached();
-    await expect(page.locator("[id='contatos.0.nome']")).toBeFocused();
+    await expect(page.locator("[id='contatos.0.editar']")).toBeFocused();
 
     const admin = adminLocal();
     const gravado = await admin
@@ -139,11 +142,11 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     const depois = await admin.from("cliente_contatos").select("id").eq("cliente_id", clienteId);
     expect(depois.data).toEqual([{ id: gravado.data?.id }]);
 
-    // Limpar na linha nova esvazia os campos dela e não mexe no contato salvo.
+    // Cancelar na linha nova a descarta e não mexe no contato salvo.
     await page.getByRole("button", { name: "Adicionar contato" }).click();
     await page.locator("[id='contatos.1.nome']").fill("Rascunho");
-    await page.getByRole("button", { name: "Limpar contato 2" }).click();
-    await expect(page.locator("[id='contatos.1.nome']")).toHaveValue("");
+    await page.getByRole("button", { name: "Cancelar edição do contato 2" }).click();
+    await expect(page.locator("[id='contatos.1.nome']")).toHaveCount(0);
     await expect(page.locator("[id='contatos.0.nome']")).toHaveValue("Ana Linha");
 
     // Outro Setor (RH) usa o contato: excluí-lo pelo SN é recusado e ele continua gravado.

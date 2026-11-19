@@ -165,7 +165,9 @@ begin
     if new.cliente_id is distinct from old.cliente_id then
       raise exception 'O Cliente do contato não pode ser trocado.' using errcode = '23514';
     end if;
-    if new.dono_setor is distinct from old.dono_setor then
+    -- O dono só muda pela exclusão do dono que outro Setor ainda usa (`contato_exclusao_em_uso`): vira da URA.
+    if new.dono_setor is distinct from old.dono_setor
+       and not (new.dono_setor is null and current_setting('app.contato_herdado_pela_ura', true) = old.id::text) then
       raise exception 'O Setor dono do contato não pode ser trocado.' using errcode = '23514';
     end if;
   end if;

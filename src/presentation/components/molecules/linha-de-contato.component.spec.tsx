@@ -4,72 +4,134 @@ import userEvent from "@testing-library/user-event";
 import { LinhaDeContato } from "./linha-de-contato.component";
 
 const CAMPOS = { nome: {}, telefone: {}, email: {} };
+const ENVIOS = {
+  opcoes: [
+    { valor: "todos", rotulo: "Todos os envios" },
+    { valor: "das", rotulo: "DAS" },
+  ],
+  marcados: ["das"],
+  onAlternar: jest.fn(),
+};
 
 describe("LinhaDeContato", () => {
-  it("linha nova mostra Salvar e Limpar, que chamam os callbacks, e não a lixeira", async () => {
+  it("editando: Salvar e Cancelar chamam os callbacks, e não há Editar nem lixeira", async () => {
     const aoSalvar = jest.fn();
-    const aoLimpar = jest.fn();
+    const aoCancelar = jest.fn();
     const usuario = userEvent.setup();
     render(
       <LinhaDeContato
         indice={1}
         {...CAMPOS}
+        editando
+        salvo
+        onEditar={jest.fn()}
         onSalvar={aoSalvar}
-        onLimpar={aoLimpar}
+        onCancelar={aoCancelar}
         onRemover={jest.fn()}
       />,
     );
 
     await usuario.click(screen.getByRole("button", { name: "Salvar contato 2" }));
-    await usuario.click(screen.getByRole("button", { name: "Limpar contato 2" }));
+    await usuario.click(screen.getByRole("button", { name: "Cancelar edição do contato 2" }));
 
     expect(aoSalvar).toHaveBeenCalledTimes(1);
-    expect(aoLimpar).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole("button", { name: /Remover contato/ })).not.toBeInTheDocument();
+    expect(aoCancelar).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: /Editar contato|Remover contato/ })).toBeNull();
   });
 
-  it("contato de outro Setor: campos só de leitura e nenhuma ação na linha", () => {
+  it("só mostrando: Editar e lixeira, campos só de leitura, sem Salvar nem Cancelar", async () => {
+    const aoEditar = jest.fn();
+    const aoRemover = jest.fn();
+    const usuario = userEvent.setup();
     render(
       <LinhaDeContato
         indice={0}
         {...CAMPOS}
+        editando={false}
         salvo
+        onEditar={aoEditar}
         onSalvar={jest.fn()}
-        onLimpar={jest.fn()}
-        onRemover={jest.fn()}
-        doutroSetor
+        onCancelar={jest.fn()}
+        onRemover={aoRemover}
+      />,
+    );
+
+    expect(screen.getByLabelText("Nome")).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("WhatsApp")).toHaveAttribute("readonly");
+    expect(screen.queryByRole("button", { name: /Salvar contato|Cancelar edição/ })).toBeNull();
+    await usuario.click(screen.getByRole("button", { name: "Editar contato 1" }));
+    await usuario.click(screen.getByRole("button", { name: "Remover contato 1" }));
+
+    expect(aoEditar).toHaveBeenCalledTimes(1);
+    expect(aoRemover).toHaveBeenCalledTimes(1);
+  });
+
+  it("editando: os campos aceitam digitação e o Nome é obrigatório", () => {
+    render(
+      <LinhaDeContato
+        indice={0}
+        {...CAMPOS}
+        editando
+        onSalvar={jest.fn()}
+        onCancelar={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText(/^Nome/)).not.toHaveAttribute("readonly");
+    expect(screen.getByLabelText(/^Nome/)).toBeRequired();
+  });
+
+  it("contato de outro Setor: campos só de leitura mesmo editando, sem asterisco e sem lixeira", () => {
+    render(
+      <LinhaDeContato
+        indice={0}
+        {...CAMPOS}
+        editando
+        salvo
+        camposTravados
+        envios={ENVIOS}
+        onSalvar={jest.fn()}
+        onCancelar={jest.fn()}
       />,
     );
 
     expect(screen.getByLabelText("Nome")).toHaveAttribute("readonly");
     expect(screen.getByLabelText("WhatsApp")).toHaveAttribute("readonly");
     expect(screen.getByLabelText("E-mail")).toHaveAttribute("readonly");
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(screen.queryByText("*")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("DAS")).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /Remover/ })).toBeNull();
   });
 
-  it("envios: um checkbox por tipo na linha; marcar chama o callback; o aviso de canal aparece", async () => {
+  it("contato de outro Setor só mostrando: Editar, sem lixeira (o Setor só edita os envios)", () => {
+    render(
+      <LinhaDeContato
+        indice={0}
+        {...CAMPOS}
+        editando={false}
+        salvo
+        camposTravados
+        onEditar={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Editar contato 1" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Remover/ })).toBeNull();
+  });
+
+  it("envios: um checkbox por tipo; editando, marcar chama o callback; o aviso de canal aparece", async () => {
     const aoAlternar = jest.fn();
     const usuario = userEvent.setup();
     render(
       <LinhaDeContato
         indice={0}
         {...CAMPOS}
-        salvo
-        envios={{
-          opcoes: [
-            { valor: "todos", rotulo: "Todos os envios" },
-            { valor: "das", rotulo: "DAS" },
-          ],
-          marcados: ["das"],
-          aviso: "O contato deixou de ter o WhatsApp.",
-          onAlternar: aoAlternar,
-        }}
+        editando
+        envios={{ ...ENVIOS, aviso: "O contato deixou de ter o WhatsApp.", onAlternar: aoAlternar }}
       />,
     );
 
-    const grupo = screen.getByRole("group", { name: "Envios do contato 1" });
-    expect(grupo).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Envios do contato 1" })).toBeInTheDocument();
     expect(screen.getByLabelText("DAS")).toBeChecked();
     expect(screen.getByLabelText("Todos os envios")).not.toBeChecked();
     await usuario.click(screen.getByLabelText("Todos os envios"));
@@ -78,147 +140,94 @@ describe("LinhaDeContato", () => {
     expect(screen.getByText("O contato deixou de ter o WhatsApp.")).toBeInTheDocument();
   });
 
-  it("envios de linha ainda não salva: checkboxes desabilitados com a dica de salvar o contato", () => {
-    render(
-      <LinhaDeContato
-        indice={0}
-        {...CAMPOS}
-        envios={{
-          opcoes: [{ valor: "das", rotulo: "DAS" }],
-          marcados: [],
-          semContatoSalvo: true,
-          onAlternar: jest.fn(),
-        }}
-      />,
-    );
+  it("envios só mostrando: os checkboxes mostram o que o Setor marcou, mas não mudam", () => {
+    render(<LinhaDeContato indice={0} {...CAMPOS} editando={false} envios={ENVIOS} />);
 
+    expect(screen.getByLabelText("DAS")).toBeChecked();
     expect(screen.getByLabelText("DAS")).toBeDisabled();
-    expect(screen.getByText("Salve o contato para escolher os envios.")).toBeInTheDocument();
   });
 
-  it("envios ocupados: o clique não chama o callback", async () => {
-    const aoAlternar = jest.fn();
+  it("salvando: Salvar e Cancelar ficam aria-disabled (mantêm o foco) e não disparam", async () => {
+    const aoSalvar = jest.fn();
+    const aoCancelar = jest.fn();
     const usuario = userEvent.setup();
     render(
       <LinhaDeContato
         indice={0}
         {...CAMPOS}
-        salvo
-        envios={{
-          opcoes: [{ valor: "das", rotulo: "DAS" }],
-          marcados: [],
-          ocupado: true,
-          onAlternar: aoAlternar,
-        }}
+        editando
+        salvando
+        onSalvar={aoSalvar}
+        onCancelar={aoCancelar}
       />,
     );
 
-    await usuario.click(screen.getByLabelText("DAS"));
+    const salvar = screen.getByRole("button", { name: "Salvar contato 1" });
+    await usuario.click(salvar);
+    await usuario.click(screen.getByRole("button", { name: "Cancelar edição do contato 1" }));
 
-    expect(aoAlternar).not.toHaveBeenCalled();
+    expect(salvar).toHaveAttribute("aria-disabled", "true");
+    expect(salvar).toHaveAttribute("aria-busy", "true");
+    expect(aoSalvar).not.toHaveBeenCalled();
+    expect(aoCancelar).not.toHaveBeenCalled();
   });
 
   it("os botões de ícone têm title igual ao nome acessível", () => {
-    render(<LinhaDeContato indice={0} {...CAMPOS} onSalvar={jest.fn()} onLimpar={jest.fn()} />);
+    render(
+      <LinhaDeContato
+        indice={0}
+        {...CAMPOS}
+        editando
+        onSalvar={jest.fn()}
+        onCancelar={jest.fn()}
+      />,
+    );
 
     expect(screen.getByRole("button", { name: "Salvar contato 1" })).toHaveAttribute(
       "title",
       "Salvar contato 1",
     );
-    expect(screen.getByRole("button", { name: "Limpar contato 1" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Cancelar edição do contato 1" })).toHaveAttribute(
       "title",
-      "Limpar contato 1",
+      "Cancelar edição do contato 1",
     );
   });
 
-  it("linha salva mostra só a lixeira", async () => {
-    const aoRemover = jest.fn();
+  it("visualização da tela toda: sem botões nem asterisco", () => {
     render(
       <LinhaDeContato
         indice={0}
         {...CAMPOS}
+        editando={false}
         salvo
-        onSalvar={jest.fn()}
-        onLimpar={jest.fn()}
-        onRemover={aoRemover}
-      />,
-    );
-
-    await userEvent.setup().click(screen.getByRole("button", { name: "Remover contato 1" }));
-
-    expect(aoRemover).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole("button", { name: /Salvar contato/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Limpar contato/ })).not.toBeInTheDocument();
-  });
-
-  it("somente leitura não mostra nenhuma ação e não marca Nome como obrigatório", () => {
-    render(
-      <LinhaDeContato
-        indice={0}
-        {...CAMPOS}
         somenteLeitura
-        onSalvar={jest.fn()}
-        onLimpar={jest.fn()}
+        onEditar={jest.fn()}
+        onRemover={jest.fn()}
       />,
     );
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Nome")).not.toBeRequired();
+    expect(screen.queryByText("*")).not.toBeInTheDocument();
   });
 
-  it("salvando, os botões ficam aria-disabled (sem perder o foco), não agem e o Salvar fica ocupado", async () => {
-    const aoSalvar = jest.fn();
-    const aoLimpar = jest.fn();
-    render(
-      <LinhaDeContato indice={0} {...CAMPOS} salvando onSalvar={aoSalvar} onLimpar={aoLimpar} />,
-    );
-
-    const salvar = screen.getByRole("button", { name: "Salvar contato 1" });
-    const limpar = screen.getByRole("button", { name: "Limpar contato 1" });
-    expect(salvar).toHaveAttribute("aria-disabled", "true");
-    expect(salvar).not.toBeDisabled();
-    expect(salvar).toHaveAttribute("aria-busy", "true");
-    expect(limpar).toHaveAttribute("aria-disabled", "true");
-
-    salvar.click();
-    limpar.click();
-    expect(aoSalvar).not.toHaveBeenCalled();
-    expect(aoLimpar).not.toHaveBeenCalled();
-  });
-
-  it("a falta dos dois canais marca o E-mail como inválido e aponta a mensagem do Telefone", () => {
-    render(<LinhaDeContato indice={0} {...CAMPOS} erroTelefone="Informe o WhatsApp ou o e-mail" />);
-
-    const email = screen.getByLabelText("E-mail");
-    expect(email).toHaveAttribute("aria-invalid", "true");
-    expect(email).toHaveAttribute("aria-describedby", "contatos.0.telefone-mensagem");
-  });
-
-  it("erro do servidor aparece sob a linha e é ligado ao grupo", () => {
-    render(<LinhaDeContato indice={0} {...CAMPOS} erroDaLinha="Este Cliente já tem o contato." />);
-
-    expect(screen.getByRole("alert")).toHaveTextContent("Este Cliente já tem o contato.");
-    expect(screen.getByRole("group", { name: "Contato 1" })).toHaveAttribute(
-      "aria-describedby",
-      "contatos.0.linha-mensagem",
-    );
-  });
-
-  it("os botões ficam alinhados ao input, mesmo com erro de campo", () => {
+  it("mostra a falha da linha e liga os erros dos campos", () => {
     render(
       <LinhaDeContato
         indice={0}
         {...CAMPOS}
-        erroNome="obrigatório"
+        editando
+        erroDaLinha="Já existe."
+        erroTelefone="Informe o WhatsApp ou o e-mail"
         onSalvar={jest.fn()}
-        onLimpar={jest.fn()}
+        onCancelar={jest.fn()}
       />,
     );
 
-    const grupo = screen.getByRole("group", { name: "Contato 1" });
-    expect(grupo).toHaveClass("items-start");
-    expect(screen.getByRole("button", { name: "Salvar contato 1" }).parentElement).toHaveClass(
-      "h-9",
+    expect(screen.getByText("Já existe.")).toBeInTheDocument();
+    expect(screen.getByText("Informe o WhatsApp ou o e-mail")).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Contato 1" })).toHaveAttribute(
+      "aria-describedby",
+      "contatos.0.linha-mensagem",
     );
   });
 });

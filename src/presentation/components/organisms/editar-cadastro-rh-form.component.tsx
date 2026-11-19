@@ -4,7 +4,6 @@ import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.c
 import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { AcoesDoFormulario } from "@/presentation/components/molecules/acoes-do-formulario.component";
-import type { EnviosDaLinha } from "@/presentation/components/molecules/linha-de-contato.component";
 import { Label } from "@/presentation/components/ui/label";
 import { Textarea } from "@/presentation/components/ui/textarea";
 
@@ -34,9 +33,6 @@ type EditarCadastroRhFormProps = ParcelamentosProps & {
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
   linhasDeContato: AcoesDasLinhasDeContato;
-  contatoDoutroSetor?: (indice: number) => boolean;
-  // O que cada contato recebe do Setor (checkboxes da linha); ausente quando o ator não define envios (Admin).
-  enviosDoContato?: (indice: number) => EnviosDaLinha | undefined;
   onLimpar: () => void;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura).
   documentoContratual?: React.ReactNode;
@@ -65,8 +61,6 @@ export function EditarCadastroRhForm({
   onAdicionarContato,
   onRemoverContato,
   linhasDeContato,
-  contatoDoutroSetor,
-  enviosDoContato,
   parcelamentos,
   parcelamentoCampos,
   onAdicionarParcelamento,
@@ -94,7 +88,9 @@ export function EditarCadastroRhForm({
       acoes={
         <AcoesDoFormulario
           pendente={pendente}
-          motivoDoBloqueio={motivoDeLeituraEmAndamento(leituras)}
+          motivoDoBloqueio={
+            motivoDeLeituraEmAndamento(leituras) ?? linhasDeContato.motivoDoBloqueio
+          }
           onLimpar={onLimpar}
         />
       }
@@ -112,8 +108,6 @@ export function EditarCadastroRhForm({
         onAdicionar={onAdicionarContato}
         onRemover={onRemoverContato}
         linhas={linhasDeContato}
-        doutroSetor={contatoDoutroSetor}
-        envios={enviosDoContato}
       />
 
       <ParcelamentosDoCadastro

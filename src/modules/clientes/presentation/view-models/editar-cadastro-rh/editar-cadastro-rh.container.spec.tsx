@@ -198,11 +198,15 @@ describe("EditarCadastroRhContainer", () => {
       expect(screen.getByRole("button", { name: "Adicionar contato" })).toBeInTheDocument();
     });
 
-    it("contato de outro Setor aparece só em leitura", async () => {
+    it("contato de outro Setor: campos só de leitura mesmo editando, sem lixeira; os envios seguem do RH", async () => {
       montar({ dados: dadosComEnvios, ator: FUNCIONARIO_RH });
+      await userEvent
+        .setup()
+        .click(await screen.findByRole("button", { name: "Editar contato 2" }));
+      expect(screen.queryByRole("button", { name: "Remover contato 2" })).toBeNull();
+      expect(screen.getByRole("group", { name: "Envios do contato 2" })).toBeInTheDocument();
 
       const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
-      expect(nomes[0]).not.toHaveAttribute("readonly");
       expect(nomes[1]).toHaveAttribute("readonly");
     });
 
@@ -211,6 +215,7 @@ describe("EditarCadastroRhContainer", () => {
 
       expect(await screen.findByRole("button", { name: "Adicionar contato" })).toBeInTheDocument();
       expect(screen.queryByRole("group", { name: /Envios do contato/ })).toBeNull();
+      await userEvent.setup().click(screen.getByRole("button", { name: "Editar contato 2" }));
       const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
       expect(nomes[1]).not.toHaveAttribute("readonly");
     });

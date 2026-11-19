@@ -1,17 +1,29 @@
-import { Check, LoaderCircle, Trash2, X } from "lucide-react";
+import { Check, LoaderCircle, Pencil, Trash2, X } from "lucide-react";
 
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { CaixaDeMarcacao } from "@/presentation/components/atoms/caixa-de-marcacao.component";
 import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
 import { BOTAO_OCUPADO } from "@/presentation/lib/botao-ocupado";
 
+// O que o contato recebe do Setor de quem edita (checkboxes da linha); só o Setor vê o que marcou.
+export type EnviosDaLinha = {
+  opcoes: { valor: string; rotulo: string }[];
+  marcados: string[];
+  // O canal que o envio usa e o contato deixou de ter.
+  aviso?: string;
+  onAlternar: (valor: string) => void;
+};
+
 type LinhaDeContatoProps = {
   indice: number;
+  // Número mostrado e usado nos nomes acessíveis ("Contato N"); sem ele, o índice mais um. Contato escondido não conta.
+  numero?: number;
   // Props dos inputs (o `register`/Controller do formulário, já resolvidos por quem monta).
   nome: React.ComponentProps<"input">;
   telefone: React.ComponentProps<"input">;
@@ -19,34 +31,33 @@ type LinhaDeContatoProps = {
   erroNome?: string;
   erroTelefone?: string;
   erroEmail?: string;
-  // Contato já gravado: a ação é a lixeira. Sem a marca, a linha é nova: Salvar e Limpar.
+  // Editando: Salvar e Cancelar, e os campos e checkboxes aceitam alteração. Fora disso a linha só mostra:
+  // Editar e, para o dono, a lixeira.
+  editando: boolean;
+  // Contato já gravado (tem id): só ele pode ser removido.
   salvo?: boolean;
   salvando?: boolean;
+  // Contato de outro Setor: nome, WhatsApp e e-mail ficam sempre só de leitura; os envios são do Setor.
+  camposTravados?: boolean;
   // Falha do servidor ao salvar esta linha (não é de um campo).
   erroDaLinha?: string;
+  onEditar?: () => void;
   onSalvar?: () => void;
-  onLimpar?: () => void;
-  // Sem callback (visualização): o botão nem aparece.
+  onCancelar?: () => void;
+  // Sem callback (visualização, ou contato que o Setor não remove): o botão nem aparece.
   onRemover?: () => void;
-  // Visualização: nada é obrigatório, então sem asterisco.
+  // Visualização da tela toda: sem botões nem asterisco.
   somenteLeitura?: boolean;
-  // Contato de outro Setor: os campos ficam só de leitura e a linha não tem lixeira nem botões.
-  doutroSetor?: boolean;
-  // O que este contato recebe do Setor de quem edita: um checkbox por tipo de envio (ausente: o ator não
-  // define envios, como o Admin). Marcar grava na hora, também no contato de outro Setor.
+  // O que este contato recebe do Setor de quem edita (ausente: o ator não define envios, como o Admin).
   envios?: EnviosDaLinha;
+  // Linha nova do Setor: escolher um contato que outro Setor já cadastrou, em vez de digitar um novo.
+  existentes?: ExistentesDaLinha;
 };
 
-// O que o contato recebe do Setor de quem edita (checkboxes da linha).
-export type EnviosDaLinha = {
+// Os contatos que outro Setor já cadastrou, para a linha nova do Setor escolher no lugar de digitar um novo.
+export type ExistentesDaLinha = {
   opcoes: { valor: string; rotulo: string }[];
-  marcados: string[];
-  ocupado?: boolean;
-  // Linha ainda não salva: os checkboxes esperam o "Salvar contato" (senão a marca se perderia).
-  semContatoSalvo?: boolean;
-  // O canal que o envio usa e o contato deixou de ter.
-  aviso?: string;
-  onAlternar: (valor: string) => void;
+  onEscolher: (contatoId: string) => void;
 };
 
 // Botões na altura do input: o espaçador invisível ocupa o lugar do rótulo, e a mensagem de erro
@@ -64,34 +75,40 @@ function AcoesDaLinha({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Um Contato do Cliente: nome, telefone, e-mail (ao menos um dos dois canais) e as ações da linha.
-// A numeração é 1-based.
+const ICONE_PEQUENO = "size-8 pointer-coarse:size-11";
+
+// Um Contato do Cliente: nome, telefone, e-mail (ao menos um dos dois canais), o que ele recebe do Setor e as
+// ações da linha (Editar e Lixeira; editando, Salvar e Cancelar). A numeração é 1-based.
 export function LinhaDeContato({
   indice,
+  numero: numeroDaTela,
   nome,
   telefone,
   email,
   erroNome,
   erroTelefone,
   erroEmail,
+  editando,
   salvo,
   salvando,
+  camposTravados,
   erroDaLinha,
+  onEditar,
   onSalvar,
-  onLimpar,
+  onCancelar,
   onRemover,
-  somenteLeitura: somenteLeituraDaTela,
-  doutroSetor,
+  somenteLeitura,
   envios,
+  existentes,
 }: LinhaDeContatoProps) {
-  const numero = indice + 1;
-  const somenteLeitura = somenteLeituraDaTela || Boolean(doutroSetor);
+  const numero = numeroDaTela ?? indice + 1;
+  const comAcoes = !somenteLeitura;
   // `readOnly` e não `disabled`: o valor segue no formulário e volta intacto ao salvar o cadastro.
-  const travado = doutroSetor ? { readOnly: true } : {};
-  const acoesDeLinhaNova = !salvo && !somenteLeitura && onSalvar && onLimpar;
+  const travado = !editando || camposTravados ? { readOnly: true } : {};
   const idDoErroDaLinha = `contatos.${indice}.linha-mensagem`;
+  const rotuloEditar = `Editar contato ${numero}`;
   const rotuloSalvar = `Salvar contato ${numero}`;
-  const rotuloLimpar = `Limpar contato ${numero}`;
+  const rotuloCancelar = `Cancelar edição do contato ${numero}`;
   const rotuloRemover = `Remover contato ${numero}`;
   return (
     <Pilha espaco={1}>
@@ -104,10 +121,21 @@ export function LinhaDeContato({
         aria-describedby={erroDaLinha ? idDoErroDaLinha : undefined}
         className="rounded-md border border-border p-3"
       >
+        {existentes && editando && comAcoes && (
+          <CampoDeOpcoes
+            id={`contatos.${indice}.existente`}
+            rotulo="Contato já cadastrado"
+            opcoes={existentes.opcoes}
+            placeholder="Novo contato: preencha abaixo"
+            className="basis-full gap-1"
+            value=""
+            onChange={(evento) => existentes.onEscolher(evento.target.value)}
+          />
+        )}
         <CampoDeTexto
           id={`contatos.${indice}.nome`}
           rotulo="Nome"
-          obrigatorio={!somenteLeitura}
+          obrigatorio={editando && !camposTravados && comAcoes}
           erro={erroNome}
           className="min-w-[10rem] flex-1 gap-1"
           {...nome}
@@ -135,26 +163,12 @@ export function LinhaDeContato({
           {...email}
           {...travado}
         />
-        {salvo && onRemover && !doutroSetor && (
-          <AcoesDaLinha>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={onRemover}
-              aria-label={rotuloRemover}
-              title={rotuloRemover}
-            >
-              <Trash2 className="size-4" aria-hidden="true" />
-            </Button>
-          </AcoesDaLinha>
-        )}
-        {acoesDeLinhaNova && (
+        {comAcoes && editando && onSalvar && onCancelar && (
           <AcoesDaLinha>
             <Button
               type="button"
               size="icon"
-              className={`size-8 pointer-coarse:size-11 ${BOTAO_OCUPADO}`}
+              className={`${ICONE_PEQUENO} ${BOTAO_OCUPADO}`}
               onClick={() => !salvando && onSalvar()}
               aria-disabled={salvando || undefined}
               aria-busy={salvando}
@@ -171,14 +185,43 @@ export function LinhaDeContato({
               type="button"
               variant="destructive"
               size="icon"
-              className={`size-8 pointer-coarse:size-11 ${BOTAO_OCUPADO}`}
-              onClick={() => !salvando && onLimpar()}
+              className={`${ICONE_PEQUENO} ${BOTAO_OCUPADO}`}
+              onClick={() => !salvando && onCancelar()}
               aria-disabled={salvando || undefined}
-              aria-label={rotuloLimpar}
-              title={rotuloLimpar}
+              aria-label={rotuloCancelar}
+              title={rotuloCancelar}
             >
               <X className="size-4" aria-hidden="true" />
             </Button>
+          </AcoesDaLinha>
+        )}
+        {comAcoes && !editando && onEditar && (
+          <AcoesDaLinha>
+            <Button
+              id={`contatos.${indice}.editar`}
+              type="button"
+              variant="outline"
+              size="icon"
+              className={ICONE_PEQUENO}
+              onClick={onEditar}
+              aria-label={rotuloEditar}
+              title={rotuloEditar}
+            >
+              <Pencil className="size-4" aria-hidden="true" />
+            </Button>
+            {salvo && onRemover && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={ICONE_PEQUENO}
+                onClick={onRemover}
+                aria-label={rotuloRemover}
+                title={rotuloRemover}
+              >
+                <Trash2 className="size-4" aria-hidden="true" />
+              </Button>
+            )}
           </AcoesDaLinha>
         )}
         {envios && (
@@ -193,18 +236,13 @@ export function LinhaDeContato({
             {envios.opcoes.map((opcao) => (
               <CaixaDeMarcacao
                 key={opcao.valor}
+                id={`contatos.${indice}.tipo-${opcao.valor}`}
                 rotulo={opcao.rotulo}
                 checked={envios.marcados.includes(opcao.valor)}
-                disabled={envios.semContatoSalvo}
-                aria-disabled={envios.ocupado || undefined}
-                onChange={() => !envios.ocupado && envios.onAlternar(opcao.valor)}
+                disabled={!editando}
+                onChange={() => envios.onAlternar(opcao.valor)}
               />
             ))}
-            {envios.semContatoSalvo && (
-              <Texto variante="nota" como="span">
-                Salve o contato para escolher os envios.
-              </Texto>
-            )}
             {envios.aviso && <AvisoDeStatus tipo="atencao" legivel texto={envios.aviso} />}
           </Caixa>
         )}

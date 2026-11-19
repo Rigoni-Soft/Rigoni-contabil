@@ -7,6 +7,7 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import {
   LinhaDeContato,
   type EnviosDaLinha,
+  type ExistentesDaLinha,
 } from "@/presentation/components/molecules/linha-de-contato.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
@@ -14,15 +15,31 @@ import { formatarTelefone } from "@/presentation/lib/telefone-mask";
 
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
 
-// Linha sem `id` é nova (Salvar/Limpar); com `id` já está salva (lixeira).
+// O que cada linha de contato faz (montado no Container): editar, salvar e cancelar a linha, e o que ela
+// mostra de si. Linha sem `id` é nova e já nasce em edição.
 export type AcoesDasLinhasDeContato = {
-  salvos: boolean[];
+  editando: (indice: number) => boolean;
+  salvo: (indice: number) => boolean;
   salvando: number | null;
+  // Contato de outro Setor: nome, WhatsApp e e-mail só de leitura (os envios seguem do Setor).
+  camposTravados: (indice: number) => boolean;
+  // Só o Setor dono e o Admin removem o contato.
+  podeRemover: (indice: number) => boolean;
+  // O que o contato recebe do Setor; ausente quando o ator não define envios (Admin).
+  envios: (indice: number) => EnviosDaLinha | undefined;
+  // Linha nova do Setor: os contatos de outros Setores que ele pode escolher em vez de digitar um novo.
+  existentes: (indice: number) => ExistentesDaLinha | undefined;
+  // Contato de outro Setor que o Setor ainda não usa não aparece na lista; a numeração só conta os visíveis.
+  visivel: (indice: number) => boolean;
+  numero: (indice: number) => number;
   // Confirmação dita ao leitor de tela ("Contato 1 salvo."), já que salvar só troca os botões.
   aviso?: string;
   erroDaLinha: (indice: number) => string | undefined;
+  onEditar: (indice: number) => void;
   onSalvar: (indice: number) => void;
-  onLimpar: (indice: number) => void;
+  onCancelar: (indice: number) => void;
+  // Enquanto uma linha está em edição, o Salvar do cadastro espera (senão o que se digitou nela, e os envios, se perderia).
+  motivoDoBloqueio?: string;
 };
 
 type ContatosDoCadastroProps = {
@@ -35,10 +52,6 @@ type ContatosDoCadastroProps = {
   onAdicionar: () => void;
   onRemover: (indice: number) => void;
   linhas: AcoesDasLinhasDeContato;
-  // Contato de outro Setor: nome, WhatsApp e e-mail ficam só de leitura. Sem isso, é editável.
-  doutroSetor?: (indice: number) => boolean;
-  // O que o contato recebe (checkboxes da linha); ausente quando o ator não define envios.
-  envios?: (indice: number) => EnviosDaLinha | undefined;
 };
 
 export function ContatosDoCadastro({
@@ -50,8 +63,6 @@ export function ContatosDoCadastro({
   onAdicionar,
   onRemover,
   linhas,
-  doutroSetor,
-  envios,
 }: ContatosDoCadastroProps) {
   return (
     <Pilha espaco={3} className="sm:col-span-2 lg:col-span-4">
@@ -67,39 +78,47 @@ export function ContatosDoCadastro({
       {!readOnly && (
         <Texto variante="nota">Em cada contato, informe ao menos o WhatsApp ou o e-mail.</Texto>
       )}
-      {contatos.map((campo, indice) => (
-        <Controller
-          key={campo.id}
-          control={control}
-          name={`contatos.${indice}.telefone`}
-          render={({ field: { onChange, onBlur, value, name, ref } }) => (
-            <LinhaDeContato
-              indice={indice}
-              somenteLeitura={readOnly}
-              nome={register(`contatos.${indice}.nome`)}
-              telefone={{
-                name,
-                value,
-                ref,
-                onBlur,
-                onChange: (evento) => onChange(formatarTelefone(evento.target.value)),
-              }}
-              email={register(`contatos.${indice}.email`)}
-              erroNome={errors.contatos?.[indice]?.nome?.message}
-              erroTelefone={errors.contatos?.[indice]?.telefone?.message}
-              erroEmail={errors.contatos?.[indice]?.email?.message}
-              salvo={linhas.salvos[indice]}
-              salvando={linhas.salvando === indice}
-              erroDaLinha={linhas.erroDaLinha(indice)}
-              onSalvar={() => linhas.onSalvar(indice)}
-              onLimpar={() => linhas.onLimpar(indice)}
-              doutroSetor={doutroSetor?.(indice)}
-              envios={readOnly ? undefined : envios?.(indice)}
-              onRemover={readOnly ? undefined : () => onRemover(indice)}
-            />
-          )}
-        />
-      ))}
+      {contatos.map((campo, indice) =>
+        !linhas.visivel(indice) ? null : (
+          <Controller
+            key={campo.id}
+            control={control}
+            name={`contatos.${indice}.telefone`}
+            render={({ field: { onChange, onBlur, value, name, ref } }) => (
+              <LinhaDeContato
+                indice={indice}
+                numero={linhas.numero(indice)}
+                existentes={linhas.existentes(indice)}
+                somenteLeitura={readOnly}
+                nome={register(`contatos.${indice}.nome`)}
+                telefone={{
+                  name,
+                  value,
+                  ref,
+                  onBlur,
+                  onChange: (evento) => onChange(formatarTelefone(evento.target.value)),
+                }}
+                email={register(`contatos.${indice}.email`)}
+                erroNome={errors.contatos?.[indice]?.nome?.message}
+                erroTelefone={errors.contatos?.[indice]?.telefone?.message}
+                erroEmail={errors.contatos?.[indice]?.email?.message}
+                editando={linhas.editando(indice)}
+                salvo={linhas.salvo(indice)}
+                salvando={linhas.salvando === indice}
+                camposTravados={linhas.camposTravados(indice)}
+                erroDaLinha={linhas.erroDaLinha(indice)}
+                envios={readOnly ? undefined : linhas.envios(indice)}
+                onEditar={() => linhas.onEditar(indice)}
+                onSalvar={() => linhas.onSalvar(indice)}
+                onCancelar={() => linhas.onCancelar(indice)}
+                onRemover={
+                  readOnly || !linhas.podeRemover(indice) ? undefined : () => onRemover(indice)
+                }
+              />
+            )}
+          />
+        ),
+      )}
       <Texto variante="nota" aria-live="polite" className="sr-only">
         {linhas.aviso}
       </Texto>

@@ -3,7 +3,6 @@ import { type Control, type FieldErrors, type UseFormRegister } from "react-hook
 import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
 import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { AcoesDoFormulario } from "@/presentation/components/molecules/acoes-do-formulario.component";
-import type { EnviosDaLinha } from "@/presentation/components/molecules/linha-de-contato.component";
 import { Label } from "@/presentation/components/ui/label";
 import { Textarea } from "@/presentation/components/ui/textarea";
 import type { DasStatusValor } from "@/shared/kernel/das-status";
@@ -37,6 +36,8 @@ export type EditarCadastroOperacionalFormValues = {
     email: string;
     donoSetor?: string | null;
     tipos?: string[];
+    // Os Setores que usam o contato (vem do servidor): decide quem o vê na lista do Setor.
+    setores?: readonly string[];
   }[];
   documentoObrigatorio: DocumentoObrigatorioStatusValor | null;
   dasStatus: DasStatusValor | null;
@@ -73,9 +74,6 @@ type EditarCadastroOperacionalFormProps = ParcelamentosProps & {
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
   linhasDeContato: AcoesDasLinhasDeContato;
-  contatoDoutroSetor?: (indice: number) => boolean;
-  // O que cada contato recebe do Setor (checkboxes da linha); ausente quando o ator não define envios (Admin).
-  enviosDoContato?: (indice: number) => EnviosDaLinha | undefined;
   onLimpar: () => void;
   // Sem callback (uso em /clientes/[id]): "Cancelar" navega pro mesmo destino
   // do "Voltar" do topo. Com callback (uso inline na busca do dashboard):
@@ -107,8 +105,6 @@ export function EditarCadastroOperacionalForm({
   onAdicionarContato,
   onRemoverContato,
   linhasDeContato,
-  contatoDoutroSetor,
-  enviosDoContato,
   parcelamentoCampos,
   onAdicionarParcelamento,
   onRemoverParcelamento,
@@ -139,7 +135,9 @@ export function EditarCadastroOperacionalForm({
       acoes={
         <AcoesDoFormulario
           pendente={pendente}
-          motivoDoBloqueio={motivoDeLeituraEmAndamento(leituras)}
+          motivoDoBloqueio={
+            motivoDeLeituraEmAndamento(leituras) ?? linhasDeContato.motivoDoBloqueio
+          }
           onLimpar={onLimpar}
           onCancelar={onCancelar}
         />
@@ -164,8 +162,6 @@ export function EditarCadastroOperacionalForm({
         onAdicionar={onAdicionarContato}
         onRemover={onRemoverContato}
         linhas={linhasDeContato}
-        doutroSetor={contatoDoutroSetor}
-        envios={enviosDoContato}
       />
 
       <ParcelamentosDoCadastro

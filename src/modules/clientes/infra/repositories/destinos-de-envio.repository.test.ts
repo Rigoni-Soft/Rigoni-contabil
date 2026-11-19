@@ -302,7 +302,7 @@ describe("Destinos de envio (integração)", () => {
     expect((await anon.from("tipos_de_envio").select("slug")).error).not.toBeNull();
   });
 
-  it("excluir o Contato é recusado, com a lista de Setores, enquanto outro Setor o usa", async () => {
+  it("o dono exclui o Contato que outro Setor usa: ele fica, passa à URA e segue disponível a quem o escolheu", async () => {
     const rh = await comoFuncionarioRH();
     const sn = await comoFuncionarioSN();
     const ana = await contatoPorNome("Ana Exemplo");
@@ -311,15 +311,54 @@ describe("Destinos de envio (integração)", () => {
       .insert(destino("simples_nacional", null, ana.id, "whatsapp"));
     await rh.from("destinos_de_envio").insert(destino("rh", null, ana.id, "whatsapp"));
 
-    const recusado = await salvarContatos(rh, [
+    // O RH (dono) tira o Ana da lista dele: o SN ainda a usa.
+    const excluido = await salvarContatos(rh, [
       { nome: "Bia Exemplo", telefone: "11988880000" },
       { nome: "Caio Exemplo", email: "caio@exemplo.com" },
     ]);
-    const emUso = await servico.from("cliente_contatos").select("id").eq("id", ana.id);
+    const depois = await servico
+      .from("cliente_contatos")
+      .select("id, dono_setor")
+      .eq("id", ana.id)
+      .single();
+    const destinos = await servico
+      .from("destinos_de_envio")
+      .select("setor")
+      .eq("contato_id", ana.id);
+    const vinculos = await servico
+      .from("cliente_contato_setores")
+      .select("setor")
+      .eq("contato_id", ana.id);
+
+    expect(excluido.error).toBeNull();
+    expect(depois.data).toEqual({ id: ana.id, dono_setor: null });
+    expect(destinos.data).toEqual([{ setor: "simples_nacional" }]);
+    expect((vinculos.data ?? []).map((v) => v.setor).sort()).toEqual(["simples_nacional", "ura"]);
+    expect(await resolver("simples_nacional", "avisos")).toHaveLength(1);
+  });
+
+  it("contato da URA (sem dono) em uso por um Setor não se exclui", async () => {
+    const sn = await comoFuncionarioSN();
+    const dora = crypto.randomUUID();
+    await servico.from("cliente_contatos").insert({
+      id: dora,
+      cliente_id: clienteId,
+      nome: "Dora da URA",
+      telefone: "11955550000",
+      dono_setor: null,
+    });
+    await sn.from("destinos_de_envio").insert(destino("simples_nacional", null, dora, "whatsapp"));
+    const admin = await entrar("admin@rigonicontabil.local", "admin123");
+
+    const recusado = await salvarContatos(admin, [
+      { nome: "Ana Exemplo", telefone: "11999990000", email: "ana@exemplo.com" },
+      { nome: "Bia Exemplo", telefone: "11988880000" },
+      { nome: "Caio Exemplo", email: "caio@exemplo.com" },
+    ]);
+    const emUso = await servico.from("cliente_contatos").select("id").eq("id", dora);
 
     expect(recusado.error?.code).toBe("23503");
     expect(recusado.error?.message).toContain("Simples Nacional");
-    expect(recusado.error?.message).not.toContain("RH");
     expect(emUso.data).toHaveLength(1);
   });
 

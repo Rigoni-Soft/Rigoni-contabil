@@ -15,7 +15,7 @@ estável entre Contato e destino.
   Setores (URA mais os escolhidos). A URA é só rótulo, obrigatório, nunca destino nem Setor de usuário;
   a lista de Setores do Contato é uma tabela de referência, fora do enum de login.
 - **O Setor que cadastra é o dono.** Só ele e o Admin editam nome, WhatsApp e e-mail. Os outros Setores
-  escolhem o Contato e definem só o seu canal e tipo. Excluir é recusado enquanto outro Setor o usa.
+  escolhem o Contato e definem só o seu canal e tipo. Excluir pelo dono, com outro Setor ainda o usando, não apaga o Contato: ele passa à URA (sem dono) e segue disponível a quem o escolheu.
 - **Destino de envio é a unidade do envio**: (Cliente, Setor, Tipo de envio, Contato, canal), com
   "todos os envios do Setor" como padrão. O canal é do Destino, gravado explícito.
 - **O banco resolve "quem recebe este envio".** Uma peça no banco devolve os Destinos já resolvidos por

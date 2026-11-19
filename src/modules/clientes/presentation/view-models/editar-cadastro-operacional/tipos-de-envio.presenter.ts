@@ -11,6 +11,8 @@ export type ContatoDaLinha = {
   telefone: string;
   email: string;
   donoSetor?: string | null;
+  // Os Setores que usam o contato (a URA e o dono entram sempre): só quem o usa o vê na lista.
+  setores?: readonly string[];
 };
 
 export const ROTULO_TODOS_OS_ENVIOS = "Todos os envios";
@@ -60,6 +62,22 @@ export function contatoEditavel(
   return contato.donoSetor === ator.setorDoCadastro;
 }
 
+// O contato é do Setor quando ele o cadastrou ou o escolheu (tem Destino dele). Os demais ficam fora da lista
+// do Setor e só aparecem no "contato já cadastrado" de quem vai adicionar um contato.
+export function contatoDoSetor(
+  contato: Pick<ContatoDaLinha, "donoSetor" | "setores">,
+  setor: string,
+): boolean {
+  return contato.donoSetor === setor || (contato.setores ?? []).includes(setor);
+}
+
+// Como o contato aparece no select dos já cadastrados: o nome e o WhatsApp (ou o e-mail).
+export function rotuloDoContatoExistente(
+  contato: Pick<ContatoDaLinha, "nome" | "telefone" | "email">,
+): string {
+  return `${contato.nome} · ${contato.telefone.trim() || contato.email.trim()}`;
+}
+
 // Os checkboxes da linha depois de um clique. "Todos os envios" marca todos os outros (e, desmarcado,
 // desmarca todos); desmarcar um dos outros desmarca o "Todos"; marcar o último que faltava o marca.
 export function tiposAposAlternar(marcados: string[], valor: string, opcoes: string[]): string[] {
@@ -73,6 +91,20 @@ export function tiposAposAlternar(marcados: string[], valor: string, opcoes: str
   return outros.every((o) => outrosMarcados.includes(o))
     ? [TIPO_TODOS_OS_ENVIOS, ...outrosMarcados]
     : outrosMarcados;
+}
+
+// A lista com que a tela abre: os contatos já com o que cada um recebe e, quando o Setor ainda não usa nenhum,
+// uma linha em branco (descartada se ninguém a tocar) para a seção não abrir vazia.
+export function contatosIniciais<T extends ContatoDaLinha>(
+  contatos: T[],
+  destinos: DestinoSalvo[],
+  opcoes: { verTodos: boolean; setor: string; somenteLeitura: boolean },
+): (T | { nome: string; telefone: string; email: string; tipos: string[] })[] {
+  const comTipos = contatosComTipos(contatos, destinos);
+  const semNenhum = !comTipos.some((c) => opcoes.verTodos || contatoDoSetor(c, opcoes.setor));
+  return semNenhum && !opcoes.somenteLeitura
+    ? [...comTipos, { nome: "", telefone: "", email: "", tipos: [] }]
+    : comTipos;
 }
 
 // Os contatos do servidor já com o que cada um recebe do Setor (os checkboxes da linha).

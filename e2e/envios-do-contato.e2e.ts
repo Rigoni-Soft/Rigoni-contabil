@@ -2,8 +2,8 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, empresaUnica, login } from "./support/criar-cliente";
 
-// O que cada contato recebe do Setor (checkboxes na linha do contato), no cadastro do SN, do RH e do
-// Admin; o contato de outro Setor fica só de leitura. Dados fictícios.
+// O que cada contato recebe do Setor (checkboxes na linha do contato, gravados com o Salvar da linha), no
+// cadastro do SN, do RH e do Admin; o Setor marca também nos contatos de outros donos. Dados fictícios.
 const admin = adminLocal();
 const FUNCIONARIO_SN_ID = "22222222-2222-2222-2222-222222222222";
 const FUNCIONARIO_RH_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
@@ -48,7 +48,7 @@ async function abrirCadastro(page: import("@playwright/test").Page, clienteId: s
 }
 
 test.describe("O que cada contato recebe do Setor", () => {
-  test("SN marca os envios do contato de outro Setor e do contato que cadastra; o do RH fica em leitura @smoke", async ({
+  test("SN edita os envios do contato de outro Setor e cadastra um contato com os envios @smoke", async ({
     page,
   }) => {
     const clienteId = await criarCliente(empresaUnica("Envios SN E2E"), "simples_nacional");
@@ -59,51 +59,56 @@ test.describe("O que cada contato recebe do Setor", () => {
     await expect(page).toHaveURL("/simples-nacional");
     await abrirCadastro(page, clienteId);
 
-    // Contato de outro Setor: campos só de leitura, mas o Setor marca o que ele recebe.
-    await expect(page.locator("[id='contatos.0.nome']")).toHaveAttribute("readonly", "");
+    // Contato de outro Setor: só mostrando, sem lixeira; o Setor edita só o que ele recebe dele.
     const grupoPaulo = page.getByRole("group", { name: "Envios do contato 1" });
-    await expect(grupoPaulo.getByLabel("Avisos")).not.toBeChecked();
+    await expect(page.locator("[id='contatos.0.nome']")).toHaveAttribute("readonly", "");
+    await expect(page.getByRole("button", { name: "Remover contato 1" })).toHaveCount(0);
+    await expect(grupoPaulo.getByLabel("DAS")).toBeDisabled();
+    await page.getByRole("button", { name: "Editar contato 1" }).click();
+    await expect(page.locator("[id='contatos.0.nome']")).toHaveAttribute("readonly", "");
     await grupoPaulo.getByLabel("DAS").check();
-    await expect(page.getByText("DAS marcado no contato 1.")).toBeAttached();
+    // O Salvar do cadastro espera a linha em edição.
+    await expect(page.getByRole("button", { name: "Salvar", exact: true })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    await page.getByRole("button", { name: "Salvar contato 1" }).click();
+    await expect(page.getByRole("button", { name: "Editar contato 1" })).toBeVisible();
     expect(await destinosDe(clienteId)).toEqual([
       { setor: "simples_nacional", tipo: "das", canal: "email", contato_id: paulo },
     ]);
 
-    // Contato novo do Setor: os checkboxes esperam o "Salvar contato" da linha.
+    // Contato novo: nome, canais e envios, tudo no mesmo Salvar da linha (sem pausa).
     await page.getByRole("button", { name: "Adicionar contato" }).click();
     await page.locator("[id='contatos.1.nome']").fill("Nina Exemplo");
     await page.locator("[id='contatos.1.telefone']").fill("11977776666");
     await page.locator("[id='contatos.1.email']").fill("nina@exemplo.com");
     const grupoNina = page.getByRole("group", { name: "Envios do contato 2" });
-    await expect(grupoNina.getByLabel("Avisos")).toBeDisabled();
-    await expect(grupoNina.getByText("Salve o contato para escolher os envios.")).toBeVisible();
-    await page.getByRole("button", { name: "Salvar contato 2" }).click();
-    await expect(page.getByRole("button", { name: "Remover contato 2" })).toBeVisible();
-
-    // Os dois canais: o canal do envio é "WhatsApp e e-mail", derivado do contato.
-    await expect(grupoNina.getByLabel("Avisos")).toBeEnabled();
     // "Todos os envios" marca todos os outros; desmarcar um deles desmarca o "Todos".
     await grupoNina.getByLabel("Todos os envios").check();
     for (const tipo of ["Lembrete de documento", "DAS", "Guia de parcelamento", "Avisos"]) {
       await expect(grupoNina.getByLabel(tipo)).toBeChecked();
     }
-    const daNina = async () =>
-      (await destinosDe(clienteId)).filter((d) => d.contato_id !== paulo).map((d) => d.tipo);
-    await expect
-      .poll(daNina)
-      .toEqual([null, "avisos", "das", "guia_parcelamento", "lembrete_documento"]);
-
     await grupoNina.getByLabel("Avisos").uncheck();
     await expect(grupoNina.getByLabel("Todos os envios")).not.toBeChecked();
-    await expect(grupoNina.getByLabel("DAS")).toBeChecked();
-    await expect.poll(daNina).toEqual(["das", "guia_parcelamento", "lembrete_documento"]);
+    await page.getByRole("button", { name: "Salvar contato 2" }).click();
+    await expect(page.getByRole("button", { name: "Editar contato 2" })).toBeVisible();
+    const daNina = async () => (await destinosDe(clienteId)).filter((d) => d.contato_id !== paulo);
+    expect((await daNina()).map((d) => d.tipo)).toEqual([
+      "das",
+      "guia_parcelamento",
+      "lembrete_documento",
+    ]);
+    expect((await daNina()).every((d) => d.canal === "whatsapp_e_email")).toBe(true);
 
-    // Marcar o que faltava marca o "Todos" de volta; o Salvar do cadastro não apaga contato nem envios.
+    // Editar de novo: Cancelar desfaz o que se marcou; Salvar do cadastro grava o resto sem apagar nada.
+    await page.getByRole("button", { name: "Editar contato 2" }).click();
     await grupoNina.getByLabel("Avisos").check();
-    await expect(grupoNina.getByLabel("Todos os envios")).toBeChecked();
+    await page.getByRole("button", { name: "Cancelar edição do contato 2" }).click();
+    await expect(grupoNina.getByLabel("Avisos")).not.toBeChecked();
     await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page).toHaveURL("/simples-nacional");
-    expect(await daNina()).toHaveLength(5);
+    expect(await daNina()).toHaveLength(3);
     const contatos = await admin
       .from("cliente_contatos")
       .select("nome")
@@ -122,7 +127,7 @@ test.describe("O que cada contato recebe do Setor", () => {
     await admin.from("clientes").delete().eq("id", clienteId);
   });
 
-  test("RH marca só os tipos do RH e vê o contato do SN em leitura", async ({ page }) => {
+  test("RH marca só os tipos do RH, também no contato do SN", async ({ page }) => {
     const clienteId = await criarCliente(empresaUnica("Envios RH E2E"), "lucro_presumido");
     await atribuir(clienteId, "rh", FUNCIONARIO_RH_ID);
     await contatoDe(clienteId, "Sara do SN", "sara.sn@exemplo.com", "simples_nacional");
@@ -132,11 +137,13 @@ test.describe("O que cada contato recebe do Setor", () => {
     await abrirCadastro(page, clienteId);
 
     await expect(page.locator("[id='contatos.0.nome']")).toHaveAttribute("readonly", "");
+    await page.getByRole("button", { name: "Editar contato 1" }).click();
     const grupo = page.getByRole("group", { name: "Envios do contato 1" });
     await expect(grupo.getByRole("checkbox")).toHaveCount(3);
     await expect(grupo.getByLabel("DAS")).toHaveCount(0);
     await grupo.getByLabel("Guia de parcelamento").check();
-    await expect(page.getByText("Guia de parcelamento marcado no contato 1.")).toBeAttached();
+    await page.getByRole("button", { name: "Salvar contato 1" }).click();
+    await expect(page.getByRole("button", { name: "Editar contato 1" })).toBeVisible();
 
     expect(await destinosDe(clienteId)).toEqual([
       { setor: "rh", tipo: "guia_parcelamento", canal: "email", contato_id: expect.any(String) },
@@ -156,11 +163,16 @@ test.describe("O que cada contato recebe do Setor", () => {
     await abrirCadastro(page, clienteId);
 
     await expect(page.getByRole("group", { name: /Envios do contato/ })).toHaveCount(0);
+    await page.getByRole("button", { name: "Editar contato 1" }).click();
     await expect(page.locator("[id='contatos.0.nome']")).not.toHaveAttribute("readonly", "");
     await page.locator("[id='contatos.0.nome']").fill("Lia Corrigida");
+    await page.getByRole("button", { name: "Salvar contato 1" }).click();
+    await expect(page.getByRole("button", { name: "Editar contato 1" })).toBeVisible();
     await page.getByRole("button", { name: "Adicionar contato" }).click();
     await page.locator("[id='contatos.1.nome']").fill("Beto do Admin");
     await page.locator("[id='contatos.1.email']").fill("beto@exemplo.com");
+    await page.getByRole("button", { name: "Salvar contato 2" }).click();
+    await expect(page.getByRole("button", { name: "Editar contato 2" })).toBeVisible();
     await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page).toHaveURL("/");
 

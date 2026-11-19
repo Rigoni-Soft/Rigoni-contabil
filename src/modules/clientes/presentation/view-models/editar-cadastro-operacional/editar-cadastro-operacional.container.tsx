@@ -29,9 +29,8 @@ import {
 } from "./editar-cadastro-operacional.presenter";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
 import { useResponsaveisElegiveis } from "./responsaveis.queries";
-import { contatosComTipos } from "./tipos-de-envio.presenter";
-import { useContatosDaLinha } from "./use-contatos-da-linha.hook";
-import { useEnviosDosContatos } from "./use-envios-dos-contatos.hook";
+import { contatosIniciais } from "./tipos-de-envio.presenter";
+import { useContatosDoCadastro } from "./use-contatos-do-cadastro.hook";
 import { useParcelamentosDoCadastro } from "./use-parcelamentos-do-cadastro.hook";
 import { useSalvarCadastroOperacional } from "./use-salvar-cadastro-operacional.hook";
 
@@ -86,10 +85,11 @@ export function EditarCadastroOperacionalContainer({
         formaEnvio:
           (dados.formaEnvio as EditarCadastroOperacionalFormValues["formaEnvio"]) ?? "whatsapp",
         // Seção sem registros abre com uma linha em branco (descartada se ninguém a tocar).
-        contatos:
-          dados.contatos.length || readOnly
-            ? contatosComTipos(dados.contatos, dados.destinos)
-            : [contatoNovo()],
+        contatos: contatosIniciais(dados.contatos, dados.destinos, {
+          verTodos: admin || readOnly,
+          setor: SETOR_SN,
+          somenteLeitura: readOnly,
+        }),
         documentoObrigatorio:
           dados.documentoObrigatorio as EditarCadastroOperacionalFormValues["documentoObrigatorio"],
         dasStatus: dados.dasStatus as EditarCadastroOperacionalFormValues["dasStatus"],
@@ -144,14 +144,16 @@ export function EditarCadastroOperacionalContainer({
   const [listaAberta, setListaAberta] = useState(false);
   const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
-  const linhasDeContato = useContatosDaLinha({ clienteId: dados?.id ?? "", form });
-  const envios = useEnviosDosContatos({
+  const linhasDeContato = useContatosDoCadastro({
     clienteId: dados?.id ?? "",
     form,
+    campos: fields,
+    remover: remove,
     destinos: dados?.destinos ?? [],
     tiposDeEnvio: dados?.tiposDeEnvio ?? [],
     setorDoCadastro: SETOR_SN,
     admin,
+    verTodos: admin || readOnly,
   });
   // Esta tela é o cadastro operacional do Simples Nacional.
   const parcelamentos = useParcelamentosDoCadastro({
@@ -231,9 +233,7 @@ export function EditarCadastroOperacionalContainer({
       contatos={fields}
       onAdicionarContato={() => append(contatoNovo())}
       onRemoverContato={remove}
-      linhasDeContato={{ ...linhasDeContato, aviso: envios.aviso || linhasDeContato.aviso }}
-      contatoDoutroSetor={envios.contatoDoutroSetor}
-      enviosDoContato={envios.enviosDoContato}
+      linhasDeContato={linhasDeContato}
       parcelamentoCampos={parcelamentos.parcelamentoCampos}
       parcelamentos={parcelamentos.parcelamentos}
       onAdicionarParcelamento={parcelamentos.onAdicionarParcelamento}
