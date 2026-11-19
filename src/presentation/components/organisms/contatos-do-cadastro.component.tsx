@@ -4,7 +4,10 @@ import { Controller, type Control, type FieldErrors, type UseFormRegister } from
 import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
-import { LinhaDeContato } from "@/presentation/components/molecules/linha-de-contato.component";
+import {
+  LinhaDeContato,
+  type EnviosDaLinha,
+} from "@/presentation/components/molecules/linha-de-contato.component";
 import { Button } from "@/presentation/components/ui/button";
 import { Label } from "@/presentation/components/ui/label";
 import { formatarTelefone } from "@/presentation/lib/telefone-mask";
@@ -32,10 +35,10 @@ type ContatosDoCadastroProps = {
   onAdicionar: () => void;
   onRemover: (indice: number) => void;
   linhas: AcoesDasLinhasDeContato;
-  // Sem o botão "Adicionar contato": o Setor cadastra contato novo pelo formulário de destino (padrão: com botão).
-  semAdicionar?: boolean;
   // De quem é o contato, quando é de outro Setor: a linha fica só de leitura. Sem isso, é editável.
   doutroSetor?: (indice: number) => string | undefined;
+  // O que o contato recebe (checkboxes da linha); ausente quando o ator não define envios.
+  envios?: (indice: number) => EnviosDaLinha | undefined;
 };
 
 export function ContatosDoCadastro({
@@ -47,14 +50,14 @@ export function ContatosDoCadastro({
   onAdicionar,
   onRemover,
   linhas,
-  semAdicionar = false,
   doutroSetor,
+  envios,
 }: ContatosDoCadastroProps) {
   return (
     <Pilha espaco={3} className="sm:col-span-2 lg:col-span-4">
       <Linha alinhar="centro" justificar="entre" espaco={4}>
         <Label className="block">Contatos</Label>
-        {!readOnly && !semAdicionar && (
+        {!readOnly && (
           <Button type="button" variant="ghost" size="sm" onClick={onAdicionar}>
             <Plus className="size-4" aria-hidden="true" />
             Adicionar contato
@@ -62,11 +65,7 @@ export function ContatosDoCadastro({
         )}
       </Linha>
       {!readOnly && (
-        <Texto variante="nota">
-          {semAdicionar
-            ? "Contato novo se cadastra ao adicionar um destino de envio. Só o Setor dono edita nome, WhatsApp e e-mail."
-            : "Em cada contato, informe ao menos o WhatsApp ou o e-mail."}
-        </Texto>
+        <Texto variante="nota">Em cada contato, informe ao menos o WhatsApp ou o e-mail.</Texto>
       )}
       {contatos.map((campo, indice) => (
         <Controller
@@ -95,6 +94,7 @@ export function ContatosDoCadastro({
               onSalvar={() => linhas.onSalvar(indice)}
               onLimpar={() => linhas.onLimpar(indice)}
               doutroSetor={doutroSetor?.(indice)}
+              envios={readOnly ? undefined : envios?.(indice)}
               onRemover={readOnly ? undefined : () => onRemover(indice)}
             />
           )}

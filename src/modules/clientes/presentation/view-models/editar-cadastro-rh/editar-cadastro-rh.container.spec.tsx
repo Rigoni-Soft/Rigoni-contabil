@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render as renderRtl, screen, waitFor } from "@testing-library/react";
+import { render as renderRtl, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { CadastroRhClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
@@ -29,8 +29,7 @@ jest.mock("next/navigation", () => ({
 const executeMock = jest.fn();
 jest.mock("@/main/clientes.factory", () => ({
   makeEditarCadastroRhCliente: () => ({ execute: executeMock }),
-  makeDefinirDestinoDeEnvio: () => ({ execute: jest.fn() }),
-  makeRemoverDestinoDeEnvio: () => ({ execute: jest.fn() }),
+  makeDefinirTiposDeEnvioDoContato: () => ({ execute: jest.fn() }),
   makeListarDocumentosContratuaisCliente: () => ({ execute: async () => ok([]) }),
   makeObterLinkDocumentoContratual: () => ({ execute: jest.fn() }),
 }));
@@ -168,9 +167,9 @@ describe("EditarCadastroRhContainer", () => {
     expect(routerPush).not.toHaveBeenCalled();
   });
 
-  describe("destinos de envio do RH", () => {
+  describe("o que cada contato recebe do RH", () => {
     const FUNCIONARIO_RH = { papel: "funcionario", setor: "rh" };
-    const dadosComDestinos: CadastroRhClienteDto = {
+    const dadosComEnvios: CadastroRhClienteDto = {
       ...dados,
       contatos: [
         { id: "c1", nome: "Maria", telefone: "11999990000", email: "", donoSetor: "rh" },
@@ -189,20 +188,18 @@ describe("EditarCadastroRhContainer", () => {
       destinos: [{ id: "d1", contatoId: "c1", tipo: "guia_parcelamento", canal: "whatsapp" }],
     };
 
-    it("o RH escolhe os tipos do RH e vê os destinos dele, sem 'Adicionar contato'", async () => {
-      montar({ dados: dadosComDestinos, ator: FUNCIONARIO_RH });
+    it("cada contato tem os checkboxes do catálogo do RH, com o que já recebe marcado", async () => {
+      montar({ dados: dadosComEnvios, ator: FUNCIONARIO_RH });
 
-      expect(await screen.findByText("Destinos de envio")).toBeInTheDocument();
-      expect(
-        screen.getByText(/Guia de parcelamento/, { selector: "p.font-medium" }),
-      ).toBeInTheDocument();
-      expect(screen.getByRole("option", { name: "Avisos" })).toBeInTheDocument();
-      expect(screen.queryByRole("option", { name: "DAS" })).toBeNull();
-      expect(screen.queryByRole("button", { name: "Adicionar contato" })).toBeNull();
+      const maria = await screen.findByRole("group", { name: "Envios do contato 1" });
+      expect(within(maria).getByLabelText("Guia de parcelamento")).toBeChecked();
+      expect(within(maria).getByLabelText("Avisos")).not.toBeChecked();
+      expect(within(maria).queryByLabelText("DAS")).toBeNull();
+      expect(screen.getByRole("button", { name: "Adicionar contato" })).toBeInTheDocument();
     });
 
     it("contato de outro Setor aparece só em leitura", async () => {
-      montar({ dados: dadosComDestinos, ator: FUNCIONARIO_RH });
+      montar({ dados: dadosComEnvios, ator: FUNCIONARIO_RH });
 
       expect(await screen.findByText(/Contato do Simples Nacional/)).toBeInTheDocument();
       const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
@@ -210,11 +207,11 @@ describe("EditarCadastroRhContainer", () => {
       expect(nomes[1]).toHaveAttribute("readonly");
     });
 
-    it("o Admin edita qualquer contato e cadastra contatos, sem destinos", async () => {
-      montar({ dados: dadosComDestinos, ator: ADMIN });
+    it("o Admin edita qualquer contato, sem checkboxes", async () => {
+      montar({ dados: dadosComEnvios, ator: ADMIN });
 
       expect(await screen.findByRole("button", { name: "Adicionar contato" })).toBeInTheDocument();
-      expect(screen.queryByText("Destinos de envio")).toBeNull();
+      expect(screen.queryByRole("group", { name: /Envios do contato/ })).toBeNull();
       const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
       expect(nomes[1]).not.toHaveAttribute("readonly");
     });

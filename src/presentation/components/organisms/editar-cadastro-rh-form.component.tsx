@@ -4,13 +4,13 @@ import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.c
 import { Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { AcoesDoFormulario } from "@/presentation/components/molecules/acoes-do-formulario.component";
+import type { EnviosDaLinha } from "@/presentation/components/molecules/linha-de-contato.component";
 import { Label } from "@/presentation/components/ui/label";
 import { Textarea } from "@/presentation/components/ui/textarea";
 
 import type { CabecalhoCliente } from "./cabecalho-do-cadastro.component";
 import { CartaoDoCadastro } from "./cartao-do-cadastro.component";
 import { ContatosDoCadastro, type AcoesDasLinhasDeContato } from "./contatos-do-cadastro.component";
-import { DestinosDoCadastro, type DestinosDoCadastroProps } from "./destinos-do-cadastro.component";
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
 import {
   motivoDeLeituraEmAndamento,
@@ -34,10 +34,9 @@ type EditarCadastroRhFormProps = ParcelamentosProps & {
   onAdicionarContato: () => void;
   onRemoverContato: (indice: number) => void;
   linhasDeContato: AcoesDasLinhasDeContato;
-  // Os destinos de envio do RH (ausente: o ator não define destinos, como o Admin, que só cadastra contatos).
-  destinos?: Omit<DestinosDoCadastroProps, "somenteLeitura">;
-  // Com destinos, o contato novo entra pelo formulário de destino; o de outro Setor fica só de leitura.
   contatoDoutroSetor?: (indice: number) => string | undefined;
+  // O que cada contato recebe do Setor (checkboxes da linha); ausente quando o ator não define envios (Admin).
+  enviosDoContato?: (indice: number) => EnviosDaLinha | undefined;
   onLimpar: () => void;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura).
   documentoContratual?: React.ReactNode;
@@ -66,8 +65,8 @@ export function EditarCadastroRhForm({
   onAdicionarContato,
   onRemoverContato,
   linhasDeContato,
-  destinos,
   contatoDoutroSetor,
+  enviosDoContato,
   parcelamentos,
   parcelamentoCampos,
   onAdicionarParcelamento,
@@ -113,11 +112,9 @@ export function EditarCadastroRhForm({
         onAdicionar={onAdicionarContato}
         onRemover={onRemoverContato}
         linhas={linhasDeContato}
-        semAdicionar={Boolean(destinos)}
         doutroSetor={contatoDoutroSetor}
+        envios={enviosDoContato}
       />
-
-      {destinos && <DestinosDoCadastro {...destinos} somenteLeitura={readOnly} />}
 
       <ParcelamentosDoCadastro
         register={register}

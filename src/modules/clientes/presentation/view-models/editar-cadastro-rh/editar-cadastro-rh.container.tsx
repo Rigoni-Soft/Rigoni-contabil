@@ -14,16 +14,17 @@ import type { CadastroRhClienteDto } from "@/modules/clientes/application/ports/
 import { SETOR_RH } from "@/shared/kernel/setores";
 
 import { guiasDaParcela } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
-import { avisoDeContatoDeOutroSetor } from "../editar-cadastro-operacional/destinos-de-envio.presenter";
 import {
   contatoNovo,
   descartarLinhasEmBranco,
   mensagemDeFalhaDeEtapa,
   parcelamentoNovo,
   reposicionarErros,
+  semChaves,
 } from "../editar-cadastro-operacional/editar-cadastro-operacional.presenter";
+import { contatosComTipos } from "../editar-cadastro-operacional/tipos-de-envio.presenter";
 import { useContatosDaLinha } from "../editar-cadastro-operacional/use-contatos-da-linha.hook";
-import { useDestinosDoCadastro } from "../editar-cadastro-operacional/use-destinos-do-cadastro.hook";
+import { useEnviosDosContatos } from "../editar-cadastro-operacional/use-envios-dos-contatos.hook";
 import { useParcelamentosDoCadastro } from "../editar-cadastro-operacional/use-parcelamentos-do-cadastro.hook";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
@@ -47,13 +48,12 @@ type Valores = EditarCadastroOperacionalFormValues;
 
 // O formulário reaproveita os campos do formulário do SN (contatos e observações gerais); os do SN ficam
 // com o valor neutro e nunca são enviados.
-const valoresIniciaisDe = (
-  dados: CadastroRhClienteDto,
-  readOnly: boolean,
-  comDestinos: boolean,
-): Valores => ({
+const valoresIniciaisDe = (dados: CadastroRhClienteDto, readOnly: boolean): Valores => ({
   formaEnvio: "whatsapp",
-  contatos: dados.contatos.length || readOnly || comDestinos ? dados.contatos : [contatoNovo()],
+  contatos:
+    dados.contatos.length || readOnly
+      ? contatosComTipos(dados.contatos, dados.destinos)
+      : [contatoNovo()],
   documentoObrigatorio: null,
   dasStatus: null,
   dataEnvioDas: null,
@@ -85,10 +85,7 @@ export function EditarCadastroRhContainer({
   const [sucesso, setSucesso] = useState(false);
 
   const admin = ator.papel === "admin";
-  // O RH define os destinos dele aqui; o Admin só cadastra contatos.
-  const comDestinos = !admin && ator.setor === SETOR_RH;
-  const donoDoAtor = { admin, setorDoCadastro: SETOR_RH };
-  const valoresIniciais = dados ? valoresIniciaisDe(dados, readOnly, comDestinos) : undefined;
+  const valoresIniciais = dados ? valoresIniciaisDe(dados, readOnly) : undefined;
   const form = useForm<Valores>({
     // Valida sem as linhas de contato em branco, como o formulário do SN.
     resolver: async (valores, contexto, opcoes) => {
@@ -129,13 +126,13 @@ export function EditarCadastroRhContainer({
   } = form;
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
   const linhasDeContato = useContatosDaLinha({ clienteId: dados?.id ?? "", form });
-  const destinos = useDestinosDoCadastro({
+  const envios = useEnviosDosContatos({
     clienteId: dados?.id ?? "",
-    destinosIniciais: dados?.destinos ?? [],
+    form,
+    destinos: dados?.destinos ?? [],
     tiposDeEnvio: dados?.tiposDeEnvio ?? [],
     setorDoCadastro: SETOR_RH,
-    form,
-    adicionarContato: append,
+    admin,
   });
   const parcelamentos = useParcelamentosDoCadastro({
     clienteId: dados?.id ?? "",
@@ -153,7 +150,10 @@ export function EditarCadastroRhContainer({
     setErroServidor(undefined);
     setSucesso(false);
     try {
-      const { contatos } = descartarLinhasEmBranco(getValues()).valores;
+      // O que o contato recebe do Setor (`tipos`) grava por ação própria: não vai neste payload.
+      const contatos = descartarLinhasEmBranco(getValues()).valores.contatos.map((c) =>
+        semChaves(c, "tipos"),
+      );
       const resultado = await editarCadastroRhAction({
         clienteId: dados.id,
         observacoes: valores.observacoesGerais,
@@ -199,12 +199,9 @@ export function EditarCadastroRhContainer({
       contatos={fields}
       onAdicionarContato={() => append(contatoNovo())}
       onRemoverContato={remove}
-      linhasDeContato={linhasDeContato}
-      destinos={comDestinos ? destinos : undefined}
-      contatoDoutroSetor={(indice) => {
-        const contato = form.getValues(`contatos.${indice}`);
-        return contato && avisoDeContatoDeOutroSetor(contato, donoDoAtor);
-      }}
+      linhasDeContato={{ ...linhasDeContato, aviso: envios.aviso || linhasDeContato.aviso }}
+      contatoDoutroSetor={envios.contatoDoutroSetor}
+      enviosDoContato={envios.enviosDoContato}
       parcelamentos={parcelamentos.parcelamentos}
       parcelamentoCampos={parcelamentos.parcelamentoCampos}
       onAdicionarParcelamento={parcelamentos.onAdicionarParcelamento}

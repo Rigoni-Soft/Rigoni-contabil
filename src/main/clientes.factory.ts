@@ -15,7 +15,7 @@ import type { AtribuirResponsavelClientePort } from "@/modules/clientes/applicat
 import type { ConfirmarGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/confirmar-guia-parcela-pgfn.provider";
 import type { ContarAvisosNaoVistosPort } from "@/modules/clientes/application/ports/in/contar-avisos-nao-vistos.provider";
 import type { CriarClientePort } from "@/modules/clientes/application/ports/in/criar-cliente.provider";
-import type { DefinirDestinoDeEnvioPort } from "@/modules/clientes/application/ports/in/definir-destino-de-envio.provider";
+import type { DefinirTiposDeEnvioDoContatoPort } from "@/modules/clientes/application/ports/in/definir-tipos-de-envio-do-contato.provider";
 import type {
   ListarDocumentosContratuaisClientePort,
   ObterLinkDocumentoContratualPort,
@@ -27,7 +27,6 @@ import type { ListarAvisosCadastroPort } from "@/modules/clientes/application/po
 import type { ListarGuiasParcelaPgfnPort } from "@/modules/clientes/application/ports/in/listar-guias-parcela-pgfn.provider";
 import type { MarcarAvisoVistoPort } from "@/modules/clientes/application/ports/in/marcar-aviso-visto.provider";
 import type { ObterLinkGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/obter-link-guia-parcela-pgfn.provider";
-import type { RemoverDestinoDeEnvioPort } from "@/modules/clientes/application/ports/in/remover-destino-de-envio.provider";
 import type { RemoverGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/remover-guia-parcela-pgfn.provider";
 import type { SalvarContatoDoClientePort } from "@/modules/clientes/application/ports/in/salvar-contato-do-cliente.provider";
 import type { SalvarParcelamentosClientePort } from "@/modules/clientes/application/ports/in/salvar-parcelamentos-cliente.provider";
@@ -48,7 +47,7 @@ import { ConsultarCadastroRhCliente } from "@/modules/clientes/application/use-c
 import { ConsultarResponsavelDoSetor } from "@/modules/clientes/application/use-cases/consultar-responsavel-do-setor.use-case";
 import { ContarAvisosNaoVistos } from "@/modules/clientes/application/use-cases/contar-avisos-nao-vistos.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
-import { DefinirDestinoDeEnvio } from "@/modules/clientes/application/use-cases/definir-destino-de-envio.use-case";
+import { DefinirTiposDeEnvioDoContato } from "@/modules/clientes/application/use-cases/definir-tipos-de-envio-do-contato.use-case";
 import { EditarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-operacional-cliente.use-case";
 import { EditarCadastroRhCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-rh-cliente.use-case";
 import { LerPdfDeParcelamento } from "@/modules/clientes/application/use-cases/ler-pdf-de-parcelamento.use-case";
@@ -61,7 +60,6 @@ import { ObterLinkDocumentoContratual } from "@/modules/clientes/application/use
 import { ObterLinkGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/obter-link-guia-parcela-pgfn.use-case";
 import { ObterResumoSetorRh } from "@/modules/clientes/application/use-cases/obter-resumo-setor-rh.use-case";
 import { ObterResumoSetorSn } from "@/modules/clientes/application/use-cases/obter-resumo-setor-sn.use-case";
-import { RemoverDestinoDeEnvio } from "@/modules/clientes/application/use-cases/remover-destino-de-envio.use-case";
 import { RemoverGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/remover-guia-parcela-pgfn.use-case";
 import { SalvarContatoDoCliente } from "@/modules/clientes/application/use-cases/salvar-contato-do-cliente.use-case";
 import { SalvarParcelamentosCliente } from "@/modules/clientes/application/use-cases/salvar-parcelamentos-cliente.use-case";
@@ -80,9 +78,9 @@ import { SupabaseCadastroRhRepository } from "@/modules/clientes/infra/repositor
 import { SupabaseClienteParcelamentoRepository } from "@/modules/clientes/infra/repositories/cliente-parcelamento.repository";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
 import { SupabaseContatoDoClienteRepository } from "@/modules/clientes/infra/repositories/contato-do-cliente.repository";
-import { SupabaseDestinoDeEnvioRepository } from "@/modules/clientes/infra/repositories/destino-de-envio.repository";
 import { SupabaseGuiaParcelaPgfnRepository } from "@/modules/clientes/infra/repositories/guia-parcela-pgfn.repository";
 import { SupabaseResponsavelClienteRepository } from "@/modules/clientes/infra/repositories/responsavel-cliente.repository";
+import { SupabaseTiposDeEnvioDoContatoRepository } from "@/modules/clientes/infra/repositories/tipos-de-envio-do-contato.repository";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
@@ -282,19 +280,11 @@ export async function makeSalvarContatoDoCliente(): Promise<SalvarContatoDoClien
   );
 }
 
-export async function makeDefinirDestinoDeEnvio(): Promise<DefinirDestinoDeEnvioPort> {
+export async function makeDefinirTiposDeEnvioDoContato(): Promise<DefinirTiposDeEnvioDoContatoPort> {
   const supabase = await createSupabaseServer();
-  return new DefinirDestinoDeEnvio(
+  return new DefinirTiposDeEnvioDoContato(
     sessaoViaUsuarios(supabase),
-    new SupabaseDestinoDeEnvioRepository(supabase),
-  );
-}
-
-export async function makeRemoverDestinoDeEnvio(): Promise<RemoverDestinoDeEnvioPort> {
-  const supabase = await createSupabaseServer();
-  return new RemoverDestinoDeEnvio(
-    sessaoViaUsuarios(supabase),
-    new SupabaseDestinoDeEnvioRepository(supabase),
+    new SupabaseTiposDeEnvioDoContatoRepository(supabase),
   );
 }
 

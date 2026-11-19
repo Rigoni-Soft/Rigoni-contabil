@@ -181,7 +181,7 @@ describe("BuscarClienteContainer", () => {
     await usuario.click(await screen.findByText(CADASTRO.empresa));
 
     expect(carregarCadastroOperacionalActionMock).toHaveBeenCalledWith(CADASTRO.id);
-    expect(await screen.findByLabelText(/forma de envio/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/documento recebido/i)).toBeInTheDocument();
   });
 
   it("Admin, ao escolher um Cliente, vai à tela própria dele em vez do painel embutido", async () => {
@@ -200,7 +200,7 @@ describe("BuscarClienteContainer", () => {
 
     expect(routerPush).toHaveBeenCalledWith(`/clientes/${CADASTRO.id}`);
     expect(carregarCadastroOperacionalActionMock).not.toHaveBeenCalled();
-    expect(screen.queryByLabelText(/forma de envio/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/documento recebido/i)).not.toBeInTheDocument();
   });
 
   it("o RH, ao escolher um Cliente, vai à tela dele (o cadastro do RH), voltando para o dashboard do RH", async () => {
@@ -266,7 +266,7 @@ describe("BuscarClienteContainer", () => {
     await usuario.keyboard("{Enter}");
 
     expect(carregarCadastroOperacionalActionMock).toHaveBeenCalledWith(CADASTRO.id);
-    expect(await screen.findByLabelText(/forma de envio/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/documento recebido/i)).toBeInTheDocument();
   });
 
   it("selecionar um cliente move o foco pro título do painel", async () => {
@@ -302,12 +302,12 @@ describe("BuscarClienteContainer", () => {
       jest.advanceTimersByTime(300);
     });
     await usuario.click(await screen.findByText(CADASTRO.empresa));
-    await screen.findByLabelText(/forma de envio/i);
+    await screen.findByLabelText(/documento recebido/i);
 
     await usuario.click(screen.getByRole("button", { name: "Cancelar" }));
 
     expect(screen.getByLabelText(/empresa ou cnpj/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/forma de envio/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/documento recebido/i)).not.toBeInTheDocument();
   });
 
   // Salvar precisa fechar o painel (volta pra busca) e atualizar os dados da página — se esta busca
@@ -327,12 +327,12 @@ describe("BuscarClienteContainer", () => {
       jest.advanceTimersByTime(300);
     });
     await usuario.click(await screen.findByText(CADASTRO.empresa));
-    await screen.findByLabelText(/forma de envio/i);
+    await screen.findByLabelText(/documento recebido/i);
 
     await usuario.click(screen.getByRole("button", { name: "Salvar" }));
 
     expect(await screen.findByLabelText(/empresa ou cnpj/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/forma de envio/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/documento recebido/i)).not.toBeInTheDocument();
     expect(routerRefresh).toHaveBeenCalled();
   });
 });

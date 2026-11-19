@@ -49,6 +49,76 @@ describe("LinhaDeContato", () => {
     expect(screen.queryByText("*")).not.toBeInTheDocument();
   });
 
+  it("envios: um checkbox por tipo na linha; marcar chama o callback; o aviso de canal aparece", async () => {
+    const aoAlternar = jest.fn();
+    const usuario = userEvent.setup();
+    render(
+      <LinhaDeContato
+        indice={0}
+        {...CAMPOS}
+        salvo
+        envios={{
+          opcoes: [
+            { valor: "todos", rotulo: "Todos os envios" },
+            { valor: "das", rotulo: "DAS" },
+          ],
+          marcados: ["das"],
+          aviso: "O contato deixou de ter o WhatsApp.",
+          onAlternar: aoAlternar,
+        }}
+      />,
+    );
+
+    const grupo = screen.getByRole("group", { name: "Envios do contato 1" });
+    expect(grupo).toBeInTheDocument();
+    expect(screen.getByLabelText("DAS")).toBeChecked();
+    expect(screen.getByLabelText("Todos os envios")).not.toBeChecked();
+    await usuario.click(screen.getByLabelText("Todos os envios"));
+
+    expect(aoAlternar).toHaveBeenCalledWith("todos");
+    expect(screen.getByText("O contato deixou de ter o WhatsApp.")).toBeInTheDocument();
+  });
+
+  it("envios de linha ainda não salva: checkboxes desabilitados com a dica de salvar o contato", () => {
+    render(
+      <LinhaDeContato
+        indice={0}
+        {...CAMPOS}
+        envios={{
+          opcoes: [{ valor: "das", rotulo: "DAS" }],
+          marcados: [],
+          semContatoSalvo: true,
+          onAlternar: jest.fn(),
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText("DAS")).toBeDisabled();
+    expect(screen.getByText("Salve o contato para escolher os envios.")).toBeInTheDocument();
+  });
+
+  it("envios ocupados: o clique não chama o callback", async () => {
+    const aoAlternar = jest.fn();
+    const usuario = userEvent.setup();
+    render(
+      <LinhaDeContato
+        indice={0}
+        {...CAMPOS}
+        salvo
+        envios={{
+          opcoes: [{ valor: "das", rotulo: "DAS" }],
+          marcados: [],
+          ocupado: true,
+          onAlternar: aoAlternar,
+        }}
+      />,
+    );
+
+    await usuario.click(screen.getByLabelText("DAS"));
+
+    expect(aoAlternar).not.toHaveBeenCalled();
+  });
+
   it("os botões de ícone têm title igual ao nome acessível", () => {
     render(<LinhaDeContato indice={0} {...CAMPOS} onSalvar={jest.fn()} onLimpar={jest.fn()} />);
 

@@ -1,23 +1,9 @@
 import {
-  canaisDoContato,
   canalPerdidoDoDestino,
   formaEnvioUsaEmail,
   formaEnvioUsaWhatsapp,
   temDestinatario,
 } from "./forma-envio";
-
-describe("canaisDoContato", () => {
-  it("um canal só vira esse canal; os dois pedem escolha; nenhum não tem opção", () => {
-    expect(canaisDoContato({ telefone: "(11) 99999-0000", email: "" })).toEqual(["whatsapp"]);
-    expect(canaisDoContato({ telefone: "", email: "a@b.com" })).toEqual(["email"]);
-    expect(canaisDoContato({ telefone: "11999990000", email: "a@b.com" })).toEqual([
-      "whatsapp",
-      "email",
-      "whatsapp_e_email",
-    ]);
-    expect(canaisDoContato({ telefone: null, email: " " })).toEqual([]);
-  });
-});
 
 describe("canalPerdidoDoDestino", () => {
   it.each([

@@ -155,5 +155,8 @@ export const editarCadastroOperacionalFormSchema = editarCadastroOperacionalSche
 // fora do tipo, o RHF não ganha mais um caminho (`contatos.N.telefoneOriginal`) e os hooks de Control seguem compatíveis.
 type ValoresDoSchema = z.infer<typeof editarCadastroOperacionalFormSchema>;
 export type EditarCadastroOperacionalFormValues = Omit<ValoresDoSchema, "contatos"> & {
-  contatos: Omit<ValoresDoSchema["contatos"][number], "telefoneOriginal">[];
+  // `tipos` (o que o contato recebe do Setor) é estado da linha: grava por ação própria e nunca vai no payload do cadastro.
+  contatos: (Omit<ValoresDoSchema["contatos"][number], "telefoneOriginal"> & {
+    tipos?: string[];
+  })[];
 };

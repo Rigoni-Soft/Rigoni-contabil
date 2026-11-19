@@ -1,6 +1,6 @@
 import { renderToString } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render as renderRtl, screen, waitFor } from "@testing-library/react";
+import { render as renderRtl, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
@@ -30,12 +30,10 @@ const executeMock = jest.fn();
 const atribuirMock = jest.fn();
 const listarMock = jest.fn();
 const salvarContatoMock = jest.fn();
-const definirDestinoMock = jest.fn();
-const removerDestinoMock = jest.fn();
+const definirTiposMock = jest.fn();
 jest.mock("@/main/clientes.factory", () => ({
   makeSalvarContatoDoCliente: () => ({ execute: salvarContatoMock }),
-  makeDefinirDestinoDeEnvio: () => ({ execute: definirDestinoMock }),
-  makeRemoverDestinoDeEnvio: () => ({ execute: removerDestinoMock }),
+  makeDefinirTiposDeEnvioDoContato: () => ({ execute: definirTiposMock }),
   makeEditarCadastroOperacionalCliente: () => ({ execute: executeMock }),
   makeAtribuirResponsavelCliente: () => ({ execute: atribuirMock }),
   makeListarResponsaveisElegiveis: () => ({ execute: listarMock }),
@@ -348,15 +346,16 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(screen.getByRole("link", { name: /cancelar/i })).toHaveAttribute("href", "/");
   });
 
-  describe("destinos de envio do Setor", () => {
+  describe("o que cada contato recebe do Setor", () => {
     const FUNCIONARIO_SN = { papel: "funcionario", setor: "simples_nacional" };
     // A action valida o id como UUID antes de chamar o caso de uso.
     const PAULO_ID = "22222222-2222-4222-8222-222222222222";
-    const dadosComDestinos: CadastroOperacionalClienteDto = {
+    const MARIA_ID = "11111111-1111-4111-8111-111111111111";
+    const dadosComEnvios: CadastroOperacionalClienteDto = {
       ...dados,
       contatos: [
         {
-          id: "c1",
+          id: MARIA_ID,
           nome: "Maria",
           telefone: "11999990000",
           email: "",
@@ -364,98 +363,106 @@ describe("EditarCadastroOperacionalContainer", () => {
         },
         { id: PAULO_ID, nome: "Paulo", telefone: "", email: "paulo@exemplo.com", donoSetor: "rh" },
       ],
-      tiposDeEnvio: [{ slug: "das", rotulo: "DAS" }],
-      destinos: [{ id: "d1", contatoId: "c1", tipo: "das", canal: "whatsapp" }],
+      tiposDeEnvio: [
+        { slug: "das", rotulo: "DAS" },
+        { slug: "avisos", rotulo: "Avisos" },
+      ],
+      destinos: [{ id: "d1", contatoId: MARIA_ID, tipo: "das", canal: "whatsapp" }],
     };
 
-    beforeEach(() => {
-      definirDestinoMock.mockReset();
-      removerDestinoMock.mockReset();
-    });
+    beforeEach(() => definirTiposMock.mockReset());
 
-    it("o Setor SN vê a tabela dos destinos, o formulário de adicionar e não vê 'Forma de envio' do cadastro", () => {
+    it("cada contato tem os checkboxes do catálogo do Setor, com o que já recebe marcado", () => {
       render(
         <EditarCadastroOperacionalContainer
-          dados={dadosComDestinos}
+          dados={dadosComEnvios}
           ator={FUNCIONARIO_SN}
           readOnly={false}
         />,
       );
 
-      expect(screen.getByText("Destinos de envio")).toBeInTheDocument();
-      expect(screen.getByText(/Maria · 11999990000 · WhatsApp/)).toBeInTheDocument();
-      expect(screen.getByRole("group", { name: "Adicionar destino de envio" })).toBeVisible();
-      expect(screen.queryByLabelText("Forma de envio", { selector: "#formaEnvio" })).toBeNull();
+      const maria = screen.getByRole("group", { name: "Envios do contato 1" });
+      expect(within(maria).getByLabelText("DAS")).toBeChecked();
+      expect(within(maria).getByLabelText("Avisos")).not.toBeChecked();
+      expect(within(maria).getByLabelText("Todos os envios")).not.toBeChecked();
+      expect(screen.getByRole("button", { name: "Adicionar contato" })).toBeInTheDocument();
+      expect(screen.queryByText("Destinos de envio")).toBeNull();
     });
 
-    it("contato de outro Setor aparece só em leitura e o contato novo entra pelo destino (sem 'Adicionar contato')", () => {
+    it("contato de outro Setor fica só de leitura, mas o Setor marca o que ele recebe", async () => {
+      definirTiposMock.mockResolvedValue(ok(undefined));
+      const usuario = userEvent.setup();
       render(
         <EditarCadastroOperacionalContainer
-          dados={dadosComDestinos}
+          dados={dadosComEnvios}
           ator={FUNCIONARIO_SN}
           readOnly={false}
         />,
       );
 
-      expect(screen.queryByRole("button", { name: "Adicionar contato" })).toBeNull();
       expect(screen.getByText(/Contato do RH: só o RH e o Admin editam/)).toBeInTheDocument();
       const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
       expect(nomes[0]).not.toHaveAttribute("readonly");
       expect(nomes[1]).toHaveAttribute("readonly");
+
+      const paulo = screen.getByRole("group", { name: "Envios do contato 2" });
+      await usuario.click(within(paulo).getByLabelText("Avisos"));
+
+      await waitFor(() =>
+        expect(definirTiposMock).toHaveBeenCalledWith({
+          clienteId: dados.id,
+          contatoId: PAULO_ID,
+          tipos: ["avisos"],
+        }),
+      );
+      expect(within(paulo).getByLabelText("Avisos")).toBeChecked();
     });
 
-    it("o contato de outro Setor pode ser escolhido como destino, e o destino novo entra na tabela", async () => {
-      definirDestinoMock.mockResolvedValue(ok({ destinoId: "d2", contatoId: PAULO_ID }));
+    it("desmarcar tira o tipo; falha do servidor desfaz a marca e mostra o motivo", async () => {
+      definirTiposMock.mockResolvedValue(err(new ForbiddenError("Sem permissão.")));
       const usuario = userEvent.setup();
       render(
         <EditarCadastroOperacionalContainer
-          dados={dadosComDestinos}
+          dados={dadosComEnvios}
           ator={FUNCIONARIO_SN}
           readOnly={false}
         />,
       );
 
-      await usuario.selectOptions(
-        screen.getByLabelText("WhatsApp ou e-mail do contato"),
-        "paulo@exemplo.com",
-      );
-      expect(
-        screen.getAllByLabelText("E-mail", { selector: "#destino-email-do-contato" })[0],
-      ).toHaveValue("paulo@exemplo.com");
-      await usuario.click(screen.getByRole("button", { name: "Adicionar destino" }));
+      const maria = screen.getByRole("group", { name: "Envios do contato 1" });
+      await usuario.click(within(maria).getByLabelText("DAS"));
 
-      await waitFor(() =>
-        expect(screen.getByText(/Paulo · paulo@exemplo.com · E-mail/)).toBeInTheDocument(),
+      expect(await within(maria).findByText("Sem permissão.")).toBeInTheDocument();
+      expect(definirTiposMock).toHaveBeenCalledWith(
+        expect.objectContaining({ contatoId: MARIA_ID, tipos: [] }),
       );
-      expect(definirDestinoMock).toHaveBeenCalledWith(
-        expect.objectContaining({ contato: { id: PAULO_ID }, tipo: null, canal: "email" }),
-      );
+      expect(within(maria).getByLabelText("DAS")).toBeChecked();
     });
 
-    it("o Admin só cadastra contatos: sem destinos e com 'Adicionar contato'", () => {
+    it("avisa quando o contato deixou de ter o canal que o envio usa", async () => {
+      const usuario = userEvent.setup();
       render(
         <EditarCadastroOperacionalContainer
-          dados={dadosComDestinos}
-          ator={ADMIN}
+          dados={dadosComEnvios}
+          ator={FUNCIONARIO_SN}
           readOnly={false}
         />,
       );
 
-      expect(screen.queryByText("Destinos de envio")).toBeNull();
-      expect(screen.getByRole("button", { name: "Adicionar contato" })).toBeInTheDocument();
-      expect(screen.queryByText(/Contato do RH/)).toBeNull();
+      await usuario.clear(screen.getAllByLabelText("WhatsApp")[0]);
+
+      expect(await screen.findByText(/deixou de ter o WhatsApp/)).toBeInTheDocument();
     });
 
-    it("o Setor SN não vê o bloco de destinos do RH nem o contrário em leitura de outro Setor", () => {
+    it("o Admin só cadastra e edita contatos: sem checkboxes e com todos os contatos editáveis", () => {
       render(
-        <EditarCadastroOperacionalContainer
-          dados={dadosComDestinos}
-          ator={{ papel: "funcionario", setor: "tributario" }}
-          readOnly
-        />,
+        <EditarCadastroOperacionalContainer dados={dadosComEnvios} ator={ADMIN} readOnly={false} />,
       );
 
-      expect(screen.queryByText("Destinos de envio")).toBeNull();
+      expect(screen.queryByRole("group", { name: /Envios do contato/ })).toBeNull();
+      expect(screen.queryByText(/Contato do RH/)).toBeNull();
+      const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
+      expect(nomes[1]).not.toHaveAttribute("readonly");
     });
   });
 
