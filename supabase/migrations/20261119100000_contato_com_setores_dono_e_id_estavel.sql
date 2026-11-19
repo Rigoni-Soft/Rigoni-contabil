@@ -53,7 +53,20 @@ ALTER TABLE public.cliente_contatos
     ADD COLUMN email text,
     ADD COLUMN dono_setor public.setor_slug;
 
-UPDATE public.cliente_contatos SET telefone = NULL WHERE btrim(telefone) = '';
+-- Telefone sem nenhum dígito ("-", "()") não é WhatsApp: vira "sem telefone".
+UPDATE public.cliente_contatos SET telefone = NULL WHERE public.chave_telefone(telefone) IS NULL;
+
+-- Sobrou Contato sem telefone e sem e-mail: não há o que preservar em silêncio, a migration lista quem é.
+DO $$
+declare
+  v_lista text;
+begin
+  select string_agg(format('%s (Cliente %s)', nome, cliente_id), '; ') into v_lista
+  from public.cliente_contatos where telefone is null;
+  if v_lista is not null then
+    raise exception 'Contatos sem WhatsApp válido e sem e-mail; corrija ou remova antes de aplicar: %', v_lista;
+  end if;
+END $$;
 
 -- Quem edita hoje continua editando: Clientes SN/MEI eram do SN, os demais só o RH gravava.
 UPDATE public.cliente_contatos ct
@@ -71,14 +84,6 @@ ALTER TABLE public.cliente_contatos
     ADD CONSTRAINT cliente_contatos_canal_check
         CHECK (public.chave_telefone(telefone) IS NOT NULL OR email IS NOT NULL);
 
--- O mesmo WhatsApp (normalizado) ou e-mail não vira dois Contatos no Cliente; entre Clientes pode repetir.
-CREATE UNIQUE INDEX cliente_contatos_telefone_unico_no_cliente
-    ON public.cliente_contatos (cliente_id, public.chave_telefone(telefone))
-    WHERE public.chave_telefone(telefone) IS NOT NULL;
-CREATE UNIQUE INDEX cliente_contatos_email_unico_no_cliente
-    ON public.cliente_contatos (cliente_id, email)
-    WHERE email IS NOT NULL;
-
 -- Setores de um Contato (a URA em todos).
 CREATE TABLE public.cliente_contato_setores (
     contato_id uuid NOT NULL REFERENCES public.cliente_contatos(id) ON DELETE CASCADE,
@@ -93,9 +98,38 @@ CREATE POLICY cliente_contato_setores_select ON public.cliente_contato_setores
     FOR SELECT TO authenticated
     USING (EXISTS (SELECT 1 FROM public.cliente_contatos c WHERE c.id = contato_id));
 
--- Os Contatos que já existem ficam só com a URA.
+-- Os Contatos que já existem ficam só com a URA (o dono continua em `dono_setor`; só os Contatos novos
+-- ganham também o dono em `cliente_contato_setores`).
 INSERT INTO public.cliente_contato_setores (contato_id, setor)
 SELECT id, 'ura' FROM public.cliente_contatos;
+
+-- O mesmo número (normalizado) no mesmo Cliente vira um Contato só: fica o mais antigo e ganha os Setores
+-- dos repetidos (o repetido era de outro Setor que usava o mesmo número). Sem gatilhos: é correção de dados.
+ALTER TABLE public.cliente_contatos DISABLE TRIGGER USER;
+WITH ranqueados AS (
+    SELECT id, dono_setor,
+           first_value(id) OVER w AS manter_id,
+           row_number() OVER w AS posicao
+    FROM public.cliente_contatos
+    WHERE public.chave_telefone(telefone) IS NOT NULL
+    WINDOW w AS (PARTITION BY cliente_id, public.chave_telefone(telefone) ORDER BY criado_em, id)
+), repetidos AS (
+    SELECT * FROM ranqueados WHERE posicao > 1
+), somados AS (
+    INSERT INTO public.cliente_contato_setores (contato_id, setor)
+    SELECT DISTINCT manter_id, dono_setor::text FROM repetidos WHERE dono_setor IS NOT NULL
+    ON CONFLICT DO NOTHING
+)
+DELETE FROM public.cliente_contatos WHERE id IN (SELECT id FROM repetidos);
+ALTER TABLE public.cliente_contatos ENABLE TRIGGER USER;
+
+-- O mesmo WhatsApp (normalizado) ou e-mail não vira dois Contatos no Cliente; entre Clientes pode repetir.
+CREATE UNIQUE INDEX cliente_contatos_telefone_unico_no_cliente
+    ON public.cliente_contatos (cliente_id, public.chave_telefone(telefone))
+    WHERE public.chave_telefone(telefone) IS NOT NULL;
+CREATE UNIQUE INDEX cliente_contatos_email_unico_no_cliente
+    ON public.cliente_contatos (cliente_id, email)
+    WHERE email IS NOT NULL;
 
 -- Todo Contato nasce com a URA e com o Setor dono (quando não é o Admin).
 CREATE FUNCTION public.contato_vincular_setores_ao_criar() RETURNS trigger
@@ -138,6 +172,13 @@ begin
   new.nome := btrim(new.nome);
   new.telefone := nullif(btrim(coalesce(new.telefone, '')), '');
   new.email := nullif(lower(btrim(coalesce(new.email, ''))), '');
+
+  -- WhatsApp sem DDD é recusado; o que já estava gravado só é cobrado quando o número é trocado.
+  if new.telefone is not null
+     and (tg_op = 'INSERT' or new.telefone is distinct from old.telefone)
+     and length(coalesce(public.chave_telefone(new.telefone), '')) not in (10, 11) then
+    raise exception 'O WhatsApp precisa do DDD e do número (10 ou 11 dígitos).' using errcode = '22023';
+  end if;
 
   select * into v_existente
   from public.cliente_contatos x
@@ -203,6 +244,69 @@ CREATE POLICY cliente_contatos_delete ON public.cliente_contatos FOR DELETE TO a
 
 -- Caminho único de salvar os Contatos de um Cliente (SN, RH e Admin): cria, atualiza e remove por id.
 -- O que é de outro Setor volta inalterado (sem erro); alterar ou remover o de outro Setor é recusado.
+CREATE FUNCTION public.contato_id_do_item(p_item jsonb) RETURNS uuid
+    LANGUAGE plpgsql IMMUTABLE
+    SET search_path TO 'public'
+    AS $$
+begin
+  if jsonb_typeof(p_item) <> 'object' then
+    raise exception 'O contato deve ser um objeto.' using errcode = '22023';
+  end if;
+  if nullif(p_item ->> 'id', '') is null then
+    return null;
+  end if;
+  if (p_item ->> 'id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+    raise exception 'O id do contato é inválido.' using errcode = '22023';
+  end if;
+  return (p_item ->> 'id')::uuid;
+end;
+$$;
+REVOKE ALL ON FUNCTION public.contato_id_do_item(jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.contato_id_do_item(jsonb) TO authenticated, service_role;
+
+-- A validação e a gravação de UM contato, uma só para o lote e para o "Salvar" da linha: cria ou atualiza
+-- por id; alterar o de outro Setor é recusado, e o que veio inalterado passa sem exigir o dono.
+CREATE FUNCTION public.contato_gravar(p_cliente_id uuid, p_item jsonb) RETURNS uuid
+    LANGUAGE plpgsql
+    SET search_path TO 'public'
+    AS $$
+declare
+  v_id uuid := coalesce(public.contato_id_do_item(p_item), gen_random_uuid());
+  v_nome text := btrim(coalesce(p_item ->> 'nome', ''));
+  v_telefone text := nullif(btrim(coalesce(p_item ->> 'telefone', '')), '');
+  v_email text := nullif(lower(btrim(coalesce(p_item ->> 'email', ''))), '');
+  v_atual public.cliente_contatos;
+  v_dono public.setor_slug := public.dono_do_novo_contato();
+begin
+  select * into v_atual from public.cliente_contatos where id = v_id;
+  if found then
+    if v_atual.cliente_id <> p_cliente_id then
+      raise exception 'O contato pertence a outro Cliente.' using errcode = '42501';
+    end if;
+    if v_atual.nome is distinct from v_nome
+       or public.chave_telefone(v_atual.telefone) is distinct from public.chave_telefone(v_telefone)
+       or v_atual.email is distinct from v_email then
+      if not public.pode_gerir_contato(p_cliente_id, v_atual.dono_setor) then
+        raise exception 'Só o Setor dono do contato "%" ou o Admin pode editá-lo.', v_atual.nome
+          using errcode = '42501';
+      end if;
+      update public.cliente_contatos
+         set nome = v_nome, telefone = v_telefone, email = v_email
+       where id = v_id;
+    end if;
+  else
+    if not public.pode_gerir_contato(p_cliente_id, v_dono) then
+      raise exception 'Sem permissão para cadastrar contatos neste Cliente.' using errcode = '42501';
+    end if;
+    insert into public.cliente_contatos (id, cliente_id, nome, telefone, email, dono_setor)
+    values (v_id, p_cliente_id, v_nome, v_telefone, v_email, v_dono);
+  end if;
+  return v_id;
+end;
+$$;
+REVOKE ALL ON FUNCTION public.contato_gravar(uuid, jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.contato_gravar(uuid, jsonb) TO authenticated, service_role;
+
 CREATE FUNCTION public.salvar_contatos_do_cliente(p_cliente_id uuid, p_contatos jsonb) RETURNS void
     LANGUAGE plpgsql
     SET search_path TO 'public'
@@ -210,12 +314,7 @@ CREATE FUNCTION public.salvar_contatos_do_cliente(p_cliente_id uuid, p_contatos 
 declare
   v_item jsonb;
   v_id uuid;
-  v_nome text;
-  v_telefone text;
-  v_email text;
-  v_atual public.cliente_contatos;
   v_remover public.cliente_contatos;
-  v_dono public.setor_slug := public.dono_do_novo_contato();
   v_ids uuid[] := '{}';
 begin
   if p_contatos is null or jsonb_typeof(p_contatos) <> 'array' then
@@ -226,8 +325,9 @@ begin
   end if;
 
   for v_item in select * from jsonb_array_elements(p_contatos) loop
-    if nullif(v_item ->> 'id', '') is not null then
-      v_ids := v_ids || (v_item ->> 'id')::uuid;
+    v_id := public.contato_id_do_item(v_item);
+    if v_id is not null then
+      v_ids := v_ids || v_id;
     end if;
   end loop;
 
@@ -244,34 +344,7 @@ begin
   end loop;
 
   for v_item in select * from jsonb_array_elements(p_contatos) loop
-    v_id := coalesce(nullif(v_item ->> 'id', '')::uuid, gen_random_uuid());
-    v_nome := btrim(coalesce(v_item ->> 'nome', ''));
-    v_telefone := nullif(btrim(coalesce(v_item ->> 'telefone', '')), '');
-    v_email := nullif(lower(btrim(coalesce(v_item ->> 'email', ''))), '');
-
-    select * into v_atual from public.cliente_contatos where id = v_id;
-    if found then
-      if v_atual.cliente_id <> p_cliente_id then
-        raise exception 'O contato pertence a outro Cliente.' using errcode = '42501';
-      end if;
-      if v_atual.nome is distinct from v_nome
-         or public.chave_telefone(v_atual.telefone) is distinct from public.chave_telefone(v_telefone)
-         or v_atual.email is distinct from v_email then
-        if not public.pode_gerir_contato(p_cliente_id, v_atual.dono_setor) then
-          raise exception 'Só o Setor dono do contato "%" ou o Admin pode editá-lo.', v_atual.nome
-            using errcode = '42501';
-        end if;
-        update public.cliente_contatos
-           set nome = v_nome, telefone = v_telefone, email = v_email
-         where id = v_id;
-      end if;
-    else
-      if not public.pode_gerir_contato(p_cliente_id, v_dono) then
-        raise exception 'Sem permissão para cadastrar contatos neste Cliente.' using errcode = '42501';
-      end if;
-      insert into public.cliente_contatos (id, cliente_id, nome, telefone, email, dono_setor)
-      values (v_id, p_cliente_id, v_nome, v_telefone, v_email, v_dono);
-    end if;
+    perform public.contato_gravar(p_cliente_id, v_item);
   end loop;
 end;
 $$;
