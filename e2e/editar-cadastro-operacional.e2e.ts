@@ -69,10 +69,16 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     // dev server frio, o salvar gravava os defaults).
     await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
 
-    await page.getByLabel("Forma de envio").selectOption("email");
-    await page.getByLabel("Nome").fill("Maria Contato");
-    await page.getByLabel("WhatsApp").fill("11999998888");
-    await page.getByLabel("E-mail", { exact: true }).fill("maria.contato@exemplo.com");
+    // A forma de envio é o canal de cada destino: não há mais o campo no cadastro do SN.
+    await expect(page.locator("#formaEnvio")).toHaveCount(0);
+    // O Setor cadastra o contato novo pelo formulário de destino (o destino grava na hora).
+    await page.getByRole("button", { name: "Novo contato" }).click();
+    await page.locator("#destino-nome").fill("Maria Contato");
+    await page.locator("#destino-telefone").fill("11999998888");
+    await page.locator("#destino-email").fill("maria.contato@exemplo.com");
+    await page.locator("#destino-canal").selectOption("email");
+    await page.getByRole("button", { name: "Adicionar destino" }).click();
+    await expect(page.getByText(/Maria Contato · \(11\) 99999-8888 · E-mail/)).toBeVisible();
     await page.getByLabel("Documento recebido").selectOption("positivo");
     // "Enviado" e a data de envio são só do sistema.
     await expect(
@@ -93,12 +99,11 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     // Reabre a tela do cliente pra conferir que a alteração persistiu.
     await page.goto(`/clientes/${clienteId}`);
 
-    await expect(page.getByLabel("Forma de envio")).toHaveValue("email");
-    await expect(page.getByLabel("Nome")).toHaveValue("Maria Contato");
-    await expect(page.getByLabel("WhatsApp")).toHaveValue("(11) 99999-8888");
-    await expect(page.getByLabel("E-mail", { exact: true })).toHaveValue(
-      "maria.contato@exemplo.com",
-    );
+    await expect(page.locator("[id='contatos.0.nome']")).toHaveValue("Maria Contato");
+    await expect(page.locator("[id='contatos.0.telefone']")).toHaveValue("(11) 99999-8888");
+    await expect(page.locator("[id='contatos.0.email']")).toHaveValue("maria.contato@exemplo.com");
+    // O destino gravado na hora sobrevive ao Salvar do cadastro (o contato não é apagado).
+    await expect(page.getByText(/Maria Contato · \(11\) 99999-8888 · E-mail/)).toBeVisible();
     await expect(page.getByLabel("Documento recebido")).toHaveValue("positivo");
     await expect(page.getByLabel("DAS", { exact: true })).toHaveValue("pronto");
     await expect(page.getByRole("checkbox", { name: "Comércio" })).toBeChecked();
@@ -108,12 +113,9 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
   test("contato por linha: Salvar mantém o id, Limpar zera a linha nova e o contato em uso por outro Setor não sai @smoke", async ({
     page,
   }) => {
+    // O Admin cadastra contatos direto na lista (o Setor os cadastra pelo destino de envio).
     const cnpjDigits = await criarClienteComoAdmin(page, "Contato Por Linha E2E Ltda");
     const clienteId = await buscarClienteIdPorCnpj(cnpjDigits);
-    await atribuirResponsavelComoLider(cnpjDigits);
-    await logout(page);
-    await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    await expect(page).toHaveURL("/simples-nacional");
     await page.goto(`/clientes/${clienteId}`);
     await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
 
@@ -231,10 +233,10 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(
       page.getByRole("heading", { name: "Visualizar cadastro operacional" }),
     ).toBeVisible();
-    await expect(page.getByLabel("Forma de envio")).toBeDisabled();
+    await expect(page.getByLabel("Documento recebido")).toBeDisabled();
     await expect(page.getByRole("button", { name: "Salvar" })).not.toBeVisible();
     // Na visualização os campos ficam esmaecidos (não editáveis); sem botão de adicionar contato.
-    await expect(page.getByLabel("Forma de envio")).toHaveCSS("opacity", "0.5");
+    await expect(page.getByLabel("Documento recebido")).toHaveCSS("opacity", "0.5");
     await expect(page.getByLabel("Observações gerais")).toHaveCSS("opacity", "0.5");
     await expect(page.getByRole("button", { name: "Adicionar contato" })).toBeHidden();
   });

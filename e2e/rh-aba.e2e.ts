@@ -72,7 +72,7 @@ test.describe("Aba RH: busca ampla e Responsável do RH (#213)", () => {
     await page.getByText(EMPRESA).click();
     await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeVisible();
     await expect(page.getByLabel("Empresa")).toHaveValue(EMPRESA);
-    await expect(page.getByLabel("Forma de envio")).toHaveCount(0);
+    await expect(page.locator("#formaEnvio")).toHaveCount(0);
   });
 
   test("Líder do RH troca e remove o Responsável do RH", async ({ page }) => {
