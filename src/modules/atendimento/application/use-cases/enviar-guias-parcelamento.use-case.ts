@@ -104,16 +104,22 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     parcelamentos: ParcelamentoDoCliente[],
   ): Promise<Result<Set<string>, AppError>> {
     const ids = new Set<string>();
-    for (const p of parcelamentos) {
-      if (p.interno) {
-        if (this.financeiro.telefone !== null) ids.add(p.id);
-        continue;
-      }
-      const doSetor = await destinos(p.setor);
-      if (!doSetor.ok) return doSetor;
-      if (doSetor.value.length > 0) ids.add(p.id);
+    for (const parcelamento of parcelamentos) {
+      const entregavel = await this.temParaQuemEnviar(parcelamento, destinos);
+      if (!entregavel.ok) return entregavel;
+      if (entregavel.value) ids.add(parcelamento.id);
     }
     return ok(ids);
+  }
+
+  private async temParaQuemEnviar(
+    parcelamento: ParcelamentoDoCliente,
+    destinos: DestinosDoCliente,
+  ): Promise<Result<boolean, AppError>> {
+    if (parcelamento.interno) return ok(this.financeiro.telefone !== null);
+    const doSetor = await destinos(parcelamento.setor);
+    if (!doSetor.ok) return doSetor;
+    return ok(doSetor.value.length > 0);
   }
 
   // Destinos do Cliente por Setor, lidos uma vez por Cliente (a mesma leitura serve à triagem e à

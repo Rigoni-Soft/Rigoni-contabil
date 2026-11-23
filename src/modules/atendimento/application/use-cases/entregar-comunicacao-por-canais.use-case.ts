@@ -36,11 +36,7 @@ export class EntregarComunicacaoPorCanais implements EntregarComunicacaoPorCanai
   async execute(entrada: EntregarComunicacaoInput): Promise<Result<ComunicacaoEntregue, AppError>> {
     const { cliente, comunicacao, destinos } = entrada;
     const canais: Canal[] = [];
-    for (const destino of destinos) {
-      if (formaEnvioUsaWhatsapp(destino.canal))
-        canais.push(await this.porWhatsapp(entrada, destino));
-      if (formaEnvioUsaEmail(destino.canal)) canais.push(await this.porEmail(entrada, destino));
-    }
+    for (const destino of destinos) canais.push(...(await this.porDestino(entrada, destino)));
 
     const entregues = canais.filter((canal) => canal.entregue).length;
     const ocorrencias = canais.flatMap((canal) => canal.ocorrencias);
@@ -52,6 +48,16 @@ export class EntregarComunicacaoPorCanais implements EntregarComunicacaoPorCanai
       });
     }
     return ok({ entregues, ocorrencias });
+  }
+
+  private async porDestino(
+    entrada: EntregarComunicacaoInput,
+    destino: DestinoDeEnvio,
+  ): Promise<Canal[]> {
+    const canais: Canal[] = [];
+    if (formaEnvioUsaWhatsapp(destino.canal)) canais.push(await this.porWhatsapp(entrada, destino));
+    if (formaEnvioUsaEmail(destino.canal)) canais.push(await this.porEmail(entrada, destino));
+    return canais;
   }
 
   private async porWhatsapp(
