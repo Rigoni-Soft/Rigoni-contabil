@@ -144,7 +144,7 @@ describe("EntregarComunicacaoPorCanais", () => {
     ]);
   });
 
-  it("sem Destino: nada é enviado e nenhuma entrega é contada", async () => {
+  it("sem Destino: erro, nada é enviado e o chamador que esqueceu a triagem não perde o envio em silêncio", async () => {
     const { entrega, envio, emails } = montar();
     const resultado = await entrega.execute({
       cliente,
@@ -152,7 +152,7 @@ describe("EntregarComunicacaoPorCanais", () => {
       comunicacao: lembrete,
       agora,
     });
-    expect(resultado).toEqual(ok({ entregues: 0, ocorrencias: [] }));
+    expect(resultado).toMatchObject({ ok: false, error: { code: "VALIDATION_ERROR" } });
     expect(envio.requisicoes).toHaveLength(0);
     expect(emails).toHaveLength(0);
   });

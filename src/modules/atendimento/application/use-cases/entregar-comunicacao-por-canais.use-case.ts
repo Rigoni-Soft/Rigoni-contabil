@@ -13,9 +13,10 @@ import type { EnviarComunicacaoProativaPort } from "@/modules/atendimento/applic
 import type { DestinoDeEnvio } from "@/modules/atendimento/application/ports/out/destinos-de-envio.provider";
 import type { EnvioEmailPort } from "@/modules/atendimento/application/ports/out/envio-email.provider";
 import type { AppError } from "@/shared/errors/app.error";
+import { ValidationError } from "@/shared/errors/validation.error";
 import { comTentativas, ESPERA_MS, TENTATIVAS } from "@/shared/kernel/com-tentativas";
 import { formaEnvioUsaEmail, formaEnvioUsaWhatsapp } from "@/shared/kernel/forma-envio";
-import { ok, type Result } from "@/shared/kernel/result";
+import { err, ok, type Result } from "@/shared/kernel/result";
 
 type Canal = { entregue: boolean; ocorrencias: OcorrenciaDeEntrega[] };
 
@@ -25,7 +26,7 @@ const falhou = (mensagem: string): Canal => ({ entregue: false, ocorrencias: [fa
 // Entrega a comunicação pelos canais de cada Destino de envio. O canal que não entrega vira
 // ocorrência sem derrubar o outro (nem o Destino seguinte); entregar por menos canais do que os
 // Destinos pedem (na guia) acrescenta a ocorrência `entrega_parcial`. Sem Destino não há o que
-// entregar: quem chama decide antes e alerta o Setor.
+// entregar: quem chama decide antes e alerta o Setor; lista vazia é erro, não entrega de zero.
 export class EntregarComunicacaoPorCanais implements EntregarComunicacaoPorCanaisPort {
   constructor(
     private readonly proativa: EnviarComunicacaoProativaPort,
@@ -35,6 +36,7 @@ export class EntregarComunicacaoPorCanais implements EntregarComunicacaoPorCanai
 
   async execute(entrada: EntregarComunicacaoInput): Promise<Result<ComunicacaoEntregue, AppError>> {
     const { cliente, comunicacao, destinos } = entrada;
+    if (destinos.length === 0) return err(new ValidationError("Sem Destino de envio."));
     const canais: Canal[] = [];
     for (const destino of destinos) canais.push(...(await this.porDestino(entrada, destino)));
 
