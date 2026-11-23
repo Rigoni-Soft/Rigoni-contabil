@@ -48,7 +48,6 @@ import {
   SETORES_POR_PAGINA,
   setoresDaUra,
 } from "@/modules/atendimento/domain/services/setores-da-ura.service";
-import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -56,6 +55,7 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { cnpjValido, normalizarCnpj } from "@/shared/kernel/cnpj";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { SETOR_LABEL, SETOR_RECEPCAO, type SetorSlug } from "@/shared/kernel/setores";
+import { soDigitosNacionais } from "@/shared/kernel/telefone";
 
 // Uma só lista define o menu: a posição é o número digitado, e `guia` marca as opções cujo PDF vem
 // do provedor fiscal. "Falar com atendente" é sempre a última.

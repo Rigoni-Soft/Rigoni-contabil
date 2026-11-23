@@ -1,4 +1,13 @@
-import { chaveDoTelefone, telefoneAceito, telefoneTemDdd } from "./telefone";
+import { chaveDoTelefone, soDigitosNacionais, telefoneAceito, telefoneTemDdd } from "./telefone";
+
+describe("soDigitosNacionais", () => {
+  it("devolve só os dígitos, sem o DDI 55 quando há mais de 11", () => {
+    expect(soDigitosNacionais("+55 (61) 99999-0000")).toBe("61999990000");
+    expect(soDigitosNacionais("(61) 99999-0000")).toBe("61999990000");
+    expect(soDigitosNacionais("55999990000")).toBe("55999990000");
+    expect(soDigitosNacionais("sem número")).toBe("");
+  });
+});
 
 describe("chaveDoTelefone", () => {
   it("só dígitos e sem o DDI 55, como no banco", () => {

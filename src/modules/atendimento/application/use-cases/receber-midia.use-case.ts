@@ -6,7 +6,6 @@ import type { AnexosAtendimentoPort } from "@/modules/atendimento/application/po
 import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { DownloadMidiaPort } from "@/modules/atendimento/application/ports/out/download-midia.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
-import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
@@ -16,6 +15,7 @@ import {
   type TipoAnexoMensagem,
 } from "@/shared/kernel/anexo";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import { soDigitosNacionais } from "@/shared/kernel/telefone";
 
 const SO_TEXTO =
   "No momento só entendemos mensagens de texto. Para ser atendido, digite *menu* e escolha uma opção.";

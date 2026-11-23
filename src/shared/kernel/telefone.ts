@@ -1,12 +1,15 @@
 export const soDigitos = (telefone: string) => telefone.replace(/\D/g, "");
 
-// A chave do número, a mesma do banco (`chave_telefone`): só dígitos e sem o DDI 55. Dois contatos com a
-// mesma chave são o mesmo número; null = sem número.
-export function chaveDoTelefone(telefone: string): string | null {
+// Só dígitos e sem o DDI 55: o telefone do Contato é cadastrado só com DDD + número. A mesma regra do banco
+// (`chave_telefone`); a regra mora aqui, num lugar só.
+export function soDigitosNacionais(telefone: string): string {
   const digitos = soDigitos(telefone);
-  if (!digitos) return null;
   return digitos.length > 11 && digitos.startsWith("55") ? digitos.slice(2) : digitos;
 }
+
+// A chave do número: dois contatos com a mesma chave são o mesmo número; null = sem número.
+export const chaveDoTelefone = (telefone: string): string | null =>
+  soDigitosNacionais(telefone) || null;
 
 // O telefone do Contato é DDD + número (10 ou 11 dígitos); o DDI 55 é descartado.
 export function telefoneTemDdd(telefone: string): boolean {
