@@ -99,9 +99,9 @@ async function mensagensDe(id: string) {
 afterAll(async () => {
   for (const c of conexoes) await c.end().catch(() => undefined);
   const removidos = await admin.from("atendimentos").delete().in("id", atendimentos);
-  for (const id of usuarios) await admin.auth.admin.deleteUser(id);
+  await Promise.all(usuarios.map((id) => admin.auth.admin.deleteUser(id)));
   if (removidos.error) throw removidos.error;
-});
+}, 30_000);
 
 describe("Mensagem recebida × fechamento (duas conexões)", () => {
   it.each([
