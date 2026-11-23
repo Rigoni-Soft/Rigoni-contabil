@@ -18,10 +18,16 @@ import { comTentativas, ESPERA_MS, TENTATIVAS } from "@/shared/kernel/com-tentat
 import { formaEnvioUsaEmail, formaEnvioUsaWhatsapp } from "@/shared/kernel/forma-envio";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-type Canal = { entregue: boolean; ocorrencias: OcorrenciaDeEntrega[] };
+type ResultadoDaEntrega = { entregue: boolean; ocorrencias: OcorrenciaDeEntrega[] };
 
-const falha = (mensagem: string): OcorrenciaDeEntrega => ({ tipo: "falha_envio", mensagem });
-const falhou = (mensagem: string): Canal => ({ entregue: false, ocorrencias: [falha(mensagem)] });
+const ocorrenciaDeFalha = (mensagem: string): OcorrenciaDeEntrega => ({
+  tipo: "falha_envio",
+  mensagem,
+});
+const falhou = (mensagem: string): ResultadoDaEntrega => ({
+  entregue: false,
+  ocorrencias: [ocorrenciaDeFalha(mensagem)],
+});
 
 // Entrega a comunicação pelos canais de cada Destino de envio. O canal que não entrega vira
 // ocorrência sem derrubar o outro (nem o Destino seguinte); entregar por menos canais do que os
@@ -37,7 +43,7 @@ export class EntregarComunicacaoPorCanais implements EntregarComunicacaoPorCanai
   async execute(entrada: EntregarComunicacaoInput): Promise<Result<ComunicacaoEntregue, AppError>> {
     const { cliente, comunicacao, destinos } = entrada;
     if (destinos.length === 0) return err(new ValidationError("Sem Destino de envio."));
-    const canais: Canal[] = [];
+    const canais: ResultadoDaEntrega[] = [];
     for (const destino of destinos) canais.push(...(await this.porDestino(entrada, destino)));
 
     const entregues = canais.filter((canal) => canal.entregue).length;
@@ -46,7 +52,7 @@ export class EntregarComunicacaoPorCanais implements EntregarComunicacaoPorCanai
     if (guiaDe(comunicacao) && entregues > 0 && entregues < canais.length) {
       ocorrencias.push({
         tipo: "entrega_parcial",
-        mensagem: `${cliente.empresa}: entregue por apenas um canal; reenviar pelo outro.`,
+        mensagem: `${cliente.empresa}: entregue a apenas parte dos Destinos; reenviar aos demais.`,
       });
     }
     return ok({ entregues, ocorrencias });
@@ -55,8 +61,8 @@ export class EntregarComunicacaoPorCanais implements EntregarComunicacaoPorCanai
   private async porDestino(
     entrada: EntregarComunicacaoInput,
     destino: DestinoDeEnvio,
-  ): Promise<Canal[]> {
-    const canais: Canal[] = [];
+  ): Promise<ResultadoDaEntrega[]> {
+    const canais: ResultadoDaEntrega[] = [];
     if (formaEnvioUsaWhatsapp(destino.canal)) canais.push(await this.porWhatsapp(entrada, destino));
     if (formaEnvioUsaEmail(destino.canal)) canais.push(await this.porEmail(entrada, destino));
     return canais;
@@ -65,7 +71,7 @@ export class EntregarComunicacaoPorCanais implements EntregarComunicacaoPorCanai
   private async porWhatsapp(
     { cliente, comunicacao, agora }: EntregarComunicacaoInput,
     destino: DestinoDeEnvio,
-  ): Promise<Canal> {
+  ): Promise<ResultadoDaEntrega> {
     if (!destino.telefone) return falhou(`${destino.contatoNome} não tem WhatsApp.`);
     const enviado = await this.proativa.execute({
       telefone: destino.telefone,
@@ -82,7 +88,7 @@ export class EntregarComunicacaoPorCanais implements EntregarComunicacaoPorCanai
   private async porEmail(
     { cliente, comunicacao }: EntregarComunicacaoInput,
     destino: DestinoDeEnvio,
-  ): Promise<Canal> {
+  ): Promise<ResultadoDaEntrega> {
     const destinatario = destino.email;
     if (!destinatario) return falhou(`${destino.contatoNome} não tem e-mail.`);
     const personalizada = { ...comunicacao, contato: destino.contatoNome };
