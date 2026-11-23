@@ -5,6 +5,11 @@
  * `contato_ausente` avisando o Líder e o Responsável do Setor (uma vez por abertura, nunca o Admin).
  * Destrutiva: só roda no Supabase local e limpa pelos CNPJs da própria suíte. Requer `npx supabase start`.
  */
+import {
+  executarRodada,
+  SEM_ANDAMENTO,
+  semDestinatario,
+} from "@/modules/atendimento/application/jobs/alertas-da-rodada";
 import { soDigitosNacionais } from "@/shared/kernel/telefone";
 
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
@@ -366,5 +371,63 @@ describe("aviso do sino: Cliente sem meio de envio", () => {
     });
 
     expect((await avisos(clienteSn)).length).toBe(antes);
+  });
+
+  it("Setor sem Líder nem Responsável ativos: o alerta abre e ninguém é avisado no sino", async () => {
+    await resolverAlertas(clienteSn);
+    const desativar = (ativo: boolean) =>
+      ok(
+        admin
+          .from("perfis")
+          .update({ desativado_em: ativo ? null : new Date().toISOString() })
+          .in("id", [LIDER_SN_ID, FUNCIONARIO_SN_ID]),
+      );
+    await desativar(false);
+    try {
+      const antes = (await avisos(clienteSn)).length;
+
+      await abrirAlerta(clienteSn, "simples_nacional");
+
+      expect((await avisos(clienteSn)).length).toBe(antes);
+    } finally {
+      await desativar(true);
+    }
+  });
+
+  it("job sem Destino abre o alerta; cadastrado o Destino, a rodada seguinte o resolve", async () => {
+    const sinal = () =>
+      ok(
+        admin
+          .from("alertas_setor")
+          .select("resolvido_em")
+          .eq("cliente_id", clienteRh)
+          .eq("setor", "simples_nacional")
+          .eq("tipo", "contato_ausente"),
+      );
+    // O que o job faz por Cliente: lê os Destinos do Setor e, sem nenhum válido, devolve a ocorrência.
+    const rodada = (agora: Date) =>
+      executarRodada(alertas, agora, [{ clienteId: clienteRh }], async ({ clienteId }) => {
+        const r = await destinos.resolver(clienteId, "simples_nacional", "das");
+        const vazio = !r.ok || r.value.length === 0;
+        return [
+          vazio
+            ? semDestinatario("Cliente de Teste Ltda", "simples_nacional", "das")
+            : SEM_ANDAMENTO,
+        ];
+      });
+
+    await rodada(new Date());
+    expect(await sinal()).toMatchObject([{ resolvido_em: null }]);
+
+    const contatoId = await criarContato(clienteRh, {
+      nome: "Dora Exemplo",
+      telefone: "5511977776666",
+    });
+    await criarDestino(clienteRh, { contatoId, tipo: "das", canal: "whatsapp" });
+    // O cadastro não resolve na hora: o alerta segue aberto até a rodada seguinte.
+    expect(await sinal()).toMatchObject([{ resolvido_em: null }]);
+
+    await rodada(new Date(Date.now() + 2 * 24 * HORA_MS));
+    expect((await sinal())[0].resolvido_em).not.toBeNull();
   });
 });
