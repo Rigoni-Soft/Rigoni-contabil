@@ -1,7 +1,7 @@
 import type { AlertaSetor } from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
 import { ok } from "@/shared/kernel/result";
 
-import { comOcorrencia, executarRodada, noSetor } from "./alertas-da-rodada";
+import { comOcorrencia, executarRodada, noSetor, semDestinatario } from "./alertas-da-rodada";
 
 function alertasEmMemoria() {
   const gravados: AlertaSetor[] = [];
@@ -52,5 +52,20 @@ describe("executarRodada: alertas por Setor", () => {
     );
 
     expect(andamento.ocorrencias[0].setor).toBe("rh");
+  });
+});
+
+describe("semDestinatario", () => {
+  it.each([
+    ["lembrete_documento", "simples_nacional", "o lembrete de documento (Simples Nacional)"],
+    ["das", "simples_nacional", "o DAS (Simples Nacional)"],
+    ["guia_parcelamento", "rh", "a guia de parcelamento (RH)"],
+  ] as const)("%s: contato_ausente do Setor %s com o rótulo do envio", (tipo, setor, rotulo) => {
+    const andamento = semDestinatario("3A", setor, tipo);
+
+    expect(andamento.enviado).toBe(false);
+    expect(andamento.ocorrencias).toEqual([
+      { tipo: "contato_ausente", setor, mensagem: `3A: sem meio de envio para ${rotulo}` },
+    ]);
   });
 });
