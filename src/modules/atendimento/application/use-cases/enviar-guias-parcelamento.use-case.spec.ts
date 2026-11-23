@@ -78,6 +78,8 @@ function montar(
     // Destinos de guia de parcelamento por Setor; Setor ausente = o WhatsApp da Ângela.
     destinos?: Partial<Record<SetorSlug, DestinoDeEnvio[]>>;
     erroDosDestinos?: AppError;
+    // Erro de leitura só nos Destinos destes Setores.
+    erroDosDestinosDoSetor?: Partial<Record<SetorSlug, AppError>>;
   } = {},
 ) {
   const consultas: { setor: string; tipo: string }[] = [];
@@ -110,6 +112,8 @@ function montar(
       resolver: async (_clienteId, setor, tipo) => {
         consultas.push({ setor, tipo });
         if (opcoes.erroDosDestinos) return err(opcoes.erroDosDestinos);
+        const erroDoSetor = opcoes.erroDosDestinosDoSetor?.[setor];
+        if (erroDoSetor) return err(erroDoSetor);
         return ok(opcoes.destinos?.[setor] ?? [destino()]);
       },
     },
@@ -479,6 +483,38 @@ describe("EnviarGuiasParcelamento", () => {
       expect(andamento.ocorrencias).toMatchObject([{ tipo: "falha_envio" }]);
       expect(envio.requisicoes).toHaveLength(0);
       expect(buscarGuiasParcelamento).not.toHaveBeenCalled();
+    });
+
+    it("falha ao ler os Destinos do RH: o interno ainda vai ao financeiro, só o RH falha", async () => {
+      const { nucleo, envio, registrados } = montar(
+        ok([
+          parcelamento("interno", { interno: true }),
+          parcelamento("rh", { setor: "rh", valorParcelaCentavos: 20_000 }),
+        ]),
+        {
+          guias: async () => ok([guia("202610", 10_000)]),
+          erroDosDestinosDoSetor: { rh: new ServicoExternoError("banco") },
+        },
+      );
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento.enviado).toBe(true);
+      expect(andamento.ocorrencias).toMatchObject([{ tipo: "falha_envio", setor: "rh" }]);
+      expect(registrados).toEqual([["interno", "202610"]]);
+      expect(envio.templatesEnviados).toMatchObject([
+        { nome: "envio_guia_parcelamento_interno", telefone: telefoneFinanceiro },
+      ]);
+    });
+
+    it("falha ao ler os Destinos do RH: o comum do RH não vira contato_ausente", async () => {
+      const { nucleo } = montar(ok([parcelamento("rh", { setor: "rh" })]), {
+        erroDosDestinosDoSetor: { rh: new ServicoExternoError("banco") },
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento.ocorrencias).toMatchObject([{ tipo: "falha_envio", setor: "rh" }]);
     });
   });
 

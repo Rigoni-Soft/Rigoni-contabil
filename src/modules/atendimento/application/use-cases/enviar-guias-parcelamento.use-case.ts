@@ -15,6 +15,7 @@ import {
   guiasPgfnAEntregar,
   reservarELerGuiaPgfn,
 } from "@/modules/atendimento/application/jobs/guias-pgfn-a-entregar";
+import type { Guia } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
 import type {
   EntregarComunicacaoPorCanaisPort,
   OcorrenciaDeEntrega,
@@ -59,6 +60,17 @@ type FinanceiroDoEscritorio = {
 // Os Destinos de guia de parcelamento do Setor, lidos uma vez por Cliente.
 type DestinosDoCliente = (setor: SetorSlug) => Promise<Result<DestinoDeEnvio[], AppError>>;
 
+// Quem tem para quem enviar, e os Setores cujos Destinos não puderam ser lidos.
+type Triagem = { entregaveis: Set<string>; falhas: Map<SetorSlug, AppError> };
+
+const leituraFalhou = (p: ParcelamentoDoCliente, falhas: Triagem["falhas"]) =>
+  !p.interno && falhas.has(p.setor);
+
+const ocorrenciasDeLeitura = (descricao: string, falhas: Triagem["falhas"]) =>
+  [...falhas].flatMap(([setor, erro]) =>
+    noSetor(falha(`${descricao}: ${erro.message}`), setor).ocorrencias,
+  );
+
 // A guia atribuída com as parcelas que restam depois de entregá-la.
 type GuiaAEntregar = GuiaAtribuida & { restantesDepois: number };
 // `descontou`: o banco descontou uma parcela restante nesta entrega.
@@ -99,30 +111,20 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
   // O comum vai aos Destinos de guia de parcelamento do Setor do Parcelamento (SN ou RH); o interno,
   // ao financeiro. Sem para quem enviar, o parcelamento segue pendente e o setor é avisado; o outro
   // destino não depende deste.
-  private async idsEntregaveis(
+  // A leitura que falha vale só para o Setor dela: o interno não lê Destinos e os outros Setores
+  // seguem. O parcelamento comum desse Setor segue pendente, com falha_envio (não contato_ausente).
+  private async triar(
     destinos: DestinosDoCliente,
     parcelamentos: ParcelamentoDoCliente[],
-  ): Promise<Result<Set<string>, AppError>> {
-    const triagem = new Map<string, Result<boolean, AppError>>();
-    for (const parcelamento of parcelamentos) {
-      triagem.set(parcelamento.id, await this.temParaQuemEnviar(parcelamento, destinos));
+  ): Promise<Triagem> {
+    const entregaveis = new Set<string>();
+    const falhas = new Map<SetorSlug, AppError>();
+    for (const { id, interno, setor } of parcelamentos) {
+      const doSetor = interno ? ok([]) : await destinos(setor);
+      if (!doSetor.ok) falhas.set(setor, doSetor.error);
+      else if (interno ? this.financeiro.telefone : doSetor.value.length > 0) entregaveis.add(id);
     }
-    const primeiraFalha = [...triagem.values()].find(
-      (resultado): resultado is { ok: false; error: AppError } => !resultado.ok,
-    );
-    if (primeiraFalha) return primeiraFalha;
-    const entregaveis = [...triagem].filter(([, resultado]) => resultado.ok && resultado.value);
-    return ok(new Set(entregaveis.map(([id]) => id)));
-  }
-
-  private async temParaQuemEnviar(
-    parcelamento: ParcelamentoDoCliente,
-    destinos: DestinosDoCliente,
-  ): Promise<Result<boolean, AppError>> {
-    if (parcelamento.interno) return ok(this.financeiro.telefone !== null);
-    const doSetor = await destinos(parcelamento.setor);
-    if (!doSetor.ok) return doSetor;
-    return ok(doSetor.value.length > 0);
+    return { entregaveis, falhas };
   }
 
   // Destinos do Cliente por Setor, lidos uma vez por Cliente (a mesma leitura serve à triagem e à
@@ -170,10 +172,12 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
 
     const mes = mesAtual(agora).replace("-", "");
     const pendentes = guiasPgfnAEntregar(emAberto.value, mes);
-    const entregaveis = await this.idsEntregaveis(destinos, emAberto.value);
-    if (!entregaveis.ok) return falha(`${descricao}: ${entregaveis.error.message}`);
+    const { entregaveis, falhas } = await this.triar(destinos, emAberto.value);
     const semDestino = emAberto.value.filter(
-      (p) => !entregaveis.value.has(p.id) && pendentes.some((g) => g.parcelamento.id === p.id),
+      (p) =>
+        !entregaveis.has(p.id) &&
+        !leituraFalhou(p, falhas) &&
+        pendentes.some((g) => g.parcelamento.id === p.id),
     );
     // A mais antiga que não puder ser lida trava as seguintes do mesmo parcelamento: a ordem se mantém.
     const travados = new Set<string>();
@@ -181,7 +185,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     const atribuidas: GuiaAtribuida[] = [];
     const reservas: { id: string; competencia: string; token: string }[] = [];
     for (const { parcelamento, competencia, caminho } of pendentes) {
-      if (!entregaveis.value.has(parcelamento.id) || travados.has(parcelamento.id)) continue;
+      if (!entregaveis.has(parcelamento.id) || travados.has(parcelamento.id)) continue;
       const pdf = await this.repetir(() =>
         reservarELerGuiaPgfn(this.pgfn, cliente.clienteId, parcelamento.id, {
           competencia,
@@ -217,6 +221,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     return {
       enviado: andamentos.some((a) => a.enviado),
       ocorrencias: [
+        ...ocorrenciasDeLeitura(descricao, falhas),
         ...this.ocorrenciasSemDestino(cliente, semDestino),
         ...andamentos.flatMap((a) => a.ocorrencias),
       ],
@@ -232,14 +237,18 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     if (!emAberto.ok) return falha(`${descricao}: ${emAberto.error.message}`);
 
     const mes = mesAtual(agora).replace("-", "");
-    const entregaveis = await this.idsEntregaveis(destinos, emAberto.value);
-    if (!entregaveis.ok) return falha(`${descricao}: ${entregaveis.error.message}`);
+    const { entregaveis, falhas } = await this.triar(destinos, emAberto.value);
     const pendente = (p: ParcelamentoDoCliente) => !p.parcelasEnviadas.includes(mes);
-    const alvos = emAberto.value.filter((p) => entregaveis.value.has(p.id));
+    const alvos = emAberto.value.filter((p) => entregaveis.has(p.id));
     const idsDosAlvos = new Set(alvos.map((p) => p.id));
     const aEntregar = alvos.filter(pendente);
-    const semDestino = emAberto.value.filter((p) => pendente(p) && !idsDosAlvos.has(p.id));
-    const ocorrencias = this.ocorrenciasSemDestino(cliente, semDestino);
+    const semDestino = emAberto.value.filter(
+      (p) => pendente(p) && !idsDosAlvos.has(p.id) && !leituraFalhou(p, falhas),
+    );
+    const ocorrencias = [
+      ...ocorrenciasDeLeitura(descricao, falhas),
+      ...this.ocorrenciasSemDestino(cliente, semDestino),
+    ];
     if (aEntregar.length === 0) return { enviado: false, ocorrencias };
 
     // Parcelas que todos os alvos já receberam: o provedor cobra cada emissão.
@@ -357,7 +366,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
       };
     }
 
-    const documento = { url: publicada.value.url, nomeArquivo: guia.nomeArquivo };
+    const documento: Guia = { url: publicada.value.url, nomeArquivo: guia.nomeArquivo };
     const andamento = parcelamento.interno
       ? await this.entregarAoFinanceiro(cliente, atribuida, documento, cnpjDoCliente, descricao)
       : await this.entregarAosDestinos(cliente, destinos, agora, atribuida, documento, descricao);
@@ -394,7 +403,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     destinos: DestinosDoCliente,
     agora: Date,
     { parcelamento, parcela }: GuiaAEntregar,
-    documento: { url: string; nomeArquivo: string },
+    documento: Guia,
     descricao: string,
   ): Promise<Andamento> {
     const doSetor = await destinos(parcelamento.setor);
@@ -420,7 +429,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
   private async entregarAoFinanceiro(
     cliente: ClienteParaParcelamento,
     { parcelamento, parcela, restantesDepois }: GuiaAEntregar,
-    documento: { url: string; nomeArquivo: string },
+    documento: Guia,
     cnpjDoCliente: () => Promise<Result<CadastroFiscalCliente, AppError>>,
     descricao: string,
   ): Promise<Andamento> {

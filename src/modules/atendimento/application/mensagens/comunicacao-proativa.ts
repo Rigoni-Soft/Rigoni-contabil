@@ -5,7 +5,7 @@ import type {
 
 const JANELA_MS = 24 * 60 * 60 * 1000;
 
-type Guia = { url: string; nomeArquivo: string };
+export type Guia = { url: string; nomeArquivo: string };
 
 // Comunicações proativas do sistema (seção 9 da spec); variáveis em docs/pesquisa/templates-whatsapp.md.
 export type ComunicacaoProativa =
