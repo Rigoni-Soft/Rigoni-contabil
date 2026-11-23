@@ -128,4 +128,17 @@ describe("ContatosDoCadastro", () => {
     expect(screen.getByText("Contato 1 salvo.")).toHaveAttribute("aria-live", "polite");
     expect(screen.getByText("Deixar de usar este contato?")).toBeInTheDocument();
   });
+
+  it("o mesmo aviso repetido muda o conteúdo da mesma região, sem remontá-la (o leitor de tela o relê)", () => {
+    const { rerender } = render(
+      <Montado linhas={comLinhas({ aviso: "Contato 1 salvo.", avisoVez: 1 })} />,
+    );
+    const regiao = screen.getByText(/Contato 1 salvo./);
+    const antes = regiao.textContent;
+
+    rerender(<Montado linhas={comLinhas({ aviso: "Contato 1 salvo.", avisoVez: 2 })} />);
+
+    expect(screen.getByText(/Contato 1 salvo./)).toBe(regiao);
+    expect(regiao.textContent).not.toBe(antes);
+  });
 });

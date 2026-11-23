@@ -44,7 +44,8 @@ export type AcoesDasLinhasDeContato = {
   numero: (indice: number) => number;
   // Confirmação dita ao leitor de tela ("Contato 1 salvo."), já que salvar só troca os botões.
   aviso?: string;
-  // Muda a cada anúncio: é a `key` da região aria-live, para o leitor de tela reler a mesma frase repetida.
+  // Muda a cada anúncio: a região aria-live segue montada e a vez ímpar acrescenta um caractere invisível,
+  // para o leitor de tela anunciar de novo a mesma frase repetida.
   avisoVez?: number;
   erroDaLinha: (indice: number) => string | undefined;
   onEditar: (indice: number) => void;
@@ -79,7 +80,13 @@ export function ContatosDoCadastro({
       <Linha alinhar="centro" justificar="entre" espaco={4}>
         <Label className="block">Contatos</Label>
         {!readOnly && (
-          <Button type="button" variant="ghost" size="sm" onClick={onAdicionar}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="pointer-coarse:h-11"
+            onClick={onAdicionar}
+          >
             <Plus className="size-4" aria-hidden="true" />
             Adicionar contato
           </Button>
@@ -133,8 +140,9 @@ export function ContatosDoCadastro({
           />
         ),
       )}
-      <Texto key={linhas.avisoVez} variante="nota" aria-live="polite" className="sr-only">
+      <Texto variante="nota" aria-live="polite" className="sr-only">
         {linhas.aviso}
+        {(linhas.avisoVez ?? 0) % 2 === 1 && "​"}
       </Texto>
       {errors.contatos && typeof errors.contatos.message === "string" && (
         <FieldError>{errors.contatos.message}</FieldError>

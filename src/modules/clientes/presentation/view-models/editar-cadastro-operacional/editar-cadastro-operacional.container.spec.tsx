@@ -816,7 +816,8 @@ describe("EditarCadastroOperacionalContainer", () => {
 
     expect(await screen.findByRole("button", { name: "Remover contato 1" })).toBeInTheDocument();
     expect(screen.getByLabelText(/^nome/i)).toHaveAttribute("readonly");
-    expect(screen.getByText("Contato 1 salvo.")).toHaveAttribute("aria-live", "polite");
+    // A vez ímpar acrescenta um caractere invisível ao aviso, por isso o texto casa por trecho.
+    expect(screen.getByText(/Contato 1 salvo\./)).toHaveAttribute("aria-live", "polite");
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Editar contato 1" })).toHaveFocus(),
     );

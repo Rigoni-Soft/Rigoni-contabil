@@ -32,6 +32,29 @@ describe("EscolhaDeContato", () => {
     expect(opcoes).toEqual(["Escolher contato", "(11) 99999-0000", "+ Cadastrar novo"]);
   });
 
+  it("dois contatos com o mesmo nome aparecem com o que os distingue", () => {
+    const iguais: ExistentesDaLinha = {
+      ...EXISTENTES,
+      opcoes: [
+        { id: "c-1", nome: "Ana", telefone: "(11) 99999-0000", email: "" },
+        { id: "c-2", nome: "Ana", telefone: "", email: "ana2@exemplo.com" },
+        { id: "c-3", nome: "Bia", telefone: "", email: "bia@exemplo.com" },
+      ],
+    };
+    render(<EscolhaDeContato indice={0} existentes={iguais} erros={{}} />);
+
+    const nomes = Array.from(screen.getByLabelText(/^Nome/).querySelectorAll("option")).map(
+      (o) => o.textContent,
+    );
+    expect(nomes).toEqual([
+      "Escolher contato",
+      "Ana ((11) 99999-0000)",
+      "Ana (ana2@exemplo.com)",
+      "Bia",
+      "+ Cadastrar novo",
+    ]);
+  });
+
   it("escolher um contato chama onEscolher com o id dele", async () => {
     const usuario = userEvent.setup();
     render(<EscolhaDeContato indice={0} existentes={EXISTENTES} erros={{}} />);

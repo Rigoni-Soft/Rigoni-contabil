@@ -27,6 +27,20 @@ const CAMPOS: { campo: CampoEscolhido; rotulo: string }[] = [
   { campo: "email", rotulo: "E-mail" },
 ];
 
+type Existente = ExistentesDaLinha["opcoes"][number];
+
+// O valor do campo; quando outro contato tem o mesmo valor (dois "Ana"), acrescenta o que os distingue (o
+// WhatsApp ou o e-mail; no Nome e no E-mail, o contato inteiro é identificado pelo outro dado).
+function rotuloDaOpcao(todos: Existente[], opcao: Existente, campo: CampoEscolhido): string {
+  const valor = opcao[campo];
+  const repetido = todos.some((o) => o.id !== opcao.id && o[campo].trim() === valor.trim());
+  if (!repetido) return valor;
+  const distintivo = [opcao.telefone, opcao.email, opcao.nome].find(
+    (dado) => dado.trim() && dado.trim() !== valor.trim(),
+  );
+  return distintivo ? `${valor} (${distintivo})` : valor;
+}
+
 // Nome, WhatsApp e E-mail da linha nova como seleções: cada uma lista o que esse campo tem nos contatos já
 // cadastrados, mais "Cadastrar novo". Escolher um contato preenche a linha; "Cadastrar novo" em qualquer um
 // dos três troca os três por campos de texto.
@@ -43,7 +57,10 @@ export function EscolhaDeContato({ indice, existentes, erros }: EscolhaDeContato
           opcoes={[
             ...existentes.opcoes
               .filter((opcao) => opcao[campo].trim())
-              .map((opcao) => ({ valor: opcao.id, rotulo: opcao[campo] })),
+              .map((opcao) => ({
+                valor: opcao.id,
+                rotulo: rotuloDaOpcao(existentes.opcoes, opcao, campo),
+              })),
             { valor: OPCAO_CADASTRAR_NOVO, rotulo: "+ Cadastrar novo" },
           ]}
           placeholder="Escolher contato"
