@@ -15,7 +15,7 @@ type Entrada = {
   canal?: string;
 };
 
-export type Gravacao = {
+type Gravacao = {
   id?: string;
   // O contato (os campos) já está gravado, mesmo que os envios tenham falhado.
   camposGravados: boolean;
@@ -39,12 +39,9 @@ export function useGravarContatoDaLinha(clienteId: string) {
       if (!gravarEnvios || !id) return { id, camposGravados: gravarCampos };
       const envios = await definirTiposDoContatoAction({ clienteId, contatoId: id, tipos, canal });
       if (envios.ok) return { id, camposGravados: gravarCampos };
-      const mensagem = envios.error.message;
-      return {
-        id,
-        camposGravados: gravarCampos,
-        falha: gravarCampos ? `Contato salvo, mas os envios não: ${mensagem}` : mensagem,
-      };
+      const { message } = envios.error;
+      const falha = gravarCampos ? `Contato salvo, mas os envios não: ${message}` : message;
+      return { id, camposGravados: gravarCampos, falha };
     },
     [clienteId],
   );

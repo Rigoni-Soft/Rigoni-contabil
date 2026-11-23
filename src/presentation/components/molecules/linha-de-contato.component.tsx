@@ -4,6 +4,7 @@ import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.c
 import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { CampoDeTexto } from "@/presentation/components/molecules/campo-de-texto.component";
+import { ConfirmacaoEmLinha } from "@/presentation/components/molecules/confirmacao-em-linha.component";
 import {
   EnviosDoContato,
   type EnviosDaLinha,
@@ -250,28 +251,20 @@ export function LinhaDeContato({
         )}
         {confirmacaoDeRemocao && (
           <Linha alinhar="centro" espaco={3} quebra className="basis-full">
-            <AvisoDeStatus tipo="atencao" legivel texto={confirmacaoDeRemocao.texto} />
-            <Button
-              id={`contatos.${indice}.confirmar-remocao`}
-              type="button"
-              variant="destructive"
-              size="sm"
-              className={`pointer-coarse:h-11 ${BOTAO_OCUPADO}`}
-              aria-disabled={salvando || undefined}
-              onClick={() => !salvando && confirmacaoDeRemocao.onConfirmar()}
-            >
-              Deixar de usar
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className={`pointer-coarse:h-11 ${BOTAO_OCUPADO}`}
-              aria-disabled={salvando || undefined}
-              onClick={() => !salvando && confirmacaoDeRemocao.onCancelar()}
-            >
-              Manter
-            </Button>
+            <ConfirmacaoEmLinha
+              texto={confirmacaoDeRemocao.texto}
+              rotuloDoConfirmar="Deixar de usar"
+              rotuloEmCurso="Deixando de usar…"
+              nomeDoConfirmar="Deixar de usar"
+              nomeDoCancelar="Manter"
+              rotuloDoCancelar="Manter"
+              focoInicial="confirmar"
+              destrutiva
+              emCurso={Boolean(salvando)}
+              ocupado={Boolean(salvando)}
+              onConfirmar={() => !salvando && confirmacaoDeRemocao.onConfirmar()}
+              onCancelar={() => !salvando && confirmacaoDeRemocao.onCancelar()}
+            />
           </Linha>
         )}
         {numeroRepetido && !escolha && (

@@ -1,12 +1,15 @@
 import { temOsDoisCanais } from "@/shared/kernel/forma-envio";
 import { chaveDoTelefone } from "@/shared/kernel/telefone";
 
-import { emBranco, type ValoresDaLinha } from "./contato-da-linha.presenter";
+import {
+  contatoDoMesmoNumero,
+  emBranco,
+  textoDoNumeroRepetido,
+  type ValoresDaLinha,
+} from "./contato-da-linha.presenter";
 import {
   avisoDeCanalPerdido,
-  contatoDoMesmoNumero,
   OPCOES_DE_CANAL,
-  textoDoNumeroRepetido,
   type opcoesDeTipos,
 } from "./tipos-de-envio.presenter";
 

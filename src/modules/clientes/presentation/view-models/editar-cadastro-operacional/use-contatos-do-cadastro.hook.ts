@@ -7,6 +7,8 @@ import { chaveDoTelefone } from "@/shared/kernel/telefone";
 
 import {
   camposMudaram,
+  contatoDoSetor,
+  contatoEditavel,
   emBranco,
   enviosMudaram,
   instantaneoDe,
@@ -21,12 +23,7 @@ import {
   existentesDaLinha,
   numeroRepetidoDaLinha,
 } from "./opcoes-da-linha.presenter";
-import {
-  contatoDoSetor,
-  contatoEditavel,
-  opcoesDeTipos,
-  tiposAposAlternar,
-} from "./tipos-de-envio.presenter";
+import { opcoesDeTipos, tiposAposAlternar } from "./tipos-de-envio.presenter";
 import { useAvisoAnunciado } from "./use-aviso-anunciado.hook";
 import { useDeixarDeUsarContato } from "./use-deixar-de-usar-contato.hook";
 import { useFocoPendente } from "./use-foco-pendente.hook";
@@ -138,16 +135,21 @@ export function useContatosDoCadastro({
     if (salvando !== null || !id) return;
     setFalha(null);
     setSalvando(indice);
-    const resultado = await deixarDeUsarContato(id);
-    setSalvando(null);
-    if (!resultado.ok) return setFalha({ indice, mensagem: resultado.mensagem });
-    anunciar(`Contato ${numero(indice)} deixou de ser usado por este Setor.`);
-    setValue(`contatos.${indice}.tipos`, []);
-    alterar(chaveDe(indice), { dispensado: true, confirmando: false });
+    try {
+      const resultado = await deixarDeUsarContato(id);
+      if (!resultado.ok) return setFalha({ indice, mensagem: resultado.mensagem });
+      anunciar(`Contato ${numero(indice)} deixou de ser usado por este Setor.`);
+      setValue(`contatos.${indice}.tipos`, []);
+      alterar(chaveDe(indice), { dispensado: true, confirmando: false });
+    } catch (erro) {
+      console.error("Falha ao deixar de usar o contato", erro);
+      setFalha({ indice, mensagem: mensagemDaFalha(erro) });
+    } finally {
+      setSalvando(null);
+    }
   };
   const perguntarSeDeixaDeUsar = (indice: number) => {
     alterar(chaveDe(indice), { confirmando: true });
-    focar(`contatos.${indice}.confirmar-remocao`);
   };
   const manterOContato = (indice: number) => {
     alterar(chaveDe(indice), { confirmando: false });

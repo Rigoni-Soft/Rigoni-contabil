@@ -37,9 +37,7 @@ function rotuloDoCanal({ opcoes, valor }: NonNullable<EnviosDaLinha["canal"]>): 
 // "Todos os envios" já diz tudo: os tipos marcados junto dele não se repetem.
 function enviosEmTexto({ opcoes, marcados }: EnviosDaLinha): string {
   if (marcados.length === 0) return "nenhum envio";
-  const rotulos = opcoes
-    .filter((opcao) => marcados.includes(opcao.valor))
-    .map((opcao) => ({ valor: opcao.valor, rotulo: opcao.rotulo }));
+  const rotulos = opcoes.filter((opcao) => marcados.includes(opcao.valor));
   const todos = rotulos.find((r) => r.valor === TIPO_TODOS_OS_ENVIOS);
   return todos ? todos.rotulo : rotulos.map((r) => r.rotulo).join(", ");
 }

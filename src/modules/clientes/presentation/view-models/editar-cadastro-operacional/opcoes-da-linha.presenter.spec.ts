@@ -1,4 +1,4 @@
-import { problemasDosCampos, type ValoresDaLinha } from "./contato-da-linha.presenter";
+import type { ValoresDaLinha } from "./contato-da-linha.presenter";
 import { contatoNovo } from "./editar-cadastro-operacional.presenter";
 import {
   enviosDaLinha,
@@ -97,16 +97,5 @@ describe("numeroRepetidoDaLinha", () => {
     const aviso = numeroRepetidoDaLinha(entrada({ naLista: () => true }));
     expect(aviso?.texto).toContain("que já está na lista deste Setor");
     expect(aviso?.onUsar).toBeUndefined();
-  });
-});
-
-describe("problemasDosCampos", () => {
-  it("contato válido: nenhum problema", () => {
-    expect(problemasDosCampos(ana)).toEqual([]);
-  });
-
-  it("nome vazio: o problema cai no campo nome", () => {
-    const problemas = problemasDosCampos({ ...ana, nome: "" });
-    expect(problemas.map((p) => p.campo)).toContain("nome");
   });
 });

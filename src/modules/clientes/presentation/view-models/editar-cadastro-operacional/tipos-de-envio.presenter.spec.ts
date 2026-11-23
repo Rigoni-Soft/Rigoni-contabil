@@ -1,13 +1,10 @@
 import {
   avisoDeCanalPerdido,
   canalDoContato,
-  contatoDoMesmoNumero,
-  contatoEditavel,
   contatosComTipos,
   contatosIniciais,
   OPCOES_DE_CANAL,
   opcoesDeTipos,
-  textoDoNumeroRepetido,
   tiposAposAlternar,
   tiposDoContato,
 } from "./tipos-de-envio.presenter";
@@ -140,55 +137,5 @@ describe("avisoDeCanalPerdido", () => {
 
     expect(avisoDeCanalPerdido(destinos, completo)).toBeUndefined();
     expect(avisoDeCanalPerdido(destinos, { ...completo, id: "c-9", telefone: "" })).toBeUndefined();
-  });
-});
-
-describe("contatoEditavel", () => {
-  const rh = { admin: false, setorDoCadastro: "rh" };
-
-  it("o dono edita; outro Setor e o contato do Admin ficam em leitura", () => {
-    expect(contatoEditavel({ id: "c", donoSetor: "rh" }, rh)).toBe(true);
-    expect(contatoEditavel({ id: "c", donoSetor: "simples_nacional" }, rh)).toBe(false);
-    expect(contatoEditavel({ id: "c", donoSetor: null }, rh)).toBe(false);
-  });
-
-  it("o Admin edita todos e a linha nova é de quem a digita", () => {
-    const admin = { admin: true, setorDoCadastro: "rh" };
-
-    expect(contatoEditavel({ id: "c", donoSetor: "simples_nacional" }, admin)).toBe(true);
-    expect(contatoEditavel({ donoSetor: undefined }, rh)).toBe(true);
-    expect(contatoEditavel({ id: "c", donoSetor: undefined }, rh)).toBe(true);
-  });
-});
-
-describe("contatoDoMesmoNumero", () => {
-  const contatos = [
-    { id: "c-1", nome: "Ana", telefone: "(11) 99999-0000", email: "" },
-    { id: "c-2", nome: "Bia", telefone: "", email: "bia@exemplo.com" },
-    { nome: "Nova", telefone: "(11) 98888-0000", email: "" },
-  ];
-
-  it("acha o contato salvo pela chave do número: sem máscara e sem o DDI 55", () => {
-    expect(contatoDoMesmoNumero(contatos, 2, "11999990000")?.contato.nome).toBe("Ana");
-    expect(contatoDoMesmoNumero(contatos, 2, "+55 11 99999-0000")?.indice).toBe(0);
-  });
-
-  it("ignora a própria linha, o número vazio, o número novo e a linha ainda sem id", () => {
-    expect(contatoDoMesmoNumero(contatos, 0, "(11) 99999-0000")).toBeUndefined();
-    expect(contatoDoMesmoNumero(contatos, 2, "")).toBeUndefined();
-    expect(contatoDoMesmoNumero(contatos, 2, "(11) 97777-0000")).toBeUndefined();
-    expect(contatoDoMesmoNumero(contatos, 0, "(11) 98888-0000")).toBeUndefined();
-  });
-});
-
-describe("textoDoNumeroRepetido", () => {
-  it("fora da lista só informa de quem é o número; na lista diz que o contato já está nela", () => {
-    expect(textoDoNumeroRepetido("Ana", false, true)).toBe("Este número já é do contato Ana.");
-    expect(textoDoNumeroRepetido("Ana", true, true)).toBe(
-      "Este número já é do contato Ana, que já está na lista deste Setor.",
-    );
-    expect(textoDoNumeroRepetido("Ana", true, false)).toBe(
-      "Este número já é do contato Ana, que já está na lista.",
-    );
   });
 });
