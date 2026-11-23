@@ -101,4 +101,17 @@ describe("EnviosDoContato", () => {
     );
     expect(screen.getByText("O contato deixou de ter o e-mail.")).toBeInTheDocument();
   });
+
+  it("o aviso descreve o grupo e o 'Enviar por', para quem navega por controles", () => {
+    montar({ ...ENVIOS, canal: CANAL, aviso: "O contato deixou de ter o e-mail." }, true);
+
+    const aviso = screen.getByText("O contato deixou de ter o e-mail.");
+    expect(aviso.closest("[id]")).toHaveAttribute("id", "contatos.0.envios-aviso");
+    expect(screen.getByRole("group", { name: "Envios do contato 1" })).toHaveAccessibleDescription(
+      "O contato deixou de ter o e-mail.",
+    );
+    expect(screen.getByLabelText(/^Enviar por/)).toHaveAccessibleDescription(
+      "O contato deixou de ter o e-mail.",
+    );
+  });
 });

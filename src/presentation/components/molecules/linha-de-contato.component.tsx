@@ -66,11 +66,12 @@ type LinhaDeContatoProps = {
 };
 
 // Botões na altura do input: o espaçador invisível ocupa o lugar do rótulo, e a mensagem de erro
-// sob o campo não os empurra.
+// sob o campo não os empurra. No celular os campos ocupam a linha toda e os botões descem para a linha de
+// baixo: sem rótulo ao lado, o espaçador não tem o que alinhar e só deixaria folga.
 function AcoesDaLinha({ children }: { children: React.ReactNode }) {
   return (
     <Pilha espaco="campo">
-      <Label aria-hidden="true" className="invisible">
+      <Label aria-hidden="true" className="invisible max-sm:hidden">
         &nbsp;
       </Label>
       <Linha alinhar="centro" espaco={1} className="h-9 pointer-coarse:h-11">
@@ -253,6 +254,7 @@ export function LinhaDeContato({
           <Linha alinhar="centro" espaco={3} quebra className="basis-full">
             <ConfirmacaoEmLinha
               texto={confirmacaoDeRemocao.texto}
+              idDoTexto={`contatos.${indice}.confirmacao-texto`}
               rotuloDoConfirmar="Deixar de usar"
               rotuloEmCurso="Deixando de usar…"
               nomeDoConfirmar="Deixar de usar"

@@ -4,6 +4,8 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 type ConfirmacaoEmLinhaProps = {
   // O que vai acontecer, dito antes (anunciado como alerta ao abrir).
   texto: React.ReactNode;
+  // Liga a pergunta aos botões (aria-describedby): o foco que abre no botão ainda faz o leitor de tela ler o texto.
+  idDoTexto?: string;
   rotuloDoConfirmar: string;
   rotuloEmCurso: string;
   nomeDoConfirmar: string;
@@ -25,6 +27,7 @@ type ConfirmacaoEmLinhaProps = {
 // gesto seguro para quem abriu sem querer (`focoInicial` o leva ao confirmar quando o DESIGN.md pede).
 export function ConfirmacaoEmLinha({
   texto,
+  idDoTexto,
   rotuloDoConfirmar,
   rotuloEmCurso,
   nomeDoConfirmar,
@@ -39,7 +42,7 @@ export function ConfirmacaoEmLinha({
 }: ConfirmacaoEmLinhaProps) {
   return (
     <>
-      <Texto variante="corpo" role="alert" className="basis-full">
+      <Texto variante="corpo" role="alert" id={idDoTexto} className="basis-full">
         {texto}
       </Texto>
       <BotaoDaGuia
@@ -48,6 +51,7 @@ export function ConfirmacaoEmLinha({
         autoFocus={focoInicial === "confirmar"}
         onClick={onConfirmar}
         aria-label={nomeDoConfirmar}
+        aria-describedby={idDoTexto}
       >
         {emCurso ? rotuloEmCurso : rotuloDoConfirmar}
       </BotaoDaGuia>
@@ -56,6 +60,7 @@ export function ConfirmacaoEmLinha({
         autoFocus={focoInicial === "cancelar"}
         onClick={onCancelar}
         aria-label={nomeDoCancelar}
+        aria-describedby={idDoTexto}
       >
         {rotuloDoCancelar}
       </BotaoDaGuia>

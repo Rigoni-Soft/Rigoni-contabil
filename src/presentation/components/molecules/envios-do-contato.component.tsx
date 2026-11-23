@@ -46,10 +46,13 @@ function enviosEmTexto({ opcoes, marcados }: EnviosDaLinha): string {
 // checkboxes; fora da edição, a mesma informação em texto (checkbox esmaecido não se lê).
 export function EnviosDoContato({ indice, numero, envios, editando }: EnviosDoContatoProps) {
   const idDoRotulo = `contatos.${indice}.envios-rotulo`;
+  // O aviso de canal perdido descreve o grupo e o "Enviar por": quem navega por controles também o ouve.
+  const idDoAviso = envios.aviso ? `contatos.${indice}.envios-aviso` : undefined;
   return (
     <Caixa
       como="fieldset"
       aria-labelledby={idDoRotulo}
+      aria-describedby={idDoAviso}
       className="flex basis-full flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-2"
     >
       <Texto variante="somenteLeitor" como="span" id={idDoRotulo}>
@@ -84,6 +87,7 @@ export function EnviosDoContato({ indice, numero, envios, editando }: EnviosDoCo
             placeholder="Escolher"
             placeholderDesabilitado
             erro={envios.canal.erro}
+            aria-describedby={idDoAviso}
             className="min-w-[12rem] gap-1"
             value={envios.canal.valor}
             onChange={(evento) => envios.canal?.onMudar(evento.target.value)}
@@ -93,7 +97,7 @@ export function EnviosDoContato({ indice, numero, envios, editando }: EnviosDoCo
             Enviar por: {rotuloDoCanal(envios.canal)}
           </Texto>
         ))}
-      {envios.aviso && <AvisoDeStatus tipo="atencao" legivel texto={envios.aviso} />}
+      {envios.aviso && <AvisoDeStatus tipo="atencao" legivel id={idDoAviso} texto={envios.aviso} />}
     </Caixa>
   );
 }
