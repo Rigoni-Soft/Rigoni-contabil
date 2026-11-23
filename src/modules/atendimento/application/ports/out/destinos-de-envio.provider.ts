@@ -20,7 +20,9 @@ export type DestinoDeEnvio = {
   motivoInvalido: MotivoDeDestinoInvalido | null;
 };
 
-export const destinoValido = (destino: DestinoDeEnvio) => destino.motivoInvalido === null;
+// Sem nenhum Destino válido não há para quem enviar.
+export const haDestinoValido = (destinos: DestinoDeEnvio[]) =>
+  destinos.some((destino) => destino.motivoInvalido === null);
 
 export interface DestinosDeEnvioPort {
   // Quem recebe o envio do `tipo` do Setor para o Cliente: os Destinos do tipo e, sem nenhum, os de

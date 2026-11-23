@@ -31,7 +31,7 @@ import type {
 } from "@/modules/atendimento/application/ports/out/cliente-cnpj.provider";
 import type { ClienteParaParcelamento } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
 import {
-  destinoValido,
+  haDestinoValido,
   type DestinoDeEnvio,
   type DestinosDeEnvioPort,
 } from "@/modules/atendimento/application/ports/out/destinos-de-envio.provider";
@@ -152,7 +152,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     if (interno) return ok(Boolean(this.financeiro.telefone));
     const doSetor = await destinos(setor);
     if (!doSetor.ok) return doSetor;
-    return ok(doSetor.value.some(destinoValido));
+    return ok(haDestinoValido(doSetor.value));
   }
 
   // Destinos do Cliente por Setor, lidos uma vez por Cliente (a mesma leitura serve à triagem e à
@@ -173,23 +173,47 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     cliente: ClienteParaParcelamento,
     semDestino: ParcelamentoDoCliente[],
   ): OcorrenciaDeEntrega[] {
-    const ocorrencias: OcorrenciaDeEntrega[] = [];
-    for (const [setor, doSetor] of Map.groupBy(semDestino, (p) => p.setor)) {
-      const internos = doSetor.filter((p) => p.interno);
-      if (internos.length > 0) {
-        ocorrencias.push({
-          tipo: "financeiro_ausente",
-          setor,
-          mensagem: `Parcelamento ${internos.map((p) => p.codigo).join(", ")} de ${cliente.empresa}: sem telefone do financeiro (FINANCEIRO_TELEFONE).`,
-        });
-      }
-      if (doSetor.some((p) => !p.interno)) {
-        ocorrencias.push(
-          ...semDestinatario(cliente.empresa, setor, "guia_parcelamento").ocorrencias,
-        );
-      }
-    }
-    return ocorrencias;
+    return [...Map.groupBy(semDestino, (p) => p.setor)].flatMap(([setor, doSetor]) =>
+      this.ocorrenciasDoSetor(cliente, setor, doSetor),
+    );
+  }
+
+  private ocorrenciasDoSetor(
+    cliente: ClienteParaParcelamento,
+    setor: SetorSlug,
+    doSetor: ParcelamentoDoCliente[],
+  ): OcorrenciaDeEntrega[] {
+    const internos = doSetor.filter((p) => p.interno);
+    const semFinanceiro: OcorrenciaDeEntrega[] = [
+      {
+        tipo: "financeiro_ausente",
+        setor,
+        mensagem: `Parcelamento ${internos.map((p) => p.codigo).join(", ")} de ${cliente.empresa}: sem telefone do financeiro (FINANCEIRO_TELEFONE).`,
+      },
+    ];
+    return [
+      ...(internos.length > 0 ? semFinanceiro : []),
+      ...(doSetor.some((p) => !p.interno)
+        ? semDestinatario(cliente.empresa, setor, "guia_parcelamento").ocorrencias
+        : []),
+    ];
+  }
+
+  // As ocorrências da triagem do Setor: a leitura que falhou e o parcelamento pendente sem para
+  // quem enviar. Os dois fluxos (Receita e PGFN) diferem só no que conta como pendente.
+  private ocorrenciasDeTriagem(
+    cliente: ClienteParaParcelamento,
+    descricao: string,
+    emAberto: ParcelamentoDoCliente[],
+    pendente: (p: ParcelamentoDoCliente) => boolean,
+    { entregaveis, falhas }: Triagem,
+  ): OcorrenciaDeEntrega[] {
+    const pendentes = emAberto.filter(pendente);
+    const semDestino = pendentes.filter((p) => !entregaveis.has(p.id) && !leituraFalhou(p, falhas));
+    return [
+      ...ocorrenciasDeLeitura(descricao, falhas, pendentes),
+      ...this.ocorrenciasSemDestino(cliente, semDestino),
+    ];
   }
 
   private async enviarPgfn(
@@ -203,13 +227,8 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     const mes = mesAtual(agora).replace("-", "");
     const pendentes = guiasPgfnAEntregar(emAberto.value, mes);
     if (pendentes.length === 0) return SEM_ANDAMENTO;
-    const { entregaveis, falhas } = await this.triar(destinos, emAberto.value);
-    const semDestino = emAberto.value.filter(
-      (p) =>
-        !entregaveis.has(p.id) &&
-        !leituraFalhou(p, falhas) &&
-        pendentes.some((g) => g.parcelamento.id === p.id),
-    );
+    const triagem = await this.triar(destinos, emAberto.value);
+    const { entregaveis } = triagem;
     // A mais antiga que não puder ser lida trava as seguintes do mesmo parcelamento: a ordem se mantém.
     const travados = new Set<string>();
     const andamentos: Andamento[] = [];
@@ -252,12 +271,13 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     return {
       enviado: andamentos.some((a) => a.enviado),
       ocorrencias: [
-        ...ocorrenciasDeLeitura(
+        ...this.ocorrenciasDeTriagem(
+          cliente,
           descricao,
-          falhas,
-          pendentes.map((g) => g.parcelamento),
+          emAberto.value,
+          (p) => pendentes.some((g) => g.parcelamento.id === p.id),
+          triagem,
         ),
-        ...this.ocorrenciasSemDestino(cliente, semDestino),
         ...andamentos.flatMap((a) => a.ocorrencias),
       ],
     };
@@ -274,17 +294,17 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     const mes = mesAtual(agora).replace("-", "");
     const pendente = (p: ParcelamentoDoCliente) => !p.parcelasEnviadas.includes(mes);
     if (!emAberto.value.some(pendente)) return SEM_ANDAMENTO;
-    const { entregaveis, falhas } = await this.triar(destinos, emAberto.value);
-    const alvos = emAberto.value.filter((p) => entregaveis.has(p.id));
+    const triagem = await this.triar(destinos, emAberto.value);
+    const alvos = emAberto.value.filter((p) => triagem.entregaveis.has(p.id));
     const idsDosAlvos = new Set(alvos.map((p) => p.id));
     const aEntregar = alvos.filter(pendente);
-    const semDestino = emAberto.value.filter(
-      (p) => pendente(p) && !idsDosAlvos.has(p.id) && !leituraFalhou(p, falhas),
+    const ocorrencias = this.ocorrenciasDeTriagem(
+      cliente,
+      descricao,
+      emAberto.value,
+      pendente,
+      triagem,
     );
-    const ocorrencias = [
-      ...ocorrenciasDeLeitura(descricao, falhas, emAberto.value.filter(pendente)),
-      ...this.ocorrenciasSemDestino(cliente, semDestino),
-    ];
     if (aEntregar.length === 0) return { enviado: false, ocorrencias };
 
     // Parcelas que todos os alvos já receberam: o provedor cobra cada emissão.

@@ -23,7 +23,7 @@ import type {
   ClientesParaLembretePort,
 } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import {
-  destinoValido,
+  haDestinoValido,
   type DestinoDeEnvio,
   type DestinosDeEnvioPort,
 } from "@/modules/atendimento/application/ports/out/destinos-de-envio.provider";
@@ -104,40 +104,47 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     ];
   }
 
-  // Quem recebe o envio do tipo no Setor; `saida` é o Andamento quando a leitura falha ou o Setor
-  // não tem Destino válido (alerta `contato_ausente`).
-  private async destinosDe(
+  // Segue com os Destinos do tipo no Setor; se a leitura falha ou o Setor não tem Destino válido
+  // (alerta `contato_ausente`), devolve o Andamento disso sem seguir.
+  private async comDestinos(
     cliente: ClienteParaLembrete,
     tipo: TipoDeEnvio,
-  ): Promise<{ destinos: DestinoDeEnvio[] } | { saida: Andamento }> {
+    seguir: (destinos: DestinoDeEnvio[]) => Promise<Andamento>,
+  ): Promise<Andamento> {
     const resolvidos = await this.destinos.resolver(cliente.clienteId, SETOR_SN, tipo);
-    if (!resolvidos.ok) return { saida: falha(`${cliente.empresa}: ${resolvidos.error.message}`) };
-    if (!resolvidos.value.some(destinoValido)) {
-      return { saida: semDestinatario(cliente.empresa, SETOR_SN, tipo) };
-    }
-    return { destinos: resolvidos.value };
+    if (!resolvidos.ok) return falha(`${cliente.empresa}: ${resolvidos.error.message}`);
+    if (!haDestinoValido(resolvidos.value)) return semDestinatario(cliente.empresa, SETOR_SN, tipo);
+    return seguir(resolvidos.value);
   }
 
-  private async lembrar(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
-    const destinos = await this.destinosDe(cliente, "lembrete_documento");
-    if ("saida" in destinos) return destinos.saida;
+  private lembrar(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
     const comunicacao: ComunicacaoSemContato = {
       tipo: "lembrete_documento_obrigatorio",
       empresa: cliente.empresa,
     };
-    return this.entregar(cliente, destinos.destinos, comunicacao, agora);
+    return this.comDestinos(cliente, "lembrete_documento", (destinos) =>
+      this.entregar(cliente, destinos, comunicacao, agora),
+    );
   }
 
-  private async enviarDas(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
-    // Sem para quem enviar não vale buscar a guia nem reservar o DAS.
-    const destinos = await this.destinosDe(cliente, "das");
-    if ("saida" in destinos) return destinos.saida;
+  // Sem para quem enviar não vale buscar a guia nem reservar o DAS.
+  private enviarDas(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
+    return this.comDestinos(cliente, "das", (destinos) =>
+      this.reservarEEntregarDas(cliente, destinos, agora),
+    );
+  }
+
+  private reservarEEntregarDas(
+    cliente: ClienteParaLembrete,
+    destinos: DestinoDeEnvio[],
+    agora: Date,
+  ): Promise<Andamento> {
     // O PDF publicado fica no Storage mesmo se a entrega falhar: só o envio aceito guarda o caminho.
     const publicado: { caminho?: string } = {};
     return entregarComReserva({
       descricao: `DAS de ${cliente.empresa}`,
       reservar: () => this.clientes.reservarDas(cliente.clienteId),
-      entregar: () => this.entregarGuia(cliente, destinos.destinos, agora, publicado),
+      entregar: () => this.entregarGuia(cliente, destinos, agora, publicado),
       concluir: async (token) =>
         publicado.caminho
           ? this.clientes.concluirDas(cliente.clienteId, token, hojeIso(agora), publicado.caminho)
