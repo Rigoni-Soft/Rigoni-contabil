@@ -109,10 +109,9 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
   }
 
   // O comum vai aos Destinos de guia de parcelamento do Setor do Parcelamento (SN ou RH); o interno,
-  // ao financeiro. Sem para quem enviar, o parcelamento segue pendente e o setor é avisado; o outro
-  // destino não depende deste.
-  // A leitura que falha vale só para o Setor dela: o interno não lê Destinos e os outros Setores
-  // seguem. O parcelamento comum desse Setor segue pendente, com falha_envio (não contato_ausente).
+  // ao financeiro. A leitura que falha vale só para o Setor dela: o interno não lê Destinos e os
+  // outros Setores seguem. O parcelamento comum desse Setor segue pendente, com falha_envio (não
+  // contato_ausente).
   private async triar(
     destinos: DestinosDoCliente,
     parcelamentos: ParcelamentoDoCliente[],
@@ -132,13 +131,15 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
   private destinosDoCliente(clienteId: string): DestinosDoCliente {
     const lidos = new Map<SetorSlug, Promise<Result<DestinoDeEnvio[], AppError>>>();
     return (setor) => {
-      const lido =
-        lidos.get(setor) ?? this.destinos.resolver(clienteId, setor, "guia_parcelamento");
-      lidos.set(setor, lido);
-      return lido;
+      if (!lidos.has(setor)) {
+        lidos.set(setor, this.destinos.resolver(clienteId, setor, "guia_parcelamento"));
+      }
+      return lidos.get(setor)!;
     };
   }
 
+  // Sem para quem enviar, o parcelamento segue pendente e o setor é avisado; o outro destino não
+  // depende deste.
   private ocorrenciasSemDestino(
     cliente: ClienteParaParcelamento,
     semDestino: ParcelamentoDoCliente[],
