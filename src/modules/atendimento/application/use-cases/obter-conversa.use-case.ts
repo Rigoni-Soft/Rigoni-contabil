@@ -15,6 +15,7 @@ import type {
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { DocumentosContratuaisPort } from "@/modules/atendimento/application/ports/out/documentos-contratuais.provider";
 import type { SessaoPort } from "@/modules/atendimento/application/ports/out/sessao.provider";
+import { podeCadastrarContatoUra } from "@/modules/atendimento/domain/services/contato-ura.service";
 import { descreverDocumento } from "@/modules/atendimento/domain/services/documento-contratual.service";
 import {
   CONVERSA_JANELA_MENSAGENS,
@@ -69,6 +70,10 @@ export class ObterConversa implements ObterConversaPort {
       atendimentoId: conversa.id,
       encerrado,
       podeAtender: podeAgir,
+      podeCadastrarContato:
+        podeAgir &&
+        podeCadastrarContatoUra(ator, conversa) &&
+        conversa.contato.contatoNome === null,
       telefone: conversa.telefone,
       contato: conversa.contato,
       clienteVinculado: conversa.clienteId !== null,

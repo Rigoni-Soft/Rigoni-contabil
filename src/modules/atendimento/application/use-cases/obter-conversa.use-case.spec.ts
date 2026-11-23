@@ -245,6 +245,7 @@ describe("ObterConversa", () => {
         atendimentoId: "at-1",
         encerrado: false,
         podeAtender: true,
+        podeCadastrarContato: false,
         telefone: "5561988887777",
         contato: CONTATO,
         clienteVinculado: true,
@@ -276,6 +277,33 @@ describe("ObterConversa", () => {
     expect(r.ok && r.value.setoresDestino).not.toContain("contabil");
     expect(r.ok && r.value.setoresDestino).not.toContain("simples_nacional");
     expect(listados).toEqual(["cli-1"]);
+  });
+
+  it("oferece cadastrar contato só ao dono da Recepção com o número sem contato", async () => {
+    const recepcao: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "recepcao" };
+    const naoVinculado = {
+      ...CONVERSA,
+      setor: "recepcao" as const,
+      contato: { contatoNome: null, empresa: null, cnpj: null },
+    };
+    const dono = await montar(recepcao, naoVinculado).caso.execute({ atendimentoId: "at-1" });
+    expect(dono.ok && dono.value.podeCadastrarContato).toBe(true);
+
+    const jaContato = await montar(recepcao, { ...naoVinculado, contato: CONTATO }).caso.execute({
+      atendimentoId: "at-1",
+    });
+    expect(jaContato.ok && jaContato.value.podeCadastrarContato).toBe(false);
+
+    const encerrado = await montar(recepcao, { ...naoVinculado, status: "encerrado" }).caso.execute(
+      { atendimentoId: "at-1" },
+    );
+    expect(encerrado.ok && encerrado.value.podeCadastrarContato).toBe(false);
+
+    const lider = await montar(
+      { id: "l", papel: "lider_setor", setor: "recepcao" },
+      naoVinculado,
+    ).caso.execute({ atendimentoId: "at-1" });
+    expect(lider.ok && lider.value.podeCadastrarContato).toBe(false);
   });
 
   it("sem Cliente vinculado ou encerrado não oferece serviços e nem consulta os documentos", async () => {
