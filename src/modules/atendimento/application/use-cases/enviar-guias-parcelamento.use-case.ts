@@ -2,6 +2,7 @@ import {
   falha,
   noSetor,
   paraAndamento,
+  SEM_ANDAMENTO,
   semDestinatario,
   type Andamento,
 } from "@/modules/atendimento/application/jobs/alertas-da-rodada";
@@ -67,10 +68,28 @@ type Triagem = { entregaveis: Set<string>; falhas: Map<SetorSlug, AppError> };
 const leituraFalhou = (parcelamento: ParcelamentoDoCliente, falhas: Triagem["falhas"]) =>
   !parcelamento.interno && falhas.has(parcelamento.setor);
 
-const ocorrenciasDeLeitura = (descricao: string, falhas: Triagem["falhas"]) =>
-  [...falhas].flatMap(
-    ([setor, erro]) => noSetor(falha(`${descricao}: ${erro.message}`), setor).ocorrencias,
-  );
+function registrar(
+  { entregaveis, falhas }: Triagem,
+  { id, setor }: ParcelamentoDoCliente,
+  temParaQuemEnviar: Result<boolean, AppError>,
+) {
+  if (!temParaQuemEnviar.ok) {
+    falhas.set(setor, temParaQuemEnviar.error);
+    return;
+  }
+  if (temParaQuemEnviar.value) entregaveis.add(id);
+}
+
+// A leitura que falhou só vira ocorrência para o Setor que tem parcelamento a entregar: sem nada
+// pendente, a rodada nem lê os Destinos.
+const ocorrenciasDeLeitura = (
+  descricao: string,
+  falhas: Triagem["falhas"],
+  pendentes: ParcelamentoDoCliente[],
+) =>
+  [...falhas]
+    .filter(([setor]) => pendentes.some((p) => p.setor === setor))
+    .flatMap(([setor, erro]) => noSetor(falha(`${descricao}: ${erro.message}`), setor).ocorrencias);
 
 // A guia atribuída com as parcelas que restam depois de entregá-la.
 type GuiaAEntregar = GuiaAtribuida & { restantesDepois: number };
@@ -117,15 +136,23 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     destinos: DestinosDoCliente,
     parcelamentos: ParcelamentoDoCliente[],
   ): Promise<Triagem> {
-    const entregaveis = new Set<string>();
-    const falhas = new Map<SetorSlug, AppError>();
-    for (const { id, interno, setor } of parcelamentos) {
-      const doSetor = interno ? ok([]) : await destinos(setor);
-      if (!doSetor.ok) falhas.set(setor, doSetor.error);
-      else if (interno ? this.financeiro.telefone : doSetor.value.some(destinoValido))
-        entregaveis.add(id);
+    const triagem: Triagem = { entregaveis: new Set(), falhas: new Map() };
+    for (const parcelamento of parcelamentos) {
+      registrar(triagem, parcelamento, await this.temParaQuemEnviar(destinos, parcelamento));
     }
-    return { entregaveis, falhas };
+    return triagem;
+  }
+
+  // O interno tem para quem enviar se o financeiro tem telefone, sem ler Destinos; o comum, se o
+  // Setor tem algum Destino válido.
+  private async temParaQuemEnviar(
+    destinos: DestinosDoCliente,
+    { interno, setor }: ParcelamentoDoCliente,
+  ): Promise<Result<boolean, AppError>> {
+    if (interno) return ok(Boolean(this.financeiro.telefone));
+    const doSetor = await destinos(setor);
+    if (!doSetor.ok) return doSetor;
+    return ok(doSetor.value.some(destinoValido));
   }
 
   // Destinos do Cliente por Setor, lidos uma vez por Cliente (a mesma leitura serve à triagem e à
@@ -133,10 +160,10 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
   private destinosDoCliente(clienteId: string): DestinosDoCliente {
     const lidos = new Map<SetorSlug, Promise<Result<DestinoDeEnvio[], AppError>>>();
     return (setor) => {
-      if (!lidos.has(setor)) {
-        lidos.set(setor, this.destinos.resolver(clienteId, setor, "guia_parcelamento"));
-      }
-      return lidos.get(setor)!;
+      const lido =
+        lidos.get(setor) ?? this.destinos.resolver(clienteId, setor, "guia_parcelamento");
+      lidos.set(setor, lido);
+      return lido;
     };
   }
 
@@ -175,6 +202,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
 
     const mes = mesAtual(agora).replace("-", "");
     const pendentes = guiasPgfnAEntregar(emAberto.value, mes);
+    if (pendentes.length === 0) return SEM_ANDAMENTO;
     const { entregaveis, falhas } = await this.triar(destinos, emAberto.value);
     const semDestino = emAberto.value.filter(
       (p) =>
@@ -224,7 +252,11 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     return {
       enviado: andamentos.some((a) => a.enviado),
       ocorrencias: [
-        ...ocorrenciasDeLeitura(descricao, falhas),
+        ...ocorrenciasDeLeitura(
+          descricao,
+          falhas,
+          pendentes.map((g) => g.parcelamento),
+        ),
         ...this.ocorrenciasSemDestino(cliente, semDestino),
         ...andamentos.flatMap((a) => a.ocorrencias),
       ],
@@ -240,8 +272,9 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     if (!emAberto.ok) return falha(`${descricao}: ${emAberto.error.message}`);
 
     const mes = mesAtual(agora).replace("-", "");
-    const { entregaveis, falhas } = await this.triar(destinos, emAberto.value);
     const pendente = (p: ParcelamentoDoCliente) => !p.parcelasEnviadas.includes(mes);
+    if (!emAberto.value.some(pendente)) return SEM_ANDAMENTO;
+    const { entregaveis, falhas } = await this.triar(destinos, emAberto.value);
     const alvos = emAberto.value.filter((p) => entregaveis.has(p.id));
     const idsDosAlvos = new Set(alvos.map((p) => p.id));
     const aEntregar = alvos.filter(pendente);
@@ -249,7 +282,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
       (p) => pendente(p) && !idsDosAlvos.has(p.id) && !leituraFalhou(p, falhas),
     );
     const ocorrencias = [
-      ...ocorrenciasDeLeitura(descricao, falhas),
+      ...ocorrenciasDeLeitura(descricao, falhas, emAberto.value.filter(pendente)),
       ...this.ocorrenciasSemDestino(cliente, semDestino),
     ];
     if (aEntregar.length === 0) return { enviado: false, ocorrencias };

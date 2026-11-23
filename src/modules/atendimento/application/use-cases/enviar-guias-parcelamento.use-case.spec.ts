@@ -552,6 +552,36 @@ describe("EnviarGuiasParcelamento", () => {
 
       expect(andamento.ocorrencias).toMatchObject([{ tipo: "falha_envio", setor: "rh" }]);
     });
+
+    it("parcelamento que já recebeu o mês: não lê os Destinos nem alerta falha de leitura", async () => {
+      const { nucleo, consultas } = montar(
+        ok([parcelamento("sn", { parcelasEnviadas: ["202610"] })]),
+        { erroDosDestinos: new ServicoExternoError("banco") },
+      );
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(consultas).toHaveLength(0);
+      expect(andamento).toEqual({ enviado: false, ocorrencias: [] });
+    });
+
+    it("falha ao ler os Destinos de um Setor sem nada pendente: sem falha_envio por ele", async () => {
+      const { nucleo } = montar(
+        ok([
+          parcelamento("sn"),
+          parcelamento("rh", {
+            setor: "rh",
+            valorParcelaCentavos: 20_000,
+            parcelasEnviadas: ["202610"],
+          }),
+        ]),
+        { erroDosDestinosDoSetor: { rh: new ServicoExternoError("banco") } },
+      );
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento.ocorrencias.filter((o) => o.setor === "rh")).toEqual([]);
+    });
   });
 
   it("guia do parcelamento interno vai ao WhatsApp do financeiro, nunca ao Cliente", async () => {
