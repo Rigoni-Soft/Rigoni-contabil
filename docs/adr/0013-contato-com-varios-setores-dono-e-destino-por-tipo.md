@@ -25,6 +25,13 @@ estável entre Contato e destino.
   Com WhatsApp e e-mail, `definir_tipos_de_envio_do_contato` exige o canal (sem padrão; recusa com
   `22023`) e o aplica a todos os Destinos do Contato naquele Setor; deixar de usar o Contato (sem tipos)
   não pede canal (#293).
+- **O dono que sai passa o Contato à URA por um gancho no `BEFORE DELETE`.** O gatilho
+  `contato_exclusao_em_uso` cancela o `DELETE` (zero linhas afetadas; o salvar do cadastro não recebe erro,
+  coberto em `destinos-de-envio.repository.test.ts`, e o Contato sai da lista do dono) e grava `dono_setor = null` na mesma transação. A regra "o dono
+  não troca" abre uma exceção só para esse caso, lida de `app.contato_herdado_pela_ura` (`set_config` local,
+  com o id do Contato). Hoje o PostgREST não alcança esse parâmetro; a invariante, porém, depende de nenhuma
+  função futura chamar `set_config` com esse nome. Aceito pela simplicidade; se outra rota precisar mudar o
+  dono, a saída é uma função própria, não ampliar o gancho.
 - **Id estável**: a edição de Contatos cria, atualiza e remove por identificador, num caminho único.
 - **Sem "Contato padrão".** A migration não cria Contatos nem Destinos; os Contatos que existem ficam com
   setor URA e o SN fica sem Destino até cadastrar, com aviso do job.

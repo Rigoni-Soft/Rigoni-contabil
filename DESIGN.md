@@ -467,31 +467,35 @@ com `aria-label` numerado, botão "Adicionar contato" nas mesmas
 variante/tamanho. Segundo consumidor confirma que o padrão vale para
 qualquer lista dinâmica de campos, não só o par data+arquivo do #33.
 
-**Contato (ações da linha):** o contato já salvo tem só a lixeira ("Remover contato N", `ghost`).
-O contato novo (ainda sem `id`) tem, no lugar dela, dois botões de ícone juntos (`gap-1`, `size-8`,
-44 px em toque): "Salvar contato N" (`Check`, `primary`, o verde) grava só aquele contato na hora, e
-"Limpar contato N" (`X`, `destructive`, o vermelho) limpa a linha para o padrão. Os botões de ícone
-levam `title` igual ao `aria-label`, e o Salvar mostra um spinner e `aria-busy` enquanto grava. Ao concluir, o foco
-volta ao Nome da linha e uma região `aria-live="polite"` oculta (`sr-only`) anuncia "Contato N salvo."
-ou "Contato N limpo."; a falha do servidor aparece sob a linha (`FieldError`, `role="alert"`).
+**Contato (ações da linha):** a linha tem dois modos. Só mostrando, "Editar contato N" (`outline`,
+`Pencil`) e, no contato salvo, a lixeira ("Remover contato N", `destructive`, `Trash2`). Editando (a linha
+nova já nasce assim), dois botões de ícone juntos (`gap-1`, `size-8`, 44 px em toque): "Salvar contato N"
+(`Check`, `primary`, o verde) grava aquele contato e o que ele recebe do Setor numa chamada só, e "Cancelar
+edição do contato N" (`X`, `destructive`, o vermelho) volta ao que estava (na linha nova, a descarta; sendo a
+única, só a esvazia). Os botões de ícone levam `title` igual ao `aria-label`, e o Salvar mostra um spinner e
+`aria-busy` enquanto grava. Ao concluir, o foco vai a um alvo estável da linha (o Editar, depois de salvar ou
+cancelar) e uma região `aria-live="polite"` oculta (`sr-only`) anuncia "Contato N salvo.", "Edição do
+contato N cancelada." ou "Contato N descartado."; a falha do servidor aparece sob a linha (`FieldError`,
+`role="alert"`). Linha em edição com algo digitado segura o Salvar do cadastro: "Salve ou cancele a edição do
+contato N para salvar o cadastro."
 
-**Contato de outro Setor:** a linha fica só de leitura (`readOnly`, não `disabled`: o valor volta intacto no Salvar do cadastro) com o **mesmo visual dos campos travados da tela** (Empresa, CNPJ: opacidade de desabilitado e cursor `not-allowed`, vindos do `Input` readOnly), sem asterisco, sem lixeira e sem nota. Só o Setor dono e o Admin editam. Ele só aparece na lista do Setor que o cadastrou ou escolheu; os dos outros Setores ficam fora da lista e entram pelo select "Contato já cadastrado" da linha nova. Os checkboxes de envio da linha seguem editáveis: marcar é do Setor de quem abre o cadastro.
+**Contato de outro Setor:** a linha fica só de leitura (`readOnly`, não `disabled`: o valor volta intacto no Salvar do cadastro) com fundo neutro (`bg-muted`) e cursor comum, aplicados só dentro da linha de contato (o `Input` do sistema não muda: Empresa, CNPJ e os demais campos travados da tela seguem com a opacidade de desabilitado e o cursor `not-allowed`), sem asterisco e sem nota. A lixeira dele é "Deixar de usar o contato N" (abaixo). Só o Setor dono e o Admin editam. Ele só aparece na lista do Setor que o cadastrou ou escolheu; os dos outros Setores ficam fora da lista e entram pelo select "Contato já cadastrado" da linha nova. Os checkboxes de envio da linha seguem editáveis: marcar é do Setor de quem abre o cadastro.
 
 **Contato já cadastrado:** na linha nova do Setor, quando outros Setores já cadastraram contatos neste Cliente, Nome, WhatsApp e E-mail são três seleções (`CampoDeOpcoes`, placeholder "Escolher contato"): cada uma lista o que esse campo tem nos contatos existentes e termina com "+ Cadastrar novo". Escolher um contato traz a linha dele para a lista, em edição, com os campos travados e os checkboxes para marcar; "Salvar" exige ao menos um envio (sem ele o contato não entra na lista do Setor) e "Cancelar" o devolve aos disponíveis. "+ Cadastrar novo" em qualquer um dos três troca os três por campos de texto, e o contato é cadastrado. Sem contatos de outros Setores, a linha nova já tem campos de texto.
 
 **Número já cadastrado:** na linha nova em campos de texto, ao sair do WhatsApp com um número que já é de outro contato do Cliente (a mesma chave do banco: dígitos sem o DDI 55; qualquer contato do formulário, até os escondidos de outros Setores), aparece sob a linha um `AvisoDeStatus` `atencao` legível (14 px, ícone e texto) ligado ao campo por `aria-describedby`: "Este número já é do contato Nome." com o botão "Usar este contato" (`outline`, 44 px em toque), que faz o mesmo que escolher o contato já cadastrado. Se o contato já está na lista, o aviso diz "...que já está na lista deste Setor." e não há botão. O aviso some quando o número muda ou fica vazio; o erro do banco no Salvar segue como rede de segurança.
 
-**Botões da linha, sempre em par e com a mesma forma e tamanho (`icon`, `size-8`, 44 px em toque):** o par positivo/negativo do ciclo de edição, "Salvar" (`primary`, verde, `Check`) e "Cancelar" (`destructive`, vermelho, `X`), e o par da visualização, "Editar" (`outline`, neutro, `Pencil`) e a lixeira (`destructive`, vermelha, `Trash2`). A cor segue a hierarquia do produto: verde para confirmar, neutro para abrir a edição, vermelho para o que descarta. No contato de outro dono a lixeira é "Deixar de usar o contato N": tira os envios do Setor na hora e o contato sai da lista dele, sem apagá-lo.
+**Botões da linha, sempre em par e com a mesma forma e tamanho (`icon`, `size-8`, 44 px em toque):** o par positivo/negativo do ciclo de edição, "Salvar" (`primary`, verde, `Check`) e "Cancelar" (`destructive`, vermelho, `X`), e o par da visualização, "Editar" (`outline`, neutro, `Pencil`) e a lixeira (`destructive`, vermelha, `Trash2`). A cor segue a hierarquia do produto: verde para confirmar, neutro para abrir a edição, vermelho para o que descarta. No contato de outro dono a lixeira é "Deixar de usar o contato N" e não age na hora: abre sob a linha um `AvisoDeStatus` `atencao` legível, "Deixar de usar este contato? Os envios marcados aqui deixam de sair para ele; o contato segue com o dono e com os outros Setores.", com os botões "Deixar de usar" (`destructive`, `sm`) e "Manter" (`outline`, `sm`), 44 px em toque. O foco vai ao "Deixar de usar" ao abrir e volta à lixeira em "Manter"; confirmar tira os envios do Setor e o contato sai da lista dele, sem apagá-lo.
 
 **Contato (o que ele recebe):** dentro da moldura da linha, separado por uma borda de cima, o grupo
-"Envios do contato N" (`fieldset`) com o rótulo "Recebe" e um `CaixaDeMarcacao` por tipo: "Todos os
+"Envios do contato N" (`fieldset`, nomeado por `aria-labelledby`; o rótulo visível é "Recebe") e, editando, um `CaixaDeMarcacao` por tipo (`min-h-11` em toque): "Todos os
 envios" e o catálogo do Setor (SN: Lembrete de documento, DAS, Guia de parcelamento, Avisos; RH: Guia de
 parcelamento, Avisos). "Todos os envios" é o marcador geral: marcá-lo marca todos os outros, desmarcá-lo
 desmarca todos, desmarcar um dos outros o desmarca, e marcar o último que faltava o marca de volta. Quem
-tem Setor (Líder e Funcionário do SN e do RH) vê o grupo; o Admin não (não tem Setor e só cadastra contatos). Marcar ou desmarcar grava na hora e uma região `aria-live="polite"`
-oculta anuncia "DAS marcado no contato 1."; durante a gravação os checkboxes ficam `aria-disabled`, e a falha
-do servidor volta a marca e aparece na linha. Na linha ainda não salva os checkboxes ficam `disabled` com a
-dica "Salve o contato para escolher os envios." (a marca se perderia). O canal do envio sai do
+tem Setor (Líder e Funcionário do SN e do RH) vê o grupo; o Admin não (não tem Setor e só cadastra contatos). Marcar ou desmarcar só muda a linha: os envios gravam
+junto com o contato no "Salvar contato N" (e "Cancelar" desfaz a marcação). Fora da edição os checkboxes não
+aparecem: o grupo mostra em texto o que o contato recebe ("DAS, Avisos"; "Todos os envios" quando é tudo;
+"nenhum envio" sem marca), já que checkbox `disabled` esmaecido não se lê. O canal do envio sai do
 contato: com um canal só, esse (sem campo); com os dois, o select **"Enviar por"** (`CampoDeOpcoes`,
 obrigatório, placeholder "Escolher", sem valor padrão: WhatsApp, E-mail, WhatsApp e E-mail) aparece ao lado
 dos checkboxes assim que há um envio marcado, vale para todos os envios do contato e o erro "Escolha por
