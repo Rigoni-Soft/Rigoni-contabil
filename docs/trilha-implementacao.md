@@ -52,10 +52,10 @@ As quatro entregas da spec (Dados, Cadastro, Envios e aviso, Recepção) vão **
 
 ### Etapa B4: Recepção e deploy
 
-- [ ] **PR B5: Recepção cadastra contato URA no atendimento** (depende só do #291, na PR B1; em paralelo às PRs B2 a B4)
-  - [ ] #297 (ambas): botão "Cadastrar como contato deste Cliente" (bloqueado por #291)
-- [ ] **PR B6: Roteiro de deploy** (por último; depende das PRs B4 e B5)
-  - [ ] #298 (backend): roteiro com o SN cadastrando os destinos antes da primeira rodada do job (bloqueado por #296 e #297)
+- [x] **PR B5: Recepção cadastra contato URA no atendimento** (depende só do #291, na PR B1; em paralelo às PRs B2 a B4)
+  - [x] #297 (ambas): botão "Cadastrar como contato deste Cliente" (bloqueado por #291)
+- [x] **PR B6: Roteiro de deploy** (por último; depende das PRs B4 e B5)
+  - [x] #298 (backend): roteiro com o SN cadastrando os destinos antes da primeira rodada do job (bloqueado por #296 e #297); `docs/deploy/contatos-por-setor-roteiro.md`
 
 ---
 
