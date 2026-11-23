@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render as renderRtl, screen, waitFor, within } from "@testing-library/react";
+import { render as renderRtl, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { CadastroRhClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
@@ -8,9 +8,17 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok } from "@/shared/kernel/result";
 
 import { cadastroRhDeTeste } from "../../../../../../test-support/cadastro-de-teste";
+import { LINHAS_DE_CONTATO_DE_TESTE } from "../../../../../../test-support/linhas-de-contato-de-teste";
 import { salvarParcelamentosAction } from "../editar-cadastro-operacional/salvar-parcelamentos.actions";
+import { useContatosDoCadastro } from "../editar-cadastro-operacional/use-contatos-do-cadastro.hook";
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
 import { EditarCadastroRhContainer } from "./editar-cadastro-rh.container";
+
+// Passa a chamada adiante (o hook real roda); só os casos de "ligação com o hook" o substituem.
+jest.mock("../editar-cadastro-operacional/use-contatos-do-cadastro.hook", () => {
+  const real = jest.requireActual("../editar-cadastro-operacional/use-contatos-do-cadastro.hook");
+  return { ...real, useContatosDoCadastro: jest.fn(real.useContatosDoCadastro) };
+});
 
 jest.mock("./editar-cadastro-rh.actions", () => {
   const real = jest.requireActual("./editar-cadastro-rh.actions");
@@ -167,103 +175,57 @@ describe("EditarCadastroRhContainer", () => {
     expect(routerPush).not.toHaveBeenCalled();
   });
 
-  describe("o que cada contato recebe do RH", () => {
-    const FUNCIONARIO_RH = { papel: "funcionario", setor: "rh" };
-    const dadosComEnvios: CadastroRhClienteDto = {
-      ...dados,
-      contatos: [
-        { id: "c1", nome: "Maria", telefone: "11999990000", email: "", donoSetor: "rh" },
-        {
-          id: "c2",
-          nome: "Paulo",
-          telefone: "",
-          email: "paulo@exemplo.com",
-          donoSetor: "simples_nacional",
-          setores: ["rh"],
-        },
-      ],
-      tiposDeEnvio: [
-        { slug: "guia_parcelamento", rotulo: "Guia de parcelamento" },
-        { slug: "avisos", rotulo: "Avisos" },
-      ],
-      destinos: [{ id: "d1", contatoId: "c1", tipo: "guia_parcelamento", canal: "whatsapp" }],
-    };
+  // A lógica das linhas de contato é testada no hook (use-contatos-do-cadastro.hook.spec.ts): aqui só a ligação.
+  describe("ligação com o hook das linhas de contato", () => {
+    const hookReal = (
+      jest.requireActual("../editar-cadastro-operacional/use-contatos-do-cadastro.hook") as {
+        useContatosDoCadastro: typeof useContatosDoCadastro;
+      }
+    ).useContatosDoCadastro;
+    const onEditar = jest.fn();
 
-    it("linha nova: o número que já é de um contato da lista do RH avisa ao sair do campo", async () => {
-      const usuario = userEvent.setup();
-      montar({ dados: dadosComEnvios, ator: FUNCIONARIO_RH });
+    beforeEach(() => {
+      onEditar.mockReset();
+      jest.mocked(useContatosDoCadastro).mockReturnValue({
+        ...LINHAS_DE_CONTATO_DE_TESTE,
+        onEditar,
+        rotuloDaLixeira: () => "Deixar de usar o contato 1",
+        motivoDoBloqueio: "Salve ou cancele a edição do contato 1 para salvar o cadastro.",
+      } as unknown as ReturnType<typeof useContatosDoCadastro>);
+    });
 
-      await usuario.click(await screen.findByRole("button", { name: "Adicionar contato" }));
-      const telefone = screen.getAllByLabelText("WhatsApp").at(-1) as HTMLElement;
-      await usuario.type(telefone, "11999990000");
-      await usuario.tab();
+    afterEach(() => {
+      jest.mocked(useContatosDoCadastro).mockImplementation(hookReal);
+    });
+
+    it("a View recebe do hook as linhas e o motivo do bloqueio, e o hook recebe os dados do cadastro", async () => {
+      montar();
 
       expect(
-        screen.getByText("Este número já é do contato Maria, que já está na lista deste Setor."),
+        await screen.findByRole("button", { name: "Deixar de usar o contato 1" }),
       ).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Usar este contato" })).toBeNull();
+      expect(
+        screen.getByText("Salve ou cancele a edição do contato 1 para salvar o cadastro."),
+      ).toBeInTheDocument();
+      expect(useContatosDoCadastro).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clienteId: dados.id,
+          setorDoCadastro: "rh",
+          admin: true,
+          destinos: dados.destinos,
+          tiposDeEnvio: dados.tiposDeEnvio,
+        }),
+      );
     });
 
-    it("cada contato tem os checkboxes do catálogo do RH, com o que já recebe marcado", async () => {
-      montar({ dados: dadosComEnvios, ator: FUNCIONARIO_RH });
+    it("Editar na linha chama a função do hook com o índice da linha", async () => {
+      montar();
 
-      const maria = await screen.findByRole("group", { name: "Envios do contato 1" });
-      expect(maria).toHaveTextContent("Guia de parcelamento");
-      expect(maria).not.toHaveTextContent("Avisos");
-      await userEvent.setup().click(screen.getByRole("button", { name: "Editar contato 1" }));
-      expect(within(maria).getByLabelText("Guia de parcelamento")).toBeChecked();
-      expect(within(maria).getByLabelText("Avisos")).not.toBeChecked();
-      expect(within(maria).queryByLabelText("DAS")).toBeNull();
-      expect(screen.getByRole("button", { name: "Adicionar contato" })).toBeInTheDocument();
-    });
-
-    it("contato de outro Setor: campos só de leitura mesmo editando, lixeira só deixa de usar; os envios seguem do RH", async () => {
-      montar({ dados: dadosComEnvios, ator: FUNCIONARIO_RH });
       await userEvent
         .setup()
-        .click(await screen.findByRole("button", { name: "Editar contato 2" }));
-      expect(screen.queryByRole("button", { name: "Remover contato 2" })).toBeNull();
-      expect(screen.getByRole("group", { name: "Envios do contato 2" })).toBeInTheDocument();
+        .click(await screen.findByRole("button", { name: "Editar contato 1" }));
 
-      const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
-      expect(nomes[1]).toHaveAttribute("readonly");
-    });
-
-    it("contato com os dois canais traz o canal já escolhido e o RH o troca", async () => {
-      const usuario = userEvent.setup();
-      montar({
-        dados: {
-          ...dadosComEnvios,
-          contatos: [
-            {
-              id: "c1",
-              nome: "Maria",
-              telefone: "11999990000",
-              email: "maria@exemplo.com",
-              donoSetor: "rh",
-            },
-          ],
-          destinos: [{ id: "d1", contatoId: "c1", tipo: "avisos", canal: "whatsapp" }],
-        },
-        ator: FUNCIONARIO_RH,
-      });
-
-      expect(await screen.findByText(/Enviar por:\s*WhatsApp/)).toBeInTheDocument();
-      await usuario.click(screen.getByRole("button", { name: "Editar contato 1" }));
-      const select = screen.getByLabelText(/^Enviar por/);
-      expect(select).toHaveValue("whatsapp");
-      await usuario.selectOptions(select, "WhatsApp e E-mail");
-      expect(select).toHaveValue("whatsapp_e_email");
-    });
-
-    it("o Admin edita qualquer contato, sem checkboxes", async () => {
-      montar({ dados: dadosComEnvios, ator: ADMIN });
-
-      expect(await screen.findByRole("button", { name: "Adicionar contato" })).toBeInTheDocument();
-      expect(screen.queryByRole("group", { name: /Envios do contato/ })).toBeNull();
-      await userEvent.setup().click(screen.getByRole("button", { name: "Editar contato 2" }));
-      const nomes = screen.getAllByLabelText(/^Nome/, { selector: "input[id^='contatos.']" });
-      expect(nomes[1]).not.toHaveAttribute("readonly");
+      expect(onEditar).toHaveBeenCalledWith(0);
     });
   });
 
