@@ -85,7 +85,9 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Versão fixa: "latest" consulta a API do GitHub sem token e cai em rate limit nos runners; também
+          # mantém o CI na mesma versão do CLI usada no desenvolvimento local.
+          version: 2.117.0
 
       - name: Sobe o Supabase local (migrations + seed)
         run: supabase start
@@ -158,7 +160,9 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Versão fixa: "latest" consulta a API do GitHub sem token e cai em rate limit nos runners; também
+          # mantém o CI na mesma versão do CLI usada no desenvolvimento local.
+          version: 2.117.0
 
       # Cada shard sobe o seu Supabase: os testes batem no mesmo banco e não rodam em paralelo nele.
       - name: Sobe o Supabase local (migrations + seed)
