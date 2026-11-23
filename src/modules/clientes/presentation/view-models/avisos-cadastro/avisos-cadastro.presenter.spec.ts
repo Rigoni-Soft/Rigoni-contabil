@@ -25,6 +25,19 @@ describe("avisoCadastroParaView: cliente sem meio de envio (#295)", () => {
     );
     expect(view.href).toBe("/clientes/c1");
   });
+
+  it("o nº da alteração só vale para a nova alteração, não para o texto livre do alerta", () => {
+    const view = avisoCadastroParaView({
+      ...BASE,
+      tipo: "sem_meio_de_envio",
+      mensagem: "Cliente Exemplo Ltda: sem meio de envio para o DAS (Simples Nacional)",
+      alteracaoNumero: 4,
+    });
+    expect(view.titulo).toBe(
+      "Cliente Exemplo Ltda: sem meio de envio para o DAS (Simples Nacional)",
+    );
+    expect(view.href).toBe("/clientes/c1");
+  });
 });
 
 describe("avisoCadastroParaView", () => {

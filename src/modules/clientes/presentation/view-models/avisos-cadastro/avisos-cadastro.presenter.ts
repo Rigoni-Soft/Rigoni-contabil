@@ -24,7 +24,7 @@ const QUANDO = new Intl.DateTimeFormat("pt-BR", {
 // O nº só existe no aviso de alteração (a trigger o grava): vai no título, para duas alterações do mesmo
 // Cliente não parecerem iguais, e no destino, para a tela destacar o botão e abrir aquela alteração.
 export function avisoCadastroParaView(aviso: AvisoCadastroDto): AvisoDeCadastro {
-  const numero = aviso.alteracaoNumero;
+  const numero = aviso.tipo === "nova_alteracao" ? aviso.alteracaoNumero : null;
   const cliente = `/clientes/${aviso.clienteId}`;
   const titulo = aviso.mensagem ?? TITULO[aviso.tipo];
   return {

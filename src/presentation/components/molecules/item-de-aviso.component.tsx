@@ -44,7 +44,12 @@ export function ItemDeAviso({ aviso, aoSelecionar }: ItemDeAvisoProps) {
             novo:{" "}
           </Texto>
         )}
-        <Texto como="span" variante="corpo" className="block text-inherit">
+        <Texto
+          como="span"
+          variante="corpo"
+          title={aviso.titulo}
+          className="line-clamp-3 block text-inherit"
+        >
           {aviso.titulo}
         </Texto>
         <Texto como="span" variante="nota" className="block">
