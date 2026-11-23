@@ -83,6 +83,13 @@ describe("useAcoesConversa", () => {
     expect(result.current.setoresDestino.map((s) => s.rotulo)).toEqual(["Recepção", "Tributário"]);
   });
 
+  it("expõe se a Recepção pode cadastrar o número como contato", () => {
+    expect(renderizar().result.current.podeCadastrarContato).toBe(false);
+    expect(
+      renderizar({ ...CONVERSA, podeCadastrarContato: true }).result.current.podeCadastrarContato,
+    ).toBe(true);
+  });
+
   it("encerrado não mostra ações", () => {
     const { result } = renderizar({ ...CONVERSA, encerrado: true });
 

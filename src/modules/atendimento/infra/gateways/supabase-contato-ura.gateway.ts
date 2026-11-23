@@ -2,9 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type {
   ClienteParaConfirmar,
-  ContatoUraPort,
   ResultadoCadastroContatoUra,
-} from "@/modules/atendimento/application/ports/out/contato-ura.provider";
+} from "@/modules/atendimento/application/ports/in/cadastrar-contato-ura.provider";
+import type { ContatoUraPort } from "@/modules/atendimento/application/ports/out/contato-ura.provider";
 import {
   cadastroContatoUraRpcSchema,
   clienteParaConfirmarRowSchema,

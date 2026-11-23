@@ -1,11 +1,9 @@
+import type { ResultadoCadastroContatoUra } from "@/modules/atendimento/application/ports/in/cadastrar-contato-ura.provider";
 import type {
   AtendimentoEmAndamento,
   AtendimentoRepositoryPort,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
-import type {
-  ContatoUraPort,
-  ResultadoCadastroContatoUra,
-} from "@/modules/atendimento/application/ports/out/contato-ura.provider";
+import type { ContatoUraPort } from "@/modules/atendimento/application/ports/out/contato-ura.provider";
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok } from "@/shared/kernel/result";

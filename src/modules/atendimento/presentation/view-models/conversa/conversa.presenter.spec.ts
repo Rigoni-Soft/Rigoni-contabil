@@ -3,6 +3,7 @@ import type { ConversaVista } from "@/modules/atendimento/application/ports/in/o
 import {
   acrescentarAnteriores,
   aplicarLinksRenovados,
+  avisoDoContatoUra,
   conversaParaView,
   documentoDaOpcao,
   formatarCronometro,
@@ -217,6 +218,72 @@ describe("conversaParaView", () => {
     expect(view.semCliente).toBe(true);
     expect(view.mensagens[0].autor).toBe("(61) 98888-7777");
     expect(view.mensagens[0].detalhe).toBe("CNPJ não definido");
+  });
+});
+
+describe("conversaParaView: cadastrar contato", () => {
+  const NAO_VINCULADO: ConversaVista = {
+    ...CONVERSA,
+    podeCadastrarContato: true,
+    clienteVinculado: false,
+    contato: { contatoNome: null, empresa: null, cnpj: null },
+  };
+
+  it("oferece o cadastro com o WhatsApp do atendimento, sem sugestão de CNPJ se a URA não colheu", () => {
+    expect(conversaParaView(NAO_VINCULADO).contatoUra).toEqual({
+      pode: true,
+      telefone: "(61) 98888-7777",
+      cnpjSugerido: "",
+    });
+  });
+
+  it("sugere o CNPJ que o número informou na URA, formatado", () => {
+    const view = conversaParaView({
+      ...NAO_VINCULADO,
+      ura: { resumo: null, cnpjInformado: "11444777000161" },
+    });
+    expect(view.contatoUra.cnpjSugerido).toBe("11.444.777/0001-61");
+  });
+
+  it("sugere o CNPJ do Cliente já ligado ao Atendimento antes do informado", () => {
+    const view = conversaParaView({
+      ...NAO_VINCULADO,
+      contato: { contatoNome: null, empresa: "Padaria Ltda", cnpj: "11222333000181" },
+      ura: { resumo: null, cnpjInformado: "11444777000161" },
+    });
+    expect(view.contatoUra.cnpjSugerido).toBe("11.222.333/0001-81");
+  });
+
+  it("não oferece quando o servidor não liberou", () => {
+    expect(conversaParaView(CONVERSA).contatoUra.pode).toBe(false);
+  });
+});
+
+describe("avisoDoContatoUra", () => {
+  it("criado e existente são sucesso e dizem de qual Cliente é o contato", () => {
+    expect(
+      avisoDoContatoUra({ status: "criado", contatoId: "c", nome: "Maria" }, "Padaria Ltda"),
+    ).toEqual({ tipo: "sucesso", texto: "Maria cadastrado como contato de Padaria Ltda." });
+    expect(
+      avisoDoContatoUra({ status: "existente", contatoId: "c", nome: "Joana" }, "Padaria Ltda"),
+    ).toEqual({
+      tipo: "sucesso",
+      texto: "Este número já é o contato Joana de Padaria Ltda. Nada foi alterado.",
+    });
+  });
+
+  it("número em outro Cliente e e-mail repetido são erro e dizem que nada foi cadastrado", () => {
+    const outro = avisoDoContatoUra({ status: "em_outro_cliente" }, "Padaria Ltda");
+    expect(outro.tipo).toBe("erro");
+    expect(outro.texto).toContain("outro Cliente");
+    const email = avisoDoContatoUra(
+      { status: "email_em_uso", contatoId: "c", nome: "Pedro" },
+      "Padaria Ltda",
+    );
+    expect(email).toEqual({
+      tipo: "erro",
+      texto: "Este e-mail já é do contato Pedro de Padaria Ltda. Nada foi cadastrado.",
+    });
   });
 });
 

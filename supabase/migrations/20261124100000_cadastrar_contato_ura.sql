@@ -1,5 +1,5 @@
 -- A Recepção cadastra, no atendimento aberto pela URA, o número que a URA não achou como Contato do
--- Cliente confirmado (spec #283). A permissão é só esta: criar UM Contato do Cliente, com o WhatsApp do
+-- Cliente confirmado (ADR 0013). A permissão é só esta: criar UM Contato do Cliente, com o WhatsApp do
 -- atendimento, setor URA e a Recepção como dona. Não altera Contato nem Destino de outro Setor.
 --
 -- Quem chama: Funcionário ou Líder da Recepção que é o dono do atendimento em andamento (é quem

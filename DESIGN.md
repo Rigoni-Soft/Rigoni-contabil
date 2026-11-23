@@ -1181,6 +1181,17 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   transferência em `Textarea` baixo. Em janela baixa o painel
   rola por dentro. Transferido, o painel troca tudo por um aviso e a tela
   sai da conversa.
+- **Contato do cliente** (`PainelDeContatoUra`, entre os serviços e a transferência, separado por
+  `border-t`): só para o dono do Atendimento da Recepção cujo número a URA não achou como contato. Fechado,
+  é a frase "Este número não é contato de nenhum Cliente." e o botão cheio "Cadastrar como contato deste
+  Cliente". Abre em dois passos no próprio painel, porque o CNPJ da URA é só sugestão: (1) campo "CNPJ do
+  Cliente" já preenchido com o CNPJ que a URA colheu (a ajuda "Sugerido pela URA. Confira antes de
+  cadastrar." só aparece com sugestão) e "Buscar Cliente"; (2) a linha "Cliente: empresa · CNPJ" com
+  "Trocar Cliente" em contorno, "Nome" obrigatório, "E-mail (opcional)" com a ajuda do WhatsApp do
+  atendimento (que não se edita) e "Cadastrar contato". Cada passo traz "Cancelar" em `destructive`. O foco
+  vai ao campo do passo que abre (o botão que o abriu sumiu) e o botão ocupado fica `aria-disabled`. O
+  resultado é um `AvisoDeStatus`: criado e "já é o contato X" em sucesso e concluem (o botão some); número
+  de outro Cliente e e-mail repetido em erro, com o formulário aberto para trocar o Cliente.
 - **Encerrar atendimento** (no fim do `PainelDeAcoes`, separado por `border-t`):
   botão `outline`; o primeiro clique só abre a confirmação (`role="alertdialog"`
   com o aviso de que o cliente será avisado) com "Confirmar encerramento"

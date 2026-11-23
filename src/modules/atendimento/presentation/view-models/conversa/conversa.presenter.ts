@@ -1,5 +1,6 @@
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import { telefoneParaExibicao } from "@/presentation/lib/telefone-mask";
+import type { ResultadoCadastroContatoUra } from "@/modules/atendimento/application/ports/in/cadastrar-contato-ura.provider";
 import type { DocumentoParaEnviar } from "@/modules/atendimento/application/ports/in/enviar-documento-ao-cliente.provider";
 import type {
   ConversaVista,
@@ -46,6 +47,9 @@ export type ConversaView = {
   // Líder do Setor ou Admin lendo a conversa de outro: sem responder, serviços nem transferência.
   somenteLeitura: boolean;
   semCliente: boolean;
+  // "Cadastrar como contato deste Cliente": só a Recepção dona, com o número sem contato. O CNPJ
+  // sugerido é o do Cliente ligado ao Atendimento ou, sem ele, o que o número informou na URA.
+  contatoUra: { pode: boolean; telefone: string; cnpjSugerido: string };
   // De onde veio o Atendimento: a última Transferência ou, sem ela, o que a URA já sabia.
   contexto: { origem: string; resumo: string } | null;
   mensagens: MensagemView[];
@@ -225,6 +229,11 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
     encerrado: conversa.encerrado,
     somenteLeitura: !conversa.encerrado && !conversa.podeAtender,
     semCliente: !conversa.clienteVinculado,
+    contatoUra: {
+      pode: conversa.podeCadastrarContato,
+      telefone,
+      cnpjSugerido: formatarCnpj(cnpj ?? conversa.ura?.cnpjInformado ?? ""),
+    },
     contexto: contextoDaConversa(conversa),
     temMaisAnteriores: conversa.temMaisAnteriores,
     mensagens: conversa.mensagens.map((m) => ({
@@ -277,4 +286,32 @@ export function intervaloDaConversa(conversa: ConversaVista | undefined, agora: 
   return agora - new Date(ultima.criadoEm).getTime() < JANELA_ATIVA_MS
     ? POLLING_RAPIDO_MS
     : POLLING_LENTO_MS;
+}
+
+// O que a Recepção lê depois de pedir o cadastro: criado e já existente são sucesso (o número tem
+// contato no Cliente); em outro Cliente e e-mail repetido não cadastram nada e pedem atenção.
+export function avisoDoContatoUra(
+  resultado: ResultadoCadastroContatoUra,
+  empresa: string,
+): { tipo: "erro" | "sucesso"; texto: string } {
+  switch (resultado.status) {
+    case "criado":
+      return { tipo: "sucesso", texto: `${resultado.nome} cadastrado como contato de ${empresa}.` };
+    case "existente":
+      return {
+        tipo: "sucesso",
+        texto: `Este número já é o contato ${resultado.nome} de ${empresa}. Nada foi alterado.`,
+      };
+    case "email_em_uso":
+      return {
+        tipo: "erro",
+        texto: `Este e-mail já é do contato ${resultado.nome} de ${empresa}. Nada foi cadastrado.`,
+      };
+    case "em_outro_cliente":
+      return {
+        tipo: "erro",
+        texto:
+          "Este número já é contato de outro Cliente. Nada foi cadastrado; confirme o Cliente.",
+      };
+  }
 }

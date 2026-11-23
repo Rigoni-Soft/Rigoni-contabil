@@ -5,6 +5,7 @@ import { PainelDeEncerramento } from "@/presentation/components/organisms/painel
 import { PainelDeServicos } from "@/presentation/components/organisms/painel-de-servicos.component";
 import { PainelDeTransferencia } from "@/presentation/components/organisms/painel-de-transferencia.component";
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
+import { ContatoUraContainer } from "@/modules/atendimento/presentation/view-models/conversa/contato-ura.container";
 import { useAcoesConversa } from "@/modules/atendimento/presentation/view-models/conversa/use-acoes-conversa.hook";
 
 export function AcoesConversaContainer({
@@ -31,6 +32,12 @@ export function AcoesConversaContainer({
             enviando={acoes.enviando}
             aviso={acoes.aviso}
           />
+        )
+      }
+      contatoUra={
+        !acoes.somenteLeitura &&
+        acoes.podeCadastrarContato && (
+          <ContatoUraContainer atendimentoId={atendimentoId} initialData={initialData} />
         )
       }
       transferencia={

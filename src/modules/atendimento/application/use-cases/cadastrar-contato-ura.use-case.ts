@@ -1,9 +1,9 @@
-import type { CadastrarContatoUraPort } from "@/modules/atendimento/application/ports/in/cadastrar-contato-ura.provider";
-import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type {
-  ContatoUraPort,
+  CadastrarContatoUraPort,
   ResultadoCadastroContatoUra,
-} from "@/modules/atendimento/application/ports/out/contato-ura.provider";
+} from "@/modules/atendimento/application/ports/in/cadastrar-contato-ura.provider";
+import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import type { ContatoUraPort } from "@/modules/atendimento/application/ports/out/contato-ura.provider";
 import type { SessaoPort } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import {
   normalizarEmailDoContato,

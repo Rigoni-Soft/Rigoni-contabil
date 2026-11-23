@@ -37,6 +37,31 @@ export const transferirAtendimentoSchema = z.object({
     .max(RESUMO_TAMANHO_MAXIMO, `O resumo aceita até ${RESUMO_TAMANHO_MAXIMO} caracteres.`),
 });
 
+// O CNPJ aceita a máscara (18 caracteres); a validade quem confere é o caso de uso.
+export const buscarClienteParaContatoSchema = z.object({
+  atendimentoId: atendimentoIdSchema,
+  cnpj: z.string().trim().min(1, "Informe o CNPJ.").max(18, "CNPJ inválido."),
+});
+
+// E-mail em branco vale "sem e-mail"; o formato é conferido aqui e de novo no caso de uso.
+export const cadastrarContatoUraSchema = z.object({
+  atendimentoId: atendimentoIdSchema,
+  clienteId: z.guid("Cliente inválido."),
+  nome: z
+    .string()
+    .trim()
+    .min(1, "Informe o nome do contato.")
+    .max(120, "O nome aceita até 120 caracteres."),
+  email: z
+    .string()
+    .trim()
+    .max(254, "E-mail inválido.")
+    .refine((valor) => valor === "" || z.email().safeParse(valor).success, {
+      message: "Informe um e-mail válido.",
+    })
+    .transform((valor) => (valor === "" ? null : valor)),
+});
+
 const MENSAGEM_TAMANHO_MAXIMO = 4096; // o mesmo limite do caso de uso (texto do WhatsApp)
 
 export const enviarMensagemSchema = z.object({
