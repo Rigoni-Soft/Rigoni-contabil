@@ -8,9 +8,24 @@ const BASE: AvisoCadastroDto = {
   clienteId: "c1",
   alteracaoId: null,
   alteracaoNumero: null,
+  mensagem: null,
   criadoEm: "2026-10-22T15:30:00.000Z",
   vistoEm: null,
 };
+
+describe("avisoCadastroParaView: cliente sem meio de envio (#295)", () => {
+  it("o título é o texto do alerta e leva ao Cliente", () => {
+    const view = avisoCadastroParaView({
+      ...BASE,
+      tipo: "sem_meio_de_envio",
+      mensagem: "Cliente Exemplo Ltda: sem meio de envio para o DAS (Simples Nacional)",
+    });
+    expect(view.titulo).toBe(
+      "Cliente Exemplo Ltda: sem meio de envio para o DAS (Simples Nacional)",
+    );
+    expect(view.href).toBe("/clientes/c1");
+  });
+});
 
 describe("avisoCadastroParaView", () => {
   it("novo cliente não visto: título do fato, data de São Paulo e destino no Cliente", () => {

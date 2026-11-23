@@ -11,6 +11,8 @@ export type { AvisoDeCadastro };
 const TITULO: Record<TipoAvisoCadastro, string> = {
   novo_cliente: "Novo Cliente no Cadastro operacional",
   nova_alteracao: "Nova Alteração contratual",
+  // O título do "sem meio de envio" é o texto do alerta (`mensagem`); este só cobre o aviso sem texto.
+  sem_meio_de_envio: "Cliente sem meio de envio",
 };
 
 const QUANDO = new Intl.DateTimeFormat("pt-BR", {
@@ -24,9 +26,10 @@ const QUANDO = new Intl.DateTimeFormat("pt-BR", {
 export function avisoCadastroParaView(aviso: AvisoCadastroDto): AvisoDeCadastro {
   const numero = aviso.alteracaoNumero;
   const cliente = `/clientes/${aviso.clienteId}`;
+  const titulo = aviso.mensagem ?? TITULO[aviso.tipo];
   return {
     id: aviso.id,
-    titulo: numero === null ? TITULO[aviso.tipo] : `${TITULO[aviso.tipo]} nº ${numero}`,
+    titulo: numero === null ? titulo : `${titulo} nº ${numero}`,
     quando: QUANDO.format(new Date(aviso.criadoEm)),
     visto: aviso.vistoEm !== null,
     href: numero === null ? cliente : `${cliente}?alteracao=${numero}`,
