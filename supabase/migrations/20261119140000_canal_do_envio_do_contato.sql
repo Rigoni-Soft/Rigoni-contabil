@@ -29,6 +29,12 @@ begin
   if not public.pode_gerir_parcelamento(p_cliente_id, v_setor) then
     raise exception 'Sem permissão para definir os Destinos de envio deste Cliente.' using errcode = '42501';
   end if;
+  -- Quem mexe nos Destinos de um contato espera quem já mexe: duas chamadas ao mesmo contato (duplo clique,
+  -- Salvar junto com um checkbox) passariam juntas no `insert ... where not exists` e a segunda violaria
+  -- destinos_de_envio_unico. O lock vem antes de ler o contato: o canal sai do que o contato tem agora, não
+  -- do que tinha quando a espera começou.
+  perform pg_advisory_xact_lock(hashtext('definir_tipos_de_envio_do_contato:' || p_contato_id::text));
+
   select * into v_contato from public.cliente_contatos
   where id = p_contato_id and cliente_id = p_cliente_id;
   if not found then
@@ -40,6 +46,10 @@ begin
   -- 'todos' é o tipo nulo do Destino.
   -- Elemento nulo na lista (chamada direta) faria o `<> all` virar nulo e nada sair: fica de fora.
   v_tipos := array(select distinct t from unnest(coalesce(p_tipos, '{}')) as t where t is not null);
+  -- O catálogo de tipos é curto: o limite barra o array enorme de quem chama a função direto.
+  if cardinality(v_tipos) > 12 then
+    raise exception 'Tipos de envio demais para um contato.' using errcode = '22023';
+  end if;
 
   -- Com os dois canais qualquer canal escolhido cabe no contato; com um só, o p_canal é ignorado.
   if v_tem_whatsapp and v_tem_email then
@@ -58,10 +68,6 @@ begin
     -- cliente_contatos_canal_check garante WhatsApp válido ou e-mail: sem WhatsApp, o canal é o e-mail.
     v_canal := 'email';
   end if;
-
-  -- Duas chamadas ao mesmo contato (duplo clique, Salvar junto com um checkbox) esperam uma à outra: sem isto o
-  -- `insert ... where not exists` das duas passaria e a segunda violaria destinos_de_envio_unico.
-  perform pg_advisory_xact_lock(hashtext('definir_tipos_de_envio_do_contato:' || p_contato_id::text));
 
   delete from public.destinos_de_envio
   where cliente_id = p_cliente_id and setor = v_setor and contato_id = p_contato_id

@@ -201,4 +201,19 @@ describe("SupabaseTiposDeEnvioDoContatoRepository (integração)", () => {
     expect(r.ok).toBe(false);
     expect(await tiposGravados()).toEqual([]);
   });
+
+  it("chamada direta com mais de 12 tipos é recusada pela função, antes de tocar na tabela", async () => {
+    const cliente = await entrar("funcionario.sn@rigonicontabil.local", "func123");
+    const tipos = Array.from({ length: 13 }, (_, i) => `tipo-${i}`);
+
+    const { error } = await cliente.rpc("definir_tipos_de_envio_do_contato", {
+      p_cliente_id: clienteId,
+      p_contato_id: contatoId,
+      p_tipos: tipos,
+    });
+
+    expect(error?.code).toBe("22023");
+    expect(error?.message).toContain("Tipos de envio demais");
+    expect(await tiposGravados()).toEqual([]);
+  });
 });
