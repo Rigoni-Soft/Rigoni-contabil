@@ -40,9 +40,11 @@ CREATE FUNCTION public.clientes_para_parcelamento(p_apos uuid DEFAULT NULL::uuid
    limit p_limite;
 $$;
 
-REVOKE ALL ON FUNCTION public.clientes_para_envio_base() FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.clientes_para_lembrete(uuid, integer) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.clientes_para_parcelamento(uuid, integer) FROM PUBLIC;
+-- O baseline concede EXECUTE a authenticated por default privileges: o REVOKE de PUBLIC não basta, e
+-- estas funções são só do job (service_role).
+REVOKE ALL ON FUNCTION public.clientes_para_envio_base() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.clientes_para_lembrete(uuid, integer) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.clientes_para_parcelamento(uuid, integer) FROM PUBLIC, anon, authenticated;
 GRANT ALL ON FUNCTION public.clientes_para_envio_base() TO service_role;
 GRANT ALL ON FUNCTION public.clientes_para_lembrete(uuid, integer) TO service_role;
 GRANT ALL ON FUNCTION public.clientes_para_parcelamento(uuid, integer) TO service_role;
@@ -63,7 +65,7 @@ CREATE FUNCTION public.destinos_de_envio_do_job(p_cliente_id uuid, p_setor publi
     from public.destinos_de_envio_resolvidos(p_cliente_id, p_setor, p_tipo) r
    where r.valido;
 $$;
-REVOKE ALL ON FUNCTION public.destinos_de_envio_do_job(uuid, public.setor_slug, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.destinos_de_envio_do_job(uuid, public.setor_slug, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.destinos_de_envio_do_job(uuid, public.setor_slug, text) TO service_role;
 
 -- O aviso do sino leva o texto do alerta que o gerou (o de "novo cliente" e o de "nova alteração" montam o
@@ -92,7 +94,7 @@ begin
   return null;
 end;
 $$;
-REVOKE ALL ON FUNCTION public.avisar_cliente_sem_meio_de_envio() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.avisar_cliente_sem_meio_de_envio() FROM PUBLIC, anon, authenticated;
 GRANT ALL ON FUNCTION public.avisar_cliente_sem_meio_de_envio() TO service_role;
 CREATE TRIGGER alertas_setor_avisar_sem_meio_de_envio AFTER INSERT ON public.alertas_setor
     FOR EACH ROW WHEN (new.tipo = 'contato_ausente') EXECUTE FUNCTION public.avisar_cliente_sem_meio_de_envio();
