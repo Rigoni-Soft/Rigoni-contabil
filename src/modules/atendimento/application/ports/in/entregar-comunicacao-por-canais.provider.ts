@@ -5,11 +5,9 @@ import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
-// O que a entrega precisa saber do Cliente: o nome, para as mensagens. Quem recebe vem dos Destinos.
-export type DestinatarioDeComunicacao = { empresa: string };
-
 export type EntregarComunicacaoInput = {
-  cliente: DestinatarioDeComunicacao;
+  // O que a entrega precisa saber do Cliente: o nome, para as mensagens. Quem recebe vem dos Destinos.
+  cliente: { empresa: string };
   // Os Destinos já resolvidos pelo chamador (que decide antes se há para quem enviar).
   destinos: DestinoDeEnvio[];
   comunicacao: ComunicacaoProativa;

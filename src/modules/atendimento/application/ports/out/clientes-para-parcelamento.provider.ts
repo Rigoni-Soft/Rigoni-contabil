@@ -1,9 +1,8 @@
-import type { DestinatarioDeComunicacao } from "@/modules/atendimento/application/ports/in/entregar-comunicacao-por-canais.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
 // Cliente com Parcelamento pendente e o que o job precisa para entregar a guia a ele.
-export type ClienteParaParcelamento = DestinatarioDeComunicacao & { clienteId: string };
+export type ClienteParaParcelamento = { empresa: string; clienteId: string };
 
 export interface ClientesParaParcelamentoPort {
   // Clientes com tem parcelamento positivo e Parcelamento pendente (leitura paginada por cursor,
