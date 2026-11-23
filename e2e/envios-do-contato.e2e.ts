@@ -123,7 +123,9 @@ test.describe("O que cada contato recebe do Setor", () => {
     await page.getByRole("button", { name: "Editar contato 2" }).click();
     await grupoNina.getByLabel("Avisos").check();
     await page.getByRole("button", { name: "Cancelar edição do contato 2" }).click();
-    await expect(grupoNina.getByLabel("Avisos")).not.toBeChecked();
+    // Fora da edição o grupo mostra em texto o que o contato recebe: o "Avisos" marcado e cancelado não ficou.
+    await expect(grupoNina).toContainText("Lembrete de documento, DAS, Guia de parcelamento");
+    await expect(grupoNina).not.toContainText("Avisos");
     await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page).toHaveURL("/simples-nacional");
     expect(await daNina()).toHaveLength(3);
