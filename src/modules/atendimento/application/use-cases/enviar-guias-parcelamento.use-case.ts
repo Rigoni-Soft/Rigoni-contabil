@@ -96,10 +96,9 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     };
   }
 
-  // Sem para quem enviar (Cliente sem contato, financeiro sem telefone) o parcelamento segue
-  // pendente e o setor é avisado; o outro destino não depende deste.
   // O comum vai aos Destinos de guia de parcelamento do Setor do Parcelamento (SN ou RH); o interno,
-  // ao financeiro.
+  // ao financeiro. Sem para quem enviar, o parcelamento segue pendente e o setor é avisado; o outro
+  // destino não depende deste.
   private async idsEntregaveis(
     destinos: DestinosDoCliente,
     parcelamentos: ParcelamentoDoCliente[],

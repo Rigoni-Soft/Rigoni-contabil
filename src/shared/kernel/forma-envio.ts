@@ -30,12 +30,3 @@ export function canalPerdidoDoDestino(
   if (formaEnvioUsaEmail(canal) && !temEmail(contato)) return "email";
   return null;
 }
-
-// Há para quem enviar pela forma de envio: contato padrão (WhatsApp) e/ou e-mail.
-export const temDestinatario = (c: {
-  formaEnvio: FormaEnvioValor;
-  contato: unknown;
-  email: string | null;
-}) =>
-  (formaEnvioUsaWhatsapp(c.formaEnvio) && c.contato !== null) ||
-  (formaEnvioUsaEmail(c.formaEnvio) && c.email !== null);
