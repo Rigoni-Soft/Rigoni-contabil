@@ -99,6 +99,31 @@ describe("useContatosDoCadastro", () => {
     expect(result.current.linhas.rotuloDaLixeira(1)).toMatch(/^Deixar de usar/);
   });
 
+  it("a lixeira do contato de outro Setor só pergunta: nada é chamado até confirmar, e Manter fecha a pergunta", () => {
+    const { result } = montar();
+
+    expect(result.current.linhas.confirmacaoDeRemocao(1)).toBeUndefined();
+    act(() => result.current.linhas.onRemover(1));
+    expect(result.current.linhas.confirmacaoDeRemocao(1)?.texto).toMatch(/^Deixar de usar/);
+    expect(definirTipos).not.toHaveBeenCalled();
+    act(() => result.current.linhas.confirmacaoDeRemocao(1)?.onCancelar());
+
+    expect(result.current.linhas.confirmacaoDeRemocao(1)).toBeUndefined();
+    expect(definirTipos).not.toHaveBeenCalled();
+  });
+
+  it("confirmar o deixar de usar tira os envios do Setor e fecha a pergunta", async () => {
+    definirTipos.mockResolvedValue({ ok: true, data: undefined });
+    const { result } = montar();
+
+    act(() => result.current.linhas.onRemover(1));
+    await act(async () => result.current.linhas.confirmacaoDeRemocao(1)?.onConfirmar());
+
+    expect(definirTipos).toHaveBeenCalledWith({ clienteId: "cli-1", contatoId: "c-2", tipos: [] });
+    expect(result.current.linhas.confirmacaoDeRemocao(1)).toBeUndefined();
+    expect(result.current.linhas.erroDaLinha(1)).toBeUndefined();
+  });
+
   it("o Admin edita e remove qualquer contato e não tem checkboxes de envio", () => {
     const { result } = montar([ANA, BIA], true);
 

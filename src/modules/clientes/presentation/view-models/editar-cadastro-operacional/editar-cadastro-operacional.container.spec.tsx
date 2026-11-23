@@ -361,9 +361,9 @@ describe("EditarCadastroOperacionalContainer", () => {
       abrir();
 
       const maria = screen.getByRole("group", { name: "Envios do contato 1" });
-      expect(within(maria).getByLabelText("DAS")).toBeChecked();
-      expect(within(maria).getByLabelText("DAS")).toBeDisabled();
-      expect(within(maria).getByLabelText("Avisos")).not.toBeChecked();
+      expect(maria).toHaveTextContent("DAS");
+      expect(maria).not.toHaveTextContent("Avisos");
+      expect(within(maria).queryByRole("checkbox")).toBeNull();
       expect(screen.getByRole("button", { name: "Editar contato 1" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Remover contato 1" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Adicionar contato" })).toBeInTheDocument();
@@ -392,7 +392,8 @@ describe("EditarCadastroOperacionalContainer", () => {
       );
       expect(salvarContatoMock).not.toHaveBeenCalled();
       expect(await screen.findByRole("button", { name: "Editar contato 2" })).toBeInTheDocument();
-      expect(within(paulo).getByLabelText("Avisos")).toBeChecked();
+      expect(paulo).toHaveTextContent("Avisos");
+      expect(within(paulo).queryByRole("checkbox")).toBeNull();
     });
 
     it("contato com os dois canais: pede por onde enviar e grava com o canal escolhido", async () => {
@@ -527,8 +528,9 @@ describe("EditarCadastroOperacionalContainer", () => {
       expect(within(maria).getByLabelText("Todos os envios")).toBeChecked();
       await usuario.click(screen.getByRole("button", { name: "Cancelar edição do contato 1" }));
 
-      expect(within(maria).getByLabelText("Avisos")).not.toBeChecked();
-      expect(within(maria).getByLabelText("Todos os envios")).not.toBeChecked();
+      expect(maria).toHaveTextContent("DAS");
+      expect(maria).not.toHaveTextContent("Avisos");
+      expect(maria).not.toHaveTextContent("Todos os envios");
       expect(definirTiposMock).not.toHaveBeenCalled();
     });
 

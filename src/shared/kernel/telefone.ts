@@ -1,4 +1,4 @@
-const soDigitos = (telefone: string) => telefone.replace(/\D/g, "");
+export const soDigitos = (telefone: string) => telefone.replace(/\D/g, "");
 
 // A chave do número, a mesma do banco (`chave_telefone`): só dígitos e sem o DDI 55. Dois contatos com a
 // mesma chave são o mesmo número; null = sem número.

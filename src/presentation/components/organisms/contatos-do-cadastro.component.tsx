@@ -4,10 +4,11 @@ import { Controller, type Control, type FieldErrors, type UseFormRegister } from
 import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { FieldError } from "@/presentation/components/atoms/field-error.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import type { EnviosDaLinha } from "@/presentation/components/molecules/envios-do-contato.component";
+import type { ExistentesDaLinha } from "@/presentation/components/molecules/escolha-de-contato.component";
 import {
   LinhaDeContato,
-  type EnviosDaLinha,
-  type ExistentesDaLinha,
+  type ConfirmacaoDeRemocao,
   type NumeroRepetidoDaLinha,
 } from "@/presentation/components/molecules/linha-de-contato.component";
 import { Button } from "@/presentation/components/ui/button";
@@ -26,8 +27,10 @@ export type AcoesDasLinhasDeContato = {
   camposTravados: (indice: number) => boolean;
   // Nome da lixeira quando o contato é de outro dono ("Deixar de usar…"); sem texto, "Remover contato N".
   rotuloDaLixeira: (indice: number) => string | undefined;
-  // O dono remove o contato (o Salvar do cadastro persiste); quem só o usa deixa de usá-lo na hora.
+  // O dono remove o contato (o Salvar do cadastro persiste); quem só o usa abre a pergunta "Deixar de usar?".
   onRemover: (indice: number) => void;
+  // A pergunta aberta pela lixeira do contato de outro dono; deixar de usar só acontece ao confirmar.
+  confirmacaoDeRemocao: (indice: number) => ConfirmacaoDeRemocao | undefined;
   // O que o contato recebe do Setor; ausente quando o ator não define envios (Admin).
   envios: (indice: number) => EnviosDaLinha | undefined;
   // Linha nova do Setor: os contatos de outros Setores que ele pode escolher em vez de digitar um novo.
@@ -116,6 +119,7 @@ export function ContatosDoCadastro({
                 salvando={linhas.salvando === indice}
                 camposTravados={linhas.camposTravados(indice)}
                 rotuloDaLixeira={linhas.rotuloDaLixeira(indice)}
+                confirmacaoDeRemocao={linhas.confirmacaoDeRemocao(indice)}
                 erroDaLinha={linhas.erroDaLinha(indice)}
                 envios={readOnly ? undefined : linhas.envios(indice)}
                 onEditar={() => linhas.onEditar(indice)}

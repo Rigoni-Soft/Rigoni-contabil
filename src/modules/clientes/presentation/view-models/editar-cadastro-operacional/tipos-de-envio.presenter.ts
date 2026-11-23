@@ -1,4 +1,3 @@
-import { TIPO_TODOS_OS_ENVIOS } from "@/modules/clientes/application/ports/in/definir-tipos-de-envio-do-contato.provider";
 import {
   canalPerdidoDoDestino,
   FORMAS_ENVIO,
@@ -6,6 +5,7 @@ import {
   type FormaEnvioValor,
 } from "@/shared/kernel/forma-envio";
 import { chaveDoTelefone } from "@/shared/kernel/telefone";
+import { TIPO_TODOS_OS_ENVIOS } from "@/shared/kernel/tipo-de-envio";
 
 type DestinoSalvo = { contatoId: string; tipo: string | null; canal: string };
 type TipoDeEnvio = { slug: string; rotulo: string };

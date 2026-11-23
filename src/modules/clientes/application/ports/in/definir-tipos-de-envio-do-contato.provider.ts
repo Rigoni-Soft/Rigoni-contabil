@@ -2,9 +2,6 @@ import type { AppError } from "@/shared/errors/app.error";
 import type { FormaEnvioValor } from "@/shared/kernel/forma-envio";
 import type { Result } from "@/shared/kernel/result";
 
-// O tipo que vale para "todos os envios do Setor".
-export const TIPO_TODOS_OS_ENVIOS = "todos";
-
 export type DefinirTiposDeEnvioDoContatoInput = {
   clienteId: string;
   contatoId: string;

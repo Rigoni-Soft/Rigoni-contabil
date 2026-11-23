@@ -208,6 +208,9 @@ describe("EditarCadastroRhContainer", () => {
       montar({ dados: dadosComEnvios, ator: FUNCIONARIO_RH });
 
       const maria = await screen.findByRole("group", { name: "Envios do contato 1" });
+      expect(maria).toHaveTextContent("Guia de parcelamento");
+      expect(maria).not.toHaveTextContent("Avisos");
+      await userEvent.setup().click(screen.getByRole("button", { name: "Editar contato 1" }));
       expect(within(maria).getByLabelText("Guia de parcelamento")).toBeChecked();
       expect(within(maria).getByLabelText("Avisos")).not.toBeChecked();
       expect(within(maria).queryByLabelText("DAS")).toBeNull();

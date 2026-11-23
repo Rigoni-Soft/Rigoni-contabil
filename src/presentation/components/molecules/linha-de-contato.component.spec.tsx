@@ -140,11 +140,54 @@ describe("LinhaDeContato", () => {
     expect(screen.getByText("O contato deixou de ter o WhatsApp.")).toBeInTheDocument();
   });
 
-  it("envios só mostrando: os checkboxes mostram o que o Setor marcou, mas não mudam", () => {
+  it("envios só mostrando: o que o Setor marcou aparece em texto, sem checkbox", () => {
     render(<LinhaDeContato indice={0} {...CAMPOS} editando={false} envios={ENVIOS} />);
 
-    expect(screen.getByLabelText("DAS")).toBeChecked();
-    expect(screen.getByLabelText("DAS")).toBeDisabled();
+    const grupo = screen.getByRole("group", { name: "Envios do contato 1" });
+    expect(grupo).toHaveTextContent("DAS");
+    expect(screen.queryByRole("checkbox")).toBeNull();
+  });
+
+  it("envios só mostrando sem nada marcado: diz que não recebe nenhum envio", () => {
+    render(
+      <LinhaDeContato
+        indice={0}
+        {...CAMPOS}
+        editando={false}
+        envios={{ ...ENVIOS, marcados: [] }}
+      />,
+    );
+
+    expect(screen.getByRole("group", { name: "Envios do contato 1" })).toHaveTextContent(
+      "nenhum envio",
+    );
+  });
+
+  it("deixar de usar: a pergunta tem Deixar de usar e Manter, e cada um chama o seu callback", async () => {
+    const aoConfirmar = jest.fn();
+    const aoManter = jest.fn();
+    const usuario = userEvent.setup();
+    render(
+      <LinhaDeContato
+        indice={0}
+        {...CAMPOS}
+        editando={false}
+        salvo
+        onEditar={jest.fn()}
+        onRemover={jest.fn()}
+        confirmacaoDeRemocao={{
+          texto: "Deixar de usar este contato?",
+          onConfirmar: aoConfirmar,
+          onCancelar: aoManter,
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Deixar de usar este contato?")).toBeInTheDocument();
+    await usuario.click(screen.getByRole("button", { name: "Manter" }));
+    await usuario.click(screen.getByRole("button", { name: "Deixar de usar" }));
+    expect(aoManter).toHaveBeenCalledTimes(1);
+    expect(aoConfirmar).toHaveBeenCalledTimes(1);
   });
 
   describe("Enviar por (contato com os dois canais)", () => {
