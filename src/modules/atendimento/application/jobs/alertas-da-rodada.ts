@@ -9,7 +9,14 @@ import type {
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 import { SETOR_LABEL, SETOR_SN, type SetorSlug } from "@/shared/kernel/setores";
-import { ROTULO_DO_ENVIO, type TipoDeEnvio } from "@/shared/kernel/tipo-de-envio";
+import type { TipoDeEnvio } from "@/shared/kernel/tipo-de-envio";
+
+// O rótulo que entra na frase "sem meio de envio para ...".
+const ROTULO_DO_ENVIO: Record<TipoDeEnvio, string> = {
+  lembrete_documento: "o lembrete de documento",
+  das: "o DAS",
+  guia_parcelamento: "a guia de parcelamento",
+};
 
 // Diferença tolerada entre o relógio do servidor e o do banco ao resolver alertas.
 const FOLGA_RELOGIO_MS = 60_000;
