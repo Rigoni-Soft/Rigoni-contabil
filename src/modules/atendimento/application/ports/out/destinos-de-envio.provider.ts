@@ -4,7 +4,8 @@ import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 import type { TipoDeEnvio } from "@/shared/kernel/tipo-de-envio";
 
-export type MotivoDeDestinoInvalido = "sem_whatsapp" | "sem_email";
+export const MOTIVOS_DE_DESTINO_INVALIDO = ["sem_whatsapp", "sem_email"] as const;
+export type MotivoDeDestinoInvalido = (typeof MOTIVOS_DE_DESTINO_INVALIDO)[number];
 
 // Um Destino de envio já resolvido: o Contato que recebe, o canal que o Setor escolheu e o que a
 // entrega precisa dele. `telefone` já vem com o DDI; ele e o e-mail existem sempre que o canal os usa.

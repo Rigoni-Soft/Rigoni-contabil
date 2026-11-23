@@ -1,9 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
-import type {
-  DestinoDeEnvio,
-  DestinosDeEnvioPort,
+import {
+  MOTIVOS_DE_DESTINO_INVALIDO,
+  type DestinoDeEnvio,
+  type DestinosDeEnvioPort,
 } from "@/modules/atendimento/application/ports/out/destinos-de-envio.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
@@ -19,7 +20,7 @@ const linhasSchema = z.array(
     email: z.string().nullable(),
     canal: z.enum(FORMAS_ENVIO),
     ultima_mensagem_do_contato_em: z.string().nullable(),
-    motivo: z.enum(["sem_whatsapp", "sem_email"]).nullable(),
+    motivo: z.enum(MOTIVOS_DE_DESTINO_INVALIDO).nullable(),
   }),
 );
 
