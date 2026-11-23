@@ -1,5 +1,6 @@
 import {
   canalPerdidoDoDestino,
+  FORMA_ENVIO_LABEL,
   FORMAS_ENVIO,
   temOsDoisCanais,
   type FormaEnvioValor,
@@ -8,19 +9,13 @@ import { TIPO_TODOS_OS_ENVIOS } from "@/shared/kernel/tipo-de-envio";
 
 import { contatoDoSetor, type ContatoDaLinha } from "./contato-da-linha.presenter";
 
-type DestinoSalvo = { contatoId: string; tipo: string | null; canal: string };
-type TipoDeEnvio = { slug: string; rotulo: string };
-
-const ROTULO_DO_CANAL: Record<FormaEnvioValor, string> = {
-  whatsapp: "WhatsApp",
-  email: "E-mail",
-  whatsapp_e_email: "WhatsApp e E-mail",
-};
+export type DestinoSalvo = { contatoId: string; tipo: string | null; canal: string };
+export type TipoDeEnvio = { slug: string; rotulo: string };
 
 // As opções do "Enviar por" (o contato com os dois canais; sem valor padrão).
 export const OPCOES_DE_CANAL = FORMAS_ENVIO.map((valor) => ({
   valor,
-  rotulo: ROTULO_DO_CANAL[valor],
+  rotulo: FORMA_ENVIO_LABEL[valor],
 }));
 
 // Por onde o Setor envia ao contato que tem os dois canais: o canal dos Destinos dele ("" sem Destino). Com um
@@ -33,7 +28,7 @@ export function canalDoContato(
   return destinos.find((d) => d.contatoId === contato.id)?.canal ?? "";
 }
 
-export const ROTULO_TODOS_OS_ENVIOS = "Todos os envios";
+const ROTULO_TODOS_OS_ENVIOS = "Todos os envios";
 
 // Os checkboxes da linha: "Todos os envios" e os tipos do catálogo do Setor.
 export function opcoesDeTipos(tipos: TipoDeEnvio[]) {
@@ -82,18 +77,24 @@ export function tiposAposAlternar(marcados: string[], valor: string, opcoes: str
     : outrosMarcados;
 }
 
+const linhaEmBranco = () => ({
+  nome: "",
+  telefone: "",
+  email: "",
+  tipos: [] as string[],
+  canal: "",
+});
+
 // A lista com que a tela abre: os contatos já com o que cada um recebe e, quando o Setor ainda não usa nenhum,
 // uma linha em branco (descartada se ninguém a tocar) para a seção não abrir vazia.
 export function contatosIniciais<T extends ContatoDaLinha>(
   contatos: T[],
   destinos: DestinoSalvo[],
   opcoes: { verTodos: boolean; setor: string; somenteLeitura: boolean },
-): (T | { nome: string; telefone: string; email: string; tipos: string[]; canal: string })[] {
+): (T | ReturnType<typeof linhaEmBranco>)[] {
   const comTipos = contatosComTipos(contatos, destinos);
   const semNenhum = !comTipos.some((c) => opcoes.verTodos || contatoDoSetor(c, opcoes.setor));
-  return semNenhum && !opcoes.somenteLeitura
-    ? [...comTipos, { nome: "", telefone: "", email: "", tipos: [], canal: "" }]
-    : comTipos;
+  return semNenhum && !opcoes.somenteLeitura ? [...comTipos, linhaEmBranco()] : comTipos;
 }
 
 // Os contatos do servidor já com o que cada um recebe do Setor (os checkboxes da linha) e por qual canal.

@@ -3,7 +3,6 @@ import { contatoNovo } from "./editar-cadastro-operacional.presenter";
 import {
   enviosDaLinha,
   existentesDaLinha,
-  MENSAGEM_SEM_CANAL,
   numeroRepetidoDaLinha,
 } from "./opcoes-da-linha.presenter";
 
@@ -39,7 +38,7 @@ describe("enviosDaLinha", () => {
 
   it("os dois canais com envio marcado: 'Enviar por' com o erro quando o Salvar o recusou", () => {
     const sem = enviosDaLinha(entradaDosEnvios({ ...ana, tipos: ["das"] }, true));
-    expect(sem.canal?.erro).toBe(MENSAGEM_SEM_CANAL);
+    expect(sem.canal?.erro).toBe("Escolha por onde enviar a este contato.");
     expect(enviosDaLinha(entradaDosEnvios({ ...ana, tipos: ["das"] })).canal?.erro).toBeUndefined();
   });
 });

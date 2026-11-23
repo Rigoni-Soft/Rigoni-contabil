@@ -10,17 +10,15 @@ import {
 import {
   avisoDeCanalPerdido,
   OPCOES_DE_CANAL,
-  type opcoesDeTipos,
+  type DestinoSalvo,
 } from "./tipos-de-envio.presenter";
 
-export const MENSAGEM_SEM_CANAL = "Escolha por onde enviar a este contato.";
-
-type Destinos = Parameters<typeof avisoDeCanalPerdido>[0];
+const MENSAGEM_SEM_CANAL = "Escolha por onde enviar a este contato.";
 
 type EntradaDosEnvios = {
   contato: ValoresDaLinha;
-  opcoes: ReturnType<typeof opcoesDeTipos>;
-  destinos: Destinos;
+  opcoes: { valor: string; rotulo: string }[];
+  destinos: DestinoSalvo[];
   // O Salvar foi recusado por falta do canal.
   semCanal: boolean;
   onMudarCanal: (valor: string) => void;
