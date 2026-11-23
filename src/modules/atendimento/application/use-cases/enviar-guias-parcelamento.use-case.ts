@@ -103,13 +103,16 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     destinos: DestinosDoCliente,
     parcelamentos: ParcelamentoDoCliente[],
   ): Promise<Result<Set<string>, AppError>> {
-    const ids = new Set<string>();
+    const triagem = new Map<string, Result<boolean, AppError>>();
     for (const parcelamento of parcelamentos) {
-      const entregavel = await this.temParaQuemEnviar(parcelamento, destinos);
-      if (!entregavel.ok) return entregavel;
-      if (entregavel.value) ids.add(parcelamento.id);
+      triagem.set(parcelamento.id, await this.temParaQuemEnviar(parcelamento, destinos));
     }
-    return ok(ids);
+    const primeiraFalha = [...triagem.values()].find(
+      (resultado): resultado is { ok: false; error: AppError } => !resultado.ok,
+    );
+    if (primeiraFalha) return primeiraFalha;
+    const entregaveis = [...triagem].filter(([, resultado]) => resultado.ok && resultado.value);
+    return ok(new Set(entregaveis.map(([id]) => id)));
   }
 
   private async temParaQuemEnviar(

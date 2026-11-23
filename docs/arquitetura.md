@@ -139,7 +139,7 @@ Valem para todo o projeto. Os detalhes de cada um ficam na `constitution.md`; aq
 - **SOLID:** uma responsabilidade por classe; dependa de abstrações (portas), nunca de implementações; extensão por novas implementações de porta, não por `if` em código existente.
 - **DRY, KISS, YAGNI:** sem abstração antes da segunda repetição real; sem camada vazia. Uma feature de leitura trivial não ganha entidade nem builder só para "cumprir o padrão" (ver read models na seção 3.6).
 - **Object Calisthenics** (rigor em `domain` e `application`; na `presentation` valem as regras 1, 2, 5, 6 e 7):
-  1. um nível de indentação por método;
+  1. um nível de indentação por método (o `yarn lint` reprova com `max-depth: 1` em `domain` e `application`; a lista de arquivos com dívida anterior fica em `eslint.config.mjs` e só encolhe);
   2. sem `else`;
   3. encapsular primitivos e strings (value objects);
   4. coleções de primeira classe;
