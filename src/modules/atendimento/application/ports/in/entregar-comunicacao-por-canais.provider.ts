@@ -1,4 +1,4 @@
-import type { ComunicacaoProativa } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
+import type { ComunicacaoSemContato } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
 import type { TipoAlertaSetor } from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
 import type { DestinoDeEnvio } from "@/modules/atendimento/application/ports/out/destinos-de-envio.provider";
 import type { AppError } from "@/shared/errors/app.error";
@@ -10,7 +10,7 @@ export type EntregarComunicacaoInput = {
   cliente: { empresa: string };
   // Os Destinos já resolvidos pelo chamador (que decide antes se há para quem enviar).
   destinos: DestinoDeEnvio[];
-  comunicacao: ComunicacaoProativa;
+  comunicacao: ComunicacaoSemContato;
   agora: Date;
 };
 

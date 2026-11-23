@@ -450,7 +450,6 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
         destinos: doSetor.value,
         comunicacao: {
           tipo: "envio_guia_parcelamento",
-          contato: cliente.empresa,
           empresa: cliente.empresa,
           parcela: formatarParcela(parcela),
           guia: documento,

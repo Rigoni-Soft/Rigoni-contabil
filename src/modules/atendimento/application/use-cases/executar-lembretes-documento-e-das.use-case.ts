@@ -7,7 +7,7 @@ import {
   semDestinatario,
   type Andamento,
 } from "@/modules/atendimento/application/jobs/alertas-da-rodada";
-import type { ComunicacaoProativa } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
+import type { ComunicacaoSemContato } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
 import type {
   EntregarComunicacaoPorCanaisPort,
   OcorrenciaDeEntrega,
@@ -121,9 +121,8 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
   private async lembrar(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
     const destinos = await this.destinosDe(cliente, "lembrete_documento");
     if ("saida" in destinos) return destinos.saida;
-    const comunicacao: ComunicacaoProativa = {
+    const comunicacao: ComunicacaoSemContato = {
       tipo: "lembrete_documento_obrigatorio",
-      contato: cliente.empresa,
       empresa: cliente.empresa,
     };
     return this.entregar(cliente, destinos.destinos, comunicacao, agora);
@@ -157,9 +156,8 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     if (!guia.ok) return falha(`DAS de ${cliente.empresa}: ${guia.error.message}`);
     const { caminho, ...conteudo } = guia.value;
     publicado.caminho = caminho;
-    const comunicacao: ComunicacaoProativa = {
+    const comunicacao: ComunicacaoSemContato = {
       tipo: "envio_guia_das",
-      contato: cliente.empresa,
       empresa: cliente.empresa,
       ...conteudo,
     };
@@ -169,7 +167,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
   private async entregar(
     cliente: ClienteParaLembrete,
     destinos: DestinoDeEnvio[],
-    comunicacao: ComunicacaoProativa,
+    comunicacao: ComunicacaoSemContato,
     agora: Date,
   ): Promise<Andamento> {
     return paraAndamento(

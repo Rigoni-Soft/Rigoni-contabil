@@ -23,13 +23,9 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 type ResultadoDaEntrega = { entregue: boolean; ocorrencias: OcorrenciaDeEntrega[] };
 
-const ocorrenciaDeFalha = (mensagem: string): OcorrenciaDeEntrega => ({
-  tipo: "falha_envio",
-  mensagem,
-});
 const falhou = (mensagem: string): ResultadoDaEntrega => ({
   entregue: false,
-  ocorrencias: [ocorrenciaDeFalha(mensagem)],
+  ocorrencias: [{ tipo: "falha_envio", mensagem }],
 });
 
 const MOTIVO_DE_DESTINO_INVALIDO: Record<MotivoDeDestinoInvalido, string> = {
@@ -40,8 +36,8 @@ const MOTIVO_DE_DESTINO_INVALIDO: Record<MotivoDeDestinoInvalido, string> = {
 // Entrega a comunicação pelos canais de cada Destino de envio. O canal que não entrega vira
 // ocorrência sem derrubar o outro (nem o Destino seguinte); o Destino inválido não recebe e também
 // vira ocorrência; entregar por menos canais do que os Destinos pedem (na guia) acrescenta a
-// ocorrência `entrega_parcial`. Sem Destino não há o que
-// entregar: quem chama decide antes e alerta o Setor; lista vazia é erro, não entrega de zero.
+// ocorrência `entrega_parcial`. Sem Destino não há o que entregar: quem chama decide antes e alerta
+// o Setor; lista vazia é erro, não entrega de zero.
 export class EntregarComunicacaoPorCanais implements EntregarComunicacaoPorCanaisPort {
   constructor(
     private readonly proativa: EnviarComunicacaoProativaPort,
@@ -57,7 +53,8 @@ export class EntregarComunicacaoPorCanais implements EntregarComunicacaoPorCanai
 
     const entregues = canais.filter((canal) => canal.entregue).length;
     const ocorrencias = canais.flatMap((canal) => canal.ocorrencias);
-    // Só a guia gera pendência: o lembrete é recorrente e volta a sair na próxima rodada.
+    // Só a guia (DAS ou parcelamento) gera pendência: o lembrete é recorrente e volta a sair na
+    // próxima rodada.
     if (guiaDe(comunicacao) && entregues > 0 && entregues < canais.length) {
       ocorrencias.push({
         tipo: "entrega_parcial",
