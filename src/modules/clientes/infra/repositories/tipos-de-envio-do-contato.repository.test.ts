@@ -148,6 +148,18 @@ describe("SupabaseTiposDeEnvioDoContatoRepository (integração)", () => {
     expect(await canaisGravados(contatoId)).toEqual(["whatsapp"]);
   });
 
+  it("chamadas simultâneas ao mesmo contato (duplo clique) não violam o índice único: todas dão certo", async () => {
+    const chamadas = await Promise.all(
+      Array.from({ length: 30 }, async () => {
+        const sn = await repositorioDe("funcionario.sn@rigonicontabil.local");
+        return sn.definir(clienteId, contatoId, ["das", "avisos", "todos"]);
+      }),
+    );
+
+    expect(chamadas.every((r) => r.ok)).toBe(true);
+    expect(await tiposGravados()).toEqual([null, "avisos", "das"]);
+  });
+
   it("quem não gere o Cliente no Setor é recusado, sem gravar", async () => {
     const rh = await repositorioDe("funcionario.rh@rigonicontabil.local");
 

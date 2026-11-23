@@ -55,8 +55,13 @@ begin
   elsif v_tem_whatsapp then
     v_canal := 'whatsapp';
   else
+    -- cliente_contatos_canal_check garante WhatsApp válido ou e-mail: sem WhatsApp, o canal é o e-mail.
     v_canal := 'email';
   end if;
+
+  -- Duas chamadas ao mesmo contato (duplo clique, Salvar junto com um checkbox) esperam uma à outra: sem isto o
+  -- `insert ... where not exists` das duas passaria e a segunda violaria destinos_de_envio_unico.
+  perform pg_advisory_xact_lock(hashtext('definir_tipos_de_envio_do_contato:' || p_contato_id::text));
 
   delete from public.destinos_de_envio
   where cliente_id = p_cliente_id and setor = v_setor and contato_id = p_contato_id
