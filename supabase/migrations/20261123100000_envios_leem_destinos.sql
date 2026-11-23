@@ -69,6 +69,10 @@ $$;
 REVOKE ALL ON FUNCTION public.destinos_de_envio_do_job(uuid, public.setor_slug, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.destinos_de_envio_do_job(uuid, public.setor_slug, text) TO service_role;
 
+-- A última Mensagem do Contato olha os Atendimentos do telefone em qualquer status; o único índice da
+-- chave é parcial (em andamento), então sem este cada Destino lido varreria `atendimentos`.
+CREATE INDEX atendimentos_chave_telefone ON public.atendimentos USING btree (chave_telefone);
+
 -- O aviso do sino leva o texto do alerta que o gerou (o de "novo cliente" e o de "nova alteração" montam o
 -- texto no cliente a partir do tipo).
 ALTER TABLE public.avisos_cadastro ADD COLUMN mensagem text;
@@ -77,21 +81,30 @@ ALTER TABLE public.avisos_cadastro ADD COLUMN mensagem text;
 -- avisa de novo) avisa no sino o Líder do Setor e o Responsável do Cliente naquele Setor; sem
 -- Responsável ativo, só o Líder. O Admin nunca é destinatário. Resolvido e reaberto, é uma nova
 -- inserção e um novo aviso.
+CREATE FUNCTION public.avisar_sem_meio_de_envio(p_cliente_id uuid, p_setor public.setor_slug, p_mensagem text) RETURNS void
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+  insert into public.avisos_cadastro (destinatario_id, tipo, cliente_id, mensagem)
+  select d.id, 'sem_meio_de_envio', p_cliente_id, p_mensagem
+    from (
+      select p.id from public.perfis p
+       where p.setor = p_setor and p.papel = 'lider_setor' and p.desativado_em is null
+      union
+      select p.id from public.cliente_responsaveis r
+        join public.perfis p on p.id = r.responsavel_id
+       where r.cliente_id = p_cliente_id and r.setor = p_setor and p.desativado_em is null
+    ) d;
+$$;
+REVOKE ALL ON FUNCTION public.avisar_sem_meio_de_envio(uuid, public.setor_slug, text) FROM PUBLIC, anon, authenticated;
+GRANT ALL ON FUNCTION public.avisar_sem_meio_de_envio(uuid, public.setor_slug, text) TO service_role;
+
 CREATE FUNCTION public.avisar_cliente_sem_meio_de_envio() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
 begin
-  insert into public.avisos_cadastro (destinatario_id, tipo, cliente_id, mensagem)
-  select d.id, 'sem_meio_de_envio', new.cliente_id, new.mensagem
-    from (
-      select p.id from public.perfis p
-       where p.setor = new.setor and p.papel = 'lider_setor' and p.desativado_em is null
-      union
-      select p.id from public.cliente_responsaveis r
-        join public.perfis p on p.id = r.responsavel_id
-       where r.cliente_id = new.cliente_id and r.setor = new.setor and p.desativado_em is null
-    ) d;
+  perform public.avisar_sem_meio_de_envio(new.cliente_id, new.setor, new.mensagem);
   return null;
 end;
 $$;
@@ -99,3 +112,9 @@ REVOKE ALL ON FUNCTION public.avisar_cliente_sem_meio_de_envio() FROM PUBLIC, an
 GRANT ALL ON FUNCTION public.avisar_cliente_sem_meio_de_envio() TO service_role;
 CREATE TRIGGER alertas_setor_avisar_sem_meio_de_envio AFTER INSERT ON public.alertas_setor
     FOR EACH ROW WHEN (new.tipo = 'contato_ausente') EXECUTE FUNCTION public.avisar_cliente_sem_meio_de_envio();
+
+-- Os `contato_ausente` já abertos (renovados por UPDATE, nunca por inserção) avisam uma vez agora, com o
+-- texto que têm; depois disso só um alerta novo avisa.
+SELECT public.avisar_sem_meio_de_envio(a.cliente_id, a.setor, a.mensagem)
+  FROM public.alertas_setor a
+ WHERE a.tipo = 'contato_ausente' AND a.resolvido_em IS NULL;

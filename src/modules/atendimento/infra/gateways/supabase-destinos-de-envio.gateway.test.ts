@@ -396,6 +396,24 @@ describe("aviso do sino: Cliente sem meio de envio", () => {
     }
   });
 
+  it("o aviso dos alertas já abertos (backfill da migration) chega ao Líder e ao Responsável, nunca ao Admin", async () => {
+    const antes = (await avisos(clienteSn)).length;
+
+    await ok(
+      admin.rpc("avisar_sem_meio_de_envio", {
+        p_cliente_id: clienteSn,
+        p_setor: "simples_nacional",
+        p_mensagem: MENSAGEM,
+      }),
+    );
+
+    const novos = (await avisos(clienteSn)).slice(antes);
+    expect(novos.map((a) => a.destinatario_id).sort()).toEqual(
+      [FUNCIONARIO_SN_ID, LIDER_SN_ID].sort(),
+    );
+    expect(novos.every((a) => a.mensagem === MENSAGEM)).toBe(true);
+  });
+
   it("job sem Destino abre o alerta; cadastrado o Destino, a rodada seguinte o resolve", async () => {
     const sinal = () =>
       ok(

@@ -65,3 +65,31 @@ describe("RPCs do job de envio: só o service_role executa", () => {
     expect(error).toBeNull();
   });
 });
+
+// Escreve no sino (SECURITY DEFINER): só o service_role e o trigger a chamam. O teste só tenta como
+// quem não pode, então nada é gravado.
+describe("avisar_sem_meio_de_envio: quem não é service_role é negado", () => {
+  const args = {
+    p_cliente_id: crypto.randomUUID(),
+    p_setor: "simples_nacional",
+    p_mensagem: "x",
+  };
+
+  it("authenticated", async () => {
+    const funcionario = await entrar("funcionario.sn@rigonicontabil.local", "func123");
+
+    const { error } = await funcionario.rpc("avisar_sem_meio_de_envio", args);
+
+    expect(error?.code).toBe(NEGADO);
+  });
+
+  it("anon", async () => {
+    const anonimo = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: false },
+    });
+
+    const { error } = await anonimo.rpc("avisar_sem_meio_de_envio", args);
+
+    expect(["42501", "PGRST202"]).toContain(error?.code);
+  });
+});
