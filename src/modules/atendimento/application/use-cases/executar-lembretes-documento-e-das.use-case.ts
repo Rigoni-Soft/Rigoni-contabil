@@ -102,39 +102,41 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     ];
   }
 
-  // Quem recebe o envio do tipo no Setor: o Andamento de saída quando a leitura falha ou o Setor não
-  // tem Destino válido (alerta `contato_ausente`).
+  // Quem recebe o envio do tipo no Setor; `saida` é o Andamento quando a leitura falha ou o Setor
+  // não tem Destino válido (alerta `contato_ausente`).
   private async destinosDe(
     cliente: ClienteParaLembrete,
     tipo: TipoDeEnvio,
-  ): Promise<DestinoDeEnvio[] | Andamento> {
+  ): Promise<{ destinos: DestinoDeEnvio[] } | { saida: Andamento }> {
     const resolvidos = await this.destinos.resolver(cliente.clienteId, SETOR_SN, tipo);
-    if (!resolvidos.ok) return falha(`${cliente.empresa}: ${resolvidos.error.message}`);
-    if (resolvidos.value.length === 0) return semDestinatario(cliente.empresa, SETOR_SN, tipo);
-    return resolvidos.value;
+    if (!resolvidos.ok) return { saida: falha(`${cliente.empresa}: ${resolvidos.error.message}`) };
+    if (resolvidos.value.length === 0) {
+      return { saida: semDestinatario(cliente.empresa, SETOR_SN, tipo) };
+    }
+    return { destinos: resolvidos.value };
   }
 
   private async lembrar(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
     const destinos = await this.destinosDe(cliente, "lembrete_documento");
-    if (!Array.isArray(destinos)) return destinos;
+    if ("saida" in destinos) return destinos.saida;
     const comunicacao: ComunicacaoProativa = {
       tipo: "lembrete_documento_obrigatorio",
       contato: cliente.empresa,
       empresa: cliente.empresa,
     };
-    return this.entregar(cliente, destinos, comunicacao, agora);
+    return this.entregar(cliente, destinos.destinos, comunicacao, agora);
   }
 
   private async enviarDas(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
     // Sem para quem enviar não vale buscar a guia nem reservar o DAS.
     const destinos = await this.destinosDe(cliente, "das");
-    if (!Array.isArray(destinos)) return destinos;
+    if ("saida" in destinos) return destinos.saida;
     // O PDF publicado fica no Storage mesmo se a entrega falhar: só o envio aceito guarda o caminho.
     const publicado: { caminho?: string } = {};
     return entregarComReserva({
       descricao: `DAS de ${cliente.empresa}`,
       reservar: () => this.clientes.reservarDas(cliente.clienteId),
-      entregar: () => this.entregarGuia(cliente, destinos, agora, publicado),
+      entregar: () => this.entregarGuia(cliente, destinos.destinos, agora, publicado),
       concluir: async (token) =>
         publicado.caminho
           ? this.clientes.concluirDas(cliente.clienteId, token, hojeIso(agora), publicado.caminho)
