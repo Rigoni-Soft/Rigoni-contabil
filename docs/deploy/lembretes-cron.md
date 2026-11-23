@@ -15,18 +15,21 @@ Antes de ligar em produção:
 1. Mensageria real no ar (#68) e os 3 templates do lembrete e do DAS aprovados na Meta (#67). O quarto, `envio_guia_parcelamento_interno`, é do job de parcelamento ([parcelamento-cron.md](./parcelamento-cron.md)).
 2. E-mail real. Hoje só existe o adapter falso, e em produção o canal e-mail falha de forma
    explícita (`EnvioEmailIndisponivelGateway`): o DAS não é marcado como enviado e o setor recebe
-   alerta, em vez de o adapter falso responder ok. O destino é `clientes.email`,
-   informado pelo Admin no cadastro do Cliente (opcional) e exposto na projeção `clientes_basico`.
-   Cliente sem e-mail com forma de envio que o inclui vira alerta `contato_ausente`. Editar o e-mail
-   depois do cadastro ainda não tem tela (só o Admin cria; o cadastro operacional não o altera).
+   alerta, em vez de o adapter falso responder ok. O destino do e-mail é o do Contato do Destino de
+   envio do Simples Nacional (não mais `clientes.email`). Destino por e-mail cujo Contato perdeu o
+   e-mail deixa de valer, e o Cliente sem Destino válido vira alerta `contato_ausente`.
+   **Antes da primeira rodada em produção o Simples Nacional precisa ter cadastrado os Destinos** (o
+   lembrete e o DAS não leem mais o contato padrão nem a forma de envio): sem Destino o job só alerta,
+   e o Líder e o Responsável recebem o aviso no sino.
 3. Painel do Funcionário lendo `alertas_setor` (a tabela e a RLS já existem; a tela não).
 
 ## O que o job faz
 
 | Situação do Cliente                            | Ação                                                                                   |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Documento obrigatório = negativo               | Lembrete ao contato padrão (template fora da janela de 24h, formato próprio dentro)    |
-| DAS = pronto                                   | Busca a guia, envia pela forma de envio, marca DAS = enviado com a data de envio       |
+| Documento obrigatório = negativo               | Lembrete aos Destinos do SN (tipo "lembrete de documento" ou "todos"; template fora da janela de 24h de cada telefone, formato próprio dentro) |
+| DAS = pronto                                   | Busca a guia, envia aos Destinos do SN (tipo "DAS" ou "todos"), marca DAS = enviado com a data de envio |
+| Sem Destino válido para o envio                | Alerta `contato_ausente` do Setor ("Cliente: sem meio de envio para o DAS (Simples Nacional)") e um aviso no sino do Líder e do Responsável (só o Líder sem Responsável ativo; nunca o Admin), uma vez por abertura |
 | DAS = pendente e documento obrigatório = positivo | Alerta `das_pendente` ao setor Simples Nacional                                     |
 
 - **Retentativa:** falha do Serpro, do armazenamento ou do envio (`ServicoExternoError`) é repetida
@@ -46,9 +49,10 @@ Antes de ligar em produção:
   `23514`), e a data é sempre derivada. O job passa porque grava com `service_role`, sem sessão
   (`auth.uid()` nulo). Definir `enviado` por engano não é possível pela tela; para desfazer um `enviado`
   basta mudar o status para outro valor (a data é limpa). ADR 0008.
-- **Forma de envio:** WhatsApp e e-mail são independentes; o DAS vira `enviado` se ao menos um
-  canal entregou. Canal que falha ou não tem destinatário gera alerta e não derruba o outro. Quando
-  a guia do DAS tem os dois canais na forma de envio e só um entregou, abre-se também
+- **Canal do Destino:** WhatsApp e e-mail são independentes (com "ambos" o job tenta cada canal);
+  o DAS vira `enviado` se ao menos um canal entregou. Canal que falha ou não tem destinatário gera
+  alerta e não derruba o outro (nem o Destino seguinte). Quando a guia do DAS tem mais canais nos
+  Destinos do que os que entregaram, abre-se também
   `entrega_parcial` (no lembrete não: ele volta a sair na próxima rodada): o job
   não a resolve sozinho (o DAS já saiu de `pronto`), ela fica aberta até alguém reenviar pelo
   outro canal.

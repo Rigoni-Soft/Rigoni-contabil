@@ -46,9 +46,9 @@ As quatro entregas da spec (Dados, Cadastro, Envios e aviso, Recepção) vão **
 
 ### Etapa B3: Envios e aviso
 
-- [ ] **PR B4: Envios lendo os destinos e aviso de cliente sem meio de envio** (depende das PRs B2 e B3)
-  - [ ] #295 (backend): lembrete e DAS do SN leem os destinos, com o aviso (bloqueado por #292 e #293)
-  - [ ] #296 (backend): guias de parcelamento do SN e do RH leem os destinos (bloqueado por #294 e #295)
+- [x] **PR B4: Envios lendo os destinos e aviso de cliente sem meio de envio** (depende das PRs B2 e B3)
+  - [x] #295 (backend): lembrete e DAS do SN leem os destinos, com o aviso (bloqueado por #292 e #293)
+  - [x] #296 (backend): guias de parcelamento do SN e do RH leem os destinos (bloqueado por #294 e #295)
 
 ### Etapa B4: Recepção e deploy
 
