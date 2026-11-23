@@ -31,6 +31,7 @@ function destino(extra: Partial<DestinoDeEnvio> = {}): DestinoDeEnvio {
     email: null,
     canal: "whatsapp",
     ultimaMensagemDoContatoEm: null,
+    motivoInvalido: null,
     ...extra,
   };
 }
@@ -142,6 +143,47 @@ describe("EntregarComunicacaoPorCanais", () => {
     expect(envio.templatesEnviados).toMatchObject([
       { telefone: "5511987654321", variaveis: ["Bia Exemplo", "Cliente Exemplo Ltda"] },
     ]);
+  });
+
+  it("Destino inválido ao lado de um válido: o válido recebe, o inválido vira falha_envio com o Contato e a guia ganha entrega parcial", async () => {
+    const { entrega, envio, emails } = montar();
+    const resultado = await entrega.execute({
+      cliente,
+      destinos: [
+        destino(),
+        destino({
+          contatoNome: "Caio Exemplo",
+          canal: "email",
+          telefone: null,
+          email: null,
+          motivoInvalido: "sem_email",
+        }),
+      ],
+      comunicacao: guia,
+      agora,
+    });
+    expect(resultado.ok && resultado.value.entregues).toBe(1);
+    expect(resultado.ok && resultado.value.ocorrencias).toEqual([
+      {
+        tipo: "falha_envio",
+        mensagem: "Caio Exemplo: Destino inválido, o Contato não tem mais e-mail.",
+      },
+      expect.objectContaining({ tipo: "entrega_parcial" }),
+    ]);
+    expect(envio.requisicoes).toHaveLength(1);
+    expect(emails).toHaveLength(0);
+  });
+
+  it("Destino inválido que ainda tem outro canal no Contato não recebe por esse canal", async () => {
+    const { entrega, envio } = montar();
+    const resultado = await entrega.execute({
+      cliente,
+      destinos: [destino({ canal: "whatsapp_e_email", email: null, motivoInvalido: "sem_email" })],
+      comunicacao: lembrete,
+      agora,
+    });
+    expect(resultado.ok && resultado.value.entregues).toBe(0);
+    expect(envio.requisicoes).toHaveLength(0);
   });
 
   it("sem Destino: erro, nada é enviado e o chamador que esqueceu a triagem não perde o envio em silêncio", async () => {

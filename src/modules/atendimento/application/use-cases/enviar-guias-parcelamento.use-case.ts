@@ -29,9 +29,10 @@ import type {
   ClienteCnpjPort,
 } from "@/modules/atendimento/application/ports/out/cliente-cnpj.provider";
 import type { ClienteParaParcelamento } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
-import type {
-  DestinoDeEnvio,
-  DestinosDeEnvioPort,
+import {
+  destinoValido,
+  type DestinoDeEnvio,
+  type DestinosDeEnvioPort,
 } from "@/modules/atendimento/application/ports/out/destinos-de-envio.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 import type { GuiaPublicadaPort } from "@/modules/atendimento/application/ports/out/guia-publicada.provider";
@@ -63,8 +64,8 @@ type DestinosDoCliente = (setor: SetorSlug) => Promise<Result<DestinoDeEnvio[], 
 // Quem tem para quem enviar, e os Setores cujos Destinos não puderam ser lidos.
 type Triagem = { entregaveis: Set<string>; falhas: Map<SetorSlug, AppError> };
 
-const leituraFalhou = (p: ParcelamentoDoCliente, falhas: Triagem["falhas"]) =>
-  !p.interno && falhas.has(p.setor);
+const leituraFalhou = (parcelamento: ParcelamentoDoCliente, falhas: Triagem["falhas"]) =>
+  !parcelamento.interno && falhas.has(parcelamento.setor);
 
 const ocorrenciasDeLeitura = (descricao: string, falhas: Triagem["falhas"]) =>
   [...falhas].flatMap(
@@ -81,8 +82,8 @@ type EntregaDeGuia = { andamento: Andamento; descontou: boolean; completa: boole
 // entrega aceita grava o registro de envio da parcela. O Parcelamento da Receita vem do provedor
 // fiscal; o da PGFN, das guias confirmadas à mão, com o PDF do banco, até a competência do
 // mês corrente e da mais antiga para a mais nova. Sem guia confirmada o job apenas pula (o lembrete
-// da PGFN avisa o setor). O comum vai ao Cliente pela forma de envio
-// dele; o interno só ao financeiro, por template, e nunca ao Cliente. Falha fechado: parcelamento
+// da PGFN avisa o setor). O comum vai aos Destinos de guia de parcelamento do Setor do Parcelamento;
+// o interno só ao financeiro, por template, e nunca ao Cliente. Falha fechado: parcelamento
 // pendente sem guia vira `parcelamento_sem_guia`, nunca se adivinha. Lê a união dos Parcelamentos
 // de todos os Setores numa entrega só; cada ocorrência leva o Setor do Parcelamento, que é o dono do
 // alerta. Regra completa em docs/deploy/parcelamento-cron.md.
@@ -121,7 +122,8 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     for (const { id, interno, setor } of parcelamentos) {
       const doSetor = interno ? ok([]) : await destinos(setor);
       if (!doSetor.ok) falhas.set(setor, doSetor.error);
-      else if (interno ? this.financeiro.telefone : doSetor.value.length > 0) entregaveis.add(id);
+      else if (interno ? this.financeiro.telefone : doSetor.value.some(destinoValido))
+        entregaveis.add(id);
     }
     return { entregaveis, falhas };
   }
@@ -426,7 +428,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     );
   }
 
-  // Sempre template, direto ao financeiro: sem janela, sem forma de envio do Cliente, sem e-mail.
+  // Sempre template, direto ao financeiro: sem janela, sem Destinos do Setor, sem e-mail.
   private async entregarAoFinanceiro(
     cliente: ClienteParaParcelamento,
     { parcelamento, parcela, restantesDepois }: GuiaAEntregar,

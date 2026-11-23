@@ -30,6 +30,7 @@ const destino = (extra: Partial<DestinoDeEnvio> = {}): DestinoDeEnvio => ({
   email: null,
   canal: "whatsapp",
   ultimaMensagemDoContatoEm: null,
+  motivoInvalido: null,
   ...extra,
 });
 

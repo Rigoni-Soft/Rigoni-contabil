@@ -186,7 +186,7 @@ describe("SupabaseDestinosDeEnvioGateway", () => {
     expect(r).toEqual({ ok: true, value: [] });
   });
 
-  it("canal removido do Contato: o Destino deixa de valer (some da resolução)", async () => {
+  it("canal removido do Contato: o Destino volta marcado como inválido, com o motivo (o job o reporta)", async () => {
     const soEmail = await criarContato(clienteId, {
       nome: "Caio Exemplo",
       email: "caio@exemplo.test",
@@ -205,8 +205,10 @@ describe("SupabaseDestinosDeEnvioGateway", () => {
 
     const r = await destinos.resolver(clienteId, "simples_nacional", "guia_parcelamento");
 
-    // O tipo específico tem um Destino, mas inválido: nada é entregue e o Setor é alertado.
-    expect(r).toEqual({ ok: true, value: [] });
+    // O tipo específico tem um Destino, mas inválido: ele vale no lugar do "todos" e vem com o motivo.
+    expect(r.ok && r.value.map((d) => [d.contatoNome, d.motivoInvalido])).toEqual([
+      ["Caio Exemplo", "sem_email"],
+    ]);
   });
 
   it("janela de 24h pela chave nacional: a última mensagem do contato, não a da URA", async () => {

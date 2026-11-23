@@ -10,7 +10,10 @@ import type {
   OcorrenciaDeEntrega,
 } from "@/modules/atendimento/application/ports/in/entregar-comunicacao-por-canais.provider";
 import type { EnviarComunicacaoProativaPort } from "@/modules/atendimento/application/ports/in/enviar-comunicacao-proativa.provider";
-import type { DestinoDeEnvio } from "@/modules/atendimento/application/ports/out/destinos-de-envio.provider";
+import type {
+  DestinoDeEnvio,
+  MotivoDeDestinoInvalido,
+} from "@/modules/atendimento/application/ports/out/destinos-de-envio.provider";
 import type { EnvioEmailPort } from "@/modules/atendimento/application/ports/out/envio-email.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ValidationError } from "@/shared/errors/validation.error";
@@ -29,9 +32,15 @@ const falhou = (mensagem: string): ResultadoDaEntrega => ({
   ocorrencias: [ocorrenciaDeFalha(mensagem)],
 });
 
+const MOTIVO_DE_DESTINO_INVALIDO: Record<MotivoDeDestinoInvalido, string> = {
+  sem_whatsapp: "Destino inválido, o Contato não tem mais WhatsApp.",
+  sem_email: "Destino inválido, o Contato não tem mais e-mail.",
+};
+
 // Entrega a comunicação pelos canais de cada Destino de envio. O canal que não entrega vira
-// ocorrência sem derrubar o outro (nem o Destino seguinte); entregar por menos canais do que os
-// Destinos pedem (na guia) acrescenta a ocorrência `entrega_parcial`. Sem Destino não há o que
+// ocorrência sem derrubar o outro (nem o Destino seguinte); o Destino inválido não recebe e também
+// vira ocorrência; entregar por menos canais do que os Destinos pedem (na guia) acrescenta a
+// ocorrência `entrega_parcial`. Sem Destino não há o que
 // entregar: quem chama decide antes e alerta o Setor; lista vazia é erro, não entrega de zero.
 export class EntregarComunicacaoPorCanais implements EntregarComunicacaoPorCanaisPort {
   constructor(
@@ -62,6 +71,11 @@ export class EntregarComunicacaoPorCanais implements EntregarComunicacaoPorCanai
     entrada: EntregarComunicacaoInput,
     destino: DestinoDeEnvio,
   ): Promise<ResultadoDaEntrega[]> {
+    if (destino.motivoInvalido) {
+      return [
+        falhou(`${destino.contatoNome}: ${MOTIVO_DE_DESTINO_INVALIDO[destino.motivoInvalido]}`),
+      ];
+    }
     const canais: ResultadoDaEntrega[] = [];
     if (formaEnvioUsaWhatsapp(destino.canal)) canais.push(await this.porWhatsapp(entrada, destino));
     if (formaEnvioUsaEmail(destino.canal)) canais.push(await this.porEmail(entrada, destino));

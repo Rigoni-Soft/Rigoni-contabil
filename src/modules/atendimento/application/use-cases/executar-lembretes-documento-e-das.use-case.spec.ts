@@ -38,6 +38,7 @@ function destino(extra: Partial<DestinoDeEnvio> = {}): DestinoDeEnvio {
     email: null,
     canal: "whatsapp",
     ultimaMensagemDoContatoEm: null,
+    motivoInvalido: null,
     ...extra,
   };
 }
@@ -257,6 +258,35 @@ describe("ExecutarLembretesDocumentoEDas", () => {
       },
     ]);
     expect(resultado.ok && resultado.value.dasEnviados).toBe(0);
+  });
+
+  it("só Destino inválido: conta como sem Destino válido (contato_ausente), nada é enviado", async () => {
+    const { job, alertas, envio, marcados } = montar(
+      [cliente({ empresa: "Cliente Exemplo Ltda", dasStatus: "pronto" })],
+      { destinos: { c1: [destino({ motivoInvalido: "sem_whatsapp", telefone: null })] } },
+    );
+    await job.execute();
+    expect(envio.requisicoes).toHaveLength(0);
+    expect(marcados).toHaveLength(0);
+    expect(alertas).toMatchObject([{ tipo: "contato_ausente" }]);
+  });
+
+  it("Destino inválido ao lado de um válido: o DAS sai e o inválido é reportado como falha_envio", async () => {
+    const { job, alertas, envio, marcados } = montar([cliente({ dasStatus: "pronto" })], {
+      destinos: {
+        c1: [
+          destino(),
+          destino({ contatoNome: "Beto", telefone: null, motivoInvalido: "sem_whatsapp" }),
+        ],
+      },
+    });
+    await job.execute();
+    expect(envio.requisicoes).toHaveLength(1);
+    expect(marcados).toHaveLength(1);
+    expect(alertas).toMatchObject([
+      { tipo: "falha_envio", mensagem: expect.stringContaining("Beto") },
+      { tipo: "entrega_parcial" },
+    ]);
   });
 
   it("lembrete sem Destino: o alerta diz que falta meio para o lembrete de documento", async () => {

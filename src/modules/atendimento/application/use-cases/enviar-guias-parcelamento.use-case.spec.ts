@@ -35,6 +35,7 @@ const destino = (extra: Partial<DestinoDeEnvio> = {}): DestinoDeEnvio => ({
   email: null,
   canal: "whatsapp",
   ultimaMensagemDoContatoEm: null,
+  motivoInvalido: null,
   ...extra,
 });
 
@@ -441,6 +442,41 @@ describe("EnviarGuiasParcelamento", () => {
       expect(buscarGuiasParcelamento).not.toHaveBeenCalled();
       expect(andamento.ocorrencias).toMatchObject([
         { tipo: "contato_ausente", setor: "simples_nacional" },
+      ]);
+    });
+
+    it("só Destino inválido: conta como sem Destino, alerta o Setor e não chama o provedor fiscal", async () => {
+      const { nucleo, buscarGuiasParcelamento } = montar(ok([parcelamento("sn")]), {
+        destinos: {
+          simples_nacional: [destino({ telefone: null, motivoInvalido: "sem_whatsapp" })],
+        },
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(buscarGuiasParcelamento).not.toHaveBeenCalled();
+      expect(andamento.ocorrencias).toMatchObject([
+        { tipo: "contato_ausente", setor: "simples_nacional" },
+      ]);
+    });
+
+    it("Destino inválido ao lado de um válido: a guia sai e é registrada, e o inválido vira falha_envio com o Contato", async () => {
+      const { nucleo, registrados } = montar(ok([parcelamento("sn")]), {
+        destinos: {
+          simples_nacional: [
+            destino(),
+            destino({ contatoNome: "Caio", telefone: null, motivoInvalido: "sem_whatsapp" }),
+          ],
+        },
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento.enviado).toBe(true);
+      expect(registrados).toEqual([["sn", "202610"]]);
+      expect(andamento.ocorrencias).toMatchObject([
+        { tipo: "falha_envio", mensagem: expect.stringContaining("Caio") },
+        { tipo: "entrega_parcial" },
       ]);
     });
 

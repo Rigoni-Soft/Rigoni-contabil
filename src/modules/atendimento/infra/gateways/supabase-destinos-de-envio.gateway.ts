@@ -19,6 +19,7 @@ const linhasSchema = z.array(
     email: z.string().nullable(),
     canal: z.enum(FORMAS_ENVIO),
     ultima_mensagem_do_contato_em: z.string().nullable(),
+    motivo: z.enum(["sem_whatsapp", "sem_email"]).nullable(),
   }),
 );
 
@@ -49,6 +50,7 @@ export class SupabaseDestinosDeEnvioGateway implements DestinosDeEnvioPort {
         ultimaMensagemDoContatoEm: l.ultima_mensagem_do_contato_em
           ? new Date(l.ultima_mensagem_do_contato_em)
           : null,
+        motivoInvalido: l.motivo,
       })),
     );
   }

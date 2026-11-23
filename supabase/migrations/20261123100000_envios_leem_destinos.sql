@@ -49,11 +49,12 @@ GRANT ALL ON FUNCTION public.clientes_para_envio_base() TO service_role;
 GRANT ALL ON FUNCTION public.clientes_para_lembrete(uuid, integer) TO service_role;
 GRANT ALL ON FUNCTION public.clientes_para_parcelamento(uuid, integer) TO service_role;
 
--- Quem recebe o envio (só os Destinos válidos), com o telefone já com o DDI e a última Mensagem que o
+-- Quem recebe o envio (os válidos e os inválidos, com o `motivo`: quem consome entrega os válidos e
+-- reporta os inválidos), com o telefone já com o DDI e a última Mensagem que o
 -- Contato mandou em qualquer Atendimento do telefone (abre e fecha a janela de 24h).
 CREATE FUNCTION public.destinos_de_envio_do_job(p_cliente_id uuid, p_setor public.setor_slug, p_tipo text)
     RETURNS TABLE(contato_nome text, telefone_envio text, email text, canal public.forma_envio,
-                  ultima_mensagem_do_contato_em timestamp with time zone)
+                  ultima_mensagem_do_contato_em timestamp with time zone, valido boolean, motivo text)
     LANGUAGE sql STABLE
     SET search_path TO 'public'
     AS $$
@@ -61,9 +62,9 @@ CREATE FUNCTION public.destinos_de_envio_do_job(p_cliente_id uuid, p_setor publi
          (select max(m.criado_em)
             from public.mensagens m
             join public.atendimentos a on a.id = m.atendimento_id
-           where a.chave_telefone = public.chave_telefone(r.telefone_envio) and m.autor = 'contato')
-    from public.destinos_de_envio_resolvidos(p_cliente_id, p_setor, p_tipo) r
-   where r.valido;
+           where a.chave_telefone = public.chave_telefone(r.telefone_envio) and m.autor = 'contato'),
+         r.valido, r.motivo
+    from public.destinos_de_envio_resolvidos(p_cliente_id, p_setor, p_tipo) r;
 $$;
 REVOKE ALL ON FUNCTION public.destinos_de_envio_do_job(uuid, public.setor_slug, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.destinos_de_envio_do_job(uuid, public.setor_slug, text) TO service_role;

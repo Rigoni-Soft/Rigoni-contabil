@@ -22,9 +22,10 @@ import type {
   ClienteParaLembrete,
   ClientesParaLembretePort,
 } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
-import type {
-  DestinoDeEnvio,
-  DestinosDeEnvioPort,
+import {
+  destinoValido,
+  type DestinoDeEnvio,
+  type DestinosDeEnvioPort,
 } from "@/modules/atendimento/application/ports/out/destinos-de-envio.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type { AppError } from "@/shared/errors/app.error";
@@ -38,7 +39,8 @@ const DIAS_DO_JOB = [1, 5, 10, 15];
 
 // Job dos dias 01/05/10/15 (fuso de São Paulo): lembra quem está sem documento obrigatório,
 // envia o DAS pronto aos Destinos de envio do Simples Nacional (tipo do envio ou "todos"; sem
-// Destino válido, o alerta `contato_ausente` e o aviso do Líder e do Responsável) e alerta o setor Simples Nacional do DAS que
+// Destino válido, o alerta `contato_ausente` e o aviso do Líder e do Responsável; o Destino
+// inválido ao lado de um válido vira `falha_envio`) e alerta o setor Simples Nacional do DAS que
 // segue pendente com o documento em dia. Cada Cliente é independente: um que falha não impede os
 // demais. A entrega é reservada (token, com validade) antes de sair e o DAS só vira enviado ao
 // concluir, depois do aceite: execuções simultâneas ou o Funcionário não geram envio em dobro, e
@@ -110,7 +112,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
   ): Promise<{ destinos: DestinoDeEnvio[] } | { saida: Andamento }> {
     const resolvidos = await this.destinos.resolver(cliente.clienteId, SETOR_SN, tipo);
     if (!resolvidos.ok) return { saida: falha(`${cliente.empresa}: ${resolvidos.error.message}`) };
-    if (resolvidos.value.length === 0) {
+    if (!resolvidos.value.some(destinoValido)) {
       return { saida: semDestinatario(cliente.empresa, SETOR_SN, tipo) };
     }
     return { destinos: resolvidos.value };
