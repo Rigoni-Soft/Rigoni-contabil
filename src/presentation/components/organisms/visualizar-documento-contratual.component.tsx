@@ -6,6 +6,7 @@ import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
+import { BOTAO_OCUPADO } from "@/presentation/lib/botao-ocupado";
 import { cn } from "@/presentation/lib/utils";
 
 const ID_DESCRICAO_DO_AVISO = "descricao-alteracao-do-aviso";
@@ -63,7 +64,7 @@ export function VisualizarDocumentoContratual({
             // Anel só enquanto há foco: `focus:` cobre o foco por script depois de um clique de mouse (não casa
             // `:focus-visible`) e `focus-visible:ring-4` troca o `ring-2` padrão do Button.
             className={cn(
-              "aria-disabled:pointer-events-none aria-disabled:opacity-50",
+              BOTAO_OCUPADO,
               destacar &&
                 "focus:ring-4 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background focus-visible:ring-4",
             )}

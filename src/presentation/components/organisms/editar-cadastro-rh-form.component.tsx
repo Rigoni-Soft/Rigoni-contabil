@@ -31,15 +31,12 @@ type EditarCadastroRhFormProps = ParcelamentosProps & {
   oculto?: boolean;
   contatos: { id: string }[];
   onAdicionarContato: () => void;
-  onRemoverContato: (indice: number) => void;
   linhasDeContato: AcoesDasLinhasDeContato;
   onLimpar: () => void;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura).
   documentoContratual?: React.ReactNode;
   // O Responsável do RH: um campo do cabeçalho, na mesma coluna do SN.
   responsavel?: React.ReactNode;
-  // O mês do acompanhamento: o cabeçalho do cartão, logo depois da nota de obrigatórios.
-  mesDoAcompanhamento?: React.ReactNode;
   // Os serviços do mês: uma seção do próprio cartão, depois do cabeçalho do cadastro.
   acompanhamento?: React.ReactNode;
 };
@@ -59,7 +56,6 @@ export function EditarCadastroRhForm({
   oculto,
   contatos,
   onAdicionarContato,
-  onRemoverContato,
   linhasDeContato,
   parcelamentos,
   parcelamentoCampos,
@@ -71,7 +67,6 @@ export function EditarCadastroRhForm({
   onLimpar,
   documentoContratual,
   responsavel,
-  mesDoAcompanhamento,
   acompanhamento,
 }: EditarCadastroRhFormProps) {
   return (
@@ -81,14 +76,15 @@ export function EditarCadastroRhForm({
       pendente={pendente}
       readOnly={readOnly}
       oculto={oculto}
-      mesDoAcompanhamento={mesDoAcompanhamento}
       documentoContratual={documentoContratual}
       responsavel={responsavel}
       acompanhamento={acompanhamento}
       acoes={
         <AcoesDoFormulario
           pendente={pendente}
-          motivoDoBloqueio={motivoDeLeituraEmAndamento(leituras)}
+          motivoDoBloqueio={
+            motivoDeLeituraEmAndamento(leituras) ?? linhasDeContato.motivoDoBloqueio
+          }
           onLimpar={onLimpar}
         />
       }
@@ -104,7 +100,6 @@ export function EditarCadastroRhForm({
         readOnly={readOnly}
         contatos={contatos}
         onAdicionar={onAdicionarContato}
-        onRemover={onRemoverContato}
         linhas={linhasDeContato}
       />
 

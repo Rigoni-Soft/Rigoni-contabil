@@ -142,6 +142,11 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
       contatos: [],
       observacoes: "",
       parcelamentos: [],
+      destinos: [],
+      tiposDeEnvio: [
+        { slug: "guia_parcelamento", rotulo: "Guia de parcelamento" },
+        { slug: "avisos", rotulo: "Avisos" },
+      ],
     });
     expect(presumido.ok && presumido.value?.empresa).toBeDefined();
   });

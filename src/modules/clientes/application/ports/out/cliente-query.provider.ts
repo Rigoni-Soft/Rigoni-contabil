@@ -11,7 +11,12 @@ import type { SetorSlug } from "@/shared/kernel/setores";
 // Read model do Parcelamento: o nome do PDF no lugar do caminho no Storage.
 export type ParcelamentoDto = Omit<ParcelamentoSalvo, "arquivoCaminho"> & { arquivoNome: string };
 
-export type CadastroOperacionalClienteDto = {
+// Destino de envio do Setor do cadastro e o catálogo de tipos que o Setor envia.
+export type DestinoDto = { id: string; contatoId: string; tipo: string | null; canal: string };
+export type TipoDeEnvioDto = { slug: string; rotulo: string };
+export type DestinosDoSetorDto = { destinos: DestinoDto[]; tiposDeEnvio: TipoDeEnvioDto[] };
+
+export type CadastroOperacionalClienteDto = DestinosDoSetorDto & {
   id: string;
   empresa: string;
   cnpj: string;
@@ -32,12 +37,13 @@ export type CadastroOperacionalClienteDto = {
 
 // O cadastro do Cliente no RH: empresa e CNPJ, os contatos (de todos os Setores) e as observações gerais do RH.
 // Não traz o Regime nem nada do cadastro operacional do SN.
-export type CadastroRhClienteDto = SugestaoClienteDto & {
-  contatos: ContatoProps[];
-  observacoes: string;
-  // Os Parcelamentos do RH (os do SN não aparecem aqui).
-  parcelamentos: ParcelamentoDto[];
-};
+export type CadastroRhClienteDto = SugestaoClienteDto &
+  DestinosDoSetorDto & {
+    contatos: ContatoProps[];
+    observacoes: string;
+    // Os Parcelamentos do RH (os do SN não aparecem aqui).
+    parcelamentos: ParcelamentoDto[];
+  };
 
 export type ResponsavelOpcaoDto = { id: string; nome: string };
 

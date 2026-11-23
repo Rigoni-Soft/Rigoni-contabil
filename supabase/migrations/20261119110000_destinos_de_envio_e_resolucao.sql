@@ -121,16 +121,18 @@ GRANT EXECUTE ON FUNCTION public.destino_sincronizar_setores_do_contato() TO ser
 CREATE TRIGGER destinos_de_envio_sincronizar_setores AFTER INSERT OR DELETE ON public.destinos_de_envio
     FOR EACH ROW EXECUTE FUNCTION public.destino_sincronizar_setores_do_contato();
 
--- Excluir o Contato é recusado, com a lista dos Setores, enquanto outro Setor (que não o dono) o usa;
--- os Destinos do próprio dono caem junto. Contato do Admin (sem dono): qualquer Setor que o usa barra.
-CREATE FUNCTION public.contato_recusar_exclusao_em_uso() RETURNS trigger
+-- Excluir o Contato pelo Setor dono, com outro Setor ainda o usando como Destino: ele não é apagado. Passa
+-- a ser da URA (sem dono: só o Admin o edita) e segue disponível aos Setores que o escolheram; os Destinos
+-- do ex-dono saem. Sem uso de outro Setor, o Contato cai com os Destinos do dono. Contato da URA (ou do Admin)
+-- em uso por algum Setor não se exclui: não há quem o herde.
+CREATE FUNCTION public.contato_exclusao_em_uso() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
 declare
   v_setores text;
 begin
-  -- Apagar o Cliente leva os Contatos em cascata: aí não há recusa.
+  -- Apagar o Cliente leva os Contatos em cascata: aí não há o que decidir.
   if not exists (select 1 from public.clientes where id = old.cliente_id) then
     return old;
   end if;
@@ -138,16 +140,25 @@ begin
   from public.destinos_de_envio d
   join public.setores_de_contato s on s.slug = d.setor::text
   where d.contato_id = old.id and d.setor is distinct from old.dono_setor;
-  if v_setores is not null then
+  if v_setores is null then
+    return old;
+  end if;
+  if old.dono_setor is null then
     raise exception 'O contato "%" está em uso por: %.', old.nome, v_setores using errcode = '23503';
   end if;
-  return old;
+  perform set_config('app.contato_herdado_pela_ura', old.id::text, true);
+  update public.cliente_contatos set dono_setor = null where id = old.id;
+  perform set_config('app.contato_herdado_pela_ura', '', true);
+  delete from public.destinos_de_envio where contato_id = old.id and setor = old.dono_setor;
+  delete from public.cliente_contato_setores where contato_id = old.id and setor = old.dono_setor::text;
+  -- Cancela a exclusão: o Contato fica, agora da URA.
+  return null;
 end;
 $$;
-REVOKE ALL ON FUNCTION public.contato_recusar_exclusao_em_uso() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.contato_recusar_exclusao_em_uso() TO service_role;
-CREATE TRIGGER cliente_contatos_recusar_exclusao BEFORE DELETE ON public.cliente_contatos
-    FOR EACH ROW EXECUTE FUNCTION public.contato_recusar_exclusao_em_uso();
+REVOKE ALL ON FUNCTION public.contato_exclusao_em_uso() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.contato_exclusao_em_uso() TO service_role;
+CREATE TRIGGER cliente_contatos_exclusao_em_uso BEFORE DELETE ON public.cliente_contatos
+    FOR EACH ROW EXECUTE FUNCTION public.contato_exclusao_em_uso();
 
 ALTER TABLE public.destinos_de_envio ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.destinos_de_envio FROM PUBLIC, anon, authenticated;

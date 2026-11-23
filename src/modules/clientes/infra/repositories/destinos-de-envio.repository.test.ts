@@ -285,8 +285,8 @@ describe("Destinos de envio (integração)", () => {
       .from("destinos_de_envio")
       .insert(destino("simples_nacional", null, ana.id, "email"));
     const rhNoRh = await rh.from("destinos_de_envio").insert(destino("rh", null, ana.id, "email"));
-    const rhLe = await rh.from("destinos_de_envio").select("setor");
-    const snLe = await sn.from("destinos_de_envio").select("setor");
+    const rhLe = await rh.from("destinos_de_envio").select("setor").eq("cliente_id", clienteId);
+    const snLe = await sn.from("destinos_de_envio").select("setor").eq("cliente_id", clienteId);
 
     expect(doSn.error).toBeNull();
     expect(rhNoSn.error).not.toBeNull();
@@ -302,7 +302,7 @@ describe("Destinos de envio (integração)", () => {
     expect((await anon.from("tipos_de_envio").select("slug")).error).not.toBeNull();
   });
 
-  it("excluir o Contato é recusado, com a lista de Setores, enquanto outro Setor o usa", async () => {
+  it("o dono exclui o Contato que outro Setor usa: ele fica, passa à URA e segue disponível a quem o escolheu", async () => {
     const rh = await comoFuncionarioRH();
     const sn = await comoFuncionarioSN();
     const ana = await contatoPorNome("Ana Exemplo");
@@ -311,15 +311,54 @@ describe("Destinos de envio (integração)", () => {
       .insert(destino("simples_nacional", null, ana.id, "whatsapp"));
     await rh.from("destinos_de_envio").insert(destino("rh", null, ana.id, "whatsapp"));
 
-    const recusado = await salvarContatos(rh, [
+    // O RH (dono) tira o Ana da lista dele: o SN ainda a usa.
+    const excluido = await salvarContatos(rh, [
       { nome: "Bia Exemplo", telefone: "11988880000" },
       { nome: "Caio Exemplo", email: "caio@exemplo.com" },
     ]);
-    const emUso = await servico.from("cliente_contatos").select("id").eq("id", ana.id);
+    const depois = await servico
+      .from("cliente_contatos")
+      .select("id, dono_setor")
+      .eq("id", ana.id)
+      .single();
+    const destinos = await servico
+      .from("destinos_de_envio")
+      .select("setor")
+      .eq("contato_id", ana.id);
+    const vinculos = await servico
+      .from("cliente_contato_setores")
+      .select("setor")
+      .eq("contato_id", ana.id);
+
+    expect(excluido.error).toBeNull();
+    expect(depois.data).toEqual({ id: ana.id, dono_setor: null });
+    expect(destinos.data).toEqual([{ setor: "simples_nacional" }]);
+    expect((vinculos.data ?? []).map((v) => v.setor).sort()).toEqual(["simples_nacional", "ura"]);
+    expect(await resolver("simples_nacional", "avisos")).toHaveLength(1);
+  });
+
+  it("contato da URA (sem dono) em uso por um Setor não se exclui", async () => {
+    const sn = await comoFuncionarioSN();
+    const dora = crypto.randomUUID();
+    await servico.from("cliente_contatos").insert({
+      id: dora,
+      cliente_id: clienteId,
+      nome: "Dora da URA",
+      telefone: "11955550000",
+      dono_setor: null,
+    });
+    await sn.from("destinos_de_envio").insert(destino("simples_nacional", null, dora, "whatsapp"));
+    const admin = await entrar("admin@rigonicontabil.local", "admin123");
+
+    const recusado = await salvarContatos(admin, [
+      { nome: "Ana Exemplo", telefone: "11999990000", email: "ana@exemplo.com" },
+      { nome: "Bia Exemplo", telefone: "11988880000" },
+      { nome: "Caio Exemplo", email: "caio@exemplo.com" },
+    ]);
+    const emUso = await servico.from("cliente_contatos").select("id").eq("id", dora);
 
     expect(recusado.error?.code).toBe("23503");
     expect(recusado.error?.message).toContain("Simples Nacional");
-    expect(recusado.error?.message).not.toContain("RH");
     expect(emUso.data).toHaveLength(1);
   });
 
@@ -401,5 +440,139 @@ describe("Destinos de envio (integração)", () => {
     await expect(removerClientesDeTeste([cnpj])).resolves.toBeUndefined();
     const sobrou = await servico.from("destinos_de_envio").select("id").eq("cliente_id", outro);
     expect(sobrou.data).toEqual([]);
+  });
+});
+
+describe("definir_tipos_de_envio_do_contato (integração)", () => {
+  // A Ana tem os dois canais: o Setor escolhe por onde enviar (o banco recusa sem o canal).
+  const definir = (
+    supabase: SupabaseClient,
+    contatoId: string,
+    tipos: string[],
+    canal: string | null = null,
+  ) =>
+    supabase.rpc("definir_tipos_de_envio_do_contato", {
+      p_cliente_id: clienteId,
+      p_contato_id: contatoId,
+      p_tipos: tipos,
+      p_canal: canal,
+    });
+
+  const destinosDe = async (contatoId: string) => {
+    const { data } = await servico
+      .from("destinos_de_envio")
+      .select("setor, tipo, canal")
+      .eq("cliente_id", clienteId)
+      .eq("contato_id", contatoId)
+      .order("tipo", { nullsFirst: true });
+    return data;
+  };
+
+  it("grava um destino por tipo marcado, do Setor de quem chama; 'todos' é o tipo nulo", async () => {
+    const ana = await contatoPorNome("Ana Exemplo");
+    const sn = await comoFuncionarioSN();
+
+    const r = await definir(sn, ana.id, ["das", "todos"], "whatsapp_e_email");
+
+    expect(r.error).toBeNull();
+    expect(await destinosDe(ana.id)).toEqual([
+      { setor: "simples_nacional", tipo: null, canal: "whatsapp_e_email" },
+      { setor: "simples_nacional", tipo: "das", canal: "whatsapp_e_email" },
+    ]);
+  });
+
+  it("o canal vem do contato: um canal só, esse; os dois, ambos", async () => {
+    const bia = await contatoPorNome("Bia Exemplo");
+    const caio = await contatoPorNome("Caio Exemplo");
+    const sn = await comoFuncionarioSN();
+
+    await definir(sn, bia.id, ["das"]);
+    await definir(sn, caio.id, ["das"]);
+
+    expect(await destinosDe(bia.id)).toEqual([
+      { setor: "simples_nacional", tipo: "das", canal: "whatsapp" },
+    ]);
+    expect(await destinosDe(caio.id)).toEqual([
+      { setor: "simples_nacional", tipo: "das", canal: "email" },
+    ]);
+  });
+
+  it("contato com os dois canais exige o canal; com um canal só, o canal informado é ignorado", async () => {
+    const ana = await contatoPorNome("Ana Exemplo");
+    const bia = await contatoPorNome("Bia Exemplo");
+    const sn = await comoFuncionarioSN();
+
+    const semCanal = await definir(sn, ana.id, ["das"]);
+    expect(semCanal.error?.code).toBe("22023");
+    expect(semCanal.error?.message).toContain("Escolha o canal");
+    expect(await destinosDe(ana.id)).toEqual([]);
+
+    const escolhido = await definir(sn, ana.id, ["das"], "email");
+    expect(escolhido.error).toBeNull();
+    expect(await destinosDe(ana.id)).toEqual([
+      { setor: "simples_nacional", tipo: "das", canal: "email" },
+    ]);
+
+    // Deixar de usar não tem envio, então não pede canal.
+    const vazio = await definir(sn, ana.id, []);
+    expect(vazio.error).toBeNull();
+    expect(await destinosDe(ana.id)).toEqual([]);
+
+    // A Bia só tem WhatsApp: o canal é o dela, não o informado.
+    const umCanal = await definir(sn, bia.id, ["das"], "email");
+    expect(umCanal.error).toBeNull();
+    expect(await destinosDe(bia.id)).toEqual([
+      { setor: "simples_nacional", tipo: "das", canal: "whatsapp" },
+    ]);
+  });
+
+  it("regravar troca a lista: o que saiu é apagado, o que ficou segue e o canal acompanha o contato", async () => {
+    const ana = await contatoPorNome("Ana Exemplo");
+    const sn = await comoFuncionarioSN();
+    await definir(sn, ana.id, ["das", "avisos"], "whatsapp_e_email");
+    await servico.from("cliente_contatos").update({ email: null }).eq("id", ana.id);
+
+    const r = await definir(sn, ana.id, ["das"]);
+
+    expect(r.error).toBeNull();
+    expect(await destinosDe(ana.id)).toEqual([
+      { setor: "simples_nacional", tipo: "das", canal: "whatsapp" },
+    ]);
+  });
+
+  it("lista vazia tira o contato dos envios do Setor, sem mexer nos de outro Setor", async () => {
+    const ana = await contatoPorNome("Ana Exemplo");
+    const sn = await comoFuncionarioSN();
+    const rh = await comoFuncionarioRH();
+    await definir(sn, ana.id, ["das"], "whatsapp");
+    await definir(rh, ana.id, ["avisos"], "whatsapp_e_email");
+
+    await definir(sn, ana.id, []);
+
+    expect(await destinosDe(ana.id)).toEqual([
+      { setor: "rh", tipo: "avisos", canal: "whatsapp_e_email" },
+    ]);
+  });
+
+  it("tipo fora do catálogo do Setor é recusado, sem gravar nada", async () => {
+    const ana = await contatoPorNome("Ana Exemplo");
+    const rh = await comoFuncionarioRH();
+
+    const r = await definir(rh, ana.id, ["das"], "whatsapp");
+
+    expect(r.error).not.toBeNull();
+    expect(await destinosDe(ana.id)).toEqual([]);
+  });
+
+  it("o Admin não define (sem Setor); contato de outro Cliente é recusado", async () => {
+    const ana = await contatoPorNome("Ana Exemplo");
+    const admin = await entrar("admin@rigonicontabil.local", "admin123");
+    const sn = await comoFuncionarioSN();
+
+    const doAdmin = await definir(admin, ana.id, ["das"]);
+    const alheio = await definir(sn, crypto.randomUUID(), ["das"]);
+
+    expect(doAdmin.error?.code).toBe("42501");
+    expect(alheio.error?.code).toBe("22023");
   });
 });

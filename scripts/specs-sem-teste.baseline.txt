@@ -29,7 +29,6 @@ src/presentation/components/molecules/selo-do-parcelamento.component.tsx
 src/presentation/components/molecules/sobreposicao-de-soltar.component.tsx
 src/presentation/components/organisms/alteracoes-contratuais.component.tsx
 src/presentation/components/organisms/cabecalho-do-cadastro.component.tsx
-src/presentation/components/organisms/contatos-do-cadastro.component.tsx
 src/presentation/components/organisms/criar-cliente-form.component.tsx
 src/presentation/components/organisms/das-do-cadastro.component.tsx
 src/presentation/components/organisms/editar-cadastro-operacional-form.component.tsx

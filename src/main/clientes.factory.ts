@@ -15,6 +15,7 @@ import type { AtribuirResponsavelClientePort } from "@/modules/clientes/applicat
 import type { ConfirmarGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/confirmar-guia-parcela-pgfn.provider";
 import type { ContarAvisosNaoVistosPort } from "@/modules/clientes/application/ports/in/contar-avisos-nao-vistos.provider";
 import type { CriarClientePort } from "@/modules/clientes/application/ports/in/criar-cliente.provider";
+import type { DefinirTiposDeEnvioDoContatoPort } from "@/modules/clientes/application/ports/in/definir-tipos-de-envio-do-contato.provider";
 import type {
   ListarDocumentosContratuaisClientePort,
   ObterLinkDocumentoContratualPort,
@@ -46,6 +47,7 @@ import { ConsultarCadastroRhCliente } from "@/modules/clientes/application/use-c
 import { ConsultarResponsavelDoSetor } from "@/modules/clientes/application/use-cases/consultar-responsavel-do-setor.use-case";
 import { ContarAvisosNaoVistos } from "@/modules/clientes/application/use-cases/contar-avisos-nao-vistos.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
+import { DefinirTiposDeEnvioDoContato } from "@/modules/clientes/application/use-cases/definir-tipos-de-envio-do-contato.use-case";
 import { EditarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-operacional-cliente.use-case";
 import { EditarCadastroRhCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-rh-cliente.use-case";
 import { LerPdfDeParcelamento } from "@/modules/clientes/application/use-cases/ler-pdf-de-parcelamento.use-case";
@@ -78,6 +80,7 @@ import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories
 import { SupabaseContatoDoClienteRepository } from "@/modules/clientes/infra/repositories/contato-do-cliente.repository";
 import { SupabaseGuiaParcelaPgfnRepository } from "@/modules/clientes/infra/repositories/guia-parcela-pgfn.repository";
 import { SupabaseResponsavelClienteRepository } from "@/modules/clientes/infra/repositories/responsavel-cliente.repository";
+import { SupabaseTiposDeEnvioDoContatoRepository } from "@/modules/clientes/infra/repositories/tipos-de-envio-do-contato.repository";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
@@ -274,6 +277,14 @@ export async function makeSalvarContatoDoCliente(): Promise<SalvarContatoDoClien
   return new SalvarContatoDoCliente(
     sessaoViaUsuarios(supabase),
     new SupabaseContatoDoClienteRepository(supabase),
+  );
+}
+
+export async function makeDefinirTiposDeEnvioDoContato(): Promise<DefinirTiposDeEnvioDoContatoPort> {
+  const supabase = await createSupabaseServer();
+  return new DefinirTiposDeEnvioDoContato(
+    sessaoViaUsuarios(supabase),
+    new SupabaseTiposDeEnvioDoContatoRepository(supabase),
   );
 }
 

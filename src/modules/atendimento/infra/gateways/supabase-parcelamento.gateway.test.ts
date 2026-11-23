@@ -9,8 +9,8 @@ import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { EnviarGuiasParcelamento } from "@/modules/atendimento/application/use-cases/enviar-guias-parcelamento.use-case";
 import { ExecutarEnvioGuiaParcelamento } from "@/modules/atendimento/application/use-cases/executar-envio-guia-parcelamento.use-case";
-import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
 import { ok as sucesso } from "@/shared/kernel/result";
+import { soDigitosNacionais } from "@/shared/kernel/telefone";
 
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
 import { EnvioMensagemFalsoGateway } from "./envio-mensagem-falso.gateway";

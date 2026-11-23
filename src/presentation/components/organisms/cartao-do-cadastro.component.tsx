@@ -13,8 +13,6 @@ type CartaoDoCadastroProps = {
   readOnly: boolean;
   // Até hidratar, os campos (não controlados) ainda não têm os valores: oculto sem sair do layout.
   oculto?: boolean;
-  // O mês do acompanhamento: o cabeçalho do cartão, logo depois da nota de obrigatórios.
-  mesDoAcompanhamento?: React.ReactNode;
   // Cartão do documento contratual com "Abrir em nova aba" (só leitura); ausente = ator sem acesso.
   documentoContratual?: React.ReactNode;
   // O Responsável do Setor: um campo do cabeçalho, na mesma coluna em todo Setor.
@@ -30,7 +28,7 @@ type CartaoDoCadastroProps = {
   children: React.ReactNode;
 };
 
-// O cartão do cadastro operacional de qualquer Setor: moldura guilhochê, nota de obrigatórios, mês,
+// O cartão do cadastro operacional de qualquer Setor: moldura guilhochê, nota de obrigatórios,
 // cabeçalho com o Responsável, acompanhamento, os campos do Setor, as ações e o resultado. Só os campos
 // do meio mudam de um Setor para outro.
 export function CartaoDoCadastro({
@@ -39,7 +37,6 @@ export function CartaoDoCadastro({
   pendente,
   readOnly,
   oculto,
-  mesDoAcompanhamento,
   documentoContratual,
   responsavel,
   acompanhamento,
@@ -57,8 +54,6 @@ export function CartaoDoCadastro({
       className={cn(MOLDURA_DO_CARTAO, oculto && "rc-oculto-ate-hidratar")}
     >
       {!readOnly && <NotaDeObrigatorio />}
-
-      {mesDoAcompanhamento}
 
       <CabecalhoDoCadastro cabecalho={cabecalho} documentoContratual={documentoContratual}>
         {responsavel && <Caixa className="lg:col-start-4">{responsavel}</Caixa>}

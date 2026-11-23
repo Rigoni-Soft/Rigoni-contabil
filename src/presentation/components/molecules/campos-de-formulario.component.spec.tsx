@@ -122,7 +122,7 @@ describe("ConfirmacaoDeCadastro e BotaoDeEnvio", () => {
 });
 
 describe("linhas de lista do formulário", () => {
-  it("LinhaDeContato numera a remoção e liga os rótulos pelo índice", async () => {
+  it("LinhaDeContato numera a lixeira e liga os rótulos pelo índice", async () => {
     const aoRemover = jest.fn();
     render(
       <LinhaDeContato
@@ -131,7 +131,9 @@ describe("linhas de lista do formulário", () => {
         telefone={{}}
         email={{}}
         erroTelefone="Telefone inválido."
+        editando={false}
         salvo
+        onEditar={jest.fn()}
         onRemover={aoRemover}
       />,
     );
@@ -140,10 +142,11 @@ describe("linhas de lista do formulário", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Telefone inválido.");
     await userEvent.setup().click(screen.getByRole("button", { name: "Remover contato 2" }));
     expect(aoRemover).toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Editar contato 2" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Salvar contato/ })).not.toBeInTheDocument();
   });
 
-  it("LinhaDeContato nova oferece Salvar e Limpar, e não a lixeira", async () => {
+  it("LinhaDeContato em edição oferece Salvar e Cancelar, e não a lixeira", async () => {
     const aoSalvar = jest.fn();
     const aoLimpar = jest.fn();
     const usuario = userEvent.setup();
@@ -154,7 +157,8 @@ describe("linhas de lista do formulário", () => {
         telefone={{}}
         email={{}}
         onSalvar={aoSalvar}
-        onLimpar={aoLimpar}
+        onCancelar={aoLimpar}
+        editando
         onRemover={jest.fn()}
         erroDaLinha="Este Cliente já tem o contato."
       />,
@@ -162,7 +166,7 @@ describe("linhas de lista do formulário", () => {
 
     expect(screen.queryByRole("button", { name: /Remover contato/ })).not.toBeInTheDocument();
     await usuario.click(screen.getByRole("button", { name: "Salvar contato 1" }));
-    await usuario.click(screen.getByRole("button", { name: "Limpar contato 1" }));
+    await usuario.click(screen.getByRole("button", { name: "Cancelar edição do contato 1" }));
     expect(aoSalvar).toHaveBeenCalledTimes(1);
     expect(aoLimpar).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Este Cliente já tem o contato.")).toBeInTheDocument();

@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 
 import { CampoResponsavel } from "@/presentation/components/molecules/campo-responsavel.component";
 import { FalhaDeCarga } from "@/presentation/components/molecules/falha-de-carga.component";
-import { NavegacaoDeMes } from "@/presentation/components/molecules/navegacao-de-mes.component";
 import { EditarCadastroOperacionalPage } from "@/presentation/components/pages/editar-cadastro-operacional.page";
 import { carregarSessao, validarSessao } from "@/presentation/view-models/shell/shell.server";
 import { AnexarAlteracaoContratualContainer } from "@/modules/clientes/presentation/view-models/anexar-alteracao-contratual/anexar-alteracao-contratual.container";
@@ -19,14 +18,9 @@ import { ondeAtribuirResponsavel } from "@/modules/clientes/presentation/view-mo
 import { carregarResponsavelDoSetor } from "@/modules/clientes/presentation/view-models/responsavel-do-setor/responsavel-do-setor.server";
 import { alteracaoEmFocoDaUrl } from "@/modules/clientes/presentation/view-models/visualizar-documento-contratual/documentos-contratuais.presenter";
 import { AcompanhamentoDoClienteContainer } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-do-cliente.container";
-import {
-  linksDoMes,
-  rotuloDaCompetencia,
-  servicosDoCliente,
-} from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
+import { servicosDoCliente } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.presenter";
 import { carregarAcompanhamentoMensal } from "@/modules/rh/presentation/view-models/acompanhamento-mensal/acompanhamento-mensal.server";
 import { hrefSeguro } from "@/shared/kernel/href-seguro";
-import { mesAtual } from "@/shared/kernel/mes-atual";
 import {
   podeAnexarAlteracaoContratual,
   podeAtribuirResponsavel,
@@ -39,7 +33,7 @@ import { ehSetor, SETOR_LABEL } from "@/shared/kernel/setores";
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ voltarPara?: string; alteracao?: string | string[]; mes?: string }>;
+  searchParams: Promise<{ voltarPara?: string; alteracao?: string | string[] }>;
 };
 
 type CargaDoCliente = Awaited<ReturnType<typeof carregarClienteParaPagina>>;
@@ -54,19 +48,19 @@ function montarFormulario(
     alteracao?: string | string[];
     // Só o cadastro do RH: o Responsável e o acompanhamento entram no mesmo cartão do formulário.
     responsavelRh?: React.ReactNode;
-    acompanhamentoRh?: { mes: React.ReactNode; corpo: React.ReactNode };
+    acompanhamentoRh?: React.ReactNode;
   },
 ) {
   if (rh?.ok && rh.value) {
     return (
       <EditarCadastroRhContainer
         dados={rh.value}
+        ator={{ papel: sessao.papel, setor: sessao.setor }}
         readOnly={opcoes.readOnly}
         voltarHref={hrefSeguro(opcoes.voltarPara)}
         documentosContratuais={documentos?.ok ? documentos.value : undefined}
         responsavel={opcoes.responsavelRh}
-        mesDoAcompanhamento={opcoes.acompanhamentoRh?.mes}
-        acompanhamento={opcoes.acompanhamentoRh?.corpo}
+        acompanhamento={opcoes.acompanhamentoRh}
       />
     );
   }
@@ -74,6 +68,7 @@ function montarFormulario(
   return (
     <EditarCadastroOperacionalContainer
       dados={operacional.value}
+      ator={{ papel: sessao.papel, setor: sessao.setor }}
       readOnly={opcoes.readOnly}
       // Se a carga do servidor falhar, o botão se lê por action (com aviso e "Tentar novamente").
       documentosContratuais={documentos?.ok ? documentos.value : undefined}
@@ -84,8 +79,6 @@ function montarFormulario(
         opcoes.atribuiNoCadastro && podeAtribuirResponsavel(sessao.papel, sessao.setor)
       }
       aoSalvar={{ tipo: "voltar", href: hrefSeguro(opcoes.voltarPara) }}
-      // Admin: o mês abre o cartão do SN, como no cadastro do RH; a lista de serviços fica no cartão do RH.
-      mesDoAcompanhamento={opcoes.acompanhamentoRh?.mes}
     />
   );
 }
@@ -96,34 +89,21 @@ function montarFormulario(
 async function acompanhamentoRhDoCliente(
   clienteId: string,
   sessao: { papel: string; setor: string },
-  mes: string | undefined,
-  voltarPara: string | undefined,
 ) {
   if (!podeVerAcompanhamentoRh(sessao.papel, sessao.setor)) return undefined;
-  const acompanhamento = await carregarAcompanhamentoMensal(mes);
+  // Sempre o mês corrente, como o DAS e a atividade do SN: a tela não navega entre meses.
+  const acompanhamento = await carregarAcompanhamentoMensal(undefined);
   if (!acompanhamento.ok) return undefined;
   const { servicos, aviso } = servicosDoCliente(acompanhamento.value, clienteId);
 
-  const { competencia } = acompanhamento.value;
-  // O mês (só links) e a lista (com estado) são dois nós: o mês entra no topo do cartão, na ordem do foco.
-  return {
-    mes: (
-      <NavegacaoDeMes
-        rotuloMes={rotuloDaCompetencia(competencia)}
-        {...linksDoMes(clienteId, competencia, mesAtual(), voltarPara)}
-        destaque
-        className="mb-3"
-      />
-    ),
-    corpo: (
-      <AcompanhamentoDoClienteContainer
-        clienteId={clienteId}
-        competencia={competencia}
-        servicos={servicos}
-        aviso={aviso}
-      />
-    ),
-  };
+  return (
+    <AcompanhamentoDoClienteContainer
+      clienteId={clienteId}
+      competencia={acompanhamento.value.competencia}
+      servicos={servicos}
+      aviso={aviso}
+    />
+  );
 }
 
 function tituloDaPagina(readOnly: boolean) {
@@ -132,7 +112,7 @@ function tituloDaPagina(readOnly: boolean) {
 
 export default async function Page({ params, searchParams }: Props) {
   const { id } = await params;
-  const { voltarPara, alteracao, mes } = await searchParams;
+  const { voltarPara, alteracao } = await searchParams;
   const sessao = validarSessao(await carregarSessao());
   // O Admin vê o SN e o RH: na tela completa, as observações do RH entram à parte (lidas em paralelo).
   const cadastroRhDoAdmin =
@@ -172,7 +152,7 @@ export default async function Page({ params, searchParams }: Props) {
   const readOnly = cadastroDoRh
     ? !podeEditarCadastroRh(sessao.papel, sessao.setor)
     : !podeEditarCadastroOperacional(sessao.papel, sessao.setor);
-  const acompanhamentoRh = await acompanhamentoRhDoCliente(id, sessao, mes, voltarPara);
+  const acompanhamentoRh = await acompanhamentoRhDoCliente(id, sessao);
   const observacoesRhDoAdmin = await cadastroRhDoAdmin;
 
   // No RH o Responsável e o acompanhamento ficam dentro do cartão do formulário, como o Responsável do SN;
@@ -213,7 +193,7 @@ export default async function Page({ params, searchParams }: Props) {
         ) : undefined
       }
       responsavelDoSetor={cadastroDoRh ? undefined : campoResponsavel}
-      acompanhamentoRh={cadastroDoRh ? undefined : acompanhamentoRh?.corpo}
+      acompanhamentoRh={cadastroDoRh ? undefined : acompanhamentoRh}
       observacoesRh={
         observacoesRhDoAdmin?.ok && observacoesRhDoAdmin.value ? (
           <ObservacoesDoRhContainer

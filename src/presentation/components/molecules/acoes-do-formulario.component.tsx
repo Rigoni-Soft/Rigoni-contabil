@@ -2,6 +2,7 @@ import { Linha } from "@/presentation/components/atoms/caixa.component";
 import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
+import { BOTAO_OCUPADO } from "@/presentation/lib/botao-ocupado";
 
 type AcoesDoFormularioProps = {
   pendente: boolean;
@@ -29,7 +30,7 @@ export function AcoesDoFormulario({
         aria-disabled={motivoDoBloqueio ? true : undefined}
         aria-describedby={motivoDoBloqueio ? "salvar-bloqueado" : undefined}
         onClick={motivoDoBloqueio ? (evento) => evento.preventDefault() : undefined}
-        className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
+        className={BOTAO_OCUPADO}
       >
         {pendente ? "Salvando…" : "Salvar"}
       </Button>

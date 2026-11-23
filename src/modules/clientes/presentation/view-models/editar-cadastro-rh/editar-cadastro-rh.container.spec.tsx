@@ -7,9 +7,18 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok } from "@/shared/kernel/result";
 
+import { cadastroRhDeTeste } from "../../../../../../test-support/cadastro-de-teste";
+import { LINHAS_DE_CONTATO_DE_TESTE } from "../../../../../../test-support/linhas-de-contato-de-teste";
 import { salvarParcelamentosAction } from "../editar-cadastro-operacional/salvar-parcelamentos.actions";
+import { useContatosDoCadastro } from "../editar-cadastro-operacional/use-contatos-do-cadastro.hook";
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
 import { EditarCadastroRhContainer } from "./editar-cadastro-rh.container";
+
+// Passa a chamada adiante (o hook real roda); só os casos de "ligação com o hook" o substituem.
+jest.mock("../editar-cadastro-operacional/use-contatos-do-cadastro.hook", () => {
+  const real = jest.requireActual("../editar-cadastro-operacional/use-contatos-do-cadastro.hook");
+  return { ...real, useContatosDoCadastro: jest.fn(real.useContatosDoCadastro) };
+});
 
 jest.mock("./editar-cadastro-rh.actions", () => {
   const real = jest.requireActual("./editar-cadastro-rh.actions");
@@ -28,18 +37,19 @@ jest.mock("next/navigation", () => ({
 const executeMock = jest.fn();
 jest.mock("@/main/clientes.factory", () => ({
   makeEditarCadastroRhCliente: () => ({ execute: executeMock }),
+  makeDefinirTiposDeEnvioDoContato: () => ({ execute: jest.fn() }),
   makeListarDocumentosContratuaisCliente: () => ({ execute: async () => ok([]) }),
   makeObterLinkDocumentoContratual: () => ({ execute: jest.fn() }),
 }));
 
-const dados: CadastroRhClienteDto = {
-  id: "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d",
-  empresa: "Padaria Pão Quente Ltda",
+// O Admin só cadastra contatos (sem Setor, não define destinos): os testes de contatos e do resto do cadastro.
+const ADMIN = { papel: "admin", setor: "administrativo" };
+
+const dados: CadastroRhClienteDto = cadastroRhDeTeste({
   cnpj: "11.444.777/0001-61",
   contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", email: "" }],
   observacoes: "Folha no 5º dia útil.",
-  parcelamentos: [],
-};
+});
 
 function render(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -47,7 +57,15 @@ function render(ui: React.ReactElement) {
 }
 
 const montar = (props: Partial<React.ComponentProps<typeof EditarCadastroRhContainer>> = {}) =>
-  render(<EditarCadastroRhContainer dados={dados} readOnly={false} voltarHref="/rh" {...props} />);
+  render(
+    <EditarCadastroRhContainer
+      dados={dados}
+      ator={ADMIN}
+      readOnly={false}
+      voltarHref="/rh"
+      {...props}
+    />,
+  );
 
 describe("EditarCadastroRhContainer", () => {
   beforeEach(() => {
@@ -155,6 +173,60 @@ describe("EditarCadastroRhContainer", () => {
 
     expect(await screen.findByText(new RegExp(texto))).toBeInTheDocument();
     expect(routerPush).not.toHaveBeenCalled();
+  });
+
+  // A lógica das linhas de contato é testada no hook (use-contatos-do-cadastro.hook.spec.ts): aqui só a ligação.
+  describe("ligação com o hook das linhas de contato", () => {
+    const hookReal = (
+      jest.requireActual("../editar-cadastro-operacional/use-contatos-do-cadastro.hook") as {
+        useContatosDoCadastro: typeof useContatosDoCadastro;
+      }
+    ).useContatosDoCadastro;
+    const onEditar = jest.fn();
+
+    beforeEach(() => {
+      onEditar.mockReset();
+      jest.mocked(useContatosDoCadastro).mockReturnValue({
+        ...LINHAS_DE_CONTATO_DE_TESTE,
+        onEditar,
+        rotuloDaLixeira: () => "Deixar de usar o contato 1",
+        motivoDoBloqueio: "Salve ou cancele a edição do contato 1 para salvar o cadastro.",
+      } as unknown as ReturnType<typeof useContatosDoCadastro>);
+    });
+
+    afterEach(() => {
+      jest.mocked(useContatosDoCadastro).mockImplementation(hookReal);
+    });
+
+    it("a View recebe do hook as linhas e o motivo do bloqueio, e o hook recebe os dados do cadastro", async () => {
+      montar();
+
+      expect(
+        await screen.findByRole("button", { name: "Deixar de usar o contato 1" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText("Salve ou cancele a edição do contato 1 para salvar o cadastro."),
+      ).toBeInTheDocument();
+      expect(useContatosDoCadastro).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clienteId: dados.id,
+          setorDoCadastro: "rh",
+          admin: true,
+          destinos: dados.destinos,
+          tiposDeEnvio: dados.tiposDeEnvio,
+        }),
+      );
+    });
+
+    it("Editar na linha chama a função do hook com o índice da linha", async () => {
+      montar();
+
+      await userEvent
+        .setup()
+        .click(await screen.findByRole("button", { name: "Editar contato 1" }));
+
+      expect(onEditar).toHaveBeenCalledWith(0);
+    });
   });
 
   it("somente leitura não oferece Salvar", async () => {
