@@ -24,6 +24,11 @@ begin
   if v_setor is null or public.meu_papel() = 'admin' then
     raise exception 'Só um Setor define os Destinos de envio do Cliente.' using errcode = '42501';
   end if;
+  -- A RLS já barra o insert; sem esta conferência, quem não gere o Cliente chamando com a lista vazia (ou igual à
+  -- gravada) veria sucesso em delete/update que não afetam linha nenhuma.
+  if not public.pode_gerir_parcelamento(p_cliente_id, v_setor) then
+    raise exception 'Sem permissão para definir os Destinos de envio deste Cliente.' using errcode = '42501';
+  end if;
   select * into v_contato from public.cliente_contatos
   where id = p_contato_id and cliente_id = p_cliente_id;
   if not found then
@@ -33,7 +38,8 @@ begin
   v_tem_whatsapp := public.chave_telefone(v_contato.telefone) is not null;
   v_tem_email := v_contato.email is not null;
   -- 'todos' é o tipo nulo do Destino.
-  v_tipos := coalesce(p_tipos, '{}');
+  -- Elemento nulo na lista (chamada direta) faria o `<> all` virar nulo e nada sair: fica de fora.
+  v_tipos := array(select distinct t from unnest(coalesce(p_tipos, '{}')) as t where t is not null);
 
   -- Com os dois canais qualquer canal escolhido cabe no contato; com um só, o p_canal é ignorado.
   if v_tem_whatsapp and v_tem_email then

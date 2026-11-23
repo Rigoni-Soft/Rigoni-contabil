@@ -157,6 +157,30 @@ describe("SupabaseTiposDeEnvioDoContatoRepository (integração)", () => {
     expect(await tiposGravados()).toEqual([]);
   });
 
+  it("quem não gere o Cliente é recusado também com a lista vazia (não vira sucesso silencioso)", async () => {
+    const rh = await repositorioDe("funcionario.rh@rigonicontabil.local");
+
+    const r = await rh.definir(clienteId, contatoId, []);
+
+    expect(!r.ok && r.error.message).toBe("Sem permissão para definir os envios deste Cliente.");
+  });
+
+  it("elemento nulo na lista (chamada direta) é ignorado: o que saiu da lista sai mesmo assim", async () => {
+    const sn = await repositorioDe("funcionario.sn@rigonicontabil.local");
+    await sn.definir(clienteId, contatoId, ["das", "avisos"]);
+    const direto = await entrar("funcionario.sn@rigonicontabil.local", "func123");
+
+    const { error } = await direto.rpc("definir_tipos_de_envio_do_contato", {
+      p_cliente_id: clienteId,
+      p_contato_id: contatoId,
+      p_tipos: ["avisos", null],
+      p_canal: null,
+    });
+
+    expect(error).toBeNull();
+    expect(await tiposGravados()).toEqual(["avisos"]);
+  });
+
   it("tipo fora do catálogo do Setor vira erro de validação", async () => {
     const sn = await repositorioDe("funcionario.sn@rigonicontabil.local");
 
