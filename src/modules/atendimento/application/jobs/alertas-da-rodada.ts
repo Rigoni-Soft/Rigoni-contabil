@@ -8,7 +8,8 @@ import type {
 } from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
-import { SETOR_SN, type SetorSlug } from "@/shared/kernel/setores";
+import { SETOR_LABEL, SETOR_SN, type SetorSlug } from "@/shared/kernel/setores";
+import { ROTULO_DO_ENVIO, type TipoDeEnvio } from "@/shared/kernel/tipo-de-envio";
 
 // Diferença tolerada entre o relógio do servidor e o do banco ao resolver alertas.
 const FOLGA_RELOGIO_MS = 60_000;
@@ -46,9 +47,16 @@ export const noSetor = (andamento: Andamento, setor: SetorSlug): Andamento => ({
 
 export const falha = (mensagem: string) => comOcorrencia("falha_envio", mensagem);
 
-// Sem para quem enviar não vale buscar a guia nem reivindicar a tarefa.
-export const semDestinatario = (empresa: string) =>
-  comOcorrencia("contato_ausente", `${empresa} não tem contato nem e-mail para a forma de envio.`);
+// Sem para quem enviar não vale buscar a guia nem reivindicar a tarefa: o Setor dono do envio é avisado
+// de que o Cliente está sem meio de envio para aquele tipo.
+export const semDestinatario = (empresa: string, setor: SetorSlug, tipo: TipoDeEnvio) =>
+  noSetor(
+    comOcorrencia(
+      "contato_ausente",
+      `${empresa}: sem meio de envio para ${ROTULO_DO_ENVIO[tipo]} (${SETOR_LABEL[setor]})`,
+    ),
+    setor,
+  );
 
 type Etapas = {
   // "DAS de 3A": a tarefa do Cliente, para as mensagens.

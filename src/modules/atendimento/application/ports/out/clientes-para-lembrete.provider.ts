@@ -1,21 +1,15 @@
 import type { AppError } from "@/shared/errors/app.error";
 import type { DasStatusValor } from "@/shared/kernel/das-status";
 import type { DocumentoObrigatorioStatusValor } from "@/shared/kernel/documento-obrigatorio-status";
-import type { FormaEnvioValor } from "@/shared/kernel/forma-envio";
 import type { Result } from "@/shared/kernel/result";
 
 // Cliente do Simples Nacional com o que o job de lembrete/DAS precisa saber dele.
 export type ClienteParaLembrete = {
   clienteId: string;
   empresa: string;
-  formaEnvio: FormaEnvioValor;
   documentoObrigatorio: DocumentoObrigatorioStatusValor | null;
   dasStatus: DasStatusValor | null;
   dataEnvioDas: string | null; // AAAA-MM-DD
-  contato: { nome: string; telefone: string } | null;
-  email: string | null;
-  // Última Mensagem do contato em qualquer Atendimento do telefone (abre/fecha a janela de 24h).
-  ultimaMensagemDoContatoEm: Date | null;
 };
 
 export type DasDoCliente = {

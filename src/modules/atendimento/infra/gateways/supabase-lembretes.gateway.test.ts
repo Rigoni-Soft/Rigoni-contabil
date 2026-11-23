@@ -18,6 +18,7 @@ import { criarAdminLocal } from "../../../../../test-support/admin-supabase-loca
 import { EnvioMensagemFalsoGateway } from "./envio-mensagem-falso.gateway";
 import { SupabaseAlertaSetorGateway } from "./supabase-alerta-setor.gateway";
 import { SupabaseClientesParaLembreteGateway } from "./supabase-clientes-para-lembrete.gateway";
+import { SupabaseDestinosDeEnvioGateway } from "./supabase-destinos-de-envio.gateway";
 import { SupabaseGuiaPublicadaGateway } from "./supabase-guia-publicada.gateway";
 
 const erros: RegistroDeErrosPort = { registrar: jest.fn() };
@@ -37,7 +38,6 @@ const HORA_MS = 60 * 60 * 1000;
 
 type Fixture = { id: string; cnpj: string; nacional: string };
 const criados: Fixture[] = [];
-const atendimentos: string[] = [];
 let sequencia = 0;
 
 function cnpjUnico(): string {
@@ -74,45 +74,26 @@ async function criarCliente(telefoneCadastrado: string): Promise<Fixture> {
       das_status: "pronto",
     }),
   );
+  const contatoId = crypto.randomUUID();
   await ok(
     admin.from("cliente_contatos").insert({
-      id: crypto.randomUUID(),
+      id: contatoId,
       cliente_id: fixture.id,
       nome: "Ângela",
       telefone: telefoneCadastrado,
     }),
   );
-  return fixture;
-}
-
-// O Atendimento como o recebimento o grava: telefone com DDI, chave nacional (`soDigitosNacionais`).
-async function criarAtendimento(fixture: Fixture, mensagens: { autor: string; ha: number }[]) {
-  const telefone = `55${fixture.nacional}`;
-  const criado = await ok(
-    admin
-      .from("atendimentos")
-      .insert({
-        telefone,
-        chave_telefone: soDigitosNacionais(telefone),
-        cliente_id: fixture.id,
-        setor: "recepcao",
-      })
-      .select("id")
-      .single(),
+  // O Simples Nacional manda todos os envios a esse contato, pelo WhatsApp.
+  await ok(
+    admin.from("destinos_de_envio").insert({
+      cliente_id: fixture.id,
+      setor: "simples_nacional",
+      tipo: null,
+      contato_id: contatoId,
+      canal: "whatsapp",
+    }),
   );
-  atendimentos.push(criado.id);
-  if (mensagens.length > 0) {
-    await ok(
-      admin.from("mensagens").insert(
-        mensagens.map((m) => ({
-          atendimento_id: criado.id,
-          autor: m.autor,
-          texto: "teste",
-          criado_em: new Date(Date.now() - m.ha).toISOString(),
-        })),
-      ),
-    );
-  }
+  return fixture;
 }
 
 async function doLista(id: string) {
@@ -121,24 +102,6 @@ async function doLista(id: string) {
   const encontrado = lista.value.find((c) => c.clienteId === id);
   if (!encontrado) throw new Error("Cliente fora da lista");
   return encontrado;
-}
-
-// A decisão real do job: janela aberta → texto livre; fechada → template.
-async function tipoDeEnvio(id: string): Promise<"template" | "texto"> {
-  const c = await doLista(id);
-  const envio = new EnvioMensagemFalsoGateway();
-  jest.spyOn(console, "info").mockImplementation(() => undefined);
-  await new EnviarComunicacaoProativa(envio).execute({
-    telefone: c.contato!.telefone,
-    comunicacao: {
-      tipo: "lembrete_documento_obrigatorio",
-      contato: "Ângela",
-      empresa: "Teste",
-    },
-    ultimaMensagemDoContatoEm: c.ultimaMensagemDoContatoEm,
-    agora: new Date(),
-  });
-  return envio.templatesEnviados.length > 0 ? "template" : "texto";
 }
 
 async function statusDoDas(id: string) {
@@ -174,12 +137,7 @@ afterAll(async () => {
       registrar(rotulo, (await apagar(itens.slice(i, i + 100))).error);
     }
   };
-  // Alertas e reservas saem em cascata com o Cliente.
-  await emLotes(
-    atendimentos,
-    (l) => admin.from("atendimentos").delete().in("id", l),
-    "atendimentos",
-  );
+  // Alertas, avisos, Destinos e reservas saem em cascata com o Cliente.
   await emLotes(
     criados.map((c) => c.cnpj),
     (l) => admin.from("registros_auditoria").delete().in("alvo", l),
@@ -198,65 +156,15 @@ afterAll(async () => {
 
 const CAMINHO_DAS = "c1/das/202610-hash.pdf";
 
-describe("leitura dos Clientes e janela de 24h", () => {
-  it("telefone de envio com DDI e sem mensagem do contato: janela fechada, template", async () => {
-    const c = await doLista(principal.id);
-
-    expect(c).toMatchObject({
-      email: "financeiro@lembrete.test",
-      formaEnvio: "whatsapp_e_email",
+describe("leitura dos Clientes", () => {
+  it("devolve o Cliente com o documento obrigatório e o DAS, sem contato nem forma de envio", async () => {
+    expect(await doLista(principal.id)).toEqual({
+      clienteId: principal.id,
+      empresa: `Lembrete ${principal.nacional} Ltda`,
       documentoObrigatorio: "negativo",
       dasStatus: "pronto",
-      contato: { nome: "Ângela", telefone: `55${principal.nacional}` },
-      ultimaMensagemDoContatoEm: null,
+      dataEnvioDas: null,
     });
-    expect(await tipoDeEnvio(principal.id)).toBe("template");
-  });
-
-  it("Atendimento gravado como o recebimento (chave nacional): mensagem recente abre a janela", async () => {
-    await criarAtendimento(principal, [
-      { autor: "contato", ha: HORA_MS },
-      { autor: "ura", ha: 60_000 },
-    ]);
-
-    const c = await doLista(principal.id);
-
-    expect(c.ultimaMensagemDoContatoEm).toBeInstanceOf(Date);
-    // A última do contato (1 h), não a da URA (1 min).
-    const idade = Date.now() - c.ultimaMensagemDoContatoEm!.getTime();
-    expect(idade).toBeGreaterThan(HORA_MS - 30_000);
-    expect(idade).toBeLessThan(HORA_MS + 30_000);
-    expect(await tipoDeEnvio(principal.id)).toBe("texto");
-  });
-
-  it("mensagem do contato com mais de 24 h: janela fechada, template", async () => {
-    const antigo = await criarCliente(`(11) 9${sufixo.slice(1, 5)}-${sufixo.slice(0, 4)}`);
-    await criarAtendimento(antigo, [{ autor: "contato", ha: 30 * HORA_MS }]);
-
-    expect((await doLista(antigo.id)).ultimaMensagemDoContatoEm).toBeInstanceOf(Date);
-    expect(await tipoDeEnvio(antigo.id)).toBe("template");
-  });
-
-  it("fixo de 10 dígitos: telefone de envio com 55 e janela pela chave nacional", async () => {
-    const fixo = await criarCliente(`(11) 3${sufixo.slice(0, 3)}-${sufixo.slice(3, 7)}`);
-    await criarAtendimento(fixo, [{ autor: "contato", ha: HORA_MS }]);
-
-    const c = await doLista(fixo.id);
-
-    expect(fixo.nacional).toHaveLength(10);
-    expect(c.contato?.telefone).toBe(`55${fixo.nacional}`);
-    expect(await tipoDeEnvio(fixo.id)).toBe("texto");
-  });
-
-  it("contato cadastrado já com o 55: o telefone de envio não duplica o DDI", async () => {
-    const nacional = `118${sufixo.slice(0, 8)}`;
-    const com55 = await criarCliente(`55${nacional}`);
-    await criarAtendimento(com55, [{ autor: "contato", ha: HORA_MS }]);
-
-    const c = await doLista(com55.id);
-
-    expect(c.contato?.telefone).toBe(`55${nacional}`);
-    expect(await tipoDeEnvio(com55.id)).toBe("texto");
   });
 });
 
@@ -562,6 +470,7 @@ describe("rodada real com a reserva ocupada", () => {
       relogioDaRodada = agora;
       return new ExecutarLembretesDocumentoEDas(
         apenasOAlvo,
+        new SupabaseDestinosDeEnvioGateway(admin),
         new ObterGuiaDasParaEnvio(
           {
             buscar: async () => {
@@ -751,6 +660,7 @@ describe("DAS pedido pela URA (#124)", () => {
     };
     const rodada = await new ExecutarLembretesDocumentoEDas(
       apenasOAlvo,
+      new SupabaseDestinosDeEnvioGateway(admin),
       guiaDas,
       new EntregarComunicacaoPorCanais(
         new EnviarComunicacaoProativa(envioDoJob, 1, 0),

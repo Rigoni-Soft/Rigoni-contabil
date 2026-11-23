@@ -1,5 +1,6 @@
 import type { CadastroFiscalCliente } from "@/modules/atendimento/application/ports/out/cliente-cnpj.provider";
 import type { ClienteParaParcelamento } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
+import type { DestinoDeEnvio } from "@/modules/atendimento/application/ports/out/destinos-de-envio.provider";
 import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import type { ParcelamentoPgfn } from "@/modules/atendimento/application/ports/out/guias-pgfn.provider";
 import type {
@@ -11,6 +12,7 @@ import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
 import { EntregarComunicacaoPorCanais } from "./entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-case";
@@ -24,11 +26,17 @@ const telefoneFinanceiro = "5511900001111";
 const cliente: ClienteParaParcelamento = {
   clienteId: "c1",
   empresa: "3A Construções",
-  formaEnvio: "whatsapp",
-  contato: { nome: "Ângela", telefone },
-  email: null,
-  ultimaMensagemDoContatoEm: null,
 };
+
+// Destino de guia de parcelamento: o Contato "Ângela" pelo WhatsApp, salvo se o teste disser outro.
+const destino = (extra: Partial<DestinoDeEnvio> = {}): DestinoDeEnvio => ({
+  contatoNome: "Ângela",
+  telefone,
+  email: null,
+  canal: "whatsapp",
+  ultimaMensagemDoContatoEm: null,
+  ...extra,
+});
 
 const guia = (parcela: string, valorCentavos = 10_000): GuiaFiscal => ({
   nomeArquivo: `${parcela}.pdf`,
@@ -67,8 +75,12 @@ function montar(
     reservaNegada?: boolean;
     // Parcela cuja publicação falha.
     publicarFalha?: string;
+    // Destinos de guia de parcelamento por Setor; Setor ausente = o WhatsApp da Ângela.
+    destinos?: Partial<Record<SetorSlug, DestinoDeEnvio[]>>;
+    erroDosDestinos?: AppError;
   } = {},
 ) {
+  const consultas: { setor: string; tipo: string }[] = [];
   const envio = new EnvioMensagemFalsoGateway();
   const emails: unknown[] = [];
   const registrados: [string, string][] = [];
@@ -92,6 +104,13 @@ function montar(
         identidades.push(identidade);
         caminhos.push(caminho);
         return opcoes.registrar?.(id, parcela) ?? ok("registrado");
+      },
+    },
+    {
+      resolver: async (_clienteId, setor, tipo) => {
+        consultas.push({ setor, tipo });
+        if (opcoes.erroDosDestinos) return err(opcoes.erroDosDestinos);
+        return ok(opcoes.destinos?.[setor] ?? [destino()]);
       },
     },
     { buscarGuiasParcelamento },
@@ -138,6 +157,7 @@ function montar(
   );
   return {
     nucleo,
+    consultas,
     envio,
     emails,
     registrados,
@@ -337,6 +357,131 @@ describe("EnviarGuiasParcelamento", () => {
     expect(andamento.ocorrencias.map((o) => o.setor).sort()).toEqual(["rh", "simples_nacional"]);
   });
 
+  describe("Destinos de envio por Setor (#296)", () => {
+    const beto = destino({ contatoNome: "Beto", telefone: "5511999990000" });
+
+    it("guia do SN lê os Destinos do SN e vai ao Contato do SN", async () => {
+      const { nucleo, envio, consultas } = montar(ok([parcelamento("sn")]), {
+        destinos: { simples_nacional: [destino()], rh: [beto] },
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento.enviado).toBe(true);
+      expect(consultas).toEqual([{ setor: "simples_nacional", tipo: "guia_parcelamento" }]);
+      expect(envio.templatesEnviados.map((t) => [t.telefone, t.variaveis[0]])).toEqual([
+        ["5511912345678", "Ângela"],
+      ]);
+    });
+
+    it("guia do RH lê os Destinos do RH e vai ao Contato do RH", async () => {
+      const { nucleo, envio, consultas } = montar(ok([parcelamento("rh", { setor: "rh" })]), {
+        destinos: { simples_nacional: [destino()], rh: [beto] },
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento.enviado).toBe(true);
+      expect(consultas).toEqual([{ setor: "rh", tipo: "guia_parcelamento" }]);
+      expect(envio.templatesEnviados.map((t) => [t.telefone, t.variaveis[0]])).toEqual([
+        ["5511999990000", "Beto"],
+      ]);
+    });
+
+    it("guia do RH usa o canal do Destino do RH, não o do SN (que tem os dois canais)", async () => {
+      const { nucleo, envio, emails } = montar(ok([parcelamento("rh", { setor: "rh" })]), {
+        destinos: {
+          simples_nacional: [destino({ canal: "whatsapp_e_email", email: "sn@3a.com.br" })],
+          rh: [destino({ canal: "email", telefone: null, email: "rh@3a.com.br" })],
+        },
+      });
+
+      await nucleo.execute({ cliente, agora });
+
+      expect(envio.requisicoes).toHaveLength(0);
+      expect(emails).toMatchObject([{ para: "rh@3a.com.br" }]);
+    });
+
+    it("Setor sem Destino válido: alerta contato_ausente só dele, a guia do outro Setor segue", async () => {
+      const { nucleo, envio, registrados } = montar(
+        ok([parcelamento("sn"), parcelamento("rh", { setor: "rh", valorParcelaCentavos: 20_000 })]),
+        {
+          guias: async () => ok([guia("202610", 10_000)]),
+          destinos: { simples_nacional: [destino()], rh: [] },
+        },
+      );
+
+      const andamento = await nucleo.execute({
+        cliente: { ...cliente, empresa: "Cliente Exemplo Ltda" },
+        agora,
+      });
+
+      expect(andamento.ocorrencias).toEqual([
+        {
+          tipo: "contato_ausente",
+          setor: "rh",
+          mensagem: "Cliente Exemplo Ltda: sem meio de envio para a guia de parcelamento (RH)",
+        },
+      ]);
+      expect(envio.templatesEnviados).toHaveLength(1);
+      expect(registrados).toEqual([["sn", "202610"]]);
+    });
+
+    it("sem Destino em nenhum Setor: não chama o provedor fiscal e alerta o Setor", async () => {
+      const { nucleo, buscarGuiasParcelamento } = montar(ok([parcelamento("sn")]), {
+        destinos: { simples_nacional: [] },
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(buscarGuiasParcelamento).not.toHaveBeenCalled();
+      expect(andamento.ocorrencias).toMatchObject([
+        { tipo: "contato_ausente", setor: "simples_nacional" },
+      ]);
+    });
+
+    it("canal 'ambos' entregue por um canal só: entrega_parcial, como hoje", async () => {
+      const { nucleo, registrados } = montar(ok([parcelamento("sn")]), {
+        destinos: {
+          simples_nacional: [destino({ canal: "whatsapp_e_email", email: null })],
+        },
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento.enviado).toBe(true);
+      expect(andamento.ocorrencias.map((o) => o.tipo).sort()).toEqual([
+        "entrega_parcial",
+        "falha_envio",
+      ]);
+      expect(registrados).toEqual([["sn", "202610"]]);
+    });
+
+    it("lê os Destinos do Setor uma vez por Cliente, mesmo com vários acordos dele", async () => {
+      const { nucleo, consultas } = montar(
+        ok([parcelamento("a"), parcelamento("b", { valorParcelaCentavos: 20_000 })]),
+        { guias: async () => ok([guia("202610", 10_000), guia("202610", 20_000)]) },
+      );
+
+      await nucleo.execute({ cliente, agora });
+
+      expect(consultas).toHaveLength(1);
+    });
+
+    it("falha ao ler os Destinos: falha_envio e nada é enviado nem pedido ao provedor", async () => {
+      const { nucleo, envio, buscarGuiasParcelamento } = montar(ok([parcelamento("sn")]), {
+        erroDosDestinos: new ServicoExternoError("banco"),
+      });
+
+      const andamento = await nucleo.execute({ cliente, agora });
+
+      expect(andamento.enviado).toBe(false);
+      expect(andamento.ocorrencias).toMatchObject([{ tipo: "falha_envio" }]);
+      expect(envio.requisicoes).toHaveLength(0);
+      expect(buscarGuiasParcelamento).not.toHaveBeenCalled();
+    });
+  });
+
   it("guia do parcelamento interno vai ao WhatsApp do financeiro, nunca ao Cliente", async () => {
     const { nucleo, envio, registrados } = montar(
       ok([parcelamento("interno", { interno: true, parcelasRestantes: 7 })]),
@@ -386,16 +531,24 @@ describe("EnviarGuiasParcelamento", () => {
     expect(envio.templatesEnviados.map((t) => t.variaveis[4])).toEqual(["4", "4"]);
   });
 
-  it("interno ignora a forma de envio e a janela de 24h do Cliente: sempre template, nunca e-mail", async () => {
-    const { nucleo, envio, emails } = montar(ok([parcelamento("p1", { interno: true })]));
-    const comJanelaAberta = {
-      ...cliente,
-      formaEnvio: "whatsapp_e_email" as const,
-      email: "cliente@3a.com.br",
-      ultimaMensagemDoContatoEm: new Date("2026-10-22T11:00:00Z"),
-    };
+  it("interno ignora os Destinos e a janela de 24h do Cliente: sempre template, nunca e-mail", async () => {
+    const { nucleo, envio, emails, consultas } = montar(
+      ok([parcelamento("p1", { interno: true })]),
+      {
+        destinos: {
+          simples_nacional: [
+            destino({
+              canal: "whatsapp_e_email",
+              email: "cliente@3a.com.br",
+              ultimaMensagemDoContatoEm: new Date("2026-10-22T11:00:00Z"),
+            }),
+          ],
+        },
+      },
+    );
 
-    await nucleo.execute({ cliente: comJanelaAberta, agora });
+    await nucleo.execute({ cliente, agora });
+    expect(consultas).toEqual([]);
 
     expect(emails).toEqual([]);
     expect(envio.enviadas).toEqual([]);
@@ -405,15 +558,13 @@ describe("EnviarGuiasParcelamento", () => {
     ]);
   });
 
-  it("Cliente sem contato ainda recebe o interno no financeiro", async () => {
+  it("Cliente sem Destino ainda recebe o interno no financeiro", async () => {
     const { nucleo, envio } = montar(ok([parcelamento("interno", { interno: true })]), {
       guias: async () => ok([guia("202610")]),
+      destinos: { simples_nacional: [] },
     });
 
-    const andamento = await nucleo.execute({
-      cliente: { ...cliente, contato: null, email: null },
-      agora,
-    });
+    const andamento = await nucleo.execute({ cliente, agora });
 
     expect(andamento).toMatchObject({ enviado: true, ocorrencias: [] });
     expect(envio.templatesEnviados).toMatchObject([

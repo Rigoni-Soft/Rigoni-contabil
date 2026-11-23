@@ -10,13 +10,13 @@ import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use
 import { EnviarGuiasParcelamento } from "@/modules/atendimento/application/use-cases/enviar-guias-parcelamento.use-case";
 import { ExecutarEnvioGuiaParcelamento } from "@/modules/atendimento/application/use-cases/executar-envio-guia-parcelamento.use-case";
 import { ok as sucesso } from "@/shared/kernel/result";
-import { soDigitosNacionais } from "@/shared/kernel/telefone";
 
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
 import { EnvioMensagemFalsoGateway } from "./envio-mensagem-falso.gateway";
 import { SupabaseAlertaSetorGateway } from "./supabase-alerta-setor.gateway";
 import { SupabaseClienteCnpjGateway } from "./supabase-cliente-cnpj.gateway";
 import { SupabaseClientesParaParcelamentoGateway } from "./supabase-clientes-para-parcelamento.gateway";
+import { SupabaseDestinosDeEnvioGateway } from "./supabase-destinos-de-envio.gateway";
 import { SupabaseGuiasPgfnGateway } from "./supabase-guias-pgfn.gateway";
 import { SupabaseParcelamentosDoClienteGateway } from "./supabase-parcelamentos-do-cliente.gateway";
 
@@ -35,7 +35,6 @@ const HORA_MS = 60 * 60 * 1000;
 
 type Fixture = { id: string; cnpj: string };
 const criados: Fixture[] = [];
-const atendimentos: string[] = [];
 let sequencia = 0;
 
 function cnpjUnico(): string {
@@ -105,12 +104,23 @@ async function criarCliente(
   );
   if (opcoes.temParcelamento ?? true) await criarParcelamento(fixture.id);
   if (opcoes.telefone) {
+    const contatoId = crypto.randomUUID();
     await ok(
       admin.from("cliente_contatos").insert({
-        id: crypto.randomUUID(),
+        id: contatoId,
         cliente_id: fixture.id,
         nome: "Ângela",
         telefone: opcoes.telefone,
+      }),
+    );
+    // O Simples Nacional manda todos os envios a esse contato, pelo WhatsApp.
+    await ok(
+      admin.from("destinos_de_envio").insert({
+        cliente_id: fixture.id,
+        setor: "simples_nacional",
+        tipo: null,
+        contato_id: contatoId,
+        canal: "whatsapp",
       }),
     );
   }
@@ -153,12 +163,7 @@ afterAll(async () => {
       registrar(rotulo, (await apagar(itens.slice(i, i + 100))).error);
     }
   };
-  // Alertas e reservas saem em cascata com o Cliente.
-  await emLotes(
-    atendimentos,
-    (l) => admin.from("atendimentos").delete().in("id", l),
-    "atendimentos",
-  );
+  // Alertas, avisos, Destinos e reservas saem em cascata com o Cliente.
   await emLotes(
     criados.map((c) => c.cnpj),
     (l) => admin.from("registros_auditoria").delete().in("alvo", l),
@@ -173,7 +178,7 @@ afterAll(async () => {
 });
 
 describe("leitura dos pendentes", () => {
-  it("lista só quem tem parcelamento e Parcelamento pendente, com o telefone de envio", async () => {
+  it("lista só quem tem parcelamento e Parcelamento pendente, só com o Cliente (quem recebe vem dos Destinos)", async () => {
     const lista = await clientes.listarPendentes();
 
     expect(lista.ok).toBe(true);
@@ -181,8 +186,10 @@ describe("leitura dos pendentes", () => {
     const ids = itens.map((c) => c.clienteId);
     expect(ids).toContain(pendente.id);
     expect(ids).not.toContain(semParcelamento.id);
-    const nacional = soDigitosNacionais(`(61) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`);
-    expect(itens.find((c) => c.clienteId === pendente.id)?.contato?.telefone).toBe(`55${nacional}`);
+    expect(itens.find((c) => c.clienteId === pendente.id)).toEqual({
+      clienteId: pendente.id,
+      empresa: "Parcelamento Teste Ltda",
+    });
   });
 
   it("Cliente que só tem parcelamento interno em aberto também é pendente (o destino é decidido no envio)", async () => {
@@ -201,52 +208,6 @@ describe("leitura dos pendentes", () => {
     const lista = await clientes.listarPendentes();
 
     expect(lista.ok && lista.value.map((c) => c.clienteId)).not.toContain(soPgfn.id);
-  });
-
-  it("janela de 24h pela chave nacional: mensagem recente do contato escolhe o texto livre", async () => {
-    const nacional = soDigitosNacionais(`(61) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`);
-    const criado = await ok(
-      admin
-        .from("atendimentos")
-        .insert({
-          telefone: `55${nacional}`,
-          chave_telefone: soDigitosNacionais(`55${nacional}`),
-          cliente_id: pendente.id,
-          setor: "recepcao",
-        })
-        .select("id")
-        .single(),
-    );
-    atendimentos.push(criado.id);
-    await ok(
-      admin.from("mensagens").insert({
-        atendimento_id: criado.id,
-        autor: "contato",
-        texto: "oi",
-        criado_em: new Date(Date.now() - HORA_MS).toISOString(),
-      }),
-    );
-
-    const lista = await clientes.listarPendentes();
-    const c = lista.ok ? lista.value.find((x) => x.clienteId === pendente.id) : undefined;
-
-    expect(c?.ultimaMensagemDoContatoEm).toBeInstanceOf(Date);
-    const envio = new EnvioMensagemFalsoGateway();
-    jest.spyOn(console, "info").mockImplementation(() => undefined);
-    await new EnviarComunicacaoProativa(envio).execute({
-      telefone: c!.contato!.telefone,
-      comunicacao: {
-        tipo: "envio_guia_parcelamento",
-        contato: "Ângela",
-        empresa: "Teste",
-        parcela: "09/2026",
-        guia: { url: "https://x/g.pdf", nomeArquivo: "g.pdf" },
-      },
-      ultimaMensagemDoContatoEm: c!.ultimaMensagemDoContatoEm,
-      agora: new Date(),
-    });
-    expect(envio.templatesEnviados).toHaveLength(0);
-    expect(envio.enviadas).toHaveLength(1);
   });
 
   it("1.001 pendentes além do teto do PostgREST: todos aparecem, uma vez, em ordem de cliente_id", async () => {
@@ -755,6 +716,7 @@ describe("rodada real com a reserva ocupada", () => {
         apenasOAlvo,
         new EnviarGuiasParcelamento(
           new SupabaseParcelamentosDoClienteGateway(admin),
+          new SupabaseDestinosDeEnvioGateway(admin),
           {
             buscarGuiasParcelamento: async () => {
               if (quedaNaEntrega) throw new Error("processo caiu");

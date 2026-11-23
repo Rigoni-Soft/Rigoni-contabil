@@ -1,0 +1,159 @@
+import type { ComunicacaoProativa } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
+import type { DestinoDeEnvio } from "@/modules/atendimento/application/ports/out/destinos-de-envio.provider";
+import type { EmailParaEnvio } from "@/modules/atendimento/application/ports/out/envio-email.provider";
+import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
+import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
+import { err, ok } from "@/shared/kernel/result";
+
+import { EntregarComunicacaoPorCanais } from "./entregar-comunicacao-por-canais.use-case";
+import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-case";
+
+const agora = new Date("2026-10-05T12:00:00Z");
+const cliente = { empresa: "Cliente Exemplo Ltda" };
+
+const lembrete: ComunicacaoProativa = {
+  tipo: "lembrete_documento_obrigatorio",
+  contato: "Cliente Exemplo Ltda",
+  empresa: "Cliente Exemplo Ltda",
+};
+const guia: ComunicacaoProativa = {
+  tipo: "envio_guia_parcelamento",
+  contato: "Cliente Exemplo Ltda",
+  empresa: "Cliente Exemplo Ltda",
+  parcela: "10/2026",
+  guia: { url: "https://storage.test/guia.pdf", nomeArquivo: "guia.pdf" },
+};
+
+function destino(extra: Partial<DestinoDeEnvio> = {}): DestinoDeEnvio {
+  return {
+    contatoNome: "Ana Exemplo",
+    telefone: "5511912345678",
+    email: null,
+    canal: "whatsapp",
+    ultimaMensagemDoContatoEm: null,
+    ...extra,
+  };
+}
+
+function montar(opcoes: { falhasWhatsapp?: Record<string, number>; emailFalha?: boolean } = {}) {
+  const envio = new EnvioMensagemFalsoGateway(opcoes.falhasWhatsapp);
+  const emails: EmailParaEnvio[] = [];
+  const entrega = new EntregarComunicacaoPorCanais(
+    new EnviarComunicacaoProativa(envio, 1, 0),
+    {
+      enviar: async (email) => {
+        if (opcoes.emailFalha) return err(new ServicoExternoError("SMTP recusou."));
+        emails.push(email);
+        return ok(undefined);
+      },
+    },
+    0,
+  );
+  return { entrega, envio, emails };
+}
+
+describe("EntregarComunicacaoPorCanais", () => {
+  it("canal WhatsApp: envia ao telefone do Destino, chamando o Contato do Destino pelo nome", async () => {
+    const { entrega, envio } = montar();
+    const resultado = await entrega.execute({
+      cliente,
+      destinos: [destino()],
+      comunicacao: lembrete,
+      agora,
+    });
+    expect(resultado).toEqual(ok({ entregues: 1, ocorrencias: [] }));
+    expect(envio.templatesEnviados).toMatchObject([
+      {
+        nome: "lembrete_documento_obrigatorio",
+        telefone: "5511912345678",
+        variaveis: ["Ana Exemplo", "Cliente Exemplo Ltda"],
+      },
+    ]);
+  });
+
+  it("canal e-mail: manda e-mail ao endereço do Destino e não usa WhatsApp", async () => {
+    const { entrega, envio, emails } = montar();
+    const resultado = await entrega.execute({
+      cliente,
+      destinos: [destino({ canal: "email", telefone: null, email: "ana@exemplo.test" })],
+      comunicacao: lembrete,
+      agora,
+    });
+    expect(resultado).toEqual(ok({ entregues: 1, ocorrencias: [] }));
+    expect(envio.requisicoes).toHaveLength(0);
+    expect(emails).toMatchObject([{ para: "ana@exemplo.test" }]);
+  });
+
+  it("'ambos': tenta cada canal, e a falha de um não impede o outro", async () => {
+    const { entrega, emails } = montar({ falhasWhatsapp: { "5511912345678": 131026 } });
+    const resultado = await entrega.execute({
+      cliente,
+      destinos: [destino({ canal: "whatsapp_e_email", email: "ana@exemplo.test" })],
+      comunicacao: lembrete,
+      agora,
+    });
+    expect(emails).toHaveLength(1);
+    expect(resultado.ok && resultado.value.entregues).toBe(1);
+    expect(resultado.ok && resultado.value.ocorrencias).toMatchObject([
+      { tipo: "falha_envio", mensagem: expect.stringContaining("WhatsApp") },
+    ]);
+  });
+
+  it("guia entregue por um canal só no 'ambos': acrescenta a entrega parcial", async () => {
+    const { entrega } = montar({ emailFalha: true });
+    const resultado = await entrega.execute({
+      cliente,
+      destinos: [destino({ canal: "whatsapp_e_email", email: "ana@exemplo.test" })],
+      comunicacao: guia,
+      agora,
+    });
+    expect(resultado.ok && resultado.value.entregues).toBe(1);
+    expect(resultado.ok && resultado.value.ocorrencias.map((o) => o.tipo)).toEqual([
+      "falha_envio",
+      "entrega_parcial",
+    ]);
+  });
+
+  it("lembrete entregue por um canal só não gera entrega parcial (recorrente)", async () => {
+    const { entrega } = montar({ emailFalha: true });
+    const resultado = await entrega.execute({
+      cliente,
+      destinos: [destino({ canal: "whatsapp_e_email", email: "ana@exemplo.test" })],
+      comunicacao: lembrete,
+      agora,
+    });
+    expect(resultado.ok && resultado.value.ocorrencias.map((o) => o.tipo)).toEqual(["falha_envio"]);
+  });
+
+  it("vários Destinos: cada Contato recebe, com o próprio nome e a própria janela de 24h", async () => {
+    const { entrega, envio } = montar();
+    const resultado = await entrega.execute({
+      cliente,
+      destinos: [
+        destino({ ultimaMensagemDoContatoEm: new Date("2026-10-05T08:00:00Z") }),
+        destino({ contatoNome: "Bia Exemplo", telefone: "5511987654321" }),
+      ],
+      comunicacao: lembrete,
+      agora,
+    });
+    expect(resultado.ok && resultado.value.entregues).toBe(2);
+    // Ana está com a janela aberta (formato próprio); Bia, fechada (template).
+    expect(envio.enviadas).toHaveLength(1);
+    expect(envio.templatesEnviados).toMatchObject([
+      { telefone: "5511987654321", variaveis: ["Bia Exemplo", "Cliente Exemplo Ltda"] },
+    ]);
+  });
+
+  it("sem Destino: nada é enviado e nenhuma entrega é contada", async () => {
+    const { entrega, envio, emails } = montar();
+    const resultado = await entrega.execute({
+      cliente,
+      destinos: [],
+      comunicacao: lembrete,
+      agora,
+    });
+    expect(resultado).toEqual(ok({ entregues: 0, ocorrencias: [] }));
+    expect(envio.requisicoes).toHaveLength(0);
+    expect(emails).toHaveLength(0);
+  });
+});

@@ -120,6 +120,7 @@ import { SupabaseClienteCnpjGateway } from "@/modules/atendimento/infra/gateways
 import { SupabaseClientesComParcelamentoPgfnGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-com-parcelamento-pgfn.gateway";
 import { SupabaseClientesParaLembreteGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-para-lembrete.gateway";
 import { SupabaseClientesParaParcelamentoGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-para-parcelamento.gateway";
+import { SupabaseDestinosDeEnvioGateway } from "@/modules/atendimento/infra/gateways/supabase-destinos-de-envio.gateway";
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
 import { SupabaseGuiaPublicadaGateway } from "@/modules/atendimento/infra/gateways/supabase-guia-publicada.gateway";
 import { SupabaseGuiasPgfnGateway } from "@/modules/atendimento/infra/gateways/supabase-guias-pgfn.gateway";
@@ -371,6 +372,7 @@ export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumento
   const publicadas = new SupabaseGuiaPublicadaGateway(supabaseAdmin);
   return new ExecutarLembretesDocumentoEDas(
     new SupabaseClientesParaLembreteGateway(supabaseAdmin),
+    new SupabaseDestinosDeEnvioGateway(supabaseAdmin),
     new ObterGuiaDasParaEnvio(guiasFiscais(supabaseAdmin), publicadas),
     new EntregarComunicacaoPorCanais(
       new EnviarComunicacaoProativa(makeEnvioMensagem(), TENTATIVAS, ESPERA_MS),
@@ -400,6 +402,7 @@ export function makeExecutarEnvioGuiaParcelamento(): ExecutarEnvioGuiaParcelamen
     new SupabaseClientesParaParcelamentoGateway(supabaseAdmin),
     new EnviarGuiasParcelamento(
       new SupabaseParcelamentosDoClienteGateway(supabaseAdmin),
+      new SupabaseDestinosDeEnvioGateway(supabaseAdmin),
       guiasFiscais(supabaseAdmin),
       new SupabaseGuiaPublicadaGateway(supabaseAdmin),
       new EntregarComunicacaoPorCanais(

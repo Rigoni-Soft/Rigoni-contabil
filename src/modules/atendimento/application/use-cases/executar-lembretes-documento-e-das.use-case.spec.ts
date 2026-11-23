@@ -1,5 +1,6 @@
 import type { AlertaSetor } from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
 import type { ClienteParaLembrete } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
+import type { DestinoDeEnvio } from "@/modules/atendimento/application/ports/out/destinos-de-envio.provider";
 import type { EmailParaEnvio } from "@/modules/atendimento/application/ports/out/envio-email.provider";
 import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
@@ -7,6 +8,7 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import type { TipoDeEnvio } from "@/shared/kernel/tipo-de-envio";
 
 import { EntregarComunicacaoPorCanais } from "./entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-case";
@@ -21,16 +23,27 @@ function cliente(extra: Partial<ClienteParaLembrete> = {}): ClienteParaLembrete 
   return {
     clienteId: "c1",
     empresa: "3A Construções",
-    formaEnvio: "whatsapp",
     documentoObrigatorio: "positivo",
     dasStatus: "enviado",
     dataEnvioDas: null,
-    contato: { nome: "Ângela", telefone },
+    ...extra,
+  };
+}
+
+// Destino do Simples Nacional já resolvido: o Contato "Ângela" pelo WhatsApp, a menos que o teste diga outro.
+function destino(extra: Partial<DestinoDeEnvio> = {}): DestinoDeEnvio {
+  return {
+    contatoNome: "Ângela",
+    telefone,
     email: null,
+    canal: "whatsapp",
     ultimaMensagemDoContatoEm: null,
     ...extra,
   };
 }
+const porEmail = (email = "ana@3a.com.br") => destino({ canal: "email", telefone: null, email });
+const porWhatsappEEmail = (email: string | null = "ana@3a.com.br") =>
+  destino({ canal: "whatsapp_e_email", email });
 
 const guiaOk: GuiaFiscal = {
   nomeArquivo: "das.pdf",
@@ -52,8 +65,14 @@ function montar(
     liberar?: Result<void, AppError>;
     resolver?: Result<void, AppError>;
     gravacao?: Result<void, AppError>;
+    // Destinos do Setor por Cliente (todos os tipos); sem entrada, o WhatsApp da Ângela.
+    destinos?: Record<string, DestinoDeEnvio[]>;
+    // Destinos por tipo de envio, antes dos do Cliente (o tipo específico vale só para ele).
+    destinosPorTipo?: Partial<Record<TipoDeEnvio, DestinoDeEnvio[]>>;
+    erroDosDestinos?: AppError;
   } = {},
 ) {
+  const consultas: { clienteId: string; setor: string; tipo: string }[] = [];
   const envio = new EnvioMensagemFalsoGateway(opcoes.falhas);
   const emails: EmailParaEnvio[] = [];
   const alertas: AlertaSetor[] = [];
@@ -78,6 +97,13 @@ function montar(
       liberarDas: async (id, token) => {
         liberados.push([id, token]);
         return opcoes.liberar ?? ok(undefined);
+      },
+    },
+    {
+      resolver: async (clienteId, setor, tipo) => {
+        consultas.push({ clienteId, setor, tipo });
+        if (opcoes.erroDosDestinos) return err(opcoes.erroDosDestinos);
+        return ok(opcoes.destinosPorTipo?.[tipo] ?? opcoes.destinos?.[clienteId] ?? [destino()]);
       },
     },
     new ObterGuiaDasParaEnvio(
@@ -113,6 +139,7 @@ function montar(
   );
   return {
     job,
+    consultas,
     caminhosConcluidos,
     envio,
     emails,
@@ -156,12 +183,11 @@ describe("ExecutarLembretesDocumentoEDas", () => {
   });
 
   it("janela de 24h aberta: o lembrete vai em formato próprio, sem template", async () => {
-    const { job, envio } = montar([
-      cliente({
-        documentoObrigatorio: "negativo",
-        ultimaMensagemDoContatoEm: new Date("2026-10-05T08:00:00Z"),
-      }),
-    ]);
+    const { job, envio } = montar([cliente({ documentoObrigatorio: "negativo" })], {
+      destinos: {
+        c1: [destino({ ultimaMensagemDoContatoEm: new Date("2026-10-05T08:00:00Z") })],
+      },
+    });
     await job.execute();
     expect(envio.enviadas).toHaveLength(1);
     expect(envio.templatesEnviados).toHaveLength(0);
@@ -190,10 +216,10 @@ describe("ExecutarLembretesDocumentoEDas", () => {
     expect(marcados).toEqual([["c1", "2026-10-05"]]);
   });
 
-  it("DAS pronto com a forma de envio e-mail: manda e-mail com a guia e não usa WhatsApp", async () => {
-    const { job, envio, emails, marcados } = montar([
-      cliente({ dasStatus: "pronto", formaEnvio: "email", email: "ana@3a.com.br" }),
-    ]);
+  it("DAS pronto com o Destino por e-mail: manda e-mail com a guia e não usa WhatsApp", async () => {
+    const { job, envio, emails, marcados } = montar([cliente({ dasStatus: "pronto" })], {
+      destinos: { c1: [porEmail()] },
+    });
     await job.execute();
     expect(envio.requisicoes).toHaveLength(0);
     expect(emails).toMatchObject([
@@ -206,32 +232,96 @@ describe("ExecutarLembretesDocumentoEDas", () => {
     expect(marcados).toHaveLength(1);
   });
 
-  it("WhatsApp e e-mail: envia pelos dois", async () => {
-    const { job, envio, emails } = montar([
-      cliente({ dasStatus: "pronto", formaEnvio: "whatsapp_e_email", email: "ana@3a.com.br" }),
-    ]);
+  it("canal 'ambos' no Destino: envia pelos dois", async () => {
+    const { job, envio, emails } = montar([cliente({ dasStatus: "pronto" })], {
+      destinos: { c1: [porWhatsappEEmail()] },
+    });
     await job.execute();
     expect(envio.requisicoes).toHaveLength(1);
     expect(emails).toHaveLength(1);
   });
 
-  it("forma de envio e-mail sem e-mail cadastrado: alerta o setor e o DAS segue pronto", async () => {
-    const { job, alertas, marcados } = montar([
-      cliente({ dasStatus: "pronto", formaEnvio: "email" }),
-    ]);
+  it("Setor sem Destino válido: alerta contato_ausente com a mensagem do Setor e o DAS segue pronto", async () => {
+    const { job, alertas, marcados } = montar(
+      [cliente({ empresa: "Cliente Exemplo Ltda", dasStatus: "pronto" })],
+      { destinos: { c1: [] } },
+    );
     const resultado = await job.execute();
     expect(marcados).toHaveLength(0);
-    expect(alertas).toMatchObject([
-      { setor: "simples_nacional", tipo: "contato_ausente", clienteId: "c1" },
+    expect(alertas).toEqual([
+      {
+        setor: "simples_nacional",
+        tipo: "contato_ausente",
+        clienteId: "c1",
+        mensagem: "Cliente Exemplo Ltda: sem meio de envio para o DAS (Simples Nacional)",
+      },
     ]);
     expect(resultado.ok && resultado.value.dasEnviados).toBe(0);
   });
 
-  it("sem contato padrão: alerta o setor e o DAS segue pronto", async () => {
-    const { job, alertas, marcados } = montar([cliente({ dasStatus: "pronto", contato: null })]);
+  it("lembrete sem Destino: o alerta diz que falta meio para o lembrete de documento", async () => {
+    const { job, alertas, envio } = montar(
+      [cliente({ empresa: "Cliente Exemplo Ltda", documentoObrigatorio: "negativo" })],
+      { destinos: { c1: [] } },
+    );
     await job.execute();
-    expect(marcados).toHaveLength(0);
+    expect(envio.requisicoes).toHaveLength(0);
+    expect(alertas).toMatchObject([
+      {
+        tipo: "contato_ausente",
+        mensagem:
+          "Cliente Exemplo Ltda: sem meio de envio para o lembrete de documento (Simples Nacional)",
+      },
+    ]);
+  });
+
+  it("lembrete e DAS leem o Destino de cada tipo, no Setor Simples Nacional", async () => {
+    const outro = destino({ contatoNome: "Beto", telefone: "5511999990000" });
+    const { job, consultas, envio } = montar(
+      [cliente({ documentoObrigatorio: "negativo", dasStatus: "pronto" })],
+      { destinosPorTipo: { lembrete_documento: [outro], das: [destino()] } },
+    );
+    await job.execute();
+    expect(consultas).toEqual([
+      { clienteId: "c1", setor: "simples_nacional", tipo: "lembrete_documento" },
+      { clienteId: "c1", setor: "simples_nacional", tipo: "das" },
+    ]);
+    expect(envio.templatesEnviados.map((t) => [t.nome, t.telefone])).toEqual([
+      ["lembrete_documento_obrigatorio", "5511999990000"],
+      ["envio_guia_das", telefone],
+    ]);
+  });
+
+  it("Destino só do DAS: o lembrete, sem Destino, alerta; o DAS segue", async () => {
+    const { job, alertas, marcados } = montar(
+      [cliente({ documentoObrigatorio: "negativo", dasStatus: "pronto" })],
+      { destinosPorTipo: { lembrete_documento: [], das: [destino()] } },
+    );
+    await job.execute();
+    expect(marcados).toHaveLength(1);
     expect(alertas).toMatchObject([{ tipo: "contato_ausente" }]);
+  });
+
+  it("vários Destinos do tipo: cada Contato recebe o DAS", async () => {
+    const { job, envio, marcados } = montar([cliente({ dasStatus: "pronto" })], {
+      destinos: {
+        c1: [destino(), destino({ contatoNome: "Beto", telefone: "5511999990000" })],
+      },
+    });
+    await job.execute();
+    expect(envio.templatesEnviados.map((t) => t.telefone)).toEqual([telefone, "5511999990000"]);
+    expect(marcados).toHaveLength(1);
+  });
+
+  it("falha ao ler os Destinos: alerta falha_envio, sem buscar a guia nem reservar o DAS", async () => {
+    const { job, alertas, buscar, envio } = montar([cliente({ dasStatus: "pronto" })], {
+      erroDosDestinos: new ServicoExternoError("banco"),
+    });
+    const resultado = await job.execute();
+    expect(alertas).toMatchObject([{ tipo: "falha_envio" }]);
+    expect(buscar).not.toHaveBeenCalled();
+    expect(envio.requisicoes).toHaveLength(0);
+    expect(resultado.ok && resultado.value.falhas).toBe(1);
   });
 
   it("DAS pendente com documento positivo: alerta o setor", async () => {
@@ -302,14 +392,13 @@ describe("ExecutarLembretesDocumentoEDas", () => {
   it("um Cliente que falha não impede os demais", async () => {
     const { job, liberados } = montar(
       [
-        cliente({
-          clienteId: "ruim",
-          dasStatus: "pronto",
-          contato: { nome: "X", telefone: "5500" },
-        }),
+        cliente({ clienteId: "ruim", dasStatus: "pronto" }),
         cliente({ clienteId: "bom", dasStatus: "pronto" }),
       ],
-      { falhas: { "5500": 131026 } },
+      {
+        destinos: { ruim: [destino({ contatoNome: "X", telefone: "5500" })] },
+        falhas: { "5500": 131026 },
+      },
     );
     await job.execute();
     expect(liberados).toEqual([["ruim", "tok-1"]]);
@@ -356,9 +445,10 @@ describe("ExecutarLembretesDocumentoEDas", () => {
   });
 
   it("sem destinatário: alerta uma vez, sem buscar a guia nem reservar o DAS", async () => {
-    const { job, alertas, marcados, buscar } = montar([
-      cliente({ documentoObrigatorio: "negativo", dasStatus: "pronto", contato: null }),
-    ]);
+    const { job, alertas, marcados, buscar } = montar(
+      [cliente({ documentoObrigatorio: "negativo", dasStatus: "pronto" })],
+      { destinos: { c1: [] } },
+    );
     const resultado = await job.execute();
     expect(alertas).toMatchObject([{ tipo: "contato_ausente" }]);
     expect(marcados).toHaveLength(0);
@@ -469,6 +559,7 @@ describe("ExecutarLembretesDocumentoEDas", () => {
         concluirDas: async () => ok(true),
         liberarDas: async () => ok(undefined),
       },
+      { resolver: async () => ok([]) },
       { execute: async () => err(new ServicoExternoError("x")) },
       { execute: async () => err(new ServicoExternoError("x")) },
       { alertar: async () => ok(undefined), resolverNaoRenovados: resolver },
@@ -484,21 +575,21 @@ describe("ExecutarLembretesDocumentoEDas", () => {
     expect(resultado.ok && resultado.value.falhas).toBe(1);
   });
 
-  it("whatsapp_e_email com e-mail ausente: entrega pelo WhatsApp, mantém enviado e abre entrega_parcial", async () => {
-    const { job, envio, alertas, liberados } = montar([
-      cliente({ dasStatus: "pronto", formaEnvio: "whatsapp_e_email", email: null }),
-    ]);
+  it("'ambos' com o e-mail falhando: entrega pelo WhatsApp, mantém enviado e abre entrega_parcial", async () => {
+    const { job, envio, alertas, liberados } = montar([cliente({ dasStatus: "pronto" })], {
+      destinos: { c1: [porWhatsappEEmail(null)] },
+    });
     const resultado = await job.execute();
     expect(envio.requisicoes).toHaveLength(1);
     expect(liberados).toHaveLength(0);
     expect(resultado.ok && resultado.value.dasEnviados).toBe(1);
-    expect(alertas.map((a) => a.tipo).sort()).toEqual(["contato_ausente", "entrega_parcial"]);
+    expect(alertas.map((a) => a.tipo).sort()).toEqual(["entrega_parcial", "falha_envio"]);
   });
 
-  it("whatsapp_e_email entregue pelos dois canais: sem alerta de entrega parcial", async () => {
-    const { job, alertas } = montar([
-      cliente({ dasStatus: "pronto", formaEnvio: "whatsapp_e_email", email: "ana@3a.com.br" }),
-    ]);
+  it("'ambos' entregue pelos dois canais: sem alerta de entrega parcial", async () => {
+    const { job, alertas } = montar([cliente({ dasStatus: "pronto" })], {
+      destinos: { c1: [porWhatsappEEmail()] },
+    });
     await job.execute();
     expect(alertas).toHaveLength(0);
   });
@@ -512,11 +603,11 @@ describe("ExecutarLembretesDocumentoEDas", () => {
   });
 
   it("lembrete entregue por um canal só não abre entrega_parcial (volta a sair na próxima rodada)", async () => {
-    const { job, alertas } = montar([
-      cliente({ documentoObrigatorio: "negativo", formaEnvio: "whatsapp_e_email", email: null }),
-    ]);
+    const { job, alertas } = montar([cliente({ documentoObrigatorio: "negativo" })], {
+      destinos: { c1: [porWhatsappEEmail(null)] },
+    });
     await job.execute();
-    expect(alertas.map((a) => a.tipo)).toEqual(["contato_ausente"]);
+    expect(alertas.map((a) => a.tipo)).toEqual(["falha_envio"]);
   });
 
   it("falha do lembrete e da guia no mesmo Cliente: um alerta só, com as duas mensagens", async () => {

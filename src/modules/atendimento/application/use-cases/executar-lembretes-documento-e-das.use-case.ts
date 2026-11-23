@@ -22,19 +22,23 @@ import type {
   ClienteParaLembrete,
   ClientesParaLembretePort,
 } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
+import type {
+  DestinoDeEnvio,
+  DestinosDeEnvioPort,
+} from "@/modules/atendimento/application/ports/out/destinos-de-envio.provider";
 import type { RelogioPort } from "@/modules/atendimento/application/ports/out/relogio.provider";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
-import { temDestinatario } from "@/shared/kernel/forma-envio";
 import { diaDoMes, hojeIso, mesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import { SETOR_SN } from "@/shared/kernel/setores";
+import type { TipoDeEnvio } from "@/shared/kernel/tipo-de-envio";
 
 const DIAS_DO_JOB = [1, 5, 10, 15];
 
-const nomeDoContato = (cliente: ClienteParaLembrete) => cliente.contato?.nome ?? cliente.empresa;
-
 // Job dos dias 01/05/10/15 (fuso de São Paulo): lembra quem está sem documento obrigatório,
-// envia o DAS pronto pela forma de envio do Cliente e alerta o setor Simples Nacional do DAS que
+// envia o DAS pronto aos Destinos de envio do Simples Nacional (tipo do envio ou "todos"; sem
+// Destino válido, o alerta `contato_ausente` e o aviso do Líder e do Responsável) e alerta o setor Simples Nacional do DAS que
 // segue pendente com o documento em dia. Cada Cliente é independente: um que falha não impede os
 // demais. A entrega é reservada (token, com validade) antes de sair e o DAS só vira enviado ao
 // concluir, depois do aceite: execuções simultâneas ou o Funcionário não geram envio em dobro, e
@@ -43,6 +47,7 @@ const nomeDoContato = (cliente: ClienteParaLembrete) => cliente.contato?.nome ??
 export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocumentoEDasPort {
   constructor(
     private readonly clientes: ClientesParaLembretePort,
+    private readonly destinos: DestinosDeEnvioPort,
     private readonly guiaDas: ObterGuiaDasParaEnvioPort,
     private readonly entrega: EntregarComunicacaoPorCanaisPort,
     private readonly alertas: AlertaSetorPort,
@@ -97,23 +102,39 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     ];
   }
 
+  // Quem recebe o envio do tipo no Setor: o Andamento de saída quando a leitura falha ou o Setor não
+  // tem Destino válido (alerta `contato_ausente`).
+  private async destinosDe(
+    cliente: ClienteParaLembrete,
+    tipo: TipoDeEnvio,
+  ): Promise<DestinoDeEnvio[] | Andamento> {
+    const resolvidos = await this.destinos.resolver(cliente.clienteId, SETOR_SN, tipo);
+    if (!resolvidos.ok) return falha(`${cliente.empresa}: ${resolvidos.error.message}`);
+    if (resolvidos.value.length === 0) return semDestinatario(cliente.empresa, SETOR_SN, tipo);
+    return resolvidos.value;
+  }
+
   private async lembrar(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
+    const destinos = await this.destinosDe(cliente, "lembrete_documento");
+    if (!Array.isArray(destinos)) return destinos;
     const comunicacao: ComunicacaoProativa = {
       tipo: "lembrete_documento_obrigatorio",
-      contato: nomeDoContato(cliente),
+      contato: cliente.empresa,
       empresa: cliente.empresa,
     };
-    return this.entregar(cliente, comunicacao, agora);
+    return this.entregar(cliente, destinos, comunicacao, agora);
   }
 
   private async enviarDas(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
-    if (!temDestinatario(cliente)) return semDestinatario(cliente.empresa);
+    // Sem para quem enviar não vale buscar a guia nem reservar o DAS.
+    const destinos = await this.destinosDe(cliente, "das");
+    if (!Array.isArray(destinos)) return destinos;
     // O PDF publicado fica no Storage mesmo se a entrega falhar: só o envio aceito guarda o caminho.
     const publicado: { caminho?: string } = {};
     return entregarComReserva({
       descricao: `DAS de ${cliente.empresa}`,
       reservar: () => this.clientes.reservarDas(cliente.clienteId),
-      entregar: () => this.entregarGuia(cliente, agora, publicado),
+      entregar: () => this.entregarGuia(cliente, destinos, agora, publicado),
       concluir: async (token) =>
         publicado.caminho
           ? this.clientes.concluirDas(cliente.clienteId, token, hojeIso(agora), publicado.caminho)
@@ -124,6 +145,7 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
 
   private async entregarGuia(
     cliente: ClienteParaLembrete,
+    destinos: DestinoDeEnvio[],
     agora: Date,
     publicado: { caminho?: string },
   ): Promise<Andamento> {
@@ -133,20 +155,21 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     publicado.caminho = caminho;
     const comunicacao: ComunicacaoProativa = {
       tipo: "envio_guia_das",
-      contato: nomeDoContato(cliente),
+      contato: cliente.empresa,
       empresa: cliente.empresa,
       ...conteudo,
     };
-    return this.entregar(cliente, comunicacao, agora);
+    return this.entregar(cliente, destinos, comunicacao, agora);
   }
 
   private async entregar(
     cliente: ClienteParaLembrete,
+    destinos: DestinoDeEnvio[],
     comunicacao: ComunicacaoProativa,
     agora: Date,
   ): Promise<Andamento> {
     return paraAndamento(
-      await this.entrega.execute({ cliente, comunicacao, agora }),
+      await this.entrega.execute({ cliente, destinos, comunicacao, agora }),
       cliente.empresa,
     );
   }
