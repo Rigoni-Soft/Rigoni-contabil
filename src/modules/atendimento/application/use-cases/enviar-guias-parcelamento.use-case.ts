@@ -67,8 +67,8 @@ const leituraFalhou = (p: ParcelamentoDoCliente, falhas: Triagem["falhas"]) =>
   !p.interno && falhas.has(p.setor);
 
 const ocorrenciasDeLeitura = (descricao: string, falhas: Triagem["falhas"]) =>
-  [...falhas].flatMap(([setor, erro]) =>
-    noSetor(falha(`${descricao}: ${erro.message}`), setor).ocorrencias,
+  [...falhas].flatMap(
+    ([setor, erro]) => noSetor(falha(`${descricao}: ${erro.message}`), setor).ocorrencias,
   );
 
 // A guia atribuída com as parcelas que restam depois de entregá-la.
