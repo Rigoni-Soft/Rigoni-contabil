@@ -1,6 +1,21 @@
 import { soDigitos } from "@/shared/kernel/telefone";
 
-import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional.schema";
+import {
+  contatoSchema,
+  type EditarCadastroOperacionalFormValues,
+} from "./editar-cadastro-operacional.schema";
+
+const CAMPOS_DO_CONTATO = ["nome", "telefone", "email"] as const;
+
+// O que a validação do contato recusou, campo a campo (problema fora dos três campos cai no Nome).
+export function problemasDosCampos(contato: ValoresDaLinha) {
+  const valido = contatoSchema.safeParse(contato);
+  if (valido.success) return [];
+  return valido.error.issues.map((problema) => ({
+    campo: CAMPOS_DO_CONTATO.find((c) => c === problema.path[0]) ?? "nome",
+    mensagem: problema.message,
+  }));
+}
 
 export type ValoresDaLinha = EditarCadastroOperacionalFormValues["contatos"][number];
 

@@ -10,25 +10,25 @@ import {
   emBranco,
   enviosMudaram,
   instantaneoDe,
+  problemasDosCampos,
   type Instantaneo,
   type ValoresDaLinha,
 } from "./contato-da-linha.presenter";
 import { contatoNovo } from "./editar-cadastro-operacional.presenter";
+import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional.schema";
 import {
-  contatoSchema,
-  type EditarCadastroOperacionalFormValues,
-} from "./editar-cadastro-operacional.schema";
-import { definirTiposDoContatoAction } from "./tipos-de-envio.actions";
+  enviosDaLinha,
+  existentesDaLinha,
+  numeroRepetidoDaLinha,
+} from "./opcoes-da-linha.presenter";
 import {
-  avisoDeCanalPerdido,
-  contatoDoMesmoNumero,
   contatoDoSetor,
   contatoEditavel,
-  OPCOES_DE_CANAL,
   opcoesDeTipos,
-  textoDoNumeroRepetido,
   tiposAposAlternar,
 } from "./tipos-de-envio.presenter";
+import { useAvisoAnunciado } from "./use-aviso-anunciado.hook";
+import { useDeixarDeUsarContato } from "./use-deixar-de-usar-contato.hook";
 import { useFocoPendente } from "./use-foco-pendente.hook";
 import { useGravarContatoDaLinha } from "./use-gravar-contato-da-linha.hook";
 
@@ -70,9 +70,6 @@ type EstadoDaLinha = {
   verificado?: string;
 };
 
-const CAMPOS_DO_CONTATO = ["nome", "telefone", "email"] as const;
-
-const MENSAGEM_SEM_CANAL = "Escolha por onde enviar a este contato.";
 const TEXTO_DA_CONFIRMACAO =
   "Deixar de usar este contato? Os envios marcados aqui deixam de sair para ele; o contato segue com o dono e com os outros Setores.";
 
@@ -95,16 +92,14 @@ export function useContatosDoCadastro({
   const instantaneos = useRef<Record<string, Instantaneo>>({});
   const [salvando, setSalvando] = useState<number | null>(null);
   const [falha, setFalha] = useState<{ indice: number; mensagem: string } | null>(null);
-  const [anuncio, setAnuncio] = useState({ texto: "", vez: 0 });
+  const { aviso, avisoVez, anunciar } = useAvisoAnunciado();
   const focar = useFocoPendente();
   const gravarContatoDaLinha = useGravarContatoDaLinha(clienteId);
+  const deixarDeUsarContato = useDeixarDeUsarContato(clienteId);
 
   const daLinha = (chave: string): EstadoDaLinha => estado[chave] ?? {};
   const alterar = (chave: string, parcial: EstadoDaLinha) =>
     setEstado((atual) => ({ ...atual, [chave]: { ...atual[chave], ...parcial } }));
-  // A mesma ação repetida não muda o texto e o leitor de tela não a anunciaria de novo; o espaço no fim alterna.
-  const anunciar = (texto: string) => setAnuncio((atual) => ({ texto, vez: atual.vez + 1 }));
-  const aviso = anuncio.texto && anuncio.texto + (anuncio.vez % 2 ? " " : "");
 
   const opcoes = opcoesDeTipos(tiposDeEnvio);
   const ator = { admin, setorDoCadastro };
@@ -143,21 +138,12 @@ export function useContatosDoCadastro({
     if (salvando !== null || !id) return;
     setFalha(null);
     setSalvando(indice);
-    try {
-      const resultado = await definirTiposDoContatoAction({ clienteId, contatoId: id, tipos: [] });
-      if (!resultado.ok) {
-        setFalha({ indice, mensagem: resultado.error.message });
-        return;
-      }
-      anunciar(`Contato ${numero(indice)} deixou de ser usado por este Setor.`);
-      setValue(`contatos.${indice}.tipos`, []);
-      alterar(chaveDe(indice), { dispensado: true, confirmando: false });
-    } catch (erro) {
-      console.error("Falha ao deixar de usar o contato", erro);
-      setFalha({ indice, mensagem: mensagemDaFalha(erro) });
-    } finally {
-      setSalvando(null);
-    }
+    const resultado = await deixarDeUsarContato(id);
+    setSalvando(null);
+    if (!resultado.ok) return setFalha({ indice, mensagem: resultado.mensagem });
+    anunciar(`Contato ${numero(indice)} deixou de ser usado por este Setor.`);
+    setValue(`contatos.${indice}.tipos`, []);
+    alterar(chaveDe(indice), { dispensado: true, confirmando: false });
   };
   const perguntarSeDeixaDeUsar = (indice: number) => {
     alterar(chaveDe(indice), { confirmando: true });
@@ -204,17 +190,15 @@ export function useContatosDoCadastro({
 
   // Marca no formulário os campos recusados pela validação; devolve se a linha passou.
   const camposValidos = (indice: number, contato: ValoresDaLinha) => {
-    const valido = contatoSchema.safeParse(contato);
-    if (valido.success) return true;
-    valido.error.issues.forEach((problema, posicao) => {
-      const campo = CAMPOS_DO_CONTATO.find((c) => c === problema.path[0]) ?? "nome";
+    const problemas = problemasDosCampos(contato);
+    problemas.forEach(({ campo, mensagem }, posicao) =>
       setError(
         `contatos.${indice}.${campo}`,
-        { message: problema.message },
+        { message: mensagem },
         { shouldFocus: posicao === 0 },
-      );
-    });
-    return false;
+      ),
+    );
+    return problemas.length === 0;
   };
 
   // O contato acabou de ser gravado (agora tem id): a linha segue em edição se só os envios falharem, e o que já
@@ -314,64 +298,44 @@ export function useContatosDoCadastro({
     alterar(chaveDe(indice), { verificado: chaveDoTelefone(contato.telefone) ?? "" });
   };
 
-  // O aviso do número repetido da linha nova: o contato do Cliente que já o tem. Fora da lista do Setor, a linha
-  // oferece usá-lo (o mesmo fluxo de escolher um contato já cadastrado).
   const numeroRepetido = (indice: number) => {
-    const contato = contatos[indice];
-    if (!contato || salvo(indice) || !editando(indice)) return undefined;
-    const chave = chaveDoTelefone(contato.telefone);
-    if (!chave || daLinha(chaveDe(indice)).verificado !== chave) return undefined;
-    const achado = contatoDoMesmoNumero(contatos, indice, contato.telefone);
-    if (!achado) return undefined;
-    const naLista = visivel(achado.indice);
-    const idDoContato = achado.contato.id;
-    return {
-      texto: textoDoNumeroRepetido(achado.contato.nome, naLista, !admin),
-      onUsar: naLista || !idDoContato ? undefined : () => onEscolherExistente(indice, idDoContato),
-    };
+    if (salvo(indice) || !editando(indice)) return undefined;
+    return numeroRepetidoDaLinha({
+      contatos,
+      indice,
+      verificado: daLinha(chaveDe(indice)).verificado,
+      admin,
+      naLista: visivel,
+      onUsar: (contatoId) => onEscolherExistente(indice, contatoId),
+    });
   };
 
-  // A linha nova do Setor oferece os contatos de outros Setores já cadastrados (o Admin não: vê todos).
+  // O Admin não escolhe contato de outro Setor: vê todos.
   const existentes = (indice: number) => {
     if (admin || salvo(indice)) return undefined;
-    const contato = contatos[indice];
-    return {
-      opcoes: disponiveis.map((d) => ({
-        id: d.id,
-        nome: d.contato.nome,
-        telefone: d.contato.telefone,
-        email: d.contato.email,
-      })),
-      // Escolheu "Cadastrar novo" (ou já digitou): os três campos são de texto.
-      modoNovo: Boolean(daLinha(chaveDe(indice)).novo) || (contato ? !emBranco(contato) : false),
-      onEscolher: (contatoId: string) => onEscolherExistente(indice, contatoId),
+    return existentesDaLinha({
+      disponiveis,
+      contato: contatos[indice],
+      escolheuNovo: Boolean(daLinha(chaveDe(indice)).novo),
+      onEscolher: (contatoId) => onEscolherExistente(indice, contatoId),
       onNovo: () => alterar(chaveDe(indice), { novo: true }),
-    };
+    });
   };
 
-  // Os checkboxes: só o Setor os tem (o Admin não define o que cada Setor envia).
+  // Só o Setor tem os checkboxes (o Admin não define o que cada Setor envia).
   const envios = (indice: number) => {
     const contato = contatos[indice];
     if (admin || !contato) return undefined;
-    const marcados = contato.tipos ?? [];
-    const comCanal = marcados.length > 0 && temOsDoisCanais(contato);
-    return {
+    return enviosDaLinha({
+      contato,
       opcoes,
-      marcados,
-      // "Enviar por": só o contato com os dois canais e ao menos um envio marcado.
-      canal: comCanal
-        ? {
-            opcoes: OPCOES_DE_CANAL,
-            valor: contato.canal ?? "",
-            erro: daLinha(chaveDe(indice)).semCanal ? MENSAGEM_SEM_CANAL : undefined,
-            onMudar: (valor: string) => {
-              setValue(`contatos.${indice}.canal`, valor);
-              alterar(chaveDe(indice), { semCanal: false });
-            },
-          }
-        : undefined,
-      aviso: avisoDeCanalPerdido(destinos, contato),
-      onAlternar: (valor: string) =>
+      destinos,
+      semCanal: Boolean(daLinha(chaveDe(indice)).semCanal),
+      onMudarCanal: (valor) => {
+        setValue(`contatos.${indice}.canal`, valor);
+        alterar(chaveDe(indice), { semCanal: false });
+      },
+      onAlternar: (valor) =>
         setValue(
           `contatos.${indice}.tipos`,
           tiposAposAlternar(
@@ -380,7 +344,7 @@ export function useContatosDoCadastro({
             opcoes.map((o) => o.valor),
           ),
         ),
-    };
+    });
   };
 
   // Linha em edição (com algo nela) segura o Salvar do cadastro: o que se digitou ou marcou ali só vale com o
@@ -414,6 +378,7 @@ export function useContatosDoCadastro({
     numeroRepetido,
     onSairDoTelefone,
     aviso,
+    avisoVez,
     erroDaLinha: (indice: number) => (falha?.indice === indice ? falha.mensagem : undefined),
     onEditar,
     onSalvar,

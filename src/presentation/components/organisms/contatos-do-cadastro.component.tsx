@@ -44,6 +44,8 @@ export type AcoesDasLinhasDeContato = {
   numero: (indice: number) => number;
   // Confirmação dita ao leitor de tela ("Contato 1 salvo."), já que salvar só troca os botões.
   aviso?: string;
+  // Muda a cada anúncio: é a `key` da região aria-live, para o leitor de tela reler a mesma frase repetida.
+  avisoVez?: number;
   erroDaLinha: (indice: number) => string | undefined;
   onEditar: (indice: number) => void;
   onSalvar: (indice: number) => void;
@@ -131,7 +133,7 @@ export function ContatosDoCadastro({
           />
         ),
       )}
-      <Texto variante="nota" aria-live="polite" className="sr-only">
+      <Texto key={linhas.avisoVez} variante="nota" aria-live="polite" className="sr-only">
         {linhas.aviso}
       </Texto>
       {errors.contatos && typeof errors.contatos.message === "string" && (
