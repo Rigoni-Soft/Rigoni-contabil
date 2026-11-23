@@ -47,6 +47,7 @@ describe("SupabaseAvisosCadastroGateway (#142, integração)", () => {
       clienteId,
       alteracaoId: null,
       alteracaoNumero: null,
+      mensagem: null,
       criadoEm: expect.any(String),
       vistoEm: null,
     });
@@ -74,6 +75,7 @@ describe("SupabaseAvisosCadastroGateway (#142, integração)", () => {
       clienteId,
       alteracaoId,
       alteracaoNumero: 4,
+      mensagem: null,
       criadoEm: expect.any(String),
       vistoEm: null,
     });

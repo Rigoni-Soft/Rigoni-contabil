@@ -97,6 +97,46 @@ export default defineConfig([
       ],
     },
   },
+  {
+    // Object Calisthenics 1 (arquitetura.md, seção 2): um nível de indentação por método em domain e
+    // application. `max-depth: 1` reprova `if` dentro de `for`/`if`; extraia o corpo para um método.
+    files: ["src/modules/*/{domain,application}/**/*.ts"],
+    ignores: ["**/*.{spec,test}.ts"],
+    rules: { "max-depth": ["error", 1] },
+  },
+  {
+    // Dívida anterior à regra: só encolhe. Arquivo novo não entra aqui; ao corrigir um, tire-o da lista.
+    files: [
+      "src/modules/atendimento/application/jobs/alertas-da-rodada.ts",
+      "src/modules/atendimento/application/jobs/atribuir-guias-parcelamento.ts",
+      "src/modules/atendimento/application/use-cases/entregar-das-na-ura.use-case.ts",
+      "src/modules/atendimento/application/use-cases/entregar-parcelamento-na-ura.use-case.ts",
+      "src/modules/atendimento/application/use-cases/enviar-guias-parcelamento.use-case.ts",
+      "src/modules/atendimento/application/use-cases/preparar-anexo-para-envio.use-case.ts",
+      "src/modules/atendimento/application/use-cases/receber-mensagem.use-case.ts",
+      "src/modules/atendimento/application/use-cases/receber-midia.use-case.ts",
+      "src/modules/atendimento/domain/services/expediente.service.ts",
+      "src/modules/clientes/application/mappers/comparativos-sn.mapper.ts",
+      "src/modules/clientes/application/mappers/resumo-setor-sn.mapper.ts",
+      "src/modules/clientes/application/use-cases/criar-cliente.use-case.ts",
+      "src/modules/clientes/application/use-cases/editar-cadastro-rh-cliente.use-case.ts",
+      "src/modules/clientes/application/use-cases/remover-guia-parcela-pgfn.use-case.ts",
+      "src/modules/clientes/application/use-cases/salvar-parcelamentos-cliente.use-case.ts",
+      "src/modules/clientes/application/use-cases/trocar-guia-parcela-pgfn.use-case.ts",
+      "src/modules/rh/application/use-cases/gerir-quadro-de-funcionarios.use-case.ts",
+      "src/modules/rh/application/use-cases/gerir-servico-acompanhamento.use-case.ts",
+      "src/modules/rh/application/use-cases/ler-atestado-de-ponto.use-case.ts",
+      "src/modules/rh/application/use-cases/ler-cartao-de-ponto.use-case.ts",
+      "src/modules/rh/application/use-cases/obter-acompanhamento-funcionarios.use-case.ts",
+      "src/modules/rh/domain/services/leitura-do-cartao.service.ts",
+      "src/modules/rh/domain/services/regras-de-calculo.service.ts",
+      "src/modules/rh/domain/services/totalizacao.service.ts",
+      "src/modules/rh/domain/services/validar-regras-da-convencao.service.ts",
+      "src/modules/usuarios/application/use-cases/alterar-papel-usuario.use-case.ts",
+      "src/modules/usuarios/application/use-cases/trocar-senha.use-case.ts",
+    ],
+    rules: { "max-depth": "off" },
+  },
   prettier,
   {
     // Depois do `prettier`, que desliga o max-len: ele não reflowa comentário, só este limite pega

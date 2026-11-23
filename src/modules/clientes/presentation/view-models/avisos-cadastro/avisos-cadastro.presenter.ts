@@ -11,6 +11,8 @@ export type { AvisoDeCadastro };
 const TITULO: Record<TipoAvisoCadastro, string> = {
   novo_cliente: "Novo Cliente no Cadastro operacional",
   nova_alteracao: "Nova Alteração contratual",
+  // O título do "sem meio de envio" é o texto do alerta (`mensagem`); este só cobre o aviso sem texto.
+  sem_meio_de_envio: "Cliente sem meio de envio",
 };
 
 const QUANDO = new Intl.DateTimeFormat("pt-BR", {
@@ -22,11 +24,12 @@ const QUANDO = new Intl.DateTimeFormat("pt-BR", {
 // O nº só existe no aviso de alteração (a trigger o grava): vai no título, para duas alterações do mesmo
 // Cliente não parecerem iguais, e no destino, para a tela destacar o botão e abrir aquela alteração.
 export function avisoCadastroParaView(aviso: AvisoCadastroDto): AvisoDeCadastro {
-  const numero = aviso.alteracaoNumero;
+  const numero = aviso.tipo === "nova_alteracao" ? aviso.alteracaoNumero : null;
   const cliente = `/clientes/${aviso.clienteId}`;
+  const titulo = aviso.mensagem ?? TITULO[aviso.tipo];
   return {
     id: aviso.id,
-    titulo: numero === null ? TITULO[aviso.tipo] : `${TITULO[aviso.tipo]} nº ${numero}`,
+    titulo: numero === null ? titulo : `${titulo} nº ${numero}`,
     quando: QUANDO.format(new Date(aviso.criadoEm)),
     visto: aviso.vistoEm !== null,
     href: numero === null ? cliente : `${cliente}?alteracao=${numero}`,

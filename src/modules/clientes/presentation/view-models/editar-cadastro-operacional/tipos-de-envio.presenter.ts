@@ -10,7 +10,7 @@ import { TIPO_TODOS_OS_ENVIOS } from "@/shared/kernel/tipo-de-envio";
 import { contatoDoSetor, type ContatoDaLinha } from "./contato-da-linha.presenter";
 
 export type DestinoSalvo = { contatoId: string; tipo: string | null; canal: string };
-export type TipoDeEnvio = { slug: string; rotulo: string };
+export type OpcaoDeTipoDeEnvio = { slug: string; rotulo: string };
 
 // As opções do "Enviar por" (o contato com os dois canais; sem valor padrão).
 export const OPCOES_DE_CANAL = FORMAS_ENVIO.map((valor) => ({
@@ -31,7 +31,7 @@ export function canalDoContato(
 const ROTULO_TODOS_OS_ENVIOS = "Todos os envios";
 
 // Os checkboxes da linha: "Todos os envios" e os tipos do catálogo do Setor.
-export function opcoesDeTipos(tipos: TipoDeEnvio[]) {
+export function opcoesDeTipos(tipos: OpcaoDeTipoDeEnvio[]) {
   return [
     { valor: TIPO_TODOS_OS_ENVIOS, rotulo: ROTULO_TODOS_OS_ENVIOS },
     ...tipos.map((t) => ({ valor: t.slug, rotulo: t.rotulo })),

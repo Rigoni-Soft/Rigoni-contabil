@@ -80,7 +80,10 @@ Passos do núcleo:
 ## Parcelamento interno (#127)
 
 O interno vai sempre e só ao WhatsApp do financeiro (`FINANCEIRO_TELEFONE`, só dígitos com DDI), por
-template `envio_guia_parcelamento_interno`, qualquer que seja a forma de envio do Cliente; nunca ao Cliente.
+template `envio_guia_parcelamento_interno`, quaisquer que sejam os Destinos de envio do Cliente; nunca ao Cliente.
+O parcelamento comum (SN ou RH) vai aos Destinos de "guia de parcelamento" (ou "todos") do Setor do próprio
+Parcelamento, cada um pelo canal que o Setor escolheu; Setor sem Destino válido abre `contato_ausente` do Setor
+e o aviso no sino do Líder e do Responsável, e o Parcelamento do outro Setor segue.
 
 - Telefone ausente ou inválido não derruba o app: o interno não é enviado, segue pendente e abre
   `financeiro_ausente` até configurar. Definir no Production.

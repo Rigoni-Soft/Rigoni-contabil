@@ -1,4 +1,4 @@
-export type TipoAvisoCadastro = "novo_cliente" | "nova_alteracao";
+export type TipoAvisoCadastro = "novo_cliente" | "nova_alteracao" | "sem_meio_de_envio";
 
 export type AvisoCadastroDto = {
   id: string;
@@ -7,6 +7,8 @@ export type AvisoCadastroDto = {
   alteracaoId: string | null;
   // Nº da alteração do aviso: o Líder e o Responsável não leem a tabela, então o nº viaja no aviso.
   alteracaoNumero: number | null;
+  // Texto do alerta que gerou o aviso (só o "sem meio de envio" o leva; os outros montam o título pelo tipo).
+  mensagem: string | null;
   criadoEm: string;
   vistoEm: string | null;
 };
