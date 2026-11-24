@@ -32,7 +32,6 @@ describe("Competencia", () => {
   });
 
   it("é futura só depois do mês corrente no fuso do escritório", () => {
-    // 01/12 01:00 UTC ainda é 30/11 em Brasília.
     const agora = new Date("2026-12-01T01:00:00Z");
     const nov = Competencia.criar("2026-11");
     const dez = Competencia.criar("2026-12");

@@ -4,7 +4,6 @@ import { FORMATO_COMPETENCIA, FORMATO_DATA_ISO } from "@/shared/kernel/data-iso"
 import { LIMITE_DA_FOTO_BYTES } from "@/shared/kernel/foto-do-ponto";
 import { TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
 
-// guid, não uuid: ids do seed não são v4 válidos (ver atribuir-responsavel.actions).
 const id = z.guid();
 const minuto = z.number().int().min(0).max(1439);
 const par = z.object({ entrada: minuto, saida: minuto });
@@ -40,9 +39,6 @@ export const salvarDiaSchema = z.object({
   abono: z.boolean(),
 });
 
-// A foto do cartão e a do atestado seguem o mesmo critério (JPEG ou PNG, até o limite do domínio); só a
-// mensagem de "falta a foto" cita o documento. Os Containers usam estes schemas para o aviso imediato e a
-// Server Action os repete: o servidor continua sendo a barreira (o use case confere a assinatura do arquivo).
 export const MENSAGEM_FOTO_GRANDE = "A foto passa de 4 MB.";
 export const MENSAGEM_SEM_FOTO = "Escolha a foto do cartão (JPEG ou PNG).";
 export const MENSAGEM_SEM_ATESTADO = "Escolha a foto do atestado (JPEG ou PNG).";
@@ -54,7 +50,6 @@ const fotoCom = (semFoto: string) =>
     .refine((f) => f.size <= LIMITE_DA_FOTO_BYTES, MENSAGEM_FOTO_GRANDE);
 export const fotoDoCartaoSchema = fotoCom(MENSAGEM_SEM_FOTO);
 export const fotoDoAtestadoSchema = fotoCom(MENSAGEM_SEM_ATESTADO);
-// Aviso imediato no navegador: a mensagem da foto escolhida que não serve (ou da falta dela), ou undefined.
 export function recusaDaFoto(
   schema: typeof fotoDoCartaoSchema,
   foto: File | undefined,

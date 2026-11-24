@@ -13,7 +13,6 @@ import { empregadosDosAjustes, sindicatosDoCliente } from "./convencao.presenter
 
 type Props = { dados: ConvencoesDoClienteDto };
 
-// Interruptores do Cliente e sindicato de cada empregado: cada mudança grava na hora e recarrega a tela.
 export function AjustesDoClienteNaConvencaoContainer({ dados }: Props) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();

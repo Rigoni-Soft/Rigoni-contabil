@@ -76,7 +76,6 @@ describe("validarLeitura", () => {
 
 describe("deduzirJornada", () => {
   it("usa a mediana do trabalhado por dia da semana; sem batida = zero", () => {
-    // 2026-09-01 é terça; 2026-09-02, quarta.
     const jornada = deduzirJornada([
       {
         data: "2026-09-01",
@@ -96,7 +95,6 @@ describe("deduzirJornada", () => {
 });
 
 describe("diasAGravar", () => {
-  // Segunda a sexta 8h45, sábado 4h, domingo folga. 2026-09-01 terça, 09-05 sábado, 09-06 domingo.
   const jornada = [0, 525, 525, 525, 525, 525, 240] as const;
   const batida = [{ entrada: emMinutos(8), saida: emMinutos(12) }];
   const comBatida = (data: string) => ({ data, batidas: batida, extra: null, abono: false });

@@ -1,8 +1,5 @@
 import { z } from "zod";
 
-// Linhas lidas pela Folha de ponto: formato exato das tabelas, validado antes de virar DTO. Se o banco
-// divergir, a leitura falha alto em vez de levar um valor torto até a tela.
-
 const minuto = z.number().int().min(0).max(1440);
 const par = z.object({ entrada: minuto, saida: minuto });
 const jornada = z.tuple([minuto, minuto, minuto, minuto, minuto, minuto, minuto]);

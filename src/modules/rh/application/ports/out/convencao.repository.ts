@@ -13,9 +13,7 @@ export type NovaConvencao = {
   regras: RegrasDaConvencao;
 };
 
-// O banco (RLS) é a última barreira: só o Líder do RH e o Admin inserem; a convenção nunca é alterada.
 export interface ConvencaoRepository {
-  // Histórico do Cliente, a de vigência mais recente primeiro.
   listar(clienteId: string): Promise<Result<ConvencaoDto[], AppError>>;
   inserir(nova: NovaConvencao): Promise<Result<void, AppError>>;
 }

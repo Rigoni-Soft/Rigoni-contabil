@@ -29,8 +29,6 @@ function nomeValido(nome: string): Result<string, ValidationError> {
   return ok(limpo);
 }
 
-// Só o Líder do RH mantém a lista de serviços. O banco repete a regra (RLS + gatilho; o serviço do
-// sistema nunca muda) e audita o sucesso na mesma transação; aqui, só a falha.
 abstract class GerirServico {
   constructor(
     protected readonly sessao: SessaoPort,

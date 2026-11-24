@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-// Linhas que o acompanhamento lê página a página (o PostgREST corta em 1000): validadas antes de agrupar.
-
 export const responsavelDoClienteRowSchema = z.object({
   cliente_id: z.guid(),
   responsavel_id: z.guid(),

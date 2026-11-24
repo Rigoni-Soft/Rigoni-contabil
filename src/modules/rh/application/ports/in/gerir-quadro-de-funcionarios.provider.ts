@@ -5,7 +5,6 @@ export type CadastrarEmpregadoInput = {
   clienteId: string;
   nome: string;
   jornada: number[];
-  // Sem a marca, vale o padrão do Cliente.
   comissionado?: boolean;
 };
 export type CorrigirEmpregadoInput = {

@@ -42,7 +42,6 @@ export function validarJornada(jornada: readonly number[]): Result<Jornada, Vali
 
 function parValido({ entrada, saida }: Par): boolean {
   const horario = (m: number) => Number.isInteger(m) && m >= 0 && m <= 1439;
-  // Saída igual à entrada não é jornada: viraria 24 horas.
   return horario(entrada) && horario(saida) && entrada !== saida;
 }
 

@@ -4,11 +4,9 @@ import type { Result } from "@/shared/kernel/result";
 
 export type EnviarConvencaoInput = {
   clienteId: string;
-  // Sindicato e vigência saem do PDF, na extração.
   arquivo: { nome: string; bytes: Uint8Array };
 };
 export type DefinirInterruptoresDoClienteInput = InterruptoresDoClienteDto & { clienteId: string };
-// Sindicato nulo = o empregado volta a seguir a única convenção do Cliente.
 export type DefinirConvencaoDoEmpregadoInput = { empregadoId: string; sindicato: string | null };
 
 export interface EnviarConvencaoPort {

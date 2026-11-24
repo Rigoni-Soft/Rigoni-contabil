@@ -31,7 +31,6 @@ export function AcompanhamentoDoClienteContainer({
   aviso,
 }: Props) {
   const router = useRouter();
-  // A escolha aparece na hora e volta ao valor do servidor se a gravação falhar.
   const [exibidos, escolher] = useOptimistic(
     servicos,
     (atual, t: { servicoId: string; para: EstadoDoServico }) =>
@@ -77,7 +76,6 @@ export function AcompanhamentoDoClienteContainer({
             console.error("Falha ao marcar o serviço do acompanhamento", erro);
             setErro(mensagemDaFalha(erro));
           }
-          // Uma troca em dois passos pode ter gravado o primeiro: a tela relê o que ficou.
           router.refresh();
         })
       }

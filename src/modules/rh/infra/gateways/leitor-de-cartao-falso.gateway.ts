@@ -7,9 +7,6 @@ import type {
 
 const emMinutos = (horas: number, minutos = 0) => horas * 60 + minutos;
 
-// Leitor de dev, CI e Preview: não olha a foto e devolve sempre o mesmo cartão (Erick Falso, 1ª quinzena:
-// dois dias úteis, uma falta anotada, um atestado e uma hora extra). Em Produção gravaria um empregado
-// inventado: lá o modo é "indisponivel" ou o real.
 export class LeitorDeCartaoFalsoGateway implements LeitorDeCartaoPort, LeitorDeAtestadoPort {
   async ler(): Promise<LeituraBruta> {
     const dia = (n: number) => ({
@@ -37,7 +34,6 @@ export class LeitorDeCartaoFalsoGateway implements LeitorDeCartaoPort, LeitorDeA
     };
   }
 
-  // Declaração de comparecimento do Erick Falso no dia 1 de setembro de 2026.
   async lerAtestado(): Promise<AtestadoBruto> {
     return {
       lido: true,

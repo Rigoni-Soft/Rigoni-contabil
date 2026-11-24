@@ -2,10 +2,8 @@ import { z } from "zod";
 
 import { NOME_DO_ARQUIVO_MAXIMO, TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
 
-// guid, não uuid: ids do seed não são v4 válidos (ver atribuir-responsavel.actions).
 const id = z.guid();
 
-// O corpo de uma Server Action na Vercel não passa de 4,5 MB (ADR 0007): o PDF entra por ela até 4 MB.
 export const LIMITE_DO_PDF = 4 * 1024 * 1024;
 export const MENSAGEM_PDF_GRANDE = "O PDF passa de 4 MB.";
 export const MENSAGEM_NOME_LONGO = `O nome do arquivo passa de ${NOME_DO_ARQUIVO_MAXIMO} caracteres.`;

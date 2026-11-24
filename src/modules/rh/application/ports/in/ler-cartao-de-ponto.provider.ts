@@ -5,7 +5,6 @@ import type { Result } from "@/shared/kernel/result";
 
 export type LerCartaoDePontoInput = {
   clienteId: string;
-  // "AAAA-MM".
   competencia: string;
   quinzena: Quinzena;
   imagem: ImagemDoCartao;
@@ -14,11 +13,8 @@ export type LerCartaoDePontoInput = {
 export type CartaoLidoDto = {
   empregadoId: string;
   nome: string;
-  // O empregado não estava no Quadro e foi cadastrado pelo nome do cartão.
   cadastrado: boolean;
-  // Dias gravados pela leitura.
   dias: number;
-  // Dias lidos que já tinham batida, extra ou abono e ficaram como estavam.
   mantidos: number;
   faltas: number;
   abonos: number;

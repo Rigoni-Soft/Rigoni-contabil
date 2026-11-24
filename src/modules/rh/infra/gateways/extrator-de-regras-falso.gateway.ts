@@ -3,8 +3,6 @@ import type {
   ExtratorDeRegrasPort,
 } from "@/modules/rh/application/ports/out/extrator-de-regras.provider";
 
-// Lê as linhas "Sindicato: X" e "Vigência: dd/mm/aaaa a dd/mm/aaaa" do texto do PDF; sem elas, valem as da
-// convenção de exemplo.
 const LINHA_DO_SINDICATO = /Sindicato:\s*([^\r\n]+)/;
 const LINHA_DA_VIGENCIA =
   /Vig[eê]ncia:\s*(\d{2})\/(\d{2})\/(\d{4})\s*a\s*(\d{2})\/(\d{2})\/(\d{4})/;
@@ -20,10 +18,6 @@ function identificacao(texto: string) {
   };
 }
 
-// Adapter falso e determinístico (padrão em dev, CI e Preview; nenhum teste chama modelo de linguagem). Devolve
-// sempre os parâmetros da convenção de exemplo (comércio varejista), com um candidato que o domínio recusa
-// (intervalo máximo de 150 sem o número no trecho). O marcador `[extrator:falha]` no texto do PDF simula a
-// leitura que não deu certo.
 export class ExtratorDeRegrasFalsoGateway implements ExtratorDeRegrasPort {
   async extrair(pdf: Uint8Array): Promise<ExtracaoDeRegras> {
     const texto = Buffer.from(pdf).toString("utf8");

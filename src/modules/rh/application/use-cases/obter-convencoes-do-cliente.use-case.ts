@@ -16,9 +16,6 @@ import {
 } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// As convenções do Cliente (histórico com as regras aplicadas), os interruptores e o sindicato que cada
-// empregado segue. O Admin e o Líder do RH leem; o Funcionário, só os Clientes de que é Responsável (a RLS
-// repete o recorte: cliente fora da vista do ator some).
 export class ObterConvencoesDoCliente implements ObterConvencoesDoClientePort {
   constructor(
     private readonly sessao: SessaoPort,

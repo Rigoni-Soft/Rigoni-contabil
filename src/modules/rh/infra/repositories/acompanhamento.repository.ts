@@ -40,7 +40,6 @@ const FALHA_GRAVAR = "Não foi possível salvar. Tente novamente.";
 
 type Pagina = PromiseLike<{ data: unknown[] | null; error: PostgrestError | null }>;
 
-// O PostgREST corta a resposta em 1000 linhas: lê página a página até acabar.
 async function lerTudo<S extends z.ZodType>(
   schema: S,
   pagina: (de: number, ate: number) => Pagina,
@@ -49,14 +48,11 @@ async function lerTudo<S extends z.ZodType>(
   for (let de = 0; ; de += TAMANHO_PAGINA) {
     const { data, error } = await pagina(de, de + TAMANHO_PAGINA - 1);
     if (error) throw new Error(error.message);
-    // Falha alto se o banco divergir do Row DTO: o chamador já registra e devolve PersistenciaError.
     linhas.push(...z.array(schema).parse(data ?? []));
     if ((data?.length ?? 0) < TAMANHO_PAGINA) return linhas;
   }
 }
 
-// O banco (RLS + gatilhos) é a última barreira: quem não é o Responsável do RH do Cliente, ou o Líder do
-// RH nos serviços, recebe 42501; as regras de dado levantam exceções nomeadas.
 export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepository {
   constructor(
     private readonly supabase: SupabaseClient,
@@ -73,7 +69,6 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
     const lidos = lerLinhas(this.leitura, z.array(servicoRowSchema), data);
     if (!lidos.ok) return lidos;
 
-    // Desativar vale do mês da desativação em diante; os meses anteriores seguem com o serviço.
     const mes = competencia.slice(0, 7);
     return ok(
       lidos.value
@@ -99,7 +94,6 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
       });
       if (responsaveis.length === 0 && !incluirSemResponsavel) return ok([]);
 
-      // A view `clientes_basico` só devolve o que o ator enxerga; o RH não lê o cadastro do SN.
       const [clientes, naoAplica, marcacoes, cartoes] = await Promise.all([
         lerTudo(clienteDoAcompanhamentoRowSchema, (de, ate) =>
           this.supabase
@@ -108,7 +102,6 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
             .order("id")
             .range(de, ate),
         ),
-        // "Não se aplica" vale no mês pedido (renova-se todo mês) ou sempre (competência nula).
         lerTudo(naoAplicaRowSchema, (de, ate) =>
           this.supabase
             .from("rh_cliente_servico_aplica")
@@ -129,7 +122,6 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
             .order("servico_id")
             .range(de, ate),
         ),
-        // Contagem do Holerite (cadastrados, sem movimento e cartões feitos); a RLS recorta por Cliente.
         lerTudo(cartoesDoMesRowSchema, (de, ate) =>
           this.supabase
             .rpc("rh_cartoes_do_mes", { p_competencia: competencia })
@@ -225,7 +217,6 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
   }
 
   async desativarServico(id: string): Promise<Result<void, AppError>> {
-    // O gatilho carimba o instante; o valor enviado só liga a desativação.
     const { data, error } = await this.supabase
       .from("rh_servicos_acompanhamento")
       .update({ desativado_em: new Date().toISOString() })
@@ -273,7 +264,6 @@ export class SupabaseAcompanhamentoRepository implements AcompanhamentoRepositor
     return this.resultado(error);
   }
 
-  // A RLS esconde a linha de quem não pode: o UPDATE não dá erro, só não afeta nada.
   private resultadoComLinhas(
     error: PostgrestError | null,
     linhas: unknown[] | null,

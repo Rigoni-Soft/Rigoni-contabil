@@ -5,7 +5,6 @@ import {
 } from "@/modules/rh/domain/services/atestado.service";
 import type { Jornada } from "@/modules/rh/domain/services/totalizacao.service";
 
-// Segunda a sexta 8h45, sábado 4h, domingo folga.
 const jornada = [0, 525, 525, 525, 525, 525, 240] as unknown as Jornada;
 
 describe("validarAtestado", () => {
@@ -54,7 +53,6 @@ describe("abonosDoAtestado", () => {
   };
 
   it("atestado abona os dias de trabalho vazios cobertos; fim de semana sem carga fica de fora", () => {
-    // 21/08 sex, 22 sáb, 23 dom, 24 seg, 25 ter.
     expect(abonosDoAtestado(atestado, jornada, new Set(), new Set())).toEqual([
       "2026-08-21",
       "2026-08-22",
@@ -83,7 +81,6 @@ describe("abonosDoAtestado", () => {
   });
 
   it("atestado não abona feriado com carga: o dia segue folga, como na tela", () => {
-    // 21/08 sex é feriado; os outros dias de trabalho do período continuam abonados.
     expect(abonosDoAtestado(atestado, jornada, new Set(), new Set(["2026-08-21"]))).toEqual([
       "2026-08-22",
       "2026-08-24",

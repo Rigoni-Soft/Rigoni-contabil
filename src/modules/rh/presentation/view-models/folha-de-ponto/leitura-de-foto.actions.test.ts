@@ -1,7 +1,3 @@
-/**
- * Integração presentation ↔ application das ações de leitura de foto (cartão e atestado): o `main` é
- * substituído por uma composição com casos de uso falsos (testes.md, seção 3), sem tocar Supabase.
- */
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { LIMITE_DA_FOTO_BYTES } from "@/shared/kernel/foto-do-ponto";
 import { err, ok } from "@/shared/kernel/result";

@@ -16,9 +16,6 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { ehResponsavelRhDoCliente } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Só o Funcionário do RH que é Responsável do Cliente grava (marcar e "se aplica"); o Líder e o Admin
-// leem. O banco repete a regra (RLS) e audita o sucesso na mesma transação; aqui, a primeira barreira e
-// a auditoria da tentativa recusada.
 abstract class EscreverAcompanhamento {
   constructor(
     protected readonly sessao: SessaoPort,
@@ -49,7 +46,6 @@ abstract class EscreverAcompanhamento {
     return ok(ator);
   }
 
-  // Só serviço de marcar à mão e presente na tabela daquele mês.
   protected async servicoEditavel(
     servicoId: string,
     competenciaDia: string,
@@ -127,7 +123,6 @@ export class DefinirServicoAplicavel
     );
     if (!ator.ok) return ator;
 
-    // Só serviço de marcar à mão e presente na tabela daquele mês (o do sistema e o inexistente têm resposta própria).
     const servico = await this.servicoEditavel(input.servicoId, competencia.value.primeiroDia);
     if (!servico.ok) return servico;
 

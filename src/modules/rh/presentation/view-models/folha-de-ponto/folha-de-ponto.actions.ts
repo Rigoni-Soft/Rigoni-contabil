@@ -74,7 +74,6 @@ export async function salvarDiaDoPontoAction(input: unknown): Promise<ActionResu
 
 type PdfDoCartaoBaixado = { nomeDoArquivo: string; base64: string };
 
-// O PDF é gerado no servidor; os bytes seguem em base64 para o navegador montar o arquivo e baixá-lo.
 export async function baixarPdfDoCartaoAction(
   input: unknown,
 ): Promise<ActionResult<PdfDoCartaoBaixado>> {
@@ -92,15 +91,11 @@ export async function iniciarCartaoDoPontoAction(input: unknown): Promise<Action
   return toActionResult(await (await makeIniciarCartaoDoPonto()).execute(parsed.data));
 }
 
-// A foto chega como File no FormData; o caso de uso recebe só os bytes (a porta não conhece a web) e a
-// imagem não é guardada em lugar nenhum. O tipo sai da assinatura do arquivo, não do `File.type` do navegador;
-// arquivo que não é JPEG nem PNG segue com o tipo declarado e o caso de uso o recusa.
 async function bytesDaImagem(imagem: File): Promise<FotoDoPonto> {
   const bytes = new Uint8Array(await imagem.arrayBuffer());
   return { bytes, tipo: tipoDaFoto(bytes) ?? (imagem.type as TipoDeFoto) };
 }
 
-// Erro da foto vira mensagem do próprio campo; o resto é dado inválido.
 function recusaDaLeitura(erro: z.ZodError): ActionResult<never> {
   const foto = erro.issues.find((i) => i.path[0] === "imagem");
   return foto
@@ -119,7 +114,6 @@ export async function lerCartaoDePontoAction(
   );
 }
 
-// Como a do cartão: a foto do atestado só passa pelo leitor; nada dela é guardado.
 export async function lerAtestadoDePontoAction(
   formData: FormData,
 ): Promise<ActionResult<AtestadoLidoDto>> {

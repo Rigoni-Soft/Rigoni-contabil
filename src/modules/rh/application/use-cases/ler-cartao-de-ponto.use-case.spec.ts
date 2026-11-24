@@ -36,7 +36,6 @@ function montar(opcoes: {
   feriados?: string[];
   dias?: DiaDoPontoDto[];
 }) {
-  // Segunda a sexta 8h45, sábado 4h, domingo folga.
   const JORNADA = [0, 525, 525, 525, 525, 525, 240];
   let quadro = (opcoes.quadro ?? []).map((e) => ({ jornada: JORNADA, ...e }));
   const repositorio = {
@@ -84,7 +83,6 @@ describe("LerCartaoDePonto", () => {
       dias: 2,
       mantidos: 0,
     });
-    // Marca o cartão e grava os dois dias numa chamada só (a transação é do repositório).
     expect(repositorio.gravarCartao).toHaveBeenCalledTimes(1);
     expect(repositorio.gravarCartao).toHaveBeenCalledWith("e1", "2026-11-01", [
       expect.objectContaining({ data: "2026-11-02" }),
@@ -99,7 +97,6 @@ describe("LerCartaoDePonto", () => {
       leitor,
       quadro: [{ id: "e1", nome: "Erick Santos", ativo: true }],
       dias: [
-        // Dia 2: abonado pelo atestado, sem batida. Dia 3: batida digitada pelo RH.
         { data: "2026-11-02", batidas: [], extra: null, abono: true },
         {
           data: "2026-11-03",
@@ -133,7 +130,6 @@ describe("LerCartaoDePonto", () => {
   });
 
   it("falta lida em dia que o RH já preencheu é mantida e não entra na contagem do resumo", async () => {
-    // Dia 2 lido como falta (já abonado pelo RH); dia 3 lido como falta e ainda vazio.
     const leitor = {
       ler: jest.fn(async () =>
         lida({
@@ -171,7 +167,6 @@ describe("LerCartaoDePonto", () => {
   });
 
   it("anotação de atestado em dia sem carga (domingo) não grava o abono", async () => {
-    // 2026-11-01 é domingo; o dia 2 é segunda.
     const leitor = {
       ler: jest.fn(async () =>
         lida({
@@ -197,7 +192,6 @@ describe("LerCartaoDePonto", () => {
   });
 
   it("anotação de atestado em feriado com carga também não vira abono: a regra é a mesma da tela", async () => {
-    // 2026-11-02 é segunda (carga 8h45) e está marcada como feriado.
     const leitor = {
       ler: jest.fn(async () =>
         lida({ nome: "Erick", dias: [{ ...dia(2), batidas: [], atestado: true }, dia(3)] }),
@@ -236,7 +230,6 @@ describe("LerCartaoDePonto", () => {
     const { caso, erros } = montar({ leitor });
 
     expect((await caso.execute(entrada)).ok).toBe(false);
-    // Só o nome do erro: a mensagem ("rede") pode ecoar texto do leitor.
     expect(erros.registrar).toHaveBeenCalledWith("rh.cartao.leitor_falhou", "Error");
   });
 
@@ -258,7 +251,6 @@ describe("LerCartaoDePonto", () => {
 
     const r = await caso.execute(entrada);
 
-    // 02/11/2026 é segunda; 03/11, terça: 8h por dia.
     expect(repositorio.cadastrarEmpregado).toHaveBeenCalledWith("c1", {
       nome: "Erick",
       jornada: [0, 480, 480, 0, 0, 0, 0],

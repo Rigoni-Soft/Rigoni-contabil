@@ -12,7 +12,6 @@ import { err, ok } from "@/shared/kernel/result";
 const FUNC: AtorSessaoDto = { id: "func", papel: "funcionario", setor: "rh" };
 const AGORA = new Date("2026-11-20T15:00:00Z");
 const JPEG = { bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xe0]), tipo: "image/jpeg" as const };
-// Segunda a sexta 8h45, sábado 4h, domingo folga.
 const JORNADA = [0, 525, 525, 525, 525, 525, 240];
 const DIA_COM_BATIDA = {
   data: "2026-08-27",
@@ -38,7 +37,6 @@ function montar(opcoes: {
   nome?: string;
   dias?: unknown[];
   feriados?: string[];
-  // Competências ("AAAA-MM-01") com cartão iniciado; omitido = todas.
   iniciados?: string[];
   ator?: AtorSessaoDto | null;
 }) {
@@ -85,7 +83,6 @@ describe("LerAtestadoDePonto", () => {
   });
 
   it("grava todos os abonos numa chamada só; se ela falha, devolve o erro (nada fica pela metade)", async () => {
-    // 24/08 segunda a 28/08 sexta: cinco dias de trabalho.
     const { caso, repositorio } = montar({
       leitor: { lerAtestado: async () => lido({ de: "2026-08-24", ate: "2026-08-28" }) },
     });
@@ -139,7 +136,6 @@ describe("LerAtestadoDePonto", () => {
     const r = await caso.execute(entrada);
 
     expect(r.ok && r.value.abonados).toBe(1);
-    // As batidas do dia não viajam: a função do banco só seta o Abono.
     expect(repositorio.abonarDias).toHaveBeenCalledWith("e1", [DIA_COM_BATIDA.data]);
   });
 
@@ -167,7 +163,6 @@ describe("LerAtestadoDePonto", () => {
   });
 
   it("período que vira o mês abona só no mês com cartão iniciado e conta o dia que ficou sem abono", async () => {
-    // 30/08 domingo, 31/08 segunda, 01/09 terça; só o cartão de agosto está iniciado.
     const { caso, repositorio } = montar({
       leitor: { lerAtestado: async () => lido({ de: "2026-08-30", ate: "2026-09-01" }) },
       iniciados: ["2026-08-01"],
@@ -180,7 +175,6 @@ describe("LerAtestadoDePonto", () => {
   });
 
   it("atestado em feriado com carga não abona o dia (a mesma regra da tela)", async () => {
-    // 24/08 segunda é feriado: sobra nada a abonar do período 23-24.
     const { caso, repositorio } = montar({
       leitor: { lerAtestado: async () => lido() },
       feriados: ["2026-08-24"],
@@ -236,7 +230,6 @@ describe("LerAtestadoDePonto", () => {
     });
 
     expect((await caso.execute(entrada)).ok).toBe(false);
-    // Só o nome do erro: a mensagem ("rede") pode ecoar texto do leitor.
     expect(erros.registrar).toHaveBeenCalledWith("rh.atestado.leitor_falhou", "Error");
   });
 

@@ -19,11 +19,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const ACAO = "rh.ponto.baixar-pdf";
 
-// O PDF individual do Cartão de ponto de um empregado num mês: horários, Totalização em destaque e as linhas de
-// assinatura do responsável e do empregado do Cliente. Quem lê a Folha de ponto (Admin, Líder e o Responsável do
-// RH do Cliente) baixa; a leitura e o recorte da vista são do ObterFolhaDePonto. Empregado desligado, sem movimento
-// no mês ou sem apontamento não tem PDF (o motivoSemPdf que a leitura da Folha já calculou). A geração é no
-// servidor e cada download é auditado (a recusa e a falha também).
 export class BaixarPdfDoCartao implements BaixarPdfDoCartaoPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -37,10 +32,6 @@ export class BaixarPdfDoCartao implements BaixarPdfDoCartaoPort {
   async execute(input: BaixarPdfDoCartaoInput): Promise<Result<PdfDoCartaoDto, AppError>> {
     const ator = await this.sessao.usuarioAtual();
     if (!ator) return err(new ForbiddenError("Sessão inválida. Entre novamente."));
-    // O alvo segue o dos registros do banco para o ponto: "<CNPJ> <empregado> <mês>". Cliente não achado: o id do
-    // Cliente no lugar do CNPJ. O empregado é o nome; só a falha da leitura da Folha (que ainda não trouxe o nome)
-    // grava o id. Toda tentativa de usuário logado deixa registro, inclusive a recusada na leitura: o rastro é
-    // deliberado (ruído só de falha, sem dado do Cliente).
     const cliente = await this.repositorio.buscarCliente(input.clienteId);
     const cnpj = cliente.ok && cliente.value ? cliente.value.cnpj : input.clienteId;
     const auditar = (resultado: "sucesso" | "falha", empregado = input.empregadoId) =>
@@ -82,7 +73,6 @@ export class BaixarPdfDoCartao implements BaixarPdfDoCartaoPort {
   }
 }
 
-// "cartao-de-ponto-maria-da-silva-2026-11.pdf": sem acento nem símbolo, seguro para o sistema de arquivos.
 function nomeSeguroDoArquivo(empregado: string, competencia: string): string {
   const slug = empregado
     .normalize("NFD")

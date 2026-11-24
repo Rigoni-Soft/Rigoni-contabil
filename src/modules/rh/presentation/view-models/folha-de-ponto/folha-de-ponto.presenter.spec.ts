@@ -269,7 +269,6 @@ describe("linhasDoCartao", () => {
     expect(comecado.situacao).toBe("normal");
     expect(falta).toMatchObject({ situacao: "falta", nota: "Falta", tom: "alerta" });
     expect(abonado).toMatchObject({ situacao: "abonado", nota: "Abonado", tom: "info" });
-    // Abono gravado num dia sem carga (domingo) não vira "Abonado": o dia segue folga.
     const [folgaComAbono] = linhasDoCartao(
       [
         {
@@ -287,11 +286,9 @@ describe("linhasDoCartao", () => {
     expect(folgaComAbono).toMatchObject({ situacao: "folga", nota: "Folga", tom: "atencao" });
     expect(folga.situacao).toBe("folga");
 
-    // Mês novo: nenhum dado salvo, o dia útil vazio não é falta, é "em branco" e neutro.
     const [branco] = linhasDoCartao([{ ...base, data: "2026-11-17", diaDaSemana: 2 }], false);
     expect(branco).toMatchObject({ situacao: "branco", nota: undefined, tom: undefined });
     expect(cartaoSemDados([{ ...base, data: "2026-11-17" }], false)).toBe(true);
-    // Cartão salvo uma vez, mesmo sem nenhum horário: deixou de ser novo e o dia útil vazio é falta.
     expect(cartaoSemDados([{ ...base, data: "2026-11-17" }], true)).toBe(false);
     const [salvoVazio] = linhasDoCartao([{ ...base, data: "2026-11-17", diaDaSemana: 2 }], true);
     expect(salvoVazio).toMatchObject({ situacao: "falta", nota: "Falta", tom: "alerta" });

@@ -14,15 +14,8 @@ import {
 } from "@/modules/rh/domain/services/totalizacao.service";
 import type { RegrasDaConvencao } from "@/shared/kernel/regras-da-convencao";
 
-// Origem dos valores esperados: contas à mão a partir das regras do cabeçalho de totalizacao.service.ts (CLT:
-// 50% em dia útil, 100% em domingo e feriado, tolerância de 5 min por marcação e 10 por dia, noturno 22h-5h com
-// hora reduzida) e dos ajustes da convenção (sábado a 60%, limite de 2 h extras por dia). A planilha modelo
-// não está no repositório: estes casos não foram copiados dela, e a conferência dos totais contra a
-// planilha é do dono.
-// Domingo a sábado: 8h45 de segunda a sexta, 4h no sábado (meio expediente), domingo sem carga.
 const J: Jornada = [0, 525, 525, 525, 525, 525, 240];
 
-// Minutos de hora extra paga no percentual.
 const faixa = (t: { extras: { percentual: number; minutos: number }[] }, pct: number) =>
   t.extras.find((e) => e.percentual === pct)?.minutos ?? 0;
 
@@ -30,7 +23,7 @@ function dia(data: string, p: Partial<DiaDoCartao> = {}): DiaDoCartao {
   return { data, batidas: [], extra: null, abono: false, feriado: false, ...p };
 }
 const par = (e: string, s: string) => ({ entrada: horaParaMinutos(e), saida: horaParaMinutos(s) });
-const completo = [par("08:00", "12:00"), par("13:00", "17:45")]; // 8h45
+const completo = [par("08:00", "12:00"), par("13:00", "17:45")];
 
 describe("totalizarDia: dia útil", () => {
   it("jornada cumprida só soma horas normais", () => {
@@ -154,7 +147,6 @@ describe("totalizarDia: sábado, domingo e feriado", () => {
 
 describe("totalizarDia: adicional noturno", () => {
   it("22h às 5h com hora reduzida (52min30s = 1h)", () => {
-    // Jornada noturna 22:00 às 05:00 = 7h reais; 7h * 60/52,5 = 8h computadas.
     const jn: Jornada = [0, 420, 420, 420, 420, 420, 0];
     const t = totalizarDia(dia("2026-11-02", { batidas: [par("22:00", "05:00")] }), jn);
     expect(t).toMatchObject({ normaisMin: 420, noturnoMin: 480, extras: [], atrasoMin: 0 });
@@ -165,7 +157,6 @@ describe("totalizarDia: adicional noturno", () => {
       dia("2026-11-02", { batidas: [par("20:00", "23:00")] }),
       [0, 180, 180, 180, 180, 180, 0],
     );
-    // 1h real dentro da janela (22h às 23h) -> 60 * 8/7 = 69 min computados.
     expect(t.noturnoMin).toBe(69);
   });
 });
@@ -175,7 +166,7 @@ describe("totalizar: período", () => {
     const t = totalizar(
       [
         dia("2026-11-02", { batidas: completo }),
-        dia("2026-11-03"), // falta
+        dia("2026-11-03"),
         dia("2026-11-04", { abono: true }),
         dia("2026-11-08", { extra: par("08:00", "10:00") }),
         dia("2026-11-09", { feriado: true, batidas: completo }),
@@ -199,7 +190,6 @@ describe("totalizar: período", () => {
   });
 });
 
-// Convenção de exemplo (comércio): sábado a 60%, 25/12 a 150% (comissionado 100%), demais feriados a 125%.
 const CONVENCAO = {
   versao: 1,
   rejeitadas: [],
@@ -224,7 +214,7 @@ const comConvencao = (o: Partial<RegrasDeCalculo> = {}, comissionado = false): R
 });
 
 describe("totalizarDia: parâmetros da convenção", () => {
-  const sabado = dia("2026-11-07", { batidas: [par("08:00", "13:00")] }); // carga 4h, 1h extra
+  const sabado = dia("2026-11-07", { batidas: [par("08:00", "13:00")] });
 
   it("mesmo cartão, convenções diferentes, totais diferentes", () => {
     const lei = totalizarDia(sabado, J, LEGISLACAO);
@@ -259,7 +249,6 @@ describe("totalizarDia: parâmetros da convenção", () => {
   });
 
   it("passou do limite diário de extras: segue paga e o excesso vira alerta", () => {
-    // 2h extras com limite de 90 min.
     const t = totalizarDia(
       dia("2026-11-02", { batidas: [par("08:00", "12:00"), par("13:00", "19:45")] }),
       J,

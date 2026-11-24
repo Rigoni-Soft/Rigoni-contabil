@@ -48,7 +48,6 @@ const FOLHA: FolhaDePontoDto = {
     semConvencao: false,
   },
 };
-// Sem empregado escolhido a tela mostra o formulário "Novo empregado".
 const SEM_ESCOLHA: FolhaDePontoDto = { ...FOLHA, selecionado: null };
 const OK = { ok: true as const, data: undefined };
 
@@ -124,7 +123,6 @@ describe("QuadroDeFuncionariosContainer", () => {
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/rh/folha-de-ponto/c1?mes=2026-11"));
     expect(definirEmpregadoAtivoAction).toHaveBeenCalledWith({ empregadoId: "e1", ativo: false });
-    // O botão clicado some: o foco vai ao aviso do resultado, que o leitor de tela anuncia.
     expect(await screen.findByRole("status")).toHaveTextContent("Ana: desligamento registrado.");
     expect(screen.getByRole("status").parentElement).toHaveFocus();
   });

@@ -65,7 +65,6 @@ const convencoes = (lista: ConvencaoDto[] = []): ConvencaoRepository => ({
   inserir: async () => ok(undefined),
 });
 
-// 20/11/2026: mês corrente.
 const relogio = { agora: () => new Date("2026-11-20T15:00:00Z") };
 const obter = (ator: AtorSessaoDto | null, r = repo(), c = convencoes()) =>
   new ObterFolhaDePonto({ usuarioAtual: async () => ator }, r, c, relogio);
@@ -92,7 +91,6 @@ describe("ObterFolhaDePonto", () => {
     if (!r.ok) throw r.error;
     expect(r.value.selecionado?.empregado.nome).toBe("Ana");
     expect(r.value.empregados.find((e) => e.id === "e1")?.semMovimento).toBe(true);
-    // O cartão mostra o mês inteiro: novembro tem 30 dias, do 01 ao 30.
     expect(r.value.selecionado?.dias).toHaveLength(30);
     expect(r.value.selecionado?.dias[0].data).toBe("2026-11-01");
     expect(r.value.selecionado?.dias[29].data).toBe("2026-11-30");
@@ -125,7 +123,6 @@ describe("ObterFolhaDePonto", () => {
       }),
     ).execute({ clienteId: "c1", empregadoId: "e1", competencia: "2026-11" });
     if (!r.ok) throw r.error;
-    // Mês inteiro: 25 dias de seg a sáb; o 16 foi cumprido e o 20 é feriado, sobram 23 faltas; domingos são ignorados.
     expect(r.value.selecionado?.totalizacao).toMatchObject({ normaisMin: 525, faltas: 23 });
   });
 
@@ -137,7 +134,6 @@ describe("ObterFolhaDePonto", () => {
     });
     if (!r.ok) throw r.error;
     const dia = (data: string) => r.value.selecionado?.dias.find((d) => d.data === data);
-    // 16/11 segunda (carga 8h45), 20/11 sexta (feriado, mesma carga), 22/11 domingo (sem carga).
     expect(dia("2026-11-16")?.diaDeTrabalho).toBe(true);
     expect(dia("2026-11-20")).toMatchObject({ cargaMin: 525, feriado: true, diaDeTrabalho: false });
     expect(dia("2026-11-22")?.diaDeTrabalho).toBe(false);
@@ -199,7 +195,6 @@ describe("ObterFolhaDePonto", () => {
   });
 
   describe("convenção na Totalização", () => {
-    // Sábado 21/11: 4h de carga, 5h batidas = 1h extra.
     const sabado = {
       listarDias: async () =>
         ok([

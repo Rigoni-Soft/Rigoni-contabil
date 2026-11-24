@@ -13,8 +13,6 @@ import { fotoDoCartaoSchema, recusaDaFoto } from "./folha-de-ponto.schema";
 
 type Props = { clienteId: string; competencia: string };
 
-// Sobe a foto de uma quinzena e recarrega a tela com o empregado e o cartão. Só o sucesso limpa a foto; a
-// falha da leitura preserva a escolha e manda digitar à mão.
 export function LeituraDeCartaoContainer({ clienteId, competencia }: Props) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();

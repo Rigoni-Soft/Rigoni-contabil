@@ -1,5 +1,3 @@
-// A leitura do atestado ou da declaração de comparecimento (visão) chega aqui ainda não confiável. Só o
-// nome e as datas importam: nunca CID, documento ou imagem. O resultado é Abono por dia, e só isso.
 import { nomeLegivel } from "@/modules/rh/domain/services/leitura-do-cartao.service";
 import {
   diaDaSemana,
@@ -14,13 +12,11 @@ export type TipoDeAtestado = "atestado" | "declaracao";
 export type AtestadoLido = {
   nome: string | null;
   tipo: TipoDeAtestado;
-  // "AAAA-MM-DD": início do afastamento, ou a data do comparecimento.
   de: string | null;
   ate: string | null;
 };
 export type AtestadoValido = { nome: string; tipo: TipoDeAtestado; de: string; ate: string };
 
-// Afastamento mais longo que isso o RH lança à mão: o modelo que troca um dígito do ano não abona meses.
 const MAXIMO_DE_DIAS = 31;
 const DIA_MS = 86_400_000;
 
@@ -34,7 +30,6 @@ export function validarAtestado(lido: AtestadoLido): Result<AtestadoValido, Vali
   if (!nome) return recusa("Nome do atestado ilegível.");
   const { de } = lido;
   if (!de || !dataIsoValida(de)) return recusa("Data do atestado ilegível.");
-  // Declaração de comparecimento vale numa data só.
   const ate = lido.tipo === "declaracao" ? de : lido.ate;
   if (!ate || !dataIsoValida(ate)) return recusa("Período do atestado ilegível.");
   const dias = (milissegundosDoDia(ate) - milissegundosDoDia(de)) / DIA_MS;
@@ -42,14 +37,10 @@ export function validarAtestado(lido: AtestadoLido): Result<AtestadoValido, Vali
   return ok({ nome, tipo: lido.tipo, de, ate });
 }
 
-// Primeiro dia dos meses que o período toca ("AAAA-MM-01"): são os cartões em que o atestado pode abonar.
 export function competenciasDoAtestado(atestado: AtestadoValido): string[] {
   return [...new Set([atestado.de, atestado.ate].map((data) => `${data.slice(0, 7)}-01`))];
 }
 
-// Datas que ganham Abono. Atestado: dia de trabalho (com carga e fora de feriado) ainda sem batida. Declaração:
-// abona só o horário, então só o dia que tem batida (o abono cobre a diferença da carga); dia vazio é falta e o
-// RH confere. `comBatida` = datas do cartão que já têm batida; `feriados` = datas de feriado do período.
 export function abonosDoAtestado(
   atestado: AtestadoValido,
   jornada: Jornada,

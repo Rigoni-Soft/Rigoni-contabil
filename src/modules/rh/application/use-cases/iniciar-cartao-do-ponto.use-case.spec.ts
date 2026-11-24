@@ -5,7 +5,6 @@ import { ok } from "@/shared/kernel/result";
 
 const FUNC: AtorSessaoDto = { id: "func", papel: "funcionario", setor: "rh" };
 const LIDER: AtorSessaoDto = { id: "lider", papel: "lider_setor", setor: "rh" };
-// 20/11/2026: mês corrente.
 const AGORA = new Date("2026-11-20T15:00:00Z");
 
 function montar(ator: AtorSessaoDto | null) {

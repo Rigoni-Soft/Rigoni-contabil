@@ -25,15 +25,12 @@ function cliente(
     cnpj: id,
     naoAplica,
     naoAplicaSempre: [],
-    // O Holerite sai dos cartões: um empregado, com cartão se o Holerite está nos concluídos.
     holerite: { cadastrados: 1, semMovimento: 0, cartoes: concluidos.includes("s-hol") ? 1 : 0 },
     concluidos,
     responsavel,
   };
 }
 
-// Novembro: Ana fecha c1 e deixa c2 sem nada; Bia tem c3 só sem o Holerite; c4 não tem Responsável.
-// Outubro: Ana fechou os dois clientes.
 const POR_MES: Record<string, ClienteAcompanhamentoDto[]> = {
   "2026-11-01": [
     cliente("c1", ANA, ["s-fgts", "s-hol"]),

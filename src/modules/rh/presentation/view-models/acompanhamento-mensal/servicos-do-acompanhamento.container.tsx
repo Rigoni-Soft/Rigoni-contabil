@@ -15,7 +15,6 @@ import {
 
 type Props = { servicos: { id: string; nome: string; sistema: boolean }[] };
 
-// A lista dos serviços do acompanhamento, mantida pelo Líder do RH: cada serviço vira um card no dashboard.
 export function ServicosDoAcompanhamentoContainer({ servicos }: Props) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -24,7 +23,6 @@ export function ServicosDoAcompanhamentoContainer({ servicos }: Props) {
   const [novoNome, setNovoNome] = useState("");
   const [edicao, setEdicao] = useState<{ id: string; nome: string }>();
 
-  // Toda escrita compartilha o ciclo: erro do servidor, recarga da lista e retorno de sucesso.
   const executar = (acao: () => Promise<ActionResult<void>>, aoDarCerto: () => void) =>
     iniciar(async () => {
       setErro(undefined);

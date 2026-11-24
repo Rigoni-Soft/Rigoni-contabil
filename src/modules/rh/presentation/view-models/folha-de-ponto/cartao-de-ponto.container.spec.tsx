@@ -45,7 +45,6 @@ const ANA = {
   ativo: true,
   semMovimento: false,
 };
-// Cartão sem nenhum dado salvo (mês novo): abre com todas as linhas já editáveis.
 const FOLHA_VAZIA: FolhaDePontoDto = {
   clienteId: "c1",
   empresa: "Teste Ltda",
@@ -136,7 +135,6 @@ const FOLHA: FolhaDePontoDto = {
         extra: null,
         abono: false,
       },
-      // Outro dia já lançado: o cartão foi começado e o dia 16, vazio, é falta.
       {
         data: "2026-11-17",
         diaDaSemana: 2,

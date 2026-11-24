@@ -18,29 +18,24 @@ import { mesAtual, mesVizinho } from "@/shared/kernel/mes-atual";
 import { ROTA_RH_FOLHA_DE_PONTO } from "@/shared/kernel/setores";
 
 const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
-// Jornada gravada nos empregados novos (a tela não a pede): o padrão do comércio, 8h45 de segunda a sexta e
-// 4h no sábado, em minutos.
-// ponytail: valor fixo até a Totalização deduzir a jornada da convenção/legislação. TODO(#235)
+// TODO(#235): valor fixo até a Totalização deduzir a jornada da convenção
 export const JORNADA_PADRAO = [0, 525, 525, 525, 525, 525, 240];
 
 export function minutosParaHm(minutos: number): string {
   return `${String(Math.floor(minutos / 60)).padStart(2, "0")}:${String(minutos % 60).padStart(2, "0")}`;
 }
 
-// "HH:MM" → minutos; vazio ou fora do formato = null.
 export function hmParaMinutos(texto: string): number | null {
   const horario = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(texto);
   return horario ? Number(horario[1]) * 60 + Number(horario[2]) : null;
 }
 
-// 525 → "8h45"; 0 → "0h00".
 function duracao(minutos: number): string {
   return `${Math.floor(minutos / 60)}h${String(minutos % 60).padStart(2, "0")}`;
 }
 
 const dias = (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`;
 
-// O que a leitura da foto do cartão fez, em uma frase para o aviso de sucesso.
 export function resumoDaLeitura(cartao: CartaoLidoDto): string {
   const partes = [`${cartao.dias} ${cartao.dias === 1 ? "dia lido" : "dias lidos"}`];
   if (cartao.mantidos > 0) {
@@ -58,7 +53,6 @@ export function resumoDaLeitura(cartao: CartaoLidoDto): string {
   return `${cartao.nome}${novo}: ${partes.join(", ")}. Confira o cartão.`;
 }
 
-// O que a leitura do atestado ou da declaração de comparecimento abonou.
 export function resumoDoAtestado(atestado: AtestadoLidoDto): string {
   const abonados = `${atestado.abonados} ${atestado.abonados === 1 ? "dia abonado" : "dias abonados"}`;
   const origem =
@@ -73,8 +67,6 @@ export function resumoDoAtestado(atestado: AtestadoLidoDto): string {
 export const AVISO_SEM_CONVENCAO =
   "Sem convenção coletiva vigente em parte do mês: esses dias foram totalizados pela legislação.";
 
-// `semDados`: cartão ainda não começado (mês ou empregado novo): as linhas aparecem neutras e a Totalização não conta
-// os dias úteis vazios como falta (eles só viram falta depois que o cartão é começado).
 export function itensDaTotalizacao(
   t: TotalizacaoDto,
   trabalhadoMin: number,
@@ -111,12 +103,7 @@ export const temDados = (dia: Pick<DiaDoPontoDto, "batidas" | "extra" | "abono">
   dia.batidas.length > 0 || dia.extra !== null || dia.abono;
 const semBatida = (dia: DiaDoPontoDto) => dia.batidas.length === 0 && dia.extra === null;
 
-// A situação do dia, que decide o que a linha deixa digitar e qual botão ela mostra:
-// abonado (travado; "Desfazer abono"), falta (dia útil vazio de um cartão já começado; travado até o lápis),
-// folga (sem jornada ou feriado: só a coluna Extra), em branco (dia útil vazio de um cartão ainda sem nenhum
-// dado: neutro e já editável) e normal.
 function situacaoDoDia(dia: DiaDaFolhaDto, cartaoVazio: boolean): LinhaDoCartao["situacao"] {
-  // Abono sem batida só vale em dia de trabalho: gravado num domingo ou feriado, o dia segue folga.
   const { diaDeTrabalho } = dia;
   if (dia.abono && semBatida(dia) && diaDeTrabalho) return "abonado";
   if (!diaDeTrabalho) return "folga";
@@ -124,7 +111,6 @@ function situacaoDoDia(dia: DiaDaFolhaDto, cartaoVazio: boolean): LinhaDoCartao[
   return "normal";
 }
 
-// Texto do estado do dia sob a data (a cor da linha nunca vai sozinha).
 function notaDoDia(dia: DiaDaFolhaDto, situacao: LinhaDoCartao["situacao"]): string | undefined {
   const base = dia.feriado ? "Feriado" : dia.cargaMin === 0 ? "Folga" : undefined;
   if (situacao === "falta") return "Falta";
@@ -133,22 +119,18 @@ function notaDoDia(dia: DiaDaFolhaDto, situacao: LinhaDoCartao["situacao"]): str
   return base;
 }
 
-// O tom da linha: falta em vermelho suave, abono e hora extra em azul suave, folga ou feriado em amarelo,
-// dia normal sem tom.
 function tomDoDia(dia: DiaDaFolhaDto, situacao: LinhaDoCartao["situacao"]): LinhaDoCartao["tom"] {
   if (situacao === "falta") return "alerta";
   if (situacao === "abonado" || teveExtra(dia)) return "info";
   return situacao === "folga" ? "atencao" : undefined;
 }
 
-// Faixas de hora extra do dia, da menor para a maior: "1h11 (50%)". A planilha tem 1ª e 2ª faixa.
 const faixaDe = (e?: { percentual: number; minutos: number }) =>
   e ? `${duracao(e.minutos)} (${e.percentual}%)` : "";
 
 const extrasDoDia = (a: TotalizacaoDto) =>
   a.extras.reduce((soma, e) => soma + e.minutos, 0) + a.bancoDeHorasMin;
 
-// Cartão novo (mês ou empregado novo; a tela abre com as linhas já editáveis): nunca salvo (sem a marca de iniciado) e sem nenhum dado.
 export const cartaoSemDados = (dias: DiaDoPontoDto[], iniciado: boolean) =>
   !iniciado && !dias.some(temDados);
 
@@ -184,7 +166,6 @@ export function linhasDoCartao(dias: DiaDaFolhaDto[], iniciado: boolean): LinhaD
 
 type Pedido = { mes?: string; empregado?: string };
 
-// "?mes=…&empregado=…" só com o que foi pedido.
 function busca(parametros: Record<string, string | number | undefined>): string {
   const consulta = new URLSearchParams();
   for (const [chave, valor] of Object.entries(parametros))
@@ -197,7 +178,6 @@ export function hrefDaFolha(clienteId: string, { mes, empregado }: Pedido): stri
   return `${ROTA_RH_FOLHA_DE_PONTO}/${encodeURIComponent(clienteId)}${busca({ mes, empregado })}`;
 }
 
-// O Cartão de ponto de um empregado tem tela própria: o quadro cadastra, o cartão digita.
 export function hrefDoCartao(
   clienteId: string,
   empregadoId: string,
@@ -231,7 +211,6 @@ export function quadroDoEmpregado(folha: FolhaDePontoDto): EmpregadoDoQuadro[] {
   }));
 }
 
-// O empregado escolhido pode ser inativo (ativo falso): o quadro o lista e deixa reativar.
 export function empregadoEmEdicao(folha: FolhaDePontoDto): EmpregadoEmEdicao | undefined {
   const empregado = folha.selecionado?.empregado;
   return (
@@ -255,7 +234,6 @@ export function navegacaoDoCartao(folha: FolhaDePontoDto) {
   };
 }
 
-// Mês, anterior e próximo da tela do quadro (o empregado escolhido sai: o mês muda a folha toda).
 export function navegacaoDaFolha(folha: FolhaDePontoDto) {
   const href = (mes: string) => hrefDaFolha(folha.clienteId, { mes });
   return {
@@ -272,7 +250,6 @@ export type DiaLido =
   | { ok: true; batidas: ParDto[]; extra: ParDto | null; abono: boolean }
   | { ok: false; erro: string };
 
-// Entrada e saída vêm juntas: um par pela metade é erro do formulário, não um horário perdido.
 function par(c: Campos, entrada: string, saida: string): ParDto | null | "incompleto" {
   const horaDeEntrada = texto(c, entrada);
   const horaDeSaida = texto(c, saida);

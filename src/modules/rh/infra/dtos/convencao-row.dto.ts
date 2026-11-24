@@ -2,9 +2,6 @@ import { z } from "zod";
 
 import { CHAVES_NUMERICAS, MOTIVOS_DE_REJEICAO } from "@/shared/kernel/regras-da-convencao";
 
-// Linha de `rh_convencoes` e o jsonb `regras` (esquema fechado de kernel/regras-da-convencao). O banco já
-// confere a forma no CHECK; aqui o formato vira tipo, e uma linha fora do esquema falha alto.
-
 const citacao = { clausula: z.string(), trecho: z.string() };
 
 const regraNumerica = z.object({

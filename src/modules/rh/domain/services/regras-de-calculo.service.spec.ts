@@ -19,7 +19,6 @@ const conv = (sindicato: string, vigenciaInicio: string, vigenciaFim: string) =>
 });
 const SEM = { bancoDeHoras: false, trabalhoAosDomingos: false };
 
-// Um valor por chave, diferente da legislação; só as de CHAVES_NO_CALCULO podem mudar o resultado.
 const AMOSTRA: Record<(typeof CHAVES_DE_REGRA)[number], RegraAplicada> = {
   jornada_semanal: { chave: "jornada_semanal", valor: 2400, clausula: "1ª", trecho: "40h" },
   jornada_diaria: { chave: "jornada_diaria", valor: 420, clausula: "1ª", trecho: "7h" },

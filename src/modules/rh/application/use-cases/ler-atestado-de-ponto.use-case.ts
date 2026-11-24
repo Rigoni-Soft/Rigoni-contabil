@@ -25,11 +25,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const MANUAL = "Não foi possível ler o atestado. Abone os dias à mão.";
 
-// Lê a foto de um atestado ou declaração de comparecimento e marca Abono nos dias do cartão do empregado
-// aberto (o nome no atestado tem de conferir com o dele; nunca cadastra). O atestado é deste cartão: só abona em
-// mês cujo cartão do empregado já foi iniciado; mês sem cartão não ganha linha. Só o Abono é guardado: nome,
-// datas, CID, documento e imagem ficam no leitor e morrem aqui. Leitura que falha, reprova ou não tem o que abonar
-// = erro com o motivo, sem gravar.
 export class LerAtestadoDePonto extends LerDeFoto implements LerAtestadoDePontoPort {
   constructor(
     sessao: SessaoPort,
@@ -59,7 +54,6 @@ export class LerAtestadoDePonto extends LerDeFoto implements LerAtestadoDePontoP
     if (!quadro.ok) return quadro;
     const empregado = quadro.value.find((e) => e.id === input.empregadoId && e.ativo);
     if (!empregado) return err(new NotFoundError("Empregado não encontrado ou desligado."));
-    // O atestado é deste cartão: o nome nele tem de ser o do empregado (o primeiro nome basta).
     if (acharEmpregadoPeloNome(atestado.nome, [empregado]).tipo !== "um") {
       return err(
         new ValidationError(
@@ -94,7 +88,6 @@ export class LerAtestadoDePonto extends LerDeFoto implements LerAtestadoDePontoP
       comBatida,
       new Set(feriados.value),
     );
-    // Mês sem cartão iniciado não ganha linha (o atestado é deste cartão): o resumo avisa quantos dias ficaram de fora.
     const abonos = doAtestado.filter(
       (data) => abertos.has(data.slice(0, 7)) && !jaAbonados.has(data),
     );
@@ -106,13 +99,11 @@ export class LerAtestadoDePonto extends LerDeFoto implements LerAtestadoDePontoP
         ),
       );
     }
-    // Uma transação só: falha no meio não deixa parte dos dias abonados. Batidas e Extra do dia ficam como estão.
     const salvo = await this.repositorio.abonarDias(empregado.id, abonos);
     if (!salvo.ok) return salvo;
     return ok({ tipo: atestado.tipo, abonados: abonos.length, semCartao });
   }
 
-  // null = leitor falhou, não leu ou a validação reprovou (inclusive mês que ainda não começou).
   private async ler(input: LerAtestadoDePontoInput) {
     const bruto = await this.chamarLeitor("rh.atestado.leitor_falhou", () =>
       this.leitor.lerAtestado(input.imagem),

@@ -1,9 +1,3 @@
-/**
- * Integração infra ↔ Supabase: Convenção coletiva do RH. RLS (sobe só o Líder do RH e o Admin; leem também o
- * Responsável do Cliente; o resto não vê), regras versionadas com formato garantido, a convenção nunca é
- * alterada nem apagada, interruptores e ponteiro do empregado só do Responsável, auditoria na mesma transação
- * e bucket privado. Requer `npx supabase start` com migrations + seed aplicados.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import type { RegrasDaConvencao } from "@/shared/kernel/regras-da-convencao";

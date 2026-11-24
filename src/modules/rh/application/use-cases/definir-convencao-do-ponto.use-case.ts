@@ -12,8 +12,6 @@ import { validarSindicato } from "@/modules/rh/domain/services/validar-ponto.ser
 import type { AppError } from "@/shared/errors/app.error";
 import { ok, type Result } from "@/shared/kernel/result";
 
-// Interruptores do Cliente e ponteiro do empregado para a convenção: como o resto da Folha de ponto, só o
-// Responsável do RH do Cliente grava (o banco repete a regra e audita o sucesso).
 export class DefinirInterruptoresDoCliente
   extends EscreverPonto
   implements DefinirInterruptoresDoClientePort
