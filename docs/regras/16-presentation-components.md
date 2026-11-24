@@ -20,7 +20,7 @@ Onde vive: organisms/editar-cadastro-operacional-form.component.tsx:onCancelar.
 
 ## Parcelamentos e guias PGFN
 Parcelamento interno: a guia vai ao financeiro do escritório, nunca ao Cliente. A guia com registro de envio só pode ser aberta. Guia anexada "a confirmar" (leitor do PDF) não é sucesso nem erro. A região de guias fica dentro do form do cadastro: nada ali é `<form>`, só `button` e Server Action própria. Salvar fica bloqueado enquanto algum PDF é lido. CNPJ lido do PDF de outra empresa gera alerta sem bloquear. Seletor de mês ausente (Firefox desktop) cai em texto livre com formato no placeholder.
-Onde vive: organisms/guias-da-parcela-pgfn.component.tsx; organisms/parcelamentos-do-cadastro.component.tsx:motivoDeLeituraEmAndamento.
+Onde vive: organisms/guias-da-parcela-pgfn.component.tsx; organisms/parcelamentos-do-cadastro.component.tsx:motivoDeLeituraEmAndamento e quitadoOuPgfnCadastrado (linha que o servidor ignora na edição).
 
 ## Leitura de cartão e de atestado
 Cartão: a foto de uma quinzena vira o cartão do empregado sem confirmação; o Funcionário corrige à mão; falha de leitura não bloqueia, o erro manda digitar. Atestado: modal (`<dialog>` via showModal); sucesso fecha e atualiza o cartão, erro mantém a modal com o motivo. Erro de falta/tamanho da foto vai no campo; os demais são da leitura.
@@ -40,7 +40,7 @@ Onde vive: lib/abrir-em-nova-aba.ts:abrirEmNovaAba.
 
 ## Download base64
 Revogar a URL do Blob na mesma volta do `click()` faz alguns navegadores cancelarem o download; a revogação é adiada.
-Onde vive: lib/baixar-arquivo-base64.ts.
+Onde vive: lib/baixar-arquivo-base64.ts:revogarDepoisDoClique.
 
 ## Atendimento (lista, chat, ações)
 Só o Admin escolhe o Setor. Em tela estreita o chat aberto ocupa o lugar da lista e as ações ficam depois do campo de resposta, com atalho "Ir para as ações" no topo. Líder e Admin veem os Atendimentos dos outros em leitura de supervisão. Cliente novo na espera é anunciado ao leitor de tela (o som é o único outro sinal). A lista de mensagens usa rolador `col-reverse` (nasce no fim, sem JS), `role="log"`; o erro de reação fica fora do rolador. Encerrar pede confirmação e o foco vai à saída segura.

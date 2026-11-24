@@ -12,7 +12,7 @@ Onde vive: infra/repositories/feriado.repository.ts, feriado.repository.test.ts.
 
 ## Guia PGFN: bucket privado e isolamento por Cliente
 A guia anexada fica no bucket privado dos acordos em `${clienteId}/guias-pgfn/...`; a guia de outro Cliente nunca é lida. O envio PGFN (PDF do escritório) nunca vai ao provedor fiscal e não pode excluir nem consumir guia da Receita da mesma parcela; origem nula (digitado à mão) conta como Receita.
-Onde vive: infra/gateways/supabase-guias-pgfn.gateway.ts, supabase-parcelamentos-do-cliente.gateway.ts.
+Onde vive: infra/gateways/supabase-guias-pgfn.gateway.ts (BUCKET_DOS_ACORDOS, guiaPertenceAoCliente), supabase-parcelamentos-do-cliente.gateway.ts.
 
 ## Identificação de contato por telefone
 O banco devolve uma linha por Cliente; mais de uma linha é número ambíguo. A checagem de existência não tem linha de Cliente a mapear e não passa por Row DTO.
@@ -24,7 +24,7 @@ Onde vive: infra/gateways/supabase-sessao-atendimento.gateway.ts.
 
 ## Upload TUS do anexo
 Partes de 6 MB (exigência da TUS do Supabase Storage). O token é o do usuário logado: sem a policy de INSERT da migration 20261014130000_mensagens_anexos_e_entrega.sql o Storage recusa. Cada parte repete sozinha antes de devolver erro. Uma pasta por envio mantém o nome original no link com `download`; o tipo vai sem parâmetros porque o bucket confere contra lista fechada. A Server Action só recebe caminho, nome, legenda e miniatura (até 256 KB) porque o corpo de uma Server Action não passa de 4,5 MB na Vercel.
-Onde vive: infra/gateways/tus-upload-de-anexo.gateway.ts, presentation/view-models/conversa/anexo-em-partes.upload.ts, conversa.actions.ts.
+Onde vive: infra/gateways/tus-upload-de-anexo.gateway.ts (PARTE_BYTES, ESPERAS_ENTRE_TENTATIVAS_MS), presentation/view-models/conversa/anexo-em-partes.upload.ts, conversa.actions.ts.
 
 ## Colunas do Cliente nos jobs
 As RPCs de leitura dos jobs devolvem só colunas do Cliente; quem recebe a guia vem dos Destinos de envio (`destinos_de_envio_do_job`).
@@ -32,7 +32,7 @@ Onde vive: infra/mappers/linha-cliente-do-job.mapper.ts.
 
 ## Repositório do Atendimento
 Os quatro campos do anexo nascem juntos (CHECK da tabela). Cada Setor tem um só Líder; se o banco devolver dois, falha em vez de escolher. Responsável desativado não recebe: cai no Líder. O nome do Contato é enfeite do painel: falha na busca mostra o Atendimento sem nome. Quem escreve é o Contato cujo número bate com o do Atendimento, achado pela função única do banco. A janela de histórico lê uma mensagem a mais que o pedido (diz se há mais) e o cursor é estritamente anterior (data menor, ou mesma data com id menor).
-Onde vive: infra/repositories/atendimento.repository.ts.
+Onde vive: infra/repositories/atendimento.repository.ts (COLUNAS_DA_MENSAGEM, filtroDeMensagensEstritamenteAnterioresA, nomeOuNenhum).
 
 ## Privilégios das RPCs do job de envio
 `anon` e `authenticated` não têm EXECUTE nas RPCs do job (o baseline concede EXECUTE a authenticated por default privileges, então o REVOKE de PUBLIC não basta). A RPC que escreve no sino é SECURITY DEFINER: só service_role e o trigger a chamam.

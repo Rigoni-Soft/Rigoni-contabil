@@ -16,7 +16,7 @@ Onde vive: scripts/check-troca-senha-guard.mjs:classificarPagina; teste em scrip
 
 ## ffmpeg comprimido
 Antes do build o binário do `ffmpeg-static` (dezenas de MB) é comprimido em brotli para a função da conversa de áudio levar só o comprimido; em runtime `resolver-ffmpeg` o descomprime em /tmp. Sem o pacote ou o binário, nada acontece e o app usa o do pacote/PATH. Na factory: `FFMPEG_PATH` manda, depois o comprimido, depois o do pacote/PATH; o import do pacote é dinâmico porque no deploy ele sai do trace. ADR 0006.
-Onde vive: scripts/comprimir-ffmpeg.mjs; src/main/atendimento.factory.ts (resolução do ffmpeg).
+Onde vive: scripts/comprimir-ffmpeg.mjs (`QUALIDADE_BROTLI`); src/main/atendimento.factory.ts:ffmpegDoPacoteOuDoPath; src/main/atendimento.factory.ts (resolução do ffmpeg).
 
 ## medir:leitura (leitor de cartão)
 Usa a API de visão de verdade (custa por foto). Uso: `yarn medir:leitura <pasta> [AAAA-MM]` (padrão 2026-09); a quinzena sai do nome do arquivo (`...quin-1.jpeg`). Imprime só números e o nome lido, nunca grava foto; o nome do atestado só com NOMES=1 (dado pessoal); CID e documento nunca são pedidos. O script mapeia o alias `@/` para `src/` e acrescenta `.ts` porque o Node não resolve ambos. `EFORCO` injeta esforço no corpo; Sonnet 5.5 recusa `tool_choice` forçado, então a instrução já pede só a ferramenta.
@@ -37,7 +37,7 @@ Onde vive: scripts/seed-teste-zap.mjs.
 - E-mail: falso por padrão; real é SMTP Gmail com senha de app (conta com verificação em duas etapas) e `from` como "Rigoni Contábil <conta@gmail.com>".
 - Leitores: PDF de parcelamento falso ou `texto`; convenção coletiva falsa ou `indisponivel` (Produção hoje); foto do cartão falsa, `indisponivel` (digitação manual) ou `visao` (exige ANTHROPIC_API_KEY, docs/deploy/leitura-de-cartao.md). Leitores falsos gravam dado inventado: em Production a variável deve ser escolhida, nunca herdar `falso`.
 - WhatsApp do financeiro (só dígitos, com DDI), destino das guias de parcelamento interno: ausente ou inválido não derruba o app; o job não envia o interno, segue pendente e abre o alerta `financeiro_ausente`.
-Onde vive: src/env.ts; teste em src/env.spec.ts (guardas de Production; o módulo valida ao importar, então cada caso o carrega do zero).
+Onde vive: src/env.ts (constantes `emProductionDaVercel`, `CNPJ_ALFANUMERICO`, `TELEFONE_COM_DDI_SO_DIGITOS`); teste em src/env.spec.ts (guardas de Production, inclusive Serpro trial; o módulo valida ao importar, então cada caso o carrega do zero).
 
 ## Factories do main: sessão e circularidade
 O `main` adapta a sessão do módulo usuarios à porta própria de cada módulo (atendimento, auditoria, clientes, rh; arquitetura.md 3.11), montando o ObterSessao direto, sem chamar usuarios.factory, para não criar import circular (usuarios.factory também precisa da auditoria). Papel e Setor já vêm validados pelo builder do módulo usuarios: o cast é a única fronteira.

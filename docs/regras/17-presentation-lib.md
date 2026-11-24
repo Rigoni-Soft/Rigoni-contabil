@@ -12,7 +12,7 @@ Onde vive: src/presentation/lib/miniatura-de-imagem.ts, src/presentation/lib/rec
 
 ## Aviso sonoro
 Dois tons gerados pelo navegador, sem arquivo de áudio. Navegadores só liberam som depois de um gesto do usuário (autoplay): `prepararSom` cria o contexto no primeiro clique/tecla; antes disso `tocarNotificacao` é silencioso e nunca lança, nem sem áudio no ambiente.
-Onde vive: src/presentation/lib/notificacao-sonora.ts
+Onde vive: src/presentation/lib/notificacao-sonora.ts (ignorarFalhaDeAudio, VOLUME_QUASE_ZERO)
 
 ## Prévia de Word e Excel
 Lida no navegador, sem enviar o arquivo a serviço externo. O resultado é só dado; quem desenha o HTML o isola (iframe sem script) porque o arquivo vem do cliente. O navegador usa o build `mammoth.browser`.
@@ -52,7 +52,7 @@ Onde vive: src/shared/kernel/avatar.ts
 
 ## CNPJ alfanumérico
 Aceita o numérico legado e o alfanumérico vigente desde jul/2026: 12 posições [0-9A-Z] mais 2 dígitos verificadores; cada caractere vale ASCII - 48; pesos e módulo 11 iguais. Forma canônica sem pontuação, maiúscula, sem descartar letras.
-Onde vive: src/shared/kernel/cnpj.ts
+Onde vive: src/shared/kernel/cnpj.ts (CODIGO_ASCII_DO_ZERO, MODULO_DO_DIGITO, CNPJ_COM_UM_SO_CARACTERE, digitoVerificador)
 
 ## Tentativas
 Só falha do serviço externo é transitória; sem autorização ou destinatário inválido não melhora ao repetir.
@@ -64,7 +64,7 @@ Onde vive: src/shared/kernel/mes-atual.ts, data-iso.ts
 
 ## Dias do job de parcelamento
 O job envia a guia nos dias definidos aqui; é fonte única para o job e para o dashboard. O atraso começa no dia seguinte à última rodada (29); em fevereiro comum, no último dia do mês.
-Onde vive: src/shared/kernel/dias-do-job-parcelamento.ts
+Onde vive: src/shared/kernel/dias-do-job-parcelamento.ts (ULTIMO_DIA_DE_ENVIO, primeiroDiaEmAtraso)
 
 ## Logos por Setor
 Arquivos estáticos em `public/logos/` (256x256). A do escritório vale para o Admin e para Setor sem logo; setor novo entra no mapa e o spec confere os arquivos. Tipagem `string` porque o Setor chega da sessão como texto. O Admin não tem Setor: o da sessão é ignorado para ele.
@@ -80,7 +80,7 @@ Onde vive: src/shared/kernel/foto-do-ponto.ts
 
 ## Href seguro
 Só caminho relativo do próprio site; nunca repassar query direto ao href (open redirect: "//evil.com", "https://evil.com").
-Onde vive: src/shared/kernel/href-seguro.ts
+Onde vive: src/shared/kernel/href-seguro.ts (ehCaminhoRelativoDoSite)
 
 ## Número da alteração contratual
 Obrigatório, inteiro > 0, único por Cliente, até 9 dígitos no prefixo do arquivo (acima estoura o inteiro do banco). Mesma regra no formulário, schema e domínio. Alerta (não bloqueia): nº menor com data posterior.
@@ -116,7 +116,7 @@ Onde vive: src/shared/kernel/telefone.ts
 
 ## Texto e reação
 Reação: contagem como o WhatsApp (por ponto de código); limite em UTF-16; só impede que texto comum vire reação, a UI oferece a lista. Limites de texto curto e de nome de PDF espelham o CHECK de rh_convencoes.arquivo_nome.
-Onde vive: src/shared/kernel/texto.ts
+Onde vive: src/shared/kernel/texto.ts (EMOJI_TAMANHO_MAXIMO, JUNTOR_DE_EMOJI, SELETOR_DE_VARIACAO_EMOJI, KEYCAP, emojiValido)
 
 ## ActionResult
 Converte Result preservando `fields` quando o erro é ValidationError, para apontar o campo inválido.

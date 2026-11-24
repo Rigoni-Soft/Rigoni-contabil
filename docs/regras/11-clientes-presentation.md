@@ -8,7 +8,7 @@ Onde vive: src/modules/clientes/presentation/view-models/editar-cadastro-operaci
 
 ## Teto do corpo da Server Action (ADR 0007)
 O corpo de uma Server Action na Vercel tem teto de 4,5 MB, somando todos os anexos novos; o limite é 4 MB. O bucket aceita 10 MiB, mas acima de 4 MB o upload direto ao Storage exigiria política de usuário no bucket. Por isso Parcelamentos, guias e PDFs vão por Server Action própria, depois do cadastro, e o payload do cadastro nunca leva PDF.
-Onde vive: editar-cadastro-operacional.schema.ts; use-parcelamentos-do-cadastro.hook.ts; use-salvar-cadastro-operacional.hook.ts
+Onde vive: editar-cadastro-operacional.schema.ts:LIMITE_DE_PDFS_POR_ACTION_EM_BYTES; use-parcelamentos-do-cadastro.hook.ts; use-salvar-cadastro-operacional.hook.ts
 
 ## Envios do contato (tipos e canal)
 O que o contato recebe do Setor (tipos, canal) é estado da linha: grava por ação própria, na hora, e nunca vai no payload do cadastro. "Todos os envios" marca todos os outros; desmarcar um desmarca o "Todos"; marcar o último que faltava o marca. O "Enviar por" só existe para contato com os dois canais e ao menos um envio marcado (o banco exige a escolha e ignora nos demais). Canal perdido (número ou e-mail apagado) avisa na linha antes de salvar.
@@ -24,7 +24,7 @@ Onde vive: use-gravar-contato-da-linha.hook.ts; use-contatos-do-cadastro.hook.ts
 
 ## Leitura do PDF de Parcelamento
 Falha de leitura (ou da Server Action) nunca bloqueia: sem resposta no tempo limite a linha vira "digite à mão" (a action não se cancela). Vale só a resposta do PDF mais recente de cada linha; resposta tardia de PDF trocado, linha removida ou formulário refeito (Limpar) é descartada. Os dados do acordo pertencem ao PDF que os trouxe: trocar, remover ou falhar a leitura limpa os do anterior.
-Onde vive: use-leitura-do-pdf.hook.ts; leitura-do-pdf-de-parcelamento.container.spec.tsx
+Onde vive: use-leitura-do-pdf.hook.ts:TEMPO_LIMITE_MS e ignorarFalhaDeLeitura; leitura-do-pdf-de-parcelamento.container.spec.tsx
 
 ## Salvar Parcelamentos e guias
 Cada Setor salva os seus Parcelamentos. Os ids voltam para as linhas antes de anexar a guia: nova tentativa atualiza os acordos salvos em vez de recriá-los (e apagar as guias em cascata). Guia recusada (ex.: CNPJ de outra empresa) não desfaz o Parcelamento: avisa e a guia se anexa em "Guias da parcela". Anexada ou recusada, a guia sai do formulário.

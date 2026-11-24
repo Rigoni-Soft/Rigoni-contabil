@@ -13,16 +13,16 @@ Quando o botão clicado some (Desligar, Readmitir, Abonar, Limpar), o foco vai a
 Onde vive: cartao-de-ponto.container.tsx, quadro-de-funcionarios.container.tsx, envio-de-convencao.container.tsx
 
 ## Jornada padrão de empregado novo
-Empregados novos gravam jornada do comércio (8h45 seg-sex, 4h sábado) até a Totalização deduzir da convenção. TODO(#235).
-Onde vive: folha-de-ponto.presenter.ts
+Empregados novos gravam jornada do comércio (8h45 seg-sex, 4h sábado) até a Totalização deduzir da convenção. TODO(#235). Afirmada pelo teste "JORNADA_PADRAO do empregado novo".
+Onde vive: folha-de-ponto.presenter.ts:JORNADA_PADRAO (e folha-de-ponto.presenter.spec.ts)
 
 ## Escritas do quadro e leitura de foto
 Só o sucesso limpa o formulário/foto; a recusa preserva o digitado. Leitura de atestado mantém a modal aberta durante a leitura e em falha. PDF baixado perde o aviso após nova ação. Empregado desligado não recebe cartão.
 Onde vive: quadro-de-funcionarios.container.tsx, leitura-de-cartao.container.tsx, leitura-de-atestado.container.tsx
 
 ## IDs guid e não uuid
-Ids do seed não são v4 válidos; schemas usam guid.
-Onde vive: convencao.schema.ts, folha-de-ponto.schema.ts
+Ids do seed não são v4 válidos; schemas usam guid. Limites do cartão: minuto do dia 0..1439, jornada de 7 dias, até 4 batidas por dia.
+Onde vive: convencao.schema.ts, folha-de-ponto.schema.ts:MINUTOS_NO_DIA, DIAS_DA_SEMANA, BATIDAS_POR_DIA_MAXIMAS
 
 ## Resumo RH
 Acompanhamento conta clientes com Responsável; Holerite sai dos cartões; só o Líder mantém os serviços do acompanhamento.
@@ -30,7 +30,7 @@ Onde vive: resumo-rh.presenter.ts
 
 ## Fronteira privilegiada service_role (ADR 0001)
 RPCs de troca de papel, desativação, finalização de troca de senha e criação de conta só aceitam service_role; autorização ("só Admin", "é a foto do próprio usuário") é do caso de uso. Senha provisória gerada na infra (crypto) em base32 sem 0/O/1/I; ban do Auth dura ~100 anos porque só aceita duração. Registro de erros recebe só a mensagem, nunca o objeto (pode ter CNPJ).
-Onde vive: usuarios/application/ports/out/*.provider.ts, infra/gateways/supabase-*.gateway.ts
+Onde vive: usuarios/application/ports/out/*.provider.ts, infra/gateways/supabase-auth-admin.gateway.ts:ALFABETO_SENHA_SEM_CARACTERES_AMBIGUOS, BYTES_DA_SENHA_PROVISORIA, BANIMENTO_SEM_FIM
 
 ## Um Líder ativo por Setor
 A promoção é em dois passos explícitos; a corrida com outra promoção é fechada por índice único parcial e a RPC devolve ValidationError.
@@ -46,4 +46,4 @@ Onde vive: criar-usuario.use-case.ts
 
 ## Desativação e avatar (ADR 0012, ADR 0008)
 Marca+audita numa transação idempotente; ban no Auth e apagar da foto rodam sempre, uma falha não impede a outra; pendência fica na lista (banido_em, avatar_atualizado_em). Objeto do bucket primeiro, coluna depois; apagar é idempotente. Só service_role escreve bucket e coluna (gatilho perfis_proteger_avatar). Limite do bucket avatares: webp até 256 KB.
-Onde vive: desativar-usuario/enviar-avatar/remover-avatar.use-case.ts, imagem-avatar.vo.ts, avatar-storage-politica.gateway.test.ts
+Onde vive: desativar-usuario/enviar-avatar/remover-avatar.use-case.ts, imagem-avatar.vo.ts:LIMITE_AVATAR_BYTES e ASSINATURA_DO_FORMATO_WEBP, avatar-storage-politica.gateway.test.ts

@@ -4,11 +4,11 @@ Conhecimento que vivia em comentários dos arquivos do bloco 03. Uma entrada por
 
 ## Segredo placeholder recusado em produção
 O webhook de mensageria é público e usa service_role; em produção, segredo igual ao placeholder do `env.ts`/`.env.example` (publicado no repositório) permitiria forjar HMAC válido. A verificação roda antes de criar o client privilegiado e falha fechado; fora de produção o placeholder vale.
-Onde vive: src/main/segredos-mensageria.factory.ts
+Onde vive: src/main/segredos-mensageria.factory.ts:exigirSegredosReais (teste: segredos-mensageria.factory.spec.ts)
 
 ## Adapter falso por segredo de E2E
 Os e2e rodam contra deploy com mensageria real e não podem falar com a Meta. Requisição com o valor de E2E_ADAPTER_SECRET no cabeçalho usa o adapter falso (nunca envia); sem segredo configurado ou com valor errado vale o modo do ambiente. Só escolhe o adapter falso, não abre acesso.
-Onde vive: src/main/segredos-mensageria.factory.ts
+Onde vive: src/main/segredos-mensageria.factory.ts:pedeAdapterFalsoDoE2E (teste: segredos-mensageria.factory.spec.ts)
 
 ## service_role confinado
 O client service_role só existe no factory admin; não reexportar nem passar adiante além do gateway que o consome (ADR 0001).
@@ -16,7 +16,7 @@ Onde vive: src/main/supabase-admin.factory.ts
 
 ## Cookies somente leitura em Server Component
 Escrever cookie de dentro de Server Component falha; o proxy.ts renova a sessão.
-Onde vive: src/main/supabase-server.factory.ts
+Onde vive: src/main/supabase-server.factory.ts:ignorarEscritaDeCookieEmServerComponent
 
 ## Auditoria como porta própria de cada módulo
 O main adapta a porta IN RegistrarAcao (módulo auditoria) à porta própria (arquitetura.md 3.11) e devolve o Result real; quem chama (CriarUsuario) decide se trata como fatal. Na Transferência só a falha passa pela porta: o sucesso é auditado pelo banco na mesma transação (transferir_atendimento). Em ações sem RPC própria (envio de documento) vão as duas. É best-effort.
@@ -36,7 +36,7 @@ Onde vive: ports/in/executar-*.provider.ts
 
 ## Atribuição de guias de parcelamento
 O provedor devolve as guias do CNPJ sem dizer o parcelamento. Um só em aberto recebe todas; com vários, só o único cujo valor guardado não passa do valor da guia (atrasada pode vir com juros/multa). Valor não prova pertencimento (proteção provisória até o provedor devolver o acordo): com mais de um candidato compatível nenhum recebe (falha fechado). Ficam de fora: guia sem parcela ou candidato; reemissão de guia já entregue (mesma identidade, qualquer acordo do Cliente, inclusive quitado); parcela já entregue a acordo quitado com outra identidade ou sem; parcela que o dono já recebeu; grupo de parcelamentos de mesmo valor. Identidade da guia = parcela + valor (cliente_parcelamento_envios.identidade). Cada emissão é cobrada pelo provedor, por isso as parcelas já entregues são ignoradas.
-Onde vive: jobs/atribuir-guias-parcelamento.ts, ports/out/guias-parcelamento.provider.ts
+Onde vive: jobs/atribuir-guias-parcelamento.ts:atribuirGuiasParcelamento (`semDonoComprovado`), ports/out/guias-parcelamento.provider.ts
 
 ## Guias PGFN a entregar
 Lista guias confirmadas sem registro de envio até a competência corrente, da mais antiga à mais nova; guia futura fica guardada e a não confirmada não entra. A reserva trava troca/remoção do PDF até a liberação pelo token; guia mudada ou detida por outra tentativa não é lida nem entregue. Na URA sem pendente, reenvia o PDF registrado na guia mais recente já entregue (nunca o anexo, que pode ter sido trocado).

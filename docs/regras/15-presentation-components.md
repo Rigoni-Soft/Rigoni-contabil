@@ -20,7 +20,7 @@ Onde vive: src/presentation/components/molecules/linha-de-contato.component.tsx,
 
 ## Região aria-live repetida
 A região segue montada e a vez ímpar acrescenta um caractere invisível para o leitor anunciar de novo a mesma frase.
-Onde vive: src/presentation/components/organisms/contatos-do-cadastro.component.tsx
+Onde vive: src/presentation/components/organisms/contatos-do-cadastro.component.tsx:CARACTERE_INVISIVEL, avisoDeVezImpar
 
 ## Cartão de ponto
 Folga e feriado só têm a coluna Extra (toda hora neles é extra), salvo batida já salva. Dia abonado não tem horário. A tela mostra dois pares de batida + Extra (o banco guarda até quatro). Totalização usa a legislação quando não há convenção vigente. Borda do campo sobre linha com tom precisa de 3:1 (WCAG 1.4.11).
@@ -32,7 +32,7 @@ Onde vive: src/presentation/components/organisms/comparativos-rh.component.tsx, 
 
 ## Compositor de mensagem
 Sem maxLength (conta UTF-16, emoji valeria 2): o limite é conferido ao enviar. Ctrl+V com imagem vira anexo. Enter de composição (IME) não envia; Safari entrega isComposing falso com keyCode 229. Há um único compositor por tela (id fixo liga o microfone ao motivo).
-Onde vive: src/presentation/components/organisms/compositor-de-mensagem.component.tsx
+Onde vive: src/presentation/components/organisms/compositor-de-mensagem.component.tsx:ehEnterDeEnvio, KEY_CODE_DE_COMPOSICAO_NO_SAFARI
 
 ## DAS enviado é do sistema
 Depois de concluído o envio nem o Admin troca o DAS nem a data; campos desativados são esmaecidos (DESIGN.md).

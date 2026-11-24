@@ -3,7 +3,7 @@
 Conhecimento que vivia em comentários, agora por tema.
 
 ## Compensação de upload e resultado incerto
-Falha definitiva depois do upload apaga os arquivos enviados. Resposta perdida (`ResultadoIncertoError`) não prova rollback, e leitura vazia também não (commit tardio, linha oculta por RLS): só a leitura confirmando a gravação vira sucesso; qualquer outro desfecho mantém os arquivos e pede conferência manual. Falha da própria compensação não mascara o erro original: vira `EstadoInconsistenteError` + auditoria `falha_compensacao` + log com os caminhos.
+Falha definitiva depois do upload apaga os arquivos enviados. Resposta perdida (`ResultadoIncertoError`) não prova rollback, e leitura vazia também não (commit tardio, linha oculta por RLS): só a leitura confirmando a gravação vira sucesso; qualquer outro desfecho mantém os arquivos e pede conferência manual. Falha da própria compensação não mascara o erro original: vira `EstadoInconsistenteError` + auditoria `falha_compensacao` + log com os caminhos. Resultado incerto sem confirmação mantém os arquivos (`manterUploadsParaConferencia` em criar-cliente; `DesfechoDaGravacaoIncerta` em salvar-parcelamentos).
 Onde vive: use-cases/criar-cliente, anexar-alteracao-contratual, anexar-guia-parcela-pgfn, trocar-guia-parcela-pgfn, remover-guia-parcela-pgfn, salvar-parcelamentos-cliente, guia-parcela-pgfn-compartilhado.
 
 ## Auditoria: sucesso no banco, falha no caso de uso
@@ -39,7 +39,7 @@ documentoObrigatorio é o campo rotulado "Documento recebido" (positivo = recebi
 Onde vive: mappers/resumo-setor-sn.mapper, comparativos-sn.mapper.
 
 ## Guias de parcela PGFN
-Leitura do PDF e conferência (CNPJ, conta, competência) antes do upload; CNPJ de outra empresa recusa sem tocar o Storage. Conferindo tudo, a guia nasce confirmada; senão "a confirmar" com o motivo. Confirmar vale só para a versão (caminho do PDF) conferida. O caminho no Storage não leva o nome do arquivo (anexos da mesma competência não colidem; duplicidade é decidida pelo banco). A competência é a chave e não muda na troca. O banco recusa competência já enviada, segundo anexo e Parcelamento não PGFN. Teto de 4,5 MB (ADR 0007), revalidado relendo tipo e tamanho no Storage.
+Leitura do PDF e conferência (CNPJ, conta, competência) antes do upload; CNPJ de outra empresa recusa sem tocar o Storage. Conferindo tudo, a guia nasce confirmada; senão "a confirmar" com o motivo. Confirmar vale só para a versão (caminho do PDF) conferida. O caminho no Storage não leva o nome do arquivo (anexos da mesma competência não colidem; duplicidade é decidida pelo banco). A competência é a chave e não muda na troca. O banco recusa competência já enviada, segundo anexo e Parcelamento não PGFN. Teto de 4 MB (`LIMITE_DO_PDF_DA_GUIA_EM_BYTES`), revalidado relendo tipo e tamanho no Storage.
 Onde vive: use-cases/guia-parcela-pgfn-compartilhado, anexar/trocar/remover/confirmar-guia-parcela-pgfn, ports/out/guia-parcela-pgfn.repository.
 
 ## Salvar parcelamentos

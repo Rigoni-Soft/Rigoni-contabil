@@ -3,16 +3,16 @@
 Conhecimento que vivia em comentários de `e2e/` e `scripts/`. Os cenários são descritos pelos títulos dos testes.
 
 ## Usuários do seed nos e2e de Atendimento
-Os UUIDs fixos são os do seed: `...3333` é funcionario.financeiro (ANA), `...5555` é funcionario2.financeiro (BETO) e `aaaaaaaa-...` é funcionario.recepcao. Onde vive: e2e/espera-responsavel.e2e.ts:ANA, e2e/encerrar-atendimento.e2e.ts:FUNCIONARIO, e2e/recepcao-cadastra-contato-ura.e2e.ts:RECEPCAO.
+Os UUIDs fixos são os do seed: `...3333` é funcionario.financeiro (ANA), `...5555` é funcionario2.financeiro (BETO) e `aaaaaaaa-...` é funcionario.recepcao. Onde vive: e2e/support/usuarios-do-seed.ts:FUNCIONARIO_FINANCEIRO_ID, FUNCIONARIO2_FINANCEIRO_ID, FUNCIONARIO2_SN_ID, FUNCIONARIO_RECEPCAO_ID.
 
 ## Espera comum e Responsável
-A espera comum (sem destinatário), disputada por dois Funcionários, existe só na Recepção; nos demais Setores o Atendimento vai ao Responsável do Cliente ou ao Líder. A espera é do Setor inteiro: os e2e limpam Atendimentos soltos de outras execuções antes de contar. Onde vive: e2e/aba-atendimento.e2e.ts, e2e/espera-responsavel.e2e.ts, e2e/supervisao-atendimento.e2e.ts.
+A espera comum (sem destinatário), disputada por dois Funcionários, existe só na Recepção; nos demais Setores o Atendimento vai ao Responsável do Cliente ou ao Líder. A espera é do Setor inteiro: os e2e limpam Atendimentos soltos de outras execuções antes de contar. Onde vive: e2e/support/admin-local.ts:limparEsperaSemDonoDoSetor, e2e/aba-atendimento.e2e.ts, e2e/espera-responsavel.e2e.ts, e2e/supervisao-atendimento.e2e.ts.
 
 ## Hidratação antes de preencher formulário
-Preencher antes da hidratação faz o React Hook Form reaplicar os valores iniciais (ou o submit sair nativo no `next dev` frio). Todo e2e usa o `test` de e2e/fixtures.ts, cujo `goto` espera a hidratação, e o login espera o React assumir o form. Onde vive: e2e/fixtures.ts, e2e/support/criar-cliente.ts.
+Preencher antes da hidratação faz o React Hook Form reaplicar os valores iniciais (ou o submit sair nativo no `next dev` frio). Todo e2e usa o `test` de e2e/fixtures.ts, cujo `goto` espera a hidratação, e o login espera o React assumir o form. Onde vive: e2e/fixtures.ts:esperarHidratacao, e2e/support/criar-cliente.ts.
 
 ## Rede nunca ociosa no preview da Vercel
-No preview a rede nunca fica ociosa (toolbar/telemetria), então esperas de rede usam teto curto, e contextos extras (`browser.newContext()`) são fechados no fim do teste para não manter polling vivo. Onde vive: e2e/fixtures.ts.
+No preview a rede nunca fica ociosa (toolbar/telemetria), então esperas de rede usam teto curto, e contextos extras (`browser.newContext()`) são fechados no fim do teste para não manter polling vivo. Onde vive: e2e/fixtures.ts:TETO_DA_ESPERA_DE_REDE_EM_MS.
 
 ## Proteção de deploy da Vercel
 O Preview tem Deployment Protection: o setup salva o cookie de bypass, e limpar o storage inteiro o apagaria (limpa-se só a sessão do Supabase). Onde vive: e2e/bypass.setup.ts.

@@ -6,7 +6,7 @@ Onde vive: src/modules/clientes/infra/repositories/responsavel-cliente.repositor
 
 ## Teto de upload na Server Action
 O corpo de uma Server Action na Vercel tem teto de 4,5 MB (ADR 0007): 4 MB deixa folga. No cadastro de Cliente os arquivos vão todos em uma Server Action cortada em 11 MB (next.config.ts); acima disso a requisição falha antes do caso de uso.
-Onde vive: src/modules/clientes/presentation/view-models/anexar-alteracao-contratual/anexar-alteracao-contratual.schema.ts, anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.schema.ts, criar-cliente/criar-cliente.schema.ts.
+Onde vive: anexar-alteracao-contratual.schema.ts:LIMITE_DO_ARQUIVO_DA_ALTERACAO_EM_BYTES, anexar-guia-parcela-pgfn.schema.ts:LIMITE_DO_ARQUIVO_DA_GUIA_EM_BYTES, criar-cliente.schema.ts:LIMITE_DOS_ARQUIVOS_DO_CADASTRO_EM_BYTES (em src/modules/clientes/presentation/view-models/).
 
 ## Alteração contratual: nº repetido e data
 O schema não conhece as alterações do Cliente: nº repetido é checado pela lista carregada na tela e, no fim, pelo banco (23505). Divergência entre nº e data só avisa (data anterior à da alteração de nº menor), não bloqueia. Só o Admin recebe o container. A sugestão do nº só ocorre com o campo vazio.
@@ -26,7 +26,7 @@ Onde vive: src/modules/clientes/presentation/view-models/buscar-cliente/.
 
 ## Criar Cliente e consulta de CNPJ
 A consulta usa a BrasilAPI (pública, sem chave) com timeout curto e AbortController; preenche Empresa e, quando certo (Simples Nacional ou MEI), Regime; Lucro Presumido e Real não são distinguíveis, então o Regime fica em branco. Falha ou não encontrado devolve null e não trava o cadastro manual. Não há estado "pendente" de propósito: re-renderizaria o formulário em corrida com useFieldArray.append() (reproduzida em E2E); o setState da resposta vai em setTimeout pela mesma causa. Resposta obsoleta (CNPJ trocado ou reset) é descartada. CNPJ com dígito verificador inválido não é consultado. Limpar pede confirmação quando há algo preenchido, pois descarta arquivos. PDF ou DOCX são validados no accept e no schema.
-Onde vive: src/modules/clientes/presentation/view-models/criar-cliente/use-consultar-cnpj.hook.ts, criar-cliente.container.tsx, criar-cliente.schema.ts.
+Onde vive: src/modules/clientes/presentation/view-models/criar-cliente/use-consultar-cnpj.hook.ts (SEM_DADOS_PUBLICOS, regimeConfirmadoPelaApi), criar-cliente.container.tsx (emOutroCicloDeRender), criar-cliente.schema.ts.
 
 ## Cadastro operacional: contatos e Responsável
 Admin só cadastra contatos (sem Setor, não define destinos); o Setor SN define os destinos e edita só os contatos que cadastrou; só o Líder do SN troca o Responsável. O contato é do Setor quando ele o cadastrou ou o escolheu (tem Destino dele). Nome, WhatsApp e e-mail são editados pelo Setor dono e pelo Admin; os outros Setores só marcam o que recebem. Número repetido (mesma chave do banco: dígitos sem o DDI 55) avisa e oferece usar o contato existente. Contatos e Parcelamentos sem registros abrem com uma linha em branco que sai antes da validação e do envio, com o índice original para devolver o erro à linha certa. "Enviado" só o sistema grava. Depois de salvar, painel embutido fecha e tela própria navega (união discriminada por tipo). O Documento jurídico não depende do cadastro SN. Limpar reverte ao que veio do servidor.
