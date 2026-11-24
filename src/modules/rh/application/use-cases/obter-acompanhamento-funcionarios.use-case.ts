@@ -39,7 +39,6 @@ function faltantes(cliente: ClienteAcompanhamentoDto, servicos: ServicoAcompanha
 const pendentesDe = (cliente: ClienteAcompanhamentoDto, servicos: ServicoAcompanhamentoDto[]) =>
   new Set(faltantes(cliente, servicos).map((s) => s.id));
 
-// Pontos: clientes sem nenhum serviço faltando.
 const pontosDe = (clientes: ClienteAcompanhamentoDto[], servicos: ServicoAcompanhamentoDto[]) =>
   clientes.filter((c) => pendentesDe(c, servicos).size === 0).length;
 

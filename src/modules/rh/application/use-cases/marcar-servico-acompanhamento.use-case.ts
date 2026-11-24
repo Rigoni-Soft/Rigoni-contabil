@@ -27,7 +27,6 @@ abstract class EscreverAcompanhamento {
     private readonly acao: string,
   ) {}
 
-  // Devolve o ator quando ele pode escrever neste Cliente.
   protected async autorizar(
     clienteId: string,
     acao: string = this.acao,

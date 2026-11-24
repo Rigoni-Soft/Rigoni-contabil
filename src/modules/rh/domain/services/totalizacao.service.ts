@@ -75,7 +75,6 @@ export function ehDiaDeTrabalho(cargaMin: number, feriado: boolean): boolean {
   return !feriado && cargaMin > 0;
 }
 
-// O dia tem algo gravado: batida, extra ou abono.
 export function diaTemDados(dia: Pick<DiaDoCartao, "batidas" | "extra" | "abono">): boolean {
   return dia.batidas.length > 0 || dia.extra !== null || dia.abono;
 }

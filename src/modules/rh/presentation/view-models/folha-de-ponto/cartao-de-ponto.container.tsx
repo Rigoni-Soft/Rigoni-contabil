@@ -87,7 +87,6 @@ export function CartaoDePontoContainer({ folha }: Props) {
     setAvisoDoPdf(undefined);
   };
 
-  // Grava um dia; devolve o texto do erro, ou undefined se deu certo.
   const gravar = async (data: string, campos: FormData): Promise<string | undefined> => {
     const lido = lerDiaDoFormulario(campos);
     if (!lido.ok) return lido.erro;
@@ -134,7 +133,6 @@ export function CartaoDePontoContainer({ folha }: Props) {
       router.refresh();
     });
 
-  // Marca o cartão do mês como iniciado; devolve o texto do erro, ou undefined se deu certo.
   const marcarIniciado = () =>
     tentar("Falha ao iniciar o cartão de ponto", () =>
       iniciarCartaoDoPontoAction({
