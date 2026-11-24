@@ -1,18 +1,10 @@
--- Acompanhamento mensal do RH: serviços do setor (lista mantida pelo Líder), "se aplica" por Cliente e
--- Serviço, e marcação de concluído por Cliente, Serviço e competência. Todo mês nasce pendente (a ausência de
--- linha é pendente). Só o Responsável do RH do Cliente marca; o Líder do RH e o Admin leem. Cada escrita é
--- auditada na mesma transação (gatilho), como o Responsável.
 
 CREATE TABLE public.rh_servicos_acompanhamento (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     nome text NOT NULL,
-    -- Posição da coluna na tabela do RH: a ordem em que os serviços foram cadastrados.
     ordem bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-    -- Serviço do sistema (Holerite): derivado, nunca marcado nem editado à mão.
     sistema boolean DEFAULT false NOT NULL,
-    -- Primeiro mês (dia 1) em que o serviço aparece; os anteriores nunca o mostram.
     ativo_desde date NOT NULL,
-    -- Desativar tira o serviço dos meses a partir deste mês e preserva os anteriores.
     desativado_em timestamp with time zone,
     CONSTRAINT rh_servicos_acompanhamento_pkey PRIMARY KEY (id),
     CONSTRAINT rh_servicos_acompanhamento_nome_check CHECK (char_length(btrim(nome)) BETWEEN 1 AND 40),
@@ -25,24 +17,19 @@ CREATE TABLE public.rh_cliente_servico_aplica (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     cliente_id uuid NOT NULL REFERENCES public.clientes(id) ON DELETE CASCADE,
     servico_id uuid NOT NULL REFERENCES public.rh_servicos_acompanhamento(id) ON DELETE CASCADE,
-    -- Sem linha, o serviço se aplica; a linha existe para registrar o "não se aplica" (e a volta).
     aplica boolean NOT NULL,
-    -- Primeiro dia do mês em que o "não se aplica" vale (renova-se todo mês); NULL = nunca se aplica a este
-    -- Cliente (o ramo dele não tem o serviço), em todos os meses.
     competencia date,
     CONSTRAINT rh_cliente_servico_aplica_pkey PRIMARY KEY (id),
     CONSTRAINT rh_cliente_servico_aplica_mes_check
         CHECK (competencia IS NULL OR competencia = date_trunc('month', competencia)::date),
     CONSTRAINT rh_cliente_servico_aplica_unico UNIQUE (cliente_id, servico_id, competencia)
 );
--- UNIQUE trata NULL como distinto: este índice garante uma só linha "nunca se aplica" por Cliente e Serviço.
 CREATE UNIQUE INDEX rh_cliente_servico_aplica_sempre_idx
     ON public.rh_cliente_servico_aplica (cliente_id, servico_id) WHERE competencia IS NULL;
 
 CREATE TABLE public.rh_acompanhamento_marcacoes (
     cliente_id uuid NOT NULL REFERENCES public.clientes(id) ON DELETE CASCADE,
     servico_id uuid NOT NULL REFERENCES public.rh_servicos_acompanhamento(id) ON DELETE CASCADE,
-    -- Primeiro dia do mês da competência. A linha existe = concluído; desmarcar apaga a linha.
     competencia date NOT NULL,
     marcado_por uuid NOT NULL REFERENCES public.perfis(id) ON DELETE CASCADE,
     marcado_em timestamp with time zone DEFAULT now() NOT NULL,
@@ -51,7 +38,6 @@ CREATE TABLE public.rh_acompanhamento_marcacoes (
 );
 CREATE INDEX rh_acompanhamento_marcacoes_competencia_idx ON public.rh_acompanhamento_marcacoes (competencia);
 
--- Os serviços de partida do RH, visíveis desde sempre, e o Holerite (do sistema).
 INSERT INTO public.rh_servicos_acompanhamento (nome, ativo_desde, sistema) VALUES
     ('FGTS', '2000-01-01', false),
     ('DCTFWeb', '2000-01-01', false),
@@ -60,7 +46,6 @@ INSERT INTO public.rh_servicos_acompanhamento (nome, ativo_desde, sistema) VALUE
     ('Sindicato', '2000-01-01', false),
     ('Holerite', '2000-01-01', true);
 
--- Quem lê o acompanhamento do Cliente: o Admin, o Líder do RH e o Responsável do RH dele.
 CREATE FUNCTION public.pode_ver_acompanhamento_rh(p_cliente_id uuid) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
@@ -74,7 +59,6 @@ CREATE FUNCTION public.pode_ver_acompanhamento_rh(p_cliente_id uuid) RETURNS boo
   end, false);
 $$;
 
--- Quem marca: só o Funcionário do RH que é Responsável do Cliente.
 CREATE FUNCTION public.sou_responsavel_rh_do_cliente(p_cliente_id uuid) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
@@ -84,7 +68,6 @@ CREATE FUNCTION public.sou_responsavel_rh_do_cliente(p_cliente_id uuid) RETURNS 
      and public.sou_responsavel_do_cliente_no_setor(p_cliente_id, 'rh');
 $$;
 
--- O serviço está na tabela do mês: já criado e ainda não desativado (a desativação vale do mês dela em diante).
 CREATE FUNCTION public.servico_rh_ativo_na_competencia(p_servico_id uuid, p_competencia date) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
@@ -98,7 +81,6 @@ CREATE FUNCTION public.servico_rh_ativo_na_competencia(p_servico_id uuid, p_comp
   );
 $$;
 
--- Serviço editável à mão: não é o do sistema.
 CREATE FUNCTION public.servico_rh_editavel(p_servico_id uuid) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
@@ -115,15 +97,12 @@ GRANT EXECUTE ON FUNCTION public.sou_responsavel_rh_do_cliente(uuid) TO authenti
 GRANT EXECUTE ON FUNCTION public.servico_rh_ativo_na_competencia(uuid, date) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.servico_rh_editavel(uuid) TO authenticated, service_role;
 
--- Regras de dado que a RLS não expressa: só nome e desativação mudam; desativado não volta; marcação só em
--- serviço de marcar à mão, ativo no mês e que não seja futuro; "se aplica" só em serviço editável.
 CREATE FUNCTION public.proteger_servico_rh() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
 begin
   if tg_op = 'INSERT' then
-    -- Quem cadastra pela API começa neste mês e ativo; só o servidor (service_role) escolhe diferente.
     if auth.uid() is not null then
       new.ativo_desde := date_trunc('month', now() at time zone 'America/Sao_Paulo')::date;
       new.desativado_em := null;
@@ -134,7 +113,6 @@ begin
      or new.ordem <> old.ordem then
     raise exception 'servico_rh_imutavel';
   end if;
-  -- Serviço desativado é histórico: nenhum UPDATE (nem renomear) o altera.
   if old.desativado_em is not null then
     raise exception 'servico_rh_desativado';
   end if;
@@ -158,7 +136,6 @@ begin
   if not public.servico_rh_ativo_na_competencia(new.servico_id, new.competencia) then
     raise exception 'servico_rh_fora_da_competencia';
   end if;
-  -- Marcação em serviço "não se aplica" (no mês ou sempre) ficaria órfã e reapareceria concluída depois.
   if exists (
     select 1 from public.rh_cliente_servico_aplica a
     where a.cliente_id = new.cliente_id and a.servico_id = new.servico_id and not a.aplica
@@ -177,7 +154,6 @@ $$;
 CREATE TRIGGER rh_acompanhamento_marcacoes_proteger BEFORE INSERT OR UPDATE ON public.rh_acompanhamento_marcacoes
     FOR EACH ROW EXECUTE FUNCTION public.proteger_marcacao_rh();
 
--- Auditoria do sucesso, na mesma transação da escrita (o ator é quem chama pela Data API).
 CREATE FUNCTION public.auditar_rh_acompanhamento() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -212,7 +188,6 @@ begin
       else
         v_acao := case when new.aplica then 'rh.acompanhamento.aplicar' else 'rh.acompanhamento.nao-aplicar' end;
       end if;
-      -- coalesce: no DELETE em cascata (Cliente ou serviço apagado) a linha pai já não existe e o alvo é NOT NULL.
       v_alvo := coalesce((select c.cnpj from public.clientes c where c.id = v_cliente), '?')
         || ' ' || coalesce((select s.nome from public.rh_servicos_acompanhamento s where s.id = v_servico), '?')
         || ' ' || coalesce(to_char(case when tg_op = 'DELETE' then old.competencia else new.competencia end, 'YYYY-MM'), 'sempre');
@@ -233,7 +208,6 @@ CREATE TRIGGER rh_servicos_acompanhamento_auditar AFTER INSERT OR UPDATE ON publ
     FOR EACH ROW EXECUTE FUNCTION public.auditar_rh_acompanhamento();
 CREATE TRIGGER rh_cliente_servico_aplica_auditar AFTER INSERT OR UPDATE OR DELETE ON public.rh_cliente_servico_aplica
     FOR EACH ROW EXECUTE FUNCTION public.auditar_rh_acompanhamento();
--- "Não se aplica" (no mês ou sempre) leva a marcação do par junto: sem isso ela reapareceria concluída ao reativar.
 CREATE FUNCTION public.limpar_marcacao_rh_nao_aplica() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -257,7 +231,6 @@ ALTER TABLE public.rh_servicos_acompanhamento ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rh_cliente_servico_aplica ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rh_acompanhamento_marcacoes ENABLE ROW LEVEL SECURITY;
 
--- Serviços: o RH inteiro e o Admin leem; só o Líder do RH cadastra, renomeia e desativa (os do sistema não).
 CREATE POLICY rh_servicos_select ON public.rh_servicos_acompanhamento FOR SELECT USING (
     public.acesso_liberado() AND (public.meu_papel() = 'admin' OR public.meu_setor() = 'rh'));
 CREATE POLICY rh_servicos_insert ON public.rh_servicos_acompanhamento FOR INSERT WITH CHECK (
@@ -270,7 +243,6 @@ CREATE POLICY rh_servicos_update ON public.rh_servicos_acompanhamento FOR UPDATE
     public.acesso_liberado() AND public.meu_papel() = 'lider_setor' AND public.meu_setor() = 'rh'
     AND NOT sistema);
 
--- "Se aplica" (por mês ou sempre) e marcação: leem o Admin, o Líder do RH e o Responsável; escreve só o Responsável do RH.
 CREATE POLICY rh_aplica_select ON public.rh_cliente_servico_aplica FOR SELECT USING (
     public.pode_ver_acompanhamento_rh(cliente_id));
 CREATE POLICY rh_aplica_insert ON public.rh_cliente_servico_aplica FOR INSERT WITH CHECK (
@@ -288,7 +260,6 @@ CREATE POLICY rh_marcacoes_insert ON public.rh_acompanhamento_marcacoes FOR INSE
 CREATE POLICY rh_marcacoes_delete ON public.rh_acompanhamento_marcacoes FOR DELETE USING (
     public.sou_responsavel_rh_do_cliente(cliente_id));
 
--- Grants explícitos: o anon não recebe nada; o authenticated só o que as políticas usam.
 REVOKE ALL ON TABLE public.rh_servicos_acompanhamento, public.rh_cliente_servico_aplica,
     public.rh_acompanhamento_marcacoes FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.rh_servicos_acompanhamento TO authenticated;
@@ -297,8 +268,6 @@ GRANT SELECT, INSERT, DELETE ON TABLE public.rh_acompanhamento_marcacoes TO auth
 GRANT ALL ON TABLE public.rh_servicos_acompanhamento, public.rh_cliente_servico_aplica,
     public.rh_acompanhamento_marcacoes TO service_role;
 
--- Troca o "se aplica" do par numa transação só (apaga a exceção antiga e grava a nova): ou vale tudo ou nada.
--- p_escopo: 'aplica' volta ao padrão; 'mes' dispensa só p_competencia; 'sempre' dispensa em todos os meses.
 CREATE FUNCTION public.definir_aplica_rh(p_cliente_id uuid, p_servico_id uuid, p_competencia date, p_escopo text) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -322,7 +291,6 @@ begin
     where cliente_id = p_cliente_id and servico_id = p_servico_id
       and (competencia is null or competencia = p_competencia);
   elsif p_escopo = 'mes' then
-    -- Sair de "sempre" para "só este mês" devolve o serviço aos demais meses.
     delete from public.rh_cliente_servico_aplica
     where cliente_id = p_cliente_id and servico_id = p_servico_id and competencia is null;
     insert into public.rh_cliente_servico_aplica (cliente_id, servico_id, aplica, competencia)
@@ -339,12 +307,7 @@ $$;
 REVOKE ALL ON FUNCTION public.definir_aplica_rh(uuid, uuid, date, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.definir_aplica_rh(uuid, uuid, date, text) TO authenticated, service_role;
 
--- Cadastro do Cliente no RH: a mesma tela "Editar cadastro operacional" do SN, com os dados do RH. Contatos são
--- de todos os Setores (valem para qualquer Regime), as observações gerais são de cada Setor e o RH lê os
--- documentos contratuais como o SN. A edição do RH passa por uma função que só toca no que é do RH ou
--- compartilhado (contatos e observações do RH); o que é do SN (DAS, atividade, forma de envio) fica de fora.
 
--- Observações gerais por Setor: cada Setor lê e edita as suas; o Admin lê todas.
 CREATE TABLE public.cliente_observacoes_setor (
     cliente_id uuid NOT NULL REFERENCES public.clientes(id) ON DELETE CASCADE,
     setor public.setor_slug NOT NULL,
@@ -355,7 +318,6 @@ CREATE TABLE public.cliente_observacoes_setor (
 );
 ALTER TABLE public.cliente_observacoes_setor ENABLE ROW LEVEL SECURITY;
 
--- Escreve só a função abaixo (service_role e SECURITY DEFINER); a API lê pela RLS.
 REVOKE ALL ON TABLE public.cliente_observacoes_setor FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.cliente_observacoes_setor TO authenticated;
 GRANT ALL ON TABLE public.cliente_observacoes_setor TO service_role;
@@ -365,19 +327,15 @@ CREATE POLICY cliente_observacoes_setor_select ON public.cliente_observacoes_set
     USING (public.meu_papel() = 'admin'
            OR (public.pode_ver_cliente(cliente_id) AND public.meu_setor() = setor));
 
--- Os documentos contratuais são lidos pelo SN e agora pelo RH (só leitura; anexar segue sendo do Admin).
 CREATE OR REPLACE FUNCTION public.pode_ver_documentos_contratuais(p_cliente_id uuid) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
-  -- Cliente nulo (objeto fora do padrão): pode_ver_cliente(null) é true para Líder, então barra aqui.
   select p_cliente_id is not null
     and public.pode_ver_cliente(p_cliente_id)
     and (public.meu_papel() = 'admin' or public.meu_setor() in ('simples_nacional', 'rh'));
 $$;
 
--- A trava de Regime do cadastro operacional SN segue valendo para a escrita direta de contatos (Admin e SN);
--- só a função do RH, que liga `app.cadastro_rh` na própria transação, grava contatos de qualquer Regime.
 CREATE OR REPLACE FUNCTION public.proteger_cadastro_operacional() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -391,7 +349,6 @@ begin
   if tg_op = 'UPDATE' and new.cliente_id is distinct from old.cliente_id then
     raise exception 'O Cliente do cadastro operacional não pode ser trocado.' using errcode = '23514';
   end if;
-  -- coalesce: com a variável nunca definida current_setting devolve NULL, o IF vira NULL e a trava não dispara.
   if not (tg_table_name = 'cliente_contatos' and coalesce(current_setting('app.cadastro_rh', true), '') = 'on')
      and not exists (
     select 1 from public.clientes
@@ -409,11 +366,7 @@ begin
 end;
 $$;
 
--- Edição do RH: observações do RH e, se vierem (p_contatos não nulo), os contatos, numa transação. Quem pode é quem gere o cadastro do Setor
--- (o Líder do RH, o Responsável do RH do Cliente e o Admin), a mesma regra dos Parcelamentos.
 
--- O alerta passa a ser do Setor dono do Parcelamento: a chave do alerta aberto vira Cliente, tipo,
--- origem e Setor. Os alertas que já existem ficam no Setor em que foram gravados (o Simples Nacional).
 DROP INDEX public.alertas_setor_um_aberto_por_cliente_tipo_e_origem;
 CREATE UNIQUE INDEX alertas_setor_um_aberto_por_cliente_tipo_origem_e_setor
   ON public.alertas_setor USING btree (cliente_id, tipo, origem, setor) WHERE (resolvido_em IS NULL);
@@ -428,7 +381,6 @@ CREATE OR REPLACE FUNCTION public.registrar_alerta_setor(p_setor public.setor_sl
   do update set mensagem = excluded.mensagem, criado_em = now();
 $$;
 
--- As pendências de guia PGFN dizem de qual Setor é cada Parcelamento.
 CREATE OR REPLACE FUNCTION public.pendencias_guia_pgfn(p_cliente_id uuid) RETURNS jsonb
     LANGUAGE sql STABLE
     SET search_path TO 'public'
@@ -447,8 +399,6 @@ CREATE OR REPLACE FUNCTION public.pendencias_guia_pgfn(p_cliente_id uuid) RETURN
      and g.estado is distinct from 'confirmada';
 $$;
 
--- Confirmar a guia resolve só o alerta do Setor do Parcelamento, e só quando esse Setor ficou sem
--- pendência: o alerta de outro Setor do mesmo Cliente segue aberto.
 CREATE OR REPLACE FUNCTION public.resolver_alerta_guia_pgfn_confirmada() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -473,14 +423,7 @@ begin
 end;
 $$;
 
--- Folha de ponto do RH: o Quadro de funcionários do Cliente (nome, Jornada por dia da semana e a marca
--- "comissionado"), o Cartão de ponto digitado (batidas, coluna Extra e Abono por dia) e o "sem movimento no
--- mês". Nenhum outro dado do empregado é guardado: sem documento, sem motivo médico, sem imagem. A
--- Totalização é calculada no código a partir disto, nunca gravada. Leem o Admin, o Líder do RH e o
--- Responsável do RH do Cliente; escreve só o Responsável (Funcionário do RH), como o acompanhamento mensal.
--- Cada escrita é auditada na mesma transação (gatilho).
 
--- Padrão do Cliente: "os empregados deste Cliente são comissionados" (a marca de cada empregado nasce dele).
 CREATE TABLE public.rh_ponto_padroes (
     cliente_id uuid NOT NULL REFERENCES public.clientes(id) ON DELETE CASCADE,
     comissionados boolean DEFAULT false NOT NULL,
@@ -491,14 +434,11 @@ CREATE TABLE public.rh_empregados (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     cliente_id uuid NOT NULL REFERENCES public.clientes(id) ON DELETE CASCADE,
     nome text NOT NULL,
-    -- Carga em minutos por dia da semana, de domingo (1) a sábado (7); zero = não trabalha nesse dia.
     jornada smallint[] NOT NULL,
     comissionado boolean DEFAULT false NOT NULL,
-    -- Inativar tira o empregado do quadro sem apagar os cartões já feitos.
     ativo boolean DEFAULT true NOT NULL,
     CONSTRAINT rh_empregados_pkey PRIMARY KEY (id),
     CONSTRAINT rh_empregados_nome_check CHECK (char_length(btrim(nome)) BETWEEN 1 AND 120),
-    -- array_position: elemento NULL daria NULL no BETWEEN, e NULL passaria no CHECK.
     CONSTRAINT rh_empregados_jornada_check CHECK (
         array_length(jornada, 1) = 7
         AND array_position(jornada, NULL) IS NULL
@@ -509,7 +449,6 @@ CREATE TABLE public.rh_empregados (
 );
 CREATE INDEX rh_empregados_cliente_idx ON public.rh_empregados (cliente_id);
 
--- Pares de batida: lista de até p_maximo objetos {"entrada": min, "saida": min} com minutos de 0 a 1439.
 CREATE FUNCTION public.rh_pares_de_batida_validos(p jsonb, p_maximo integer) RETURNS boolean
     LANGUAGE sql IMMUTABLE
     AS $$
@@ -529,9 +468,7 @@ CREATE TABLE public.rh_ponto_dias (
     empregado_id uuid NOT NULL REFERENCES public.rh_empregados(id) ON DELETE CASCADE,
     data date NOT NULL,
     batidas jsonb DEFAULT '[]'::jsonb NOT NULL,
-    -- Coluna Extra do cartão: um par, ou nenhum.
     extra jsonb,
-    -- Só a sinalização: nunca o motivo, o CID nem o documento.
     abono boolean DEFAULT false NOT NULL,
     CONSTRAINT rh_ponto_dias_pkey PRIMARY KEY (empregado_id, data),
     CONSTRAINT rh_ponto_dias_batidas_check CHECK (public.rh_pares_de_batida_validos(batidas, 4)),
@@ -542,7 +479,6 @@ CREATE TABLE public.rh_ponto_dias (
 
 CREATE TABLE public.rh_empregado_sem_movimento (
     empregado_id uuid NOT NULL REFERENCES public.rh_empregados(id) ON DELETE CASCADE,
-    -- Primeiro dia do mês (férias, desligamento): o empregado não trava o Holerite desse mês.
     competencia date NOT NULL,
     CONSTRAINT rh_empregado_sem_movimento_pkey PRIMARY KEY (empregado_id, competencia),
     CONSTRAINT rh_empregado_sem_movimento_mes_check CHECK (competencia = date_trunc('month', competencia)::date)
@@ -557,7 +493,6 @@ $$;
 REVOKE ALL ON FUNCTION public.cliente_do_empregado_rh(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.cliente_do_empregado_rh(uuid) TO authenticated, service_role;
 
--- Regras de dado que a RLS não expressa: o empregado não troca de Cliente; o dia de ponto não troca de data nem de empregado; cartão só de empregado ativo.
 CREATE FUNCTION public.proteger_ponto_rh() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -587,8 +522,6 @@ CREATE TRIGGER rh_ponto_dias_proteger BEFORE INSERT OR UPDATE ON public.rh_ponto
 CREATE TRIGGER rh_empregado_sem_movimento_proteger BEFORE INSERT ON public.rh_empregado_sem_movimento
     FOR EACH ROW EXECUTE FUNCTION public.proteger_ponto_rh();
 
--- Auditoria do sucesso, na mesma transação da escrita (o ator é quem chama pela Data API). O alvo leva o CNPJ
--- e o nome do empregado, que já estão no quadro; nunca as batidas.
 CREATE FUNCTION public.auditar_rh_ponto() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -684,8 +617,6 @@ CREATE POLICY rh_sem_movimento_insert ON public.rh_empregado_sem_movimento FOR I
 CREATE POLICY rh_sem_movimento_delete ON public.rh_empregado_sem_movimento FOR DELETE USING (
     public.sou_responsavel_rh_do_cliente(public.cliente_do_empregado_rh(empregado_id)));
 
--- Grants explícitos: o anon não recebe nada; o authenticated só o que as políticas usam (o empregado nunca é
--- apagado: inativa-se).
 REVOKE ALL ON TABLE public.rh_ponto_padroes, public.rh_empregados, public.rh_ponto_dias,
     public.rh_empregado_sem_movimento FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.rh_ponto_padroes, public.rh_empregados TO authenticated;
@@ -694,20 +625,10 @@ GRANT SELECT, INSERT, DELETE ON TABLE public.rh_empregado_sem_movimento TO authe
 GRANT ALL ON TABLE public.rh_ponto_padroes, public.rh_empregados, public.rh_ponto_dias,
     public.rh_empregado_sem_movimento TO service_role;
 
--- O RH lê os feriados (só leitura; cadastrar e apagar seguem do Admin) para a Totalização.
 CREATE POLICY feriados_select_rh ON public.feriados FOR SELECT TO authenticated USING (
     public.acesso_liberado() AND public.meu_setor() = 'rh');
 
--- Convenção coletiva do Cliente (RH): o PDF no bucket privado, a vigência, o sindicato que a identifica e o
--- conjunto de regras extraído no upload (jsonb versionado: aplicadas com a cláusula, rejeitadas com o
--- motivo). A convenção nunca é editada nem apagada: renovar é subir outra; as anteriores ficam no histórico
--- e valem para os períodos da época. Um Cliente pode ter mais de uma (sindicatos diferentes); o empregado
--- aponta a sua pelo sindicato, e sem ponteiro vale a única do Cliente. Sobe o Líder do RH ou o Admin;
--- leem o Admin, o Líder do RH e o Responsável do RH do Cliente. As policies do bucket estão na migration seguinte.
 
--- Espelha o esquema fechado de src/shared/kernel/regras-da-convencao.ts: a Data API (Admin ou Líder do RH) não
--- grava regra fora dele. Confere forma, chave, citação e tipo do valor; o piso da lei e o número no trecho
--- citado ficam só no validador do domínio, que o banco não reproduz.
 CREATE FUNCTION public.rh_regras_da_convencao_validas(regras jsonb) RETURNS boolean
     LANGUAGE plpgsql IMMUTABLE
     SET search_path TO 'public'
@@ -795,7 +716,6 @@ CREATE TABLE public.rh_convencoes (
     CONSTRAINT rh_convencoes_pkey PRIMARY KEY (id),
     CONSTRAINT rh_convencoes_sindicato_check CHECK (char_length(btrim(sindicato)) BETWEEN 1 AND 120),
     CONSTRAINT rh_convencoes_vigencia_check CHECK (vigencia_fim >= vigencia_inicio),
-    -- O arquivo mora na pasta do próprio Cliente e não se compartilha: a policy do bucket libera a leitura por ele.
     CONSTRAINT rh_convencoes_arquivo_caminho_check CHECK (arquivo_caminho LIKE cliente_id::text || '/%'),
     CONSTRAINT rh_convencoes_arquivo_caminho_unico UNIQUE (arquivo_caminho),
     CONSTRAINT rh_convencoes_arquivo_nome_check CHECK (char_length(btrim(arquivo_nome)) BETWEEN 1 AND 255),
@@ -803,7 +723,6 @@ CREATE TABLE public.rh_convencoes (
 );
 CREATE INDEX rh_convencoes_cliente_idx ON public.rh_convencoes (cliente_id, vigencia_inicio DESC);
 
--- Interruptores do Cliente que a convenção não decide: banco de horas (desligado) e trabalho aos domingos.
 CREATE TABLE public.rh_cliente_interruptores (
     cliente_id uuid NOT NULL REFERENCES public.clientes(id) ON DELETE CASCADE,
     banco_de_horas boolean DEFAULT false NOT NULL,
@@ -811,14 +730,12 @@ CREATE TABLE public.rh_cliente_interruptores (
     CONSTRAINT rh_cliente_interruptores_pkey PRIMARY KEY (cliente_id)
 );
 
--- Sindicato da convenção que o empregado segue; nulo = a única convenção do Cliente.
 ALTER TABLE public.rh_empregados
     ADD COLUMN convencao_sindicato text,
     ADD CONSTRAINT rh_empregados_convencao_sindicato_check CHECK (
         convencao_sindicato IS NULL OR char_length(btrim(convencao_sindicato)) BETWEEN 1 AND 120
     );
 
--- Quem sobe a convenção: o Admin, ou o Líder do RH.
 CREATE FUNCTION public.pode_gerir_convencao_rh() RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
@@ -830,8 +747,6 @@ $$;
 REVOKE ALL ON FUNCTION public.pode_gerir_convencao_rh() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.pode_gerir_convencao_rh() TO authenticated, service_role;
 
--- Auditoria do sucesso, na mesma transação (o ator é quem chama pela Data API). O alvo leva o CNPJ e o
--- sindicato; nunca as regras.
 CREATE FUNCTION public.auditar_rh_convencao() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -880,22 +795,18 @@ CREATE POLICY rh_interruptores_update ON public.rh_cliente_interruptores FOR UPD
     public.sou_responsavel_rh_do_cliente(cliente_id))
   WITH CHECK (public.sou_responsavel_rh_do_cliente(cliente_id));
 
--- Grants explícitos: o anon não recebe nada; a convenção não se altera nem se apaga.
 REVOKE ALL ON TABLE public.rh_convencoes, public.rh_cliente_interruptores FROM PUBLIC, anon, authenticated;
--- INSERT só nas colunas que o app envia: id, criado_em e criado_por vêm do DEFAULT (autoria e ordem não se forjam).
 GRANT SELECT ON TABLE public.rh_convencoes TO authenticated;
 GRANT INSERT (cliente_id, sindicato, vigencia_inicio, vigencia_fim, arquivo_caminho, arquivo_nome, regras)
     ON TABLE public.rh_convencoes TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.rh_cliente_interruptores TO authenticated;
 GRANT ALL ON TABLE public.rh_convencoes, public.rh_cliente_interruptores TO service_role;
 
--- O empregado só aponta para o sindicato de uma convenção que o Cliente tem; nulo sempre vale.
 CREATE FUNCTION public.proteger_convencao_do_empregado_rh() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
 begin
-  -- No INSERT não há linha antiga: qualquer sindicato informado precisa existir.
   if new.convencao_sindicato is not null
      and (tg_op = 'INSERT' or new.convencao_sindicato is distinct from old.convencao_sindicato)
      and not exists (
@@ -909,17 +820,10 @@ $$;
 CREATE TRIGGER rh_empregados_convencao_proteger BEFORE INSERT OR UPDATE ON public.rh_empregados
     FOR EACH ROW EXECUTE FUNCTION public.proteger_convencao_do_empregado_rh();
 
--- Bucket privado; as policies de storage.objects vêm na migration seguinte.
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('convencoes-coletivas', 'convencoes-coletivas', false, 10485760, '{application/pdf}')
 ON CONFLICT (id) DO NOTHING;
 
--- O PDF da convenção sobe com a sessão do usuário (sem service_role no caminho da requisição): policy de
--- INSERT só para quem sobe a convenção (Líder do RH e Admin). O arquivo de uma convenção gravada não sai
--- pelo usuário nem se remove. Só o arquivo ainda solto (nenhuma convenção o referencia) é visível e
--- removível, porque o Storage lê o objeto antes de apagá-lo: é a compensação de um envio que falhou depois
--- do upload. O INSERT só aceita o nome <cliente>/<id>.pdf (o do CHECK de rh_convencoes.arquivo_caminho): fora
--- dessa forma o objeto ficaria solto, sem convenção, e legível por qualquer gestor.
 
 CREATE FUNCTION public.convencao_rh_usa_arquivo(p_caminho text) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
@@ -940,11 +844,6 @@ CREATE POLICY convencoes_coletivas_delete_sem_convencao ON storage.objects FOR D
     USING (bucket_id = 'convencoes-coletivas' AND public.pode_gerir_convencao_rh()
            AND NOT public.convencao_rh_usa_arquivo(name));
 
--- Holerite derivado dos cartões: por Cliente, quantos empregados ativos estão cadastrados, quantos estão
--- "sem movimento" no mês e quantos têm o Cartão de ponto do mês salvo. Cartão salvo = pelo menos um dia salvo
--- no mês (incompleto conta; cartão só iniciado, sem nenhum apontamento, não). Quem decide se o Holerite está concluído é o código; aqui só
--- se conta. A função roda como quem chama (SECURITY INVOKER): a RLS de empregados, dias e "sem movimento"
--- recorta por Cliente, então cada ator conta só o que já enxerga.
 CREATE FUNCTION public.rh_cartoes_do_mes(p_competencia date)
 RETURNS TABLE (cliente_id uuid, cadastrados integer, sem_movimento integer, cartoes integer)
     LANGUAGE sql STABLE SECURITY INVOKER
@@ -971,23 +870,16 @@ $$;
 REVOKE ALL ON FUNCTION public.rh_cartoes_do_mes(date) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rh_cartoes_do_mes(date) TO authenticated, service_role;
 
--- Cartão de ponto "iniciado": o Funcionário do RH salvou o cartão do mês de um empregado, mesmo sem digitar nenhum
--- horário. Daí em diante os dias úteis sem batida são falta; antes disso o cartão é novo e os dias vazios ainda
--- não contam como falta. Só a marca (empregado + mês): nunca batida, motivo ou documento.
 CREATE TABLE public.rh_cartoes_iniciados (
     empregado_id uuid NOT NULL REFERENCES public.rh_empregados(id) ON DELETE CASCADE,
-    -- Primeiro dia do mês, como a competência do "sem movimento".
     competencia date NOT NULL,
     CONSTRAINT rh_cartoes_iniciados_pkey PRIMARY KEY (empregado_id, competencia),
     CONSTRAINT rh_cartoes_iniciados_mes_check CHECK (competencia = date_trunc('month', competencia)::date)
 );
 
--- Mesma regra do cartão: só de empregado ativo.
 CREATE TRIGGER rh_cartoes_iniciados_proteger BEFORE INSERT ON public.rh_cartoes_iniciados
     FOR EACH ROW EXECUTE FUNCTION public.proteger_ponto_rh();
 
--- Auditoria do sucesso, na mesma transação (o ator é quem chama pela Data API). O alvo é o mesmo do resto do
--- cartão: CNPJ, nome do empregado e o mês. Função própria: a `auditar_rh_ponto` do cartão fica intocada.
 CREATE FUNCTION public.auditar_rh_cartao_iniciado() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -1015,25 +907,16 @@ CREATE POLICY rh_cartoes_iniciados_select ON public.rh_cartoes_iniciados FOR SEL
 CREATE POLICY rh_cartoes_iniciados_insert ON public.rh_cartoes_iniciados FOR INSERT WITH CHECK (
     public.sou_responsavel_rh_do_cliente(public.cliente_do_empregado_rh(empregado_id)));
 
--- Grants explícitos: o anon não recebe nada; o authenticated só lê e marca (a marca não se desfaz).
 REVOKE ALL ON TABLE public.rh_cartoes_iniciados FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT ON TABLE public.rh_cartoes_iniciados TO authenticated;
 GRANT ALL ON TABLE public.rh_cartoes_iniciados TO service_role;
 REVOKE ALL ON FUNCTION public.auditar_rh_cartao_iniciado() FROM PUBLIC, anon, authenticated;
 
--- Função de gatilho não é chamável por RPC; o REVOKE só alinha com o baseline e com auditar_rh_cartao_iniciado.
 REVOKE ALL ON FUNCTION public.proteger_ponto_rh() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.auditar_rh_ponto() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.auditar_rh_convencao() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.proteger_convencao_do_empregado_rh() FROM PUBLIC, anon, authenticated;
 
--- Gravação do cartão lido da foto: marca o cartão do mês como iniciado e grava os dias da
--- quinzena numa transação só. Antes eram N chamadas em série e uma falha no meio deixava o cartão parcial.
--- Roda como quem chama (SECURITY INVOKER): a RLS de rh_cartoes_iniciados e de rh_ponto_dias, os gatilhos de
--- proteção e a auditoria valem como na gravação dia a dia. Qualquer dia recusado desfaz a função inteira.
--- Ler só preenche, e quem garante é o banco: dia que já tem linha (o RH digitou ou abonou depois de a leitura
--- listar os dias, numa janela de até 45 s) não é tocado, e dia sem batida, sem Extra e sem Abono não grava nem
--- apaga nada. Só a marca e os dias: nunca imagem, nome lido, CID ou documento.
 CREATE FUNCTION public.rh_gravar_cartao(p_empregado_id uuid, p_competencia date, p_dias jsonb)
 RETURNS void
     LANGUAGE plpgsql SECURITY INVOKER
@@ -1069,12 +952,6 @@ $$;
 REVOKE ALL ON FUNCTION public.rh_gravar_cartao(uuid, date, jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rh_gravar_cartao(uuid, date, jsonb) TO authenticated, service_role;
 
--- Abono do atestado lido da foto: marca Abono em todos os dias numa transação só. Antes eram até 31 chamadas em
--- série e uma falha no meio deixava parte dos dias abonados sem o RH saber.
--- Só seta o Abono: batidas e Extra do dia ficam como estão (o atestado abona dia que já tem batida), e a marca
--- de cartão iniciado não é tocada (o atestado só abona em mês que o RH já iniciou, e pode cruzar dois meses).
--- Roda como quem chama (SECURITY INVOKER): a RLS de rh_ponto_dias, os gatilhos de proteção e a auditoria valem
--- como na gravação dia a dia. Qualquer dia recusado desfaz a função inteira. Só datas: nunca nome, CID ou documento.
 CREATE FUNCTION public.rh_abonar_dias(p_empregado_id uuid, p_datas jsonb)
 RETURNS void
     LANGUAGE plpgsql SECURITY INVOKER

@@ -1,15 +1,8 @@
--- Bucket dos contratos: limite por arquivo de 10 MB para 20 MB. Contratos e alterações digitalizados do escritório
--- antigo passam de 10 MB (até ~18 MB), e a carga inicial dos Clientes não conseguia gravá-los.
 update storage.buckets
 set file_size_limit = 20971520
 where id = 'documentos-clientes';
 
--- Responsável do Cliente numa tabela só (ADR 0003 revista): o do Simples Nacional passa de
--- `cliente_cadastro_operacional_sn.responsavel_id` para `cliente_responsaveis`, como o dos demais Setores.
--- Some o ramo "SN ou demais" das funções, dos gatilhos e da regra de acesso. Comportamento igual ao de antes.
 
--- Dados: o SN entra em cliente_responsaveis. Os gatilhos ficam desligados só nesta cópia (os dados já
--- existiam sob as regras antigas e a cópia não é uma atribuição nova a auditar).
 ALTER TABLE public.cliente_responsaveis DROP CONSTRAINT cliente_responsaveis_fora_do_sn;
 ALTER TABLE public.cliente_responsaveis DISABLE TRIGGER USER;
 INSERT INTO public.cliente_responsaveis (cliente_id, setor, responsavel_id)
@@ -119,8 +112,6 @@ begin
 
   update public.perfis set desativado_em = now() where id = alvo_id;
 
-  -- Responsável de todo Setor: a desativação o remove, com a auditoria de sempre. A marca
-  -- impede o gatilho de auditar de novo as mesmas linhas.
   perform set_config('rigoni.removendo_responsavel_por_desativacao', 'on', true);
   with removidos_por_setor as (
     delete from public.cliente_responsaveis
@@ -133,19 +124,12 @@ begin
   join public.clientes c on c.id = r.cliente_id;
   perform set_config('rigoni.removendo_responsavel_por_desativacao', 'off', true);
 
-  -- A marca vale só nesta transação: quem protege o dono do Atendimento (aviso de inatividade)
-  -- distingue a devolução da Transferência por ela.
   perform set_config('rigoni.devolucao_por_desativacao', 'on', true);
   with devolvidos as (
     update public.atendimentos a
     set funcionario_id = null,
-        -- O Atendimento volta ao destinatário que a regra do Setor aponta agora: o Responsável do
-        -- Cliente (o desativado já foi removido acima) ou, sem ele, o Líder ativo. Na Recepção, ou sem
-        -- destinatário, fica sem dono nem destinatário.
         fila_funcionario_id = public.destinatario_da_espera(a.cliente_id, a.setor),
         assumido_em = null,
-        -- Quem estava sendo atendido entra agora (atrás de quem já esperava); quem esperava
-        -- dirigido ao desativado mantém a espera. Os `a.*` do SET são os valores de antes.
         fila_desde = case
           when a.funcionario_id = alvo_id then clock_timestamp()
           else coalesce(a.fila_desde, a.criado_em)
@@ -197,8 +181,6 @@ CREATE OR REPLACE FUNCTION public.sou_responsavel_do_cliente(p_cliente_id uuid) 
     where cliente_id = p_cliente_id and responsavel_id = auth.uid()
   );
 $$;
--- O Responsável do SN continua legível por quem vê o Cliente (era assim pelo cadastro operacional); o dos
--- demais Setores segue só do Admin, do Líder do Setor e do próprio Responsável.
 DROP POLICY cliente_responsaveis_select ON public.cliente_responsaveis;
 CREATE POLICY cliente_responsaveis_select ON public.cliente_responsaveis FOR SELECT USING (
   public.acesso_liberado() AND (
@@ -209,9 +191,6 @@ CREATE POLICY cliente_responsaveis_select ON public.cliente_responsaveis FOR SEL
   )
 );
 
--- Parcelamento por Setor: cada Setor tem os seus Parcelamentos (mesmo fluxo do SN) e só vê os seus; o
--- Admin vê todos. Quem busca a guia para enviar ao Cliente (URA, job) lê a união pelo servidor.
--- Os Parcelamentos que já existem passam a ser do Simples Nacional.
 ALTER TABLE public.cliente_parcelamentos ADD COLUMN setor public.setor_slug NOT NULL DEFAULT 'simples_nacional';
 ALTER TABLE public.cliente_parcelamentos ALTER COLUMN setor DROP DEFAULT;
 CREATE INDEX cliente_parcelamentos_setor_idx ON public.cliente_parcelamentos USING btree (cliente_id, setor);
@@ -280,8 +259,6 @@ begin
    where cliente_id = p_cliente_id and setor = p_setor
      and id not in (select (item ->> 'id')::uuid from jsonb_array_elements(p_itens) as item);
 
-  -- UPDATE antes do INSERT: o gatilho BEFORE INSERT avaliaria a linha proposta de um Parcelamento
-  -- quitado (parcelas em zero) antes de o ON CONFLICT resolvê-la.
   update public.cliente_parcelamentos p
      set codigo = item ->> 'codigo',
          parcelas_restantes = (item ->> 'parcelasRestantes')::integer,
@@ -306,8 +283,6 @@ REVOKE ALL ON FUNCTION public.salvar_parcelamentos_cliente(uuid, public.setor_sl
 GRANT ALL ON FUNCTION public.salvar_parcelamentos_cliente(uuid, public.setor_slug, jsonb) TO authenticated;
 GRANT ALL ON FUNCTION public.salvar_parcelamentos_cliente(uuid, public.setor_slug, jsonb) TO service_role;
 
--- A restrição de Regime (só Simples Nacional e MEI) é do cadastro operacional do SN, não dos demais
--- Setores: no Parcelamento ela vale só para as linhas do SN. O Setor de um Parcelamento não muda.
 CREATE FUNCTION public.proteger_cliente_parcelamento_regime() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'

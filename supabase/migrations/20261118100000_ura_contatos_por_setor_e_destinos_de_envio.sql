@@ -1,6 +1,3 @@
--- A URA ganha a etapa "setor": ao pedir um atendente, o cliente escolhe o setor numa lista paginada.
--- A sessão guarda só a posição (etapa, página e respostas inválidas), como nas outras etapas.
--- O trio modo/pagina/lista continua exclusivo da etapa "alteracao"; a página passa a existir também em "setor".
 
 ALTER TABLE public.atendimento_sessoes DROP CONSTRAINT atendimento_sessoes_etapa_check;
 ALTER TABLE public.atendimento_sessoes ADD CONSTRAINT atendimento_sessoes_etapa_check
@@ -13,13 +10,7 @@ ALTER TABLE public.atendimento_sessoes ADD CONSTRAINT atendimento_sessoes_check
 ALTER TABLE public.atendimento_sessoes ADD CONSTRAINT atendimento_sessoes_pagina_etapa_check
     CHECK ((etapa = ANY (ARRAY['alteracao'::text, 'setor'::text])) = (pagina IS NOT NULL));
 
--- Contato do Cliente com e-mail, Setores, Setor dono e id estável (ADR 0013).
--- O "contato padrão" deixa de existir; a edição passa a criar, atualizar e remover por id, num caminho
--- único (`salvar_contatos_do_cliente`); a regra "o contato cujo número bate neste Cliente" vive numa só
--- função (`contato_por_telefone_no_cliente`) e a normalização do telefone numa só (`chave_telefone`).
--- Não cria Contatos nem Destinos: os Contatos que existem continuam, com o setor URA.
 
--- Normalização única do telefone: só dígitos e sem o DDI 55 (o número cadastrado é DDD + número).
 CREATE FUNCTION public.chave_telefone(p_telefone text) RETURNS text
     LANGUAGE sql IMMUTABLE
     SET search_path TO 'public'
@@ -34,8 +25,6 @@ $$;
 REVOKE ALL ON FUNCTION public.chave_telefone(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.chave_telefone(text) TO authenticated, service_role;
 
--- Lista de referência dos Setores de um Contato: a URA (só rótulo, nunca destino nem Setor de usuário)
--- mais os nove Setores atuais. Fica fora do enum de login para a estrutura organizacional administrar depois.
 CREATE TABLE public.setores_de_contato (
     slug text NOT NULL,
     rotulo text NOT NULL,
@@ -62,16 +51,13 @@ GRANT ALL ON TABLE public.setores_de_contato TO service_role;
 CREATE POLICY setores_de_contato_select ON public.setores_de_contato
     FOR SELECT TO authenticated USING (true);
 
--- Contato: telefone passa a ser opcional (basta um canal), ganha e-mail e Setor dono (null = o Admin).
 ALTER TABLE public.cliente_contatos
     ALTER COLUMN telefone DROP NOT NULL,
     ADD COLUMN email text,
     ADD COLUMN dono_setor public.setor_slug;
 
--- Telefone sem nenhum dígito ("-", "()") não é WhatsApp: vira "sem telefone".
 UPDATE public.cliente_contatos SET telefone = NULL WHERE public.chave_telefone(telefone) IS NULL;
 
--- Sobrou Contato sem telefone e sem e-mail: não há o que preservar em silêncio, a migration lista quem é.
 DO $$
 declare
   v_lista text;
@@ -83,7 +69,6 @@ begin
   end if;
 END $$;
 
--- Quem edita hoje continua editando: Clientes SN/MEI eram do SN, os demais só o RH gravava.
 UPDATE public.cliente_contatos ct
    SET dono_setor = CASE WHEN c.regime IN ('simples_nacional', 'mei')
                          THEN 'simples_nacional'::public.setor_slug ELSE 'rh'::public.setor_slug END
@@ -99,7 +84,6 @@ ALTER TABLE public.cliente_contatos
     ADD CONSTRAINT cliente_contatos_canal_check
         CHECK (public.chave_telefone(telefone) IS NOT NULL OR email IS NOT NULL);
 
--- Setores de um Contato (a URA em todos).
 CREATE TABLE public.cliente_contato_setores (
     contato_id uuid NOT NULL REFERENCES public.cliente_contatos(id) ON DELETE CASCADE,
     setor text NOT NULL REFERENCES public.setores_de_contato(slug),
@@ -113,13 +97,9 @@ CREATE POLICY cliente_contato_setores_select ON public.cliente_contato_setores
     FOR SELECT TO authenticated
     USING (EXISTS (SELECT 1 FROM public.cliente_contatos c WHERE c.id = contato_id));
 
--- Os Contatos que já existem ficam só com a URA (o dono continua em `dono_setor`; só os Contatos novos
--- ganham também o dono em `cliente_contato_setores`).
 INSERT INTO public.cliente_contato_setores (contato_id, setor)
 SELECT id, 'ura' FROM public.cliente_contatos;
 
--- O mesmo número (normalizado) no mesmo Cliente vira um Contato só: fica o mais antigo e ganha os Setores
--- dos repetidos (o repetido era de outro Setor que usava o mesmo número). Sem gatilhos: é correção de dados.
 ALTER TABLE public.cliente_contatos DISABLE TRIGGER USER;
 WITH ranqueados AS (
     SELECT id, dono_setor,
@@ -138,7 +118,6 @@ WITH ranqueados AS (
 DELETE FROM public.cliente_contatos WHERE id IN (SELECT id FROM repetidos);
 ALTER TABLE public.cliente_contatos ENABLE TRIGGER USER;
 
--- O mesmo WhatsApp (normalizado) ou e-mail não vira dois Contatos no Cliente; entre Clientes pode repetir.
 CREATE UNIQUE INDEX cliente_contatos_telefone_unico_no_cliente
     ON public.cliente_contatos (cliente_id, public.chave_telefone(telefone))
     WHERE public.chave_telefone(telefone) IS NOT NULL;
@@ -146,7 +125,6 @@ CREATE UNIQUE INDEX cliente_contatos_email_unico_no_cliente
     ON public.cliente_contatos (cliente_id, email)
     WHERE email IS NOT NULL;
 
--- Todo Contato nasce com a URA e com o Setor dono (quando não é o Admin).
 CREATE FUNCTION public.contato_vincular_setores_ao_criar() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -168,7 +146,6 @@ GRANT EXECUTE ON FUNCTION public.contato_vincular_setores_ao_criar() TO service_
 CREATE TRIGGER cliente_contatos_vincular_setores AFTER INSERT ON public.cliente_contatos
     FOR EACH ROW EXECUTE FUNCTION public.contato_vincular_setores_ao_criar();
 
--- Normaliza e recusa duplicidade no Cliente apontando o Contato existente (o id vai no HINT).
 CREATE FUNCTION public.contato_validar() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -180,7 +157,6 @@ begin
     if new.cliente_id is distinct from old.cliente_id then
       raise exception 'O Cliente do contato não pode ser trocado.' using errcode = '23514';
     end if;
-    -- O dono só muda pela exclusão do dono que outro Setor ainda usa (`contato_exclusao_em_uso`): vira da URA.
     if new.dono_setor is distinct from old.dono_setor
        and not (new.dono_setor is null and current_setting('app.contato_herdado_pela_ura', true) = old.id::text) then
       raise exception 'O Setor dono do contato não pode ser trocado.' using errcode = '23514';
@@ -190,7 +166,6 @@ begin
   new.telefone := nullif(btrim(coalesce(new.telefone, '')), '');
   new.email := nullif(lower(btrim(coalesce(new.email, ''))), '');
 
-  -- WhatsApp sem DDD é recusado; o que já estava gravado só é cobrado quando o número é trocado.
   if new.telefone is not null
      and (tg_op = 'INSERT' or new.telefone is distinct from old.telefone)
      and length(coalesce(public.chave_telefone(new.telefone), '')) not in (10, 11) then
@@ -217,14 +192,11 @@ GRANT EXECUTE ON FUNCTION public.contato_validar() TO service_role;
 CREATE TRIGGER cliente_contatos_validar BEFORE INSERT OR UPDATE ON public.cliente_contatos
     FOR EACH ROW EXECUTE FUNCTION public.contato_validar();
 
--- O Contato vale para qualquer Regime (o RH grava os do Cliente que não é SN): sai a trava de Regime do cadastro SN.
 DROP TRIGGER cliente_contatos_proteger ON public.cliente_contatos;
 DROP TRIGGER cliente_contatos_auditar ON public.cliente_contatos;
 CREATE TRIGGER cliente_contatos_auditar AFTER INSERT OR UPDATE OR DELETE ON public.cliente_contatos
     FOR EACH ROW EXECUTE FUNCTION public.auditar_cadastro_operacional_editado();
 
--- Quem edita nome, WhatsApp e e-mail: o dono (Líder do Setor e Responsável do Cliente no Setor) e o Admin.
--- Contato do Admin (dono nulo) só o Admin edita.
 CREATE FUNCTION public.pode_gerir_contato(p_cliente_id uuid, p_dono public.setor_slug) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
@@ -238,7 +210,6 @@ $$;
 REVOKE ALL ON FUNCTION public.pode_gerir_contato(uuid, public.setor_slug) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.pode_gerir_contato(uuid, public.setor_slug) TO authenticated, service_role;
 
--- O dono de um Contato novo é o Setor de quem cria; o Admin não tem Setor dono.
 CREATE FUNCTION public.dono_do_novo_contato() RETURNS public.setor_slug
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
@@ -259,8 +230,6 @@ CREATE POLICY cliente_contatos_update ON public.cliente_contatos FOR UPDATE TO a
 CREATE POLICY cliente_contatos_delete ON public.cliente_contatos FOR DELETE TO authenticated
     USING (public.pode_gerir_contato(cliente_id, dono_setor));
 
--- Caminho único de salvar os Contatos de um Cliente (SN, RH e Admin): cria, atualiza e remove por id.
--- O que é de outro Setor volta inalterado (sem erro); alterar ou remover o de outro Setor é recusado.
 CREATE FUNCTION public.contato_id_do_item(p_item jsonb) RETURNS uuid
     LANGUAGE plpgsql IMMUTABLE
     SET search_path TO 'public'
@@ -281,8 +250,6 @@ $$;
 REVOKE ALL ON FUNCTION public.contato_id_do_item(jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.contato_id_do_item(jsonb) TO authenticated, service_role;
 
--- A validação e a gravação de UM contato, uma só para o lote e para o "Salvar" da linha: cria ou atualiza
--- por id; alterar o de outro Setor é recusado, e o que veio inalterado passa sem exigir o dono.
 CREATE FUNCTION public.contato_gravar(p_cliente_id uuid, p_item jsonb) RETURNS uuid
     LANGUAGE plpgsql
     SET search_path TO 'public'
@@ -348,7 +315,6 @@ begin
     end if;
   end loop;
 
-  -- Remove primeiro: quem sai libera o número para quem entra.
   for v_remover in
     select * from public.cliente_contatos
     where cliente_id = p_cliente_id and id <> all (v_ids)
@@ -360,8 +326,6 @@ begin
     delete from public.cliente_contatos where id = v_remover.id;
   end loop;
 
-  -- Limite: trocar os números entre dois contatos do mesmo lote (A fica com o de B e vice-versa) dá
-  -- duplicidade, porque só quem sai da lista libera o número; a troca se faz em duas etapas (um contato libera o número antes).
   for v_item in select * from jsonb_array_elements(p_contatos) loop
     perform public.contato_gravar(p_cliente_id, v_item);
   end loop;
@@ -370,13 +334,11 @@ $$;
 REVOKE ALL ON FUNCTION public.salvar_contatos_do_cliente(uuid, jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.salvar_contatos_do_cliente(uuid, jsonb) TO authenticated, service_role;
 
--- A edição do SN e a do RH passam pelo caminho único.
 CREATE OR REPLACE FUNCTION public.editar_cadastro_operacional_cliente(p_cliente_id uuid, p_forma_envio public.forma_envio, p_documento_obrigatorio public.documento_obrigatorio_status, p_das_status public.das_status, p_data_envio_das date, p_observacoes_gerais text, p_contatos jsonb, p_ano_mes date, p_industria boolean, p_comercio boolean, p_servico boolean) RETURNS void
     LANGUAGE plpgsql
     SET search_path TO 'public'
     AS $$
 begin
-  -- sem primeiro acesso finalizado a barreira é a RLS (erro de permissão), não esta mensagem
   if public.acesso_liberado() and not public.regime_tem_cadastro_operacional_sn(p_cliente_id) then
     raise exception 'Cadastro operacional SN não se aplica a este Regime.' using errcode = '23514';
   end if;
@@ -431,7 +393,6 @@ begin
     perform public.salvar_contatos_do_cliente(p_cliente_id, p_contatos);
   end if;
 
-  -- Os contatos já geram a auditoria pelo gatilho; a edição só de observações também precisa de registro.
   if current_setting('app.cliente_auditado', true) is distinct from p_cliente_id::text then
     insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado, criado_em)
     values (
@@ -445,9 +406,6 @@ $$;
 REVOKE ALL ON FUNCTION public.editar_cadastro_rh_cliente(uuid, text, jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.editar_cadastro_rh_cliente(uuid, text, jsonb) TO authenticated, service_role;
 
--- A regra "o contato cujo número bate neste Cliente": um ponto só, usado pela URA, pelo painel, pela fila
--- e pela abertura do atendimento. O número é único no Cliente, então não há desempate. Roda com os
--- direitos de quem chama (a RLS decide quais Contatos aparecem).
 CREATE FUNCTION public.contato_por_telefone_no_cliente(p_cliente_id uuid, p_telefone text) RETURNS TABLE(id uuid, nome text)
     LANGUAGE sql STABLE
     SET search_path TO 'public'
@@ -463,8 +421,6 @@ $$;
 REVOKE ALL ON FUNCTION public.contato_por_telefone_no_cliente(uuid, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.contato_por_telefone_no_cliente(uuid, text) TO authenticated, service_role;
 
--- URA: o Cliente de um número em todos os Contatos de todos os Clientes, qualquer que seja o Setor dono.
--- Uma linha por Cliente; mais de uma linha é número ambíguo (a Recepção atende, sem documento).
 DROP FUNCTION public.identificar_contato_por_telefone(text);
 CREATE FUNCTION public.identificar_contato_por_telefone(p_telefone text) RETURNS TABLE(cliente_id uuid, nome text, empresa text)
     LANGUAGE sql STABLE SECURITY DEFINER
@@ -566,14 +522,8 @@ begin
 end;
 $$;
 
--- Provisório até o envio ler os Destinos: sem "padrão", o envio usa o Contato mais antigo com WhatsApp.
 
--- Destinos de envio por Setor (ADR 0013): (Cliente, Setor, Tipo de envio, Contato, canal) e a resolução
--- "quem recebe este envio" no banco. O tipo nulo é "todos os envios do Setor" (o padrão); um tipo do
--- catálogo vale para aquele tipo e, sem ele, valem os "todos". O canal é do Destino e sempre gravado
--- explícito (WhatsApp, e-mail ou os dois). A migration não cria Destinos: o SN começa sem nenhum.
 
--- Catálogo fixo dos tipos de envio que o sistema faz hoje (FGTS e folha para assinar entram quando existirem).
 CREATE TABLE public.tipos_de_envio (
     slug text NOT NULL,
     rotulo text NOT NULL,
@@ -586,7 +536,6 @@ INSERT INTO public.tipos_de_envio (slug, rotulo) VALUES
     ('guia_parcelamento', 'Guia de parcelamento'),
     ('avisos', 'Avisos');
 
--- Quais tipos cada Setor envia.
 CREATE TABLE public.tipos_de_envio_do_setor (
     setor public.setor_slug NOT NULL,
     tipo text NOT NULL REFERENCES public.tipos_de_envio(slug),
@@ -608,7 +557,6 @@ GRANT ALL ON TABLE public.tipos_de_envio, public.tipos_de_envio_do_setor TO serv
 CREATE POLICY tipos_de_envio_select ON public.tipos_de_envio FOR SELECT TO authenticated USING (true);
 CREATE POLICY tipos_de_envio_do_setor_select ON public.tipos_de_envio_do_setor FOR SELECT TO authenticated USING (true);
 
--- O Destino aponta o Contato do mesmo Cliente (chave composta).
 ALTER TABLE public.cliente_contatos
     ADD CONSTRAINT cliente_contatos_id_cliente_unico UNIQUE (id, cliente_id);
 
@@ -623,7 +571,6 @@ CREATE TABLE public.destinos_de_envio (
     CONSTRAINT destinos_de_envio_pkey PRIMARY KEY (id),
     CONSTRAINT destinos_de_envio_contato_fkey FOREIGN KEY (contato_id, cliente_id)
         REFERENCES public.cliente_contatos(id, cliente_id) ON DELETE CASCADE,
-    -- Tipo nulo ("todos") não passa pela checagem; um tipo precisa existir para o Setor.
     CONSTRAINT destinos_de_envio_tipo_fkey FOREIGN KEY (setor, tipo)
         REFERENCES public.tipos_de_envio_do_setor(setor, tipo)
 );
@@ -631,7 +578,6 @@ CREATE UNIQUE INDEX destinos_de_envio_unico
     ON public.destinos_de_envio (cliente_id, setor, COALESCE(tipo, ''), contato_id);
 CREATE INDEX destinos_de_envio_contato_idx ON public.destinos_de_envio (contato_id);
 
--- O canal gravado precisa existir no Contato na hora de gravar.
 CREATE FUNCTION public.destino_validar() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -639,8 +585,6 @@ CREATE FUNCTION public.destino_validar() RETURNS trigger
 declare
   v_contato public.cliente_contatos;
 begin
-  -- DEFINER lê fora da RLS: só o contato do próprio Cliente do destino; o de outro Cliente (ou
-  -- inexistente) cai na FK composta, sem revelar o nome.
   select * into v_contato from public.cliente_contatos
   where id = new.contato_id and cliente_id = new.cliente_id;
   if not found then
@@ -665,7 +609,6 @@ GRANT EXECUTE ON FUNCTION public.destino_validar() TO service_role;
 CREATE TRIGGER destinos_de_envio_validar BEFORE INSERT OR UPDATE ON public.destinos_de_envio
     FOR EACH ROW EXECUTE FUNCTION public.destino_validar();
 
--- Os Setores do Contato são os que o usam: usar entra, deixar de usar sai (o dono e a URA ficam).
 CREATE FUNCTION public.destino_sincronizar_setores_do_contato() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -691,10 +634,6 @@ GRANT EXECUTE ON FUNCTION public.destino_sincronizar_setores_do_contato() TO ser
 CREATE TRIGGER destinos_de_envio_sincronizar_setores AFTER INSERT OR DELETE ON public.destinos_de_envio
     FOR EACH ROW EXECUTE FUNCTION public.destino_sincronizar_setores_do_contato();
 
--- Excluir o Contato pelo Setor dono, com outro Setor ainda o usando como Destino: ele não é apagado. Passa
--- a ser da URA (sem dono: só o Admin o edita) e segue disponível aos Setores que o escolheram; os Destinos
--- do ex-dono saem. Sem uso de outro Setor, o Contato cai com os Destinos do dono. Contato da URA (ou do Admin)
--- em uso por algum Setor não se exclui: não há quem o herde.
 CREATE FUNCTION public.contato_exclusao_em_uso() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -702,7 +641,6 @@ CREATE FUNCTION public.contato_exclusao_em_uso() RETURNS trigger
 declare
   v_setores text;
 begin
-  -- Apagar o Cliente leva os Contatos em cascata: aí não há o que decidir.
   if not exists (select 1 from public.clientes where id = old.cliente_id) then
     return old;
   end if;
@@ -721,7 +659,6 @@ begin
   perform set_config('app.contato_herdado_pela_ura', '', true);
   delete from public.destinos_de_envio where contato_id = old.id and setor = old.dono_setor;
   delete from public.cliente_contato_setores where contato_id = old.id and setor = old.dono_setor::text;
-  -- Cancela a exclusão: o Contato fica, agora da URA.
   return null;
 end;
 $$;
@@ -735,7 +672,6 @@ REVOKE ALL ON TABLE public.destinos_de_envio FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.destinos_de_envio TO authenticated;
 GRANT ALL ON TABLE public.destinos_de_envio TO service_role;
 
--- Cada Setor lê e grava só os seus Destinos (Líder do Setor, Responsável do Cliente no Setor e Admin).
 CREATE POLICY destinos_de_envio_select ON public.destinos_de_envio FOR SELECT TO authenticated
     USING (public.meu_papel() = 'admin'
            OR (public.pode_ver_cliente(cliente_id) AND public.meu_setor() = setor));
@@ -750,11 +686,6 @@ CREATE POLICY destinos_de_envio_delete ON public.destinos_de_envio FOR DELETE TO
 CREATE TRIGGER destinos_de_envio_auditar AFTER INSERT OR UPDATE OR DELETE ON public.destinos_de_envio
     FOR EACH ROW EXECUTE FUNCTION public.auditar_cadastro_operacional_editado();
 
--- Quem recebe este envio: os Destinos do Setor para o tipo e, sem nenhum para o tipo, os "todos". Um tipo
--- pode ter vários Contatos. `valido` é falso quando o canal gravado no Destino sumiu do Contato
--- (`motivo` diz qual); quem consome entrega só os válidos e reporta os inválidos. O tipo (específico ou
--- "todos") é escolhido antes; `p_canal` só filtra depois, então um tipo definido só por e-mail não deixa
--- os "todos" entrarem numa consulta de WhatsApp. `telefone_envio` já vem com o DDI 55.
 CREATE FUNCTION public.destinos_de_envio_resolvidos(p_cliente_id uuid, p_setor public.setor_slug, p_tipo text, p_canal text DEFAULT NULL)
     RETURNS TABLE(destino_id uuid, tipo text, contato_id uuid, contato_nome text, canal public.forma_envio,
                   telefone_envio text, email text, valido boolean, motivo text)
@@ -793,8 +724,6 @@ $$;
 REVOKE ALL ON FUNCTION public.destinos_de_envio_resolvidos(uuid, public.setor_slug, text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.destinos_de_envio_resolvidos(uuid, public.setor_slug, text, text) TO authenticated, service_role;
 
--- Salva UM contato do Cliente (cria ou atualiza por id), sem tocar nos outros contatos: é o "Salvar"
--- da linha do formulário. A validação é a mesma do lote (`contato_gravar`).
 CREATE FUNCTION public.salvar_contato_do_cliente(p_cliente_id uuid, p_contato jsonb) RETURNS uuid
     LANGUAGE plpgsql
     SET search_path TO 'public'
@@ -809,15 +738,7 @@ $$;
 REVOKE ALL ON FUNCTION public.salvar_contato_do_cliente(uuid, jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.salvar_contato_do_cliente(uuid, jsonb) TO authenticated, service_role;
 
--- Define o que UM Contato recebe do Setor de quem chama (ADR 0013): a lista de tipos de envio do catálogo
--- do Setor, ou 'todos' (os "todos os envios do Setor", o tipo nulo do Destino). O canal vem do próprio
--- Contato: um canal só, esse; os dois, WhatsApp e e-mail. Tipos fora da lista saem, os novos entram e o
--- canal dos que ficam acompanha o Contato. O Setor vem do perfil, nunca do chamador; permissão e tipo
--- válido são da RLS e das chaves. O Admin não tem Setor: não define Destinos.
 
--- O contato com os dois canais (WhatsApp e e-mail) escolhe por qual canal o Setor lhe envia: a função
--- que define o que o Contato recebe passa a receber o canal. Com um canal só, o canal é o do Contato e o
--- p_canal é ignorado; com os dois, o p_canal é obrigatório e precisa caber no que o Contato tem.
 CREATE FUNCTION public.definir_tipos_de_envio_do_contato(
     p_cliente_id uuid,
     p_contato_id uuid,
@@ -839,15 +760,9 @@ begin
   if v_setor is null or public.meu_papel() = 'admin' then
     raise exception 'Só um Setor define os Destinos de envio do Cliente.' using errcode = '42501';
   end if;
-  -- A RLS já barra o insert; sem esta conferência, quem não gere o Cliente chamando com a lista vazia (ou igual à
-  -- gravada) veria sucesso em delete/update que não afetam linha nenhuma.
   if not public.pode_gerir_parcelamento(p_cliente_id, v_setor) then
     raise exception 'Sem permissão para definir os Destinos de envio deste Cliente.' using errcode = '42501';
   end if;
-  -- Quem mexe nos Destinos de um contato espera quem já mexe: duas chamadas ao mesmo contato (duplo clique,
-  -- Salvar junto com um checkbox) passariam juntas no `insert ... where not exists` e a segunda violaria
-  -- destinos_de_envio_unico. O lock vem antes de ler o contato: o canal sai do que o contato tem agora, não
-  -- do que tinha quando a espera começou.
   perform pg_advisory_xact_lock(hashtext('definir_tipos_de_envio_do_contato:' || p_contato_id::text));
 
   select * into v_contato from public.cliente_contatos
@@ -858,17 +773,12 @@ begin
 
   v_tem_whatsapp := public.chave_telefone(v_contato.telefone) is not null;
   v_tem_email := v_contato.email is not null;
-  -- 'todos' é o tipo nulo do Destino.
-  -- Elemento nulo na lista (chamada direta) faria o `<> all` virar nulo e nada sair: fica de fora.
   v_tipos := array(select distinct t from unnest(coalesce(p_tipos, '{}')) as t where t is not null);
-  -- O catálogo de tipos é curto: o limite barra o array enorme de quem chama a função direto.
   if cardinality(v_tipos) > 12 then
     raise exception 'Tipos de envio demais para um contato.' using errcode = '22023';
   end if;
 
-  -- Com os dois canais qualquer canal escolhido cabe no contato; com um só, o p_canal é ignorado.
   if v_tem_whatsapp and v_tem_email then
-    -- Sem tipo marcado não há envio, então não há canal a escolher (é o caso de deixar de usar o contato).
     if p_canal is null then
       if cardinality(v_tipos) > 0 then
         raise exception 'Escolha o canal do envio.' using errcode = '22023';
@@ -880,7 +790,6 @@ begin
   elsif v_tem_whatsapp then
     v_canal := 'whatsapp';
   else
-    -- cliente_contatos_canal_check garante WhatsApp válido ou e-mail: sem WhatsApp, o canal é o e-mail.
     v_canal := 'email';
   end if;
 
@@ -908,12 +817,7 @@ REVOKE ALL ON FUNCTION public.definir_tipos_de_envio_do_contato(uuid, uuid, text
 GRANT EXECUTE ON FUNCTION public.definir_tipos_de_envio_do_contato(uuid, uuid, text[], public.forma_envio)
     TO authenticated, service_role;
 
--- Os envios automáticos (lembrete de documento, DAS e guias de parcelamento) passam a ler os Destinos de
--- envio do Setor (ADR 0013) em vez do Contato mais antigo e da forma de envio do Cliente. As leituras
--- dos jobs deixam de devolver contato, e-mail e forma de envio: quem recebe vem de
--- `destinos_de_envio_do_job`, que é `destinos_de_envio_resolvidos` com a janela de 24h de cada telefone.
 
--- A forma de envio do cadastro e o contato "provisório" saem das leituras dos jobs.
 DROP FUNCTION public.clientes_para_lembrete(uuid, integer);
 DROP FUNCTION public.clientes_para_parcelamento(uuid, integer);
 DROP FUNCTION public.clientes_para_envio_base();
@@ -950,8 +854,6 @@ CREATE FUNCTION public.clientes_para_parcelamento(p_apos uuid DEFAULT NULL::uuid
    limit p_limite;
 $$;
 
--- O baseline concede EXECUTE a authenticated por default privileges: o REVOKE de PUBLIC não basta, e
--- estas funções são só do job (service_role).
 REVOKE ALL ON FUNCTION public.clientes_para_envio_base() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.clientes_para_lembrete(uuid, integer) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.clientes_para_parcelamento(uuid, integer) FROM PUBLIC, anon, authenticated;
@@ -959,9 +861,6 @@ GRANT ALL ON FUNCTION public.clientes_para_envio_base() TO service_role;
 GRANT ALL ON FUNCTION public.clientes_para_lembrete(uuid, integer) TO service_role;
 GRANT ALL ON FUNCTION public.clientes_para_parcelamento(uuid, integer) TO service_role;
 
--- Quem recebe o envio (os válidos e os inválidos, com o `motivo`: quem consome entrega os válidos e
--- reporta os inválidos), com o telefone já com o DDI e a última Mensagem que o
--- Contato mandou em qualquer Atendimento do telefone (abre e fecha a janela de 24h).
 CREATE FUNCTION public.destinos_de_envio_do_job(p_cliente_id uuid, p_setor public.setor_slug, p_tipo text)
     RETURNS TABLE(contato_nome text, telefone_envio text, email text, canal public.forma_envio,
                   ultima_mensagem_do_contato_em timestamp with time zone, valido boolean, motivo text)
@@ -979,18 +878,10 @@ $$;
 REVOKE ALL ON FUNCTION public.destinos_de_envio_do_job(uuid, public.setor_slug, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.destinos_de_envio_do_job(uuid, public.setor_slug, text) TO service_role;
 
--- A última Mensagem do Contato olha os Atendimentos do telefone em qualquer status; o único índice da
--- chave é parcial (em andamento), então sem este cada Destino lido varreria `atendimentos`.
 CREATE INDEX atendimentos_chave_telefone ON public.atendimentos USING btree (chave_telefone);
 
--- O aviso do sino leva o texto do alerta que o gerou (o de "novo cliente" e o de "nova alteração" montam o
--- texto no cliente a partir do tipo).
 ALTER TABLE public.avisos_cadastro ADD COLUMN mensagem text;
 
--- Um alerta `contato_ausente` que se ABRE (inserção: renovar o que já está aberto é um UPDATE e não
--- avisa de novo) avisa no sino o Líder do Setor e o Responsável do Cliente naquele Setor; sem
--- Responsável ativo, só o Líder. O Admin nunca é destinatário. Resolvido e reaberto, é uma nova
--- inserção e um novo aviso.
 CREATE FUNCTION public.avisar_sem_meio_de_envio(p_cliente_id uuid, p_setor public.setor_slug, p_mensagem text) RETURNS void
     LANGUAGE sql SECURITY DEFINER
     SET search_path TO 'public'
@@ -1023,22 +914,10 @@ GRANT ALL ON FUNCTION public.avisar_cliente_sem_meio_de_envio() TO service_role;
 CREATE TRIGGER alertas_setor_avisar_sem_meio_de_envio AFTER INSERT ON public.alertas_setor
     FOR EACH ROW WHEN (new.tipo = 'contato_ausente') EXECUTE FUNCTION public.avisar_cliente_sem_meio_de_envio();
 
--- Os `contato_ausente` já abertos (renovados por UPDATE, nunca por inserção) avisam uma vez agora, com o
--- texto que têm; depois disso só um alerta novo avisa.
 SELECT public.avisar_sem_meio_de_envio(a.cliente_id, a.setor, a.mensagem)
   FROM public.alertas_setor a
  WHERE a.tipo = 'contato_ausente' AND a.resolvido_em IS NULL;
 
--- A Recepção cadastra, no atendimento aberto pela URA, o número que a URA não achou como Contato do
--- Cliente confirmado (ADR 0013). A permissão é só esta: criar UM Contato do Cliente, com o WhatsApp do
--- atendimento, setor URA e a Recepção como dona. Não altera Contato nem Destino de outro Setor.
---
--- Quem chama: Funcionário ou Líder da Recepção que é o dono do atendimento em andamento (é quem
--- responde o cliente). O dono é conferido aqui e não nas políticas da tabela, porque a Recepção não
--- gerencia contatos em geral (`pode_gerir_contato`).
---
--- Devolve o resultado em vez de lançar erro quando o número já tem Contato, para a tela mostrar o existente:
---   criado | existente (o número já é Contato deste Cliente) | em_outro_cliente | email_em_uso
 CREATE FUNCTION public.cadastrar_contato_ura(p_atendimento_id uuid, p_cliente_id uuid, p_nome text, p_email text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -1064,8 +943,6 @@ begin
     raise exception 'Você não pode cadastrar contato neste Atendimento.' using errcode = '42501';
   end if;
 
-  -- Atendimento já ligado a um Cliente só cadastra contato nesse Cliente; o Atendimento sem Cliente (o caso
-  -- da URA que não achou o número) aceita o Cliente que a Recepção confirmou.
   if v_atendimento.cliente_id is not null and v_atendimento.cliente_id <> p_cliente_id then
     raise exception 'Este Atendimento já é de outro Cliente.' using errcode = '22023';
   end if;
@@ -1082,14 +959,12 @@ begin
     raise exception 'O atendimento não tem um WhatsApp válido.' using errcode = '22023';
   end if;
 
-  -- O número já é Contato deste Cliente: mostra o existente, não duplica.
   select * into v_existente from public.cliente_contatos
    where cliente_id = p_cliente_id and public.chave_telefone(telefone) = v_chave;
   if found then
     return jsonb_build_object('status', 'existente', 'contato_id', v_existente.id, 'nome', v_existente.nome);
   end if;
 
-  -- O número é Contato de outro Cliente: não cria (ficaria ambíguo para a URA).
   if exists (select 1 from public.cliente_contatos
               where cliente_id <> p_cliente_id and public.chave_telefone(telefone) = v_chave) then
     return jsonb_build_object('status', 'em_outro_cliente');
@@ -1103,14 +978,11 @@ begin
     end if;
   end if;
 
-  -- A auditoria é desta ação (abaixo): o gatilho genérico de edição do cadastro não registra de novo.
   perform set_config('app.cliente_auditado', p_cliente_id::text, true);
   begin
     insert into public.cliente_contatos (id, cliente_id, nome, telefone, email, dono_setor)
     values (v_id, p_cliente_id, v_nome, v_chave, v_email, 'recepcao');
   exception when unique_violation then
-    -- Outra chamada gravou o mesmo número ou e-mail entre as checagens acima e este insert (os índices
-    -- únicos do Cliente seguram): devolve o que ela criou, em vez de vazar o erro do índice.
     select * into v_existente from public.cliente_contatos
      where cliente_id = p_cliente_id and public.chave_telefone(telefone) = v_chave;
     if found then
