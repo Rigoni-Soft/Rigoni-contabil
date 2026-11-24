@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "ci:local": "yarn lint && yarn check:naming && yarn check:refs && yarn check:specs && yarn check:design-doc develop && yarn check:deps && yarn check:guard-senha && yarn next typegen && yarn tsc --noEmit && yarn format:check && yarn test",
+    "ci:local": "yarn lint && yarn check:naming && yarn check:refs && yarn check:specs && yarn check:design-doc develop && yarn check:deps && yarn check:guard-senha && yarn next typegen && yarn tsc --noEmit && yarn format:check && yarn test && yarn check:int-local",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:deps": "depcruise src --config .dependency-cruiser.cjs",
@@ -28,6 +28,7 @@
     "test": "jest --selectProjects unit",
     "test:int": "jest --selectProjects integration --runInBand",
     "test:all": "yarn test && yarn test:int",
+    "check:int-local": "node .claude/scripts/checar-int-local.mjs",
     "test:e2e": "playwright test",
     "test:e2e:diff": "playwright test --only-changed=develop",
     "test:cov": "jest --coverage"
