@@ -51,7 +51,7 @@ for (const [tipo, usados] of [["secret", usaSecrets], ["variable", usaVars]]) {
 marca("AVISO", "variáveis dos ambientes da Vercel não verificadas (Vercel CLI ausente): conferir à mão");
 
 // 3. Segredos no diff (linhas adicionadas desde a base)
-const diff = sh("git", ["diff", "-U0", `${base}..HEAD`, "--", ".", ":!*.lock", ":!*.pdf", ":!supabase/arquivos-seed"]);
+const diff = sh("git", ["diff", "-U0", `${base}..HEAD`, "--", ".", ":!*.lock", ":!*.pdf", ":!supabase/arquivos-seed", ":!.claude/scripts/checar-ambiente.mjs", ":!.agents/scripts/checar-ambiente.mjs"]);
 const adicionadas = diff.split("\n").filter((l) => l.startsWith("+") && !l.startsWith("+++"));
 const demo = (jwt) => {
   try {
