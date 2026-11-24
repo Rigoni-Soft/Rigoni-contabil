@@ -12,7 +12,7 @@ export type DocumentoDisponivel = { tipo: "contrato" | "alteracao"; numero: numb
 export type DocumentoOferecido = DocumentoDisponivel & { descricao: string };
 
 // O anexo de uma Mensagem do Funcionário, com o link temporário já pedido (`expiraEm` em ISO).
-export type AnexoVisto = {
+type AnexoVisto = {
   tipo: TipoAnexoMensagem;
   nome: string;
   tamanho: number;

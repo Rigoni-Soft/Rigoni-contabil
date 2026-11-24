@@ -25,7 +25,7 @@ export const enviarDocumentoSchema = z
     }
   });
 
-export const RESUMO_TAMANHO_MAXIMO = 1000; // o mesmo limite do caso de uso e da tabela `transferencias`
+const RESUMO_TAMANHO_MAXIMO = 1000; // o mesmo limite do caso de uso e da tabela `transferencias`
 
 export const transferirAtendimentoSchema = z.object({
   atendimentoId: atendimentoIdSchema,

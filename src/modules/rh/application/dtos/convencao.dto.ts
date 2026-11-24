@@ -14,7 +14,7 @@ export type ConvencaoDto = {
 
 export type InterruptoresDoClienteDto = { bancoDeHoras: boolean; trabalhoAosDomingos: boolean };
 
-export type EmpregadoDaConvencaoDto = {
+type EmpregadoDaConvencaoDto = {
   id: string;
   nome: string;
   // Sindicato da convenção que o empregado segue; nulo = a única do Cliente.

@@ -10,7 +10,7 @@ const minuto = z.number().int().min(0).max(1439);
 const par = z.object({ entrada: minuto, saida: minuto });
 const competencia = z.string().regex(FORMATO_COMPETENCIA);
 
-export const jornadaSchema = z.array(z.number().int().min(0).max(1440)).length(7);
+const jornadaSchema = z.array(z.number().int().min(0).max(1440)).length(7);
 
 export const cadastrarEmpregadoSchema = z.object({
   clienteId: id,

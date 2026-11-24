@@ -1,7 +1,7 @@
 import { SETOR_RECEPCAO, SETOR_RH, SETOR_SN } from "@/shared/kernel/setores";
 
 // Responsável cujo perfil a RLS esconde de quem lê (leitor de outro Setor).
-export const RESPONSAVEL_OUTRO_SETOR_LABEL = "Responsável de outro setor";
+const RESPONSAVEL_OUTRO_SETOR_LABEL = "Responsável de outro setor";
 
 export const PAPEIS = ["admin", "lider_setor", "funcionario"] as const;
 export type Papel = (typeof PAPEIS)[number];
@@ -18,8 +18,7 @@ export const PAPEL_LABEL: Record<string, string> = {
 // Papéis que alguém (Admin ou Líder de setor) pode cadastrar via /admin/usuarios/novo — Admin nunca
 // aparece aqui (ninguém cadastra outro Admin pela UI). Reusado por página global (app/), container e
 // form (presentation/ global), que não podem importar do módulo usuarios (arquitetura.md §3.4).
-export const PAPEIS_CADASTRAVEIS = ["lider_setor", "funcionario"] as const;
-export type PapelCadastravel = (typeof PAPEIS_CADASTRAVEIS)[number];
+export type PapelCadastravel = "lider_setor" | "funcionario";
 
 export const SEM_RESPONSAVEL_LABEL = "Sem responsável";
 // Id da fatia "Sem responsável" no comparativo, também chave de cor na View.

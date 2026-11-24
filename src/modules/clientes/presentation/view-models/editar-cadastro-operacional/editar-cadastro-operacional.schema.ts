@@ -102,7 +102,7 @@ export const salvarParcelamentosSchema = z.object({
 });
 
 // Linha do formulário: além do que se grava, traz o que a tela só exibe (selo, quitado, nome do PDF).
-export const parcelamentoFormSchema = z
+const parcelamentoFormSchema = z
   .object({
     id: z.string().optional(),
     codigo: codigoDoParcelamento,
@@ -137,8 +137,6 @@ export type ParcelamentoFormValues = z.infer<typeof parcelamentoFormSchema>;
 export const parcelamentosFormSchema = z
   .array(parcelamentoFormSchema)
   .refine(somaDosPdfsCabe, MENSAGEM_SOMA_DOS_PDFS);
-
-export type EditarCadastroOperacionalInput = z.infer<typeof editarCadastroOperacionalSchema>;
 
 // clienteId nunca é digitado pelo Funcionário — vem do parâmetro da rota (Container injeta antes de
 // chamar a Server Action). Removê-lo do resolver do formulário evita depender de um input escondido

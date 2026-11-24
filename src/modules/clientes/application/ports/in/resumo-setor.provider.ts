@@ -12,7 +12,7 @@ export type ParcelamentoBucketDto = {
 };
 
 // `parcelamentos` só vem nos cards do grupo Parcelamento.
-export type ClienteBucketDto = {
+type ClienteBucketDto = {
   clienteId: string;
   empresa: string;
   cnpj: string;

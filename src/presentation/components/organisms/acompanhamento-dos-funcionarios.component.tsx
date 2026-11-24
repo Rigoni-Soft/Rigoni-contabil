@@ -12,7 +12,7 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { ListaDeClientes } from "@/presentation/components/molecules/lista-de-clientes.component";
 import { NavegacaoDeMes } from "@/presentation/components/molecules/navegacao-de-mes.component";
 
-export type FuncionarioDoGrafico = {
+type FuncionarioDoGrafico = {
   id: string;
   nome: string;
   atribuidos: number;

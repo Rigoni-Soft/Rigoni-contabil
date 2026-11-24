@@ -3,7 +3,7 @@ import { LinhaDeUsuario } from "@/presentation/components/molecules/linha-de-usu
 import { PAPEL_LABEL } from "@/shared/kernel/papeis";
 import { SETOR_LABEL } from "@/shared/kernel/setores";
 
-export type UsuarioListado = {
+type UsuarioListado = {
   id: string;
   nome: string;
   email: string;

@@ -2,9 +2,9 @@ import type { ContatoProps } from "@/modules/clientes/domain/value-objects/conta
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
-export type ContatoInput = ContatoProps;
+type ContatoInput = ContatoProps;
 
-export type AtividadeMensalInput = { industria: boolean; comercio: boolean; servico: boolean };
+type AtividadeMensalInput = { industria: boolean; comercio: boolean; servico: boolean };
 
 export type EditarCadastroOperacionalClienteInput = {
   clienteId: string;

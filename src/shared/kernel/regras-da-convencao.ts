@@ -40,7 +40,7 @@ export type DataEspecial = {
 };
 export type ExcecaoDeFeriado = { descricao: string };
 
-export type Citacao = { clausula: string; trecho: string };
+type Citacao = { clausula: string; trecho: string };
 
 export type RegraAplicada =
   | (Citacao & { chave: ChaveNumerica; valor: number })

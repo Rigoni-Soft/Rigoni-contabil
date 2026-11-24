@@ -10,7 +10,7 @@ export function contarCaracteres(texto: string): number {
 }
 
 // Limite do emoji de uma reação, em unidades UTF-16 (cobre ZWJ, bandeira e tom de pele).
-export const EMOJI_TAMANHO_MAXIMO = 16;
+const EMOJI_TAMANHO_MAXIMO = 16;
 
 // Pictograma, bandeira ou keycap, mais os caracteres que os compõem (ZWJ, seletor de variação,
 // tom de pele, dígito e #/* do keycap).

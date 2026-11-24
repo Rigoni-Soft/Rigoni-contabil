@@ -11,7 +11,7 @@ export type ServicoAcompanhamentoDto = {
   sistema: boolean;
 };
 
-export type CelulaAcompanhamentoDto = {
+type CelulaAcompanhamentoDto = {
   servicoId: string;
   aplica: boolean;
   // Só com `aplica` falso: não se aplica a este Cliente em mês nenhum (e não só neste mês).
@@ -37,7 +37,7 @@ export type ClienteAcompanhamentoDto = {
 // A contagem do Holerite do Cliente no mês, com os cartões que o mês exige (ativos menos "sem movimento").
 export type HoleriteDaLinhaDto = ContagemDoHolerite & { exigidos: number };
 
-export type LinhaAcompanhamentoDto = {
+type LinhaAcompanhamentoDto = {
   clienteId: string;
   empresa: string;
   cnpj: string;
@@ -64,7 +64,7 @@ export type FuncionarioAcompanhamentoDto = {
   faltam: { servicoId: string; nome: string; clientes: number; empresas: string[] }[];
 };
 
-export type PendenciaDoFuncionarioDto = {
+type PendenciaDoFuncionarioDto = {
   servicoId: string;
   nome: string;
   clientes: { clienteId: string; empresa: string; cnpj: string }[];

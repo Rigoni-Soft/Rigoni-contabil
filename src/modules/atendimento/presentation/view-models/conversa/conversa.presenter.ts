@@ -13,7 +13,7 @@ import { FUSO_DE_NEGOCIO } from "@/shared/kernel/mes-atual";
 import { opcoesDe } from "@/shared/kernel/opcoes";
 import { SETOR_LABEL } from "@/shared/kernel/setores";
 
-export type AnexoView = {
+type AnexoView = {
   tipo: TipoAnexoMensagem;
   nome: string;
   // Já formatado ("1,2 MB").
@@ -24,7 +24,7 @@ export type AnexoView = {
   miniaturaUrl: string | null;
 };
 
-export type MensagemView = {
+type MensagemView = {
   id: string;
   lado: "contato" | "ura" | "atendente";
   autor: string;
@@ -173,7 +173,7 @@ export function aplicarLinksRenovados(
 }
 
 // Mais antiga na ordem da conversa: data e, no empate, id (o mesmo cursor da leitura no servidor).
-export function antesDe(
+function antesDe(
   a: { criadoEm: string; id: string },
   b: { criadoEm: string; id: string },
 ): boolean {

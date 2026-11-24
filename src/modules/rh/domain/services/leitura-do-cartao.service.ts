@@ -12,7 +12,7 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
 
-export type DiaLido = {
+type DiaLido = {
   // Dia do mês impresso na linha do cartão.
   dia: number;
   batidas: Par[];

@@ -35,7 +35,7 @@ export type Andamento = {
 export const SEM_ANDAMENTO: Andamento = { enviado: false, ocorrencias: [] };
 
 // Reserva ocupada: a tarefa existe e segue com a tentativa de antes, sem ocorrência nova.
-export const RESERVA_OCUPADA: Andamento = {
+const RESERVA_OCUPADA: Andamento = {
   enviado: false,
   ocorrencias: [],
   naoReavaliado: true,

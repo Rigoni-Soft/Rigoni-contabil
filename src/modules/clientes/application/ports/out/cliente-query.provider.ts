@@ -12,8 +12,8 @@ import type { SetorSlug } from "@/shared/kernel/setores";
 export type ParcelamentoDto = Omit<ParcelamentoSalvo, "arquivoCaminho"> & { arquivoNome: string };
 
 // Destino de envio do Setor do cadastro e o catálogo de tipos que o Setor envia.
-export type DestinoDto = { id: string; contatoId: string; tipo: string | null; canal: string };
-export type TipoDeEnvioDto = { slug: string; rotulo: string };
+type DestinoDto = { id: string; contatoId: string; tipo: string | null; canal: string };
+type TipoDeEnvioDto = { slug: string; rotulo: string };
 export type DestinosDoSetorDto = { destinos: DestinoDto[]; tiposDeEnvio: TipoDeEnvioDto[] };
 
 export type CadastroOperacionalClienteDto = DestinosDoSetorDto & {
