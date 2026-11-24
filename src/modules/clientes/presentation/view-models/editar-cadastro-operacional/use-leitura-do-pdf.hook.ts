@@ -8,6 +8,10 @@ import { lerPdfDeParcelamentoAction } from "./ler-pdf-de-parcelamento.actions";
 
 const TEMPO_LIMITE_MS = 20_000;
 
+function ignorarFalhaDeLeitura(): void {
+  return undefined;
+}
+
 async function comLimite<T>(promessa: Promise<T>): Promise<T> {
   let relogio: ReturnType<typeof setTimeout> | undefined;
   const estouro = new Promise<never>((_, rejeitar) => {
@@ -52,14 +56,17 @@ export function useLeituraDoPdf(
     try {
       const resultado = await comLimite(lerPdfDeParcelamentoAction({ clienteId, arquivo }));
       const indice = indiceDe(id);
-      if (resultado.ok && resultado.data.lido && vigente.current[id] === arquivo && indice >= 0) {
+      const leituraAindaVale = vigente.current[id] === arquivo && indice >= 0;
+      if (resultado.ok && resultado.data.lido && leituraAindaVale) {
         const { codigo, quantidadeDeParcelas, acordo, codigoGerado, cnpjConfere } = resultado.data;
         setValue(`parcelamentos.${indice}.codigo`, codigo);
         setValue(`parcelamentos.${indice}.parcelasRestantes`, quantidadeDeParcelas);
         setValue(`parcelamentos.${indice}.acordo`, acordo);
         leitura = { estado: "sugerido", codigoGerado, cnpjConfere };
       }
-    } catch {}
+    } catch {
+      ignorarFalhaDeLeitura();
+    }
     if (vigente.current[id] === arquivo) definir(id, leitura);
   };
 

@@ -30,7 +30,7 @@ export const dataNaoFutura = z.iso
   .date({ error: (i) => (i.input === "" ? "Data obrigatória" : "Data inválida") })
   .refine((data) => data <= hojeIso(), ERRO_DATA_FUTURA);
 
-const LIMITE_TOTAL_BYTES = 10 * 1024 * 1024;
+const LIMITE_DOS_ARQUIVOS_DO_CADASTRO_EM_BYTES = 10 * 1024 * 1024;
 
 export const criarClienteSchema = z
   .object({
@@ -74,7 +74,7 @@ export const criarClienteSchema = z
       (soma, arquivo) => soma + (arquivo?.size ?? 0),
       0,
     );
-    if (total <= LIMITE_TOTAL_BYTES) return;
+    if (total <= LIMITE_DOS_ARQUIVOS_DO_CADASTRO_EM_BYTES) return;
     const mb = (total / (1024 * 1024)).toFixed(1).replace(".", ",");
     ctx.addIssue({
       code: "custom",

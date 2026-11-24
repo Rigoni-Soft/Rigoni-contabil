@@ -15,6 +15,8 @@ import { useConsultarCnpj } from "./use-consultar-cnpj.hook";
 
 type ClienteCriado = { empresa: string; cnpj: string };
 
+const emOutroCicloDeRender = (aplicar: () => void) => setTimeout(aplicar, 0);
+
 export function CriarClienteContainer() {
   const [pendente, setPendente] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
@@ -89,7 +91,7 @@ export function CriarClienteContainer() {
     const dados = await consultarCnpj(cnpj);
     if (normalizarCnpj(getValues("cnpj") ?? "") !== cnpj) return;
 
-    setTimeout(() => {
+    emOutroCicloDeRender(() => {
       if (!dados) {
         setAvisoCnpj(
           "CNPJ não encontrado. Confirme a numeração ou preencha Empresa e Regime manualmente.",
@@ -108,7 +110,7 @@ export function CriarClienteContainer() {
         return;
       }
       if (!getValues("regime")) setValue("regime", dados.regime, { shouldValidate: true });
-    }, 0);
+    });
   };
 
   const aoAlterarRegime = () => setAvisoRegime(undefined);

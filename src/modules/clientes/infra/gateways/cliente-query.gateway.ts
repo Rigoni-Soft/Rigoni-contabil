@@ -86,7 +86,10 @@ const SELECT_CADASTRO_BASICO = `
   ${EMBED_PARCELAMENTOS}
 `;
 
-const nomeDoArquivo = (caminho: string) => caminho.replace(/^[^/]*\/[0-9a-f-]{36}-/, "");
+const PREFIXO_CLIENTE_ID_BARRA_PARCELAMENTO_ID_TRACO = /^[^/]*\/[0-9a-f-]{36}-/;
+
+const nomeDoArquivo = (caminho: string) =>
+  caminho.replace(PREFIXO_CLIENTE_ID_BARRA_PARCELAMENTO_ID_TRACO, "");
 
 const SELECT_RESUMO = `
   id, empresa, cnpj,
@@ -112,6 +115,11 @@ type ResumoOperacionalRowDb = {
     | null;
 };
 
+const REGIMES_COM_CADASTRO_OPERACIONAL = ["simples_nacional", "mei"];
+const LIMITE_DE_SUGESTOES = 10;
+
+const escaparParaFiltroOr = (termo: string) => termo.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
 export class SupabaseClienteQueryGateway implements ClienteQueryPort {
   constructor(private readonly supabase: SupabaseClient) {}
 
@@ -125,8 +133,8 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       .select(SELECT_CADASTRO_BASICO)
       .eq("id", clienteId)
       .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
-      .eq("cliente_responsaveis.setor", "simples_nacional")
-      .eq("cliente_parcelamentos.setor", "simples_nacional")
+      .eq("cliente_responsaveis.setor", SETOR_SN)
+      .eq("cliente_parcelamentos.setor", SETOR_SN)
       .order("criado_em", { referencedTable: "cliente_parcelamentos" })
       .order("codigo", { referencedTable: "cliente_parcelamentos" })
       .maybeSingle();
@@ -211,8 +219,8 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
         `id, empresa, cnpj, ${EMBED_CONTATOS}, cliente_observacoes_setor(observacoes), ${EMBED_PARCELAMENTOS}`,
       )
       .eq("id", clienteId)
-      .eq("cliente_observacoes_setor.setor", "rh")
-      .eq("cliente_parcelamentos.setor", "rh")
+      .eq("cliente_observacoes_setor.setor", SETOR_RH)
+      .eq("cliente_parcelamentos.setor", SETOR_RH)
       .order("criado_em", { referencedTable: "cliente_contatos" })
       .order("criado_em", { referencedTable: "cliente_parcelamentos" })
       .order("codigo", { referencedTable: "cliente_parcelamentos" })
@@ -276,13 +284,13 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     termo: string,
     apenasSnMei: boolean,
   ): Promise<Result<SugestaoClienteDto[], AppError>> {
-    const valor = `%${termo}%`.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    const valor = escaparParaFiltroOr(`%${termo}%`);
     let query = this.supabase.from("clientes_basico").select("id, empresa, cnpj");
-    if (apenasSnMei) query = query.in("regime", ["simples_nacional", "mei"]);
+    if (apenasSnMei) query = query.in("regime", REGIMES_COM_CADASTRO_OPERACIONAL);
     const { data, error } = await query
       .or(`cnpj.ilike."${valor}",empresa.ilike."${valor}"`)
       .order("empresa")
-      .limit(10);
+      .limit(LIMITE_DE_SUGESTOES);
 
     if (error) return err(new ConsultaError(`Erro ao buscar clientes: ${error.message}`));
     return ok((data as SugestaoClienteDto[]) ?? []);
@@ -294,10 +302,10 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       .from("clientes_basico")
       .select(SELECT_RESUMO)
       .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
-      .eq("cliente_responsaveis.setor", "simples_nacional")
-      .eq("cliente_parcelamentos.setor", "simples_nacional")
+      .eq("cliente_responsaveis.setor", SETOR_SN)
+      .eq("cliente_parcelamentos.setor", SETOR_SN)
       .eq("cliente_parcelamentos.cliente_parcelamento_envios.parcela", parcelaDoMesAtual())
-      .in("regime", ["simples_nacional", "mei"]);
+      .in("regime", REGIMES_COM_CADASTRO_OPERACIONAL);
 
     if (error) return err(new ConsultaError(`Erro ao listar resumo operacional: ${error.message}`));
 

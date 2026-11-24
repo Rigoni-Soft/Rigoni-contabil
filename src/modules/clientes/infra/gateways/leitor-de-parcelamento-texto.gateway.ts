@@ -13,6 +13,8 @@ type Lida = Omit<
 > & { parcelas: number };
 
 const ILEGIVEL: LeituraDeParcelamento = { lido: false, motivo: "ilegivel" };
+const CNPJ_NO_TEXTO = /CNPJ\s*:\s*([0-9A-Z./-]{14,18})/;
+const juntarEspacos = (texto: string) => texto.replace(/\s+/g, " ").trim();
 
 function lerReceita(texto: string): Lida | null {
   const parcelas = Number(pega(texto, /Número de parcelas:\s*(\d+)/));
@@ -65,7 +67,7 @@ function interpretar(texto: string): LeituraDeParcelamento {
     ...resto,
     quantidadeDeParcelas: parcelas,
     totalDeParcelas: parcelas,
-    cnpj: pega(texto, /CNPJ\s*:\s*([0-9A-Z./-]{14,18})/) ?? null,
+    cnpj: pega(texto, CNPJ_NO_TEXTO) ?? null,
   };
 }
 
@@ -77,7 +79,7 @@ export class LeitorDeParcelamentoTextoGateway implements LeitorDeParcelamentoPor
 
   async ler(pdf: Uint8Array): Promise<LeituraDeParcelamento> {
     try {
-      return interpretar((await this.extrairTexto(pdf)).replace(/\s+/g, " ").trim());
+      return interpretar(juntarEspacos(await this.extrairTexto(pdf)));
     } catch {
       this.erros.registrar("Leitor de PDF: falha ao extrair o texto do PDF.");
       return ILEGIVEL;

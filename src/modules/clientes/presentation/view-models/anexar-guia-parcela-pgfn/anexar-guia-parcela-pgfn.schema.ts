@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const LIMITE_ARQUIVO_BYTES = 4 * 1024 * 1024;
+const LIMITE_DO_ARQUIVO_DA_GUIA_EM_BYTES = 4 * 1024 * 1024;
 
 const competencia = z
   .string()
@@ -16,7 +16,7 @@ const arquivoDaGuia = z
   .instanceof(File, { message: "Anexe o PDF da guia." })
   .refine((arquivo) => arquivo.type === "application/pdf", "Envie um arquivo PDF.")
   .refine(
-    (arquivo) => arquivo.size <= LIMITE_ARQUIVO_BYTES,
+    (arquivo) => arquivo.size <= LIMITE_DO_ARQUIVO_DA_GUIA_EM_BYTES,
     "O arquivo passa de 4 MB. Envie um arquivo menor.",
   );
 

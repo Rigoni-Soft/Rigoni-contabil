@@ -18,6 +18,8 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const TIMEOUT_MS = 15_000;
 const TIPO_DE_IDENTIFICADOR_CNPJ_NO_SERPRO = 2;
+const MARGEM_DE_RENOVACAO_DO_TOKEN_EM_SEGUNDOS = 60;
+const STATUS_SEM_DADOS = [204, 404];
 
 type ServicosDoParcelamento = { sistema: string; consulta: string; emissao: string };
 const PARCELAMENTO_POR_REGIME: Record<RegimeParcelamento, ServicosDoParcelamento> = {
@@ -240,7 +242,7 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
     this.token = {
       access: t.access_token,
       jwt: t.jwt_token,
-      expiraEm: Date.now() + (t.expires_in - 60) * 1000,
+      expiraEm: Date.now() + (t.expires_in - MARGEM_DE_RENOVACAO_DO_TOKEN_EM_SEGUNDOS) * 1000,
     };
     return this.token;
   }
@@ -277,7 +279,7 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
       this.token = null;
       return this.chamar(operacao, contribuinte, idSistema, idServico, versaoSistema, dados, false);
     }
-    if (r.status === 204 || r.status === 404) return null;
+    if (STATUS_SEM_DADOS.includes(r.status)) return null;
     if (r.status !== 200) {
       throw new ErroSerpro(`Serviço fiscal respondeu ${r.status}.`, recusaDaResposta(r.corpo));
     }

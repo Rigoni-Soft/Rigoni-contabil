@@ -14,6 +14,11 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 const MENSAGEM_DUPLICADO = "Este Cliente já tem um contato com este WhatsApp ou e-mail.";
 const MENSAGEM_INVALIDO = "Confira o nome e o WhatsApp ou o e-mail do contato.";
 
+const PG_SEM_PERMISSAO = "42501";
+const PG_VIOLACAO_DE_UNICIDADE = "23505";
+const PG_PARAMETRO_INVALIDO = "22023";
+const PG_VIOLACAO_DE_CHECK = "23514";
+
 export class SupabaseContatoDoClienteRepository implements ContatoDoClienteRepository {
   constructor(
     private readonly supabase: SupabaseClient,
@@ -29,12 +34,12 @@ export class SupabaseContatoDoClienteRepository implements ContatoDoClienteRepos
       p_contato: contatoParaRpc(contato),
     });
     if (error) {
-      if (error.code === "42501") return err(new ForbiddenError(error.message));
-      if (error.code === "23505") {
+      if (error.code === PG_SEM_PERMISSAO) return err(new ForbiddenError(error.message));
+      if (error.code === PG_VIOLACAO_DE_UNICIDADE) {
         return err(new ValidationError(error.hint ? error.message : MENSAGEM_DUPLICADO));
       }
-      if (error.code === "22023") return err(new ValidationError(error.message));
-      if (error.code === "23514") return err(new ValidationError(MENSAGEM_INVALIDO));
+      if (error.code === PG_PARAMETRO_INVALIDO) return err(new ValidationError(error.message));
+      if (error.code === PG_VIOLACAO_DE_CHECK) return err(new ValidationError(MENSAGEM_INVALIDO));
       this.erros.registrar("Falha ao salvar o contato do Cliente:", error.message);
       return err(new PersistenciaError("Não foi possível salvar o contato. Tente novamente."));
     }

@@ -23,6 +23,8 @@ class PersistenciaError extends AppError {
 
 const semDesfechoConhecido = (status: number) => status === 0 || status >= 502;
 
+const PG_VIOLACAO_DE_CHECK = "23514";
+
 export class SupabaseClienteParcelamentoRepository implements ClienteParcelamentoRepository {
   constructor(
     private readonly supabase: SupabaseClient,
@@ -67,7 +69,7 @@ export class SupabaseClienteParcelamentoRepository implements ClienteParcelament
       }
       return err(
         new PersistenciaError(
-          error.code === "23514"
+          error.code === PG_VIOLACAO_DE_CHECK
             ? error.message
             : "Não foi possível salvar os Parcelamentos. Tente novamente.",
         ),

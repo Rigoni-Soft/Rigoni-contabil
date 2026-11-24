@@ -23,7 +23,12 @@ import {
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { SETOR_RH } from "@/shared/kernel/setores";
 
-const doBucket = ({ clienteId, empresa, cnpj, parcelamentos }: ClienteDaCarteiraRow) => ({
+const comoLinhaDeParcelamento = ({
+  clienteId,
+  empresa,
+  cnpj,
+  parcelamentos,
+}: ClienteDaCarteiraRow) => ({
   clienteId,
   empresa,
   cnpj,
@@ -68,7 +73,7 @@ export class ObterResumoSetorRh {
     const veTudo = veCarteiraInteira(ator.papel);
     const linhas = veTudo ? lidas.value : lidas.value.filter((l) => l.responsavelId === ator.id);
 
-    const doRh = linhas.map(doBucket);
+    const doRh = linhas.map(comoLinhaDeParcelamento);
     const agora = this.relogio.agora();
     const parcelamentos = classificarParcelamento(doRh, agora);
 

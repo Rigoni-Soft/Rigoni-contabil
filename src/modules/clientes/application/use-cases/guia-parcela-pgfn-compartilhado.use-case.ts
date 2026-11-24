@@ -13,7 +13,7 @@ import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.e
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-const LIMITE_BYTES = 4 * 1024 * 1024;
+const LIMITE_DO_PDF_DA_GUIA_EM_BYTES = 4 * 1024 * 1024;
 
 const MOTIVO_CONFIRMACAO_FALHOU =
   "Não consegui confirmar a guia na hora: confira e confirme à mão.";
@@ -28,7 +28,7 @@ export async function revalidarPdfNoStorage(
   if (objeto.value.tipoMime !== "application/pdf") {
     return new ValidationError("A guia precisa ser um PDF.");
   }
-  if (objeto.value.tamanho > LIMITE_BYTES) {
+  if (objeto.value.tamanho > LIMITE_DO_PDF_DA_GUIA_EM_BYTES) {
     return new ValidationError("O arquivo passa de 4 MB. Envie um arquivo menor.");
   }
   return null;

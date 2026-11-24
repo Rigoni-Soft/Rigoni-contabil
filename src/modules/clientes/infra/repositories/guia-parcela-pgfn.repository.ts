@@ -29,6 +29,9 @@ type GuiaRow = {
   motivo: string | null;
 };
 
+const PG_VIOLACAO_DE_CHECK = "23514";
+const PG_VIOLACAO_DE_UNICIDADE = "23505";
+
 export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnRepository {
   constructor(
     private readonly supabase: SupabaseClient,
@@ -112,12 +115,14 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
     if (semDesfechoConhecido(status)) {
       return err(new ResultadoIncertoError("Não foi possível confirmar o anexo da guia."));
     }
-    if (error.code === "23505") {
+    if (error.code === PG_VIOLACAO_DE_UNICIDADE) {
       return err(new PersistenciaError("Já existe guia anexada para esta competência."));
     }
     return err(
       new PersistenciaError(
-        error.code === "23514" ? error.message : "Não foi possível anexar a guia. Tente novamente.",
+        error.code === PG_VIOLACAO_DE_CHECK
+          ? error.message
+          : "Não foi possível anexar a guia. Tente novamente.",
       ),
     );
   }
@@ -138,7 +143,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       this.erros.registrar("Falha ao confirmar guia da parcela:", error.message);
       return err(
         new PersistenciaError(
-          error.code === "23514"
+          error.code === PG_VIOLACAO_DE_CHECK
             ? error.message
             : "Não foi possível confirmar a guia. Tente novamente.",
         ),
@@ -205,7 +210,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       }
       return err(
         new PersistenciaError(
-          error.code === "23514"
+          error.code === PG_VIOLACAO_DE_CHECK
             ? error.message
             : `Não foi possível ${acao} a guia. Tente novamente.`,
         ),

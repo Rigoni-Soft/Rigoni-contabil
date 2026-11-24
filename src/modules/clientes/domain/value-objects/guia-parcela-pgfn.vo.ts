@@ -10,17 +10,20 @@ export type GuiaParcelaPgfnProps = {
   arquivoCaminho: string;
 };
 
-const COMPETENCIA = /^\d{4}(0[1-9]|1[0-2])$/;
+const COMPETENCIA_AAAAMM = /^\d{4}(0[1-9]|1[0-2])$/;
+const CONTA_DE_NEGOCIACAO_MAXIMO = 40;
 
 export function validarGuiaParcelaPgfn(
   entrada: GuiaParcelaPgfnProps,
 ): Result<GuiaParcelaPgfnProps, ValidationError> {
-  if (!COMPETENCIA.test(entrada.competencia)) {
+  if (!COMPETENCIA_AAAAMM.test(entrada.competencia)) {
     return err(new ValidationError("Competência inválida: informe o mês e o ano da guia."));
   }
   const conta = entrada.contaNegociacao.trim();
-  if (conta.length < 1 || conta.length > 40) {
-    return err(new ValidationError("Conta de negociação: de 1 a 40 caracteres."));
+  if (conta.length < 1 || conta.length > CONTA_DE_NEGOCIACAO_MAXIMO) {
+    return err(
+      new ValidationError(`Conta de negociação: de 1 a ${CONTA_DE_NEGOCIACAO_MAXIMO} caracteres.`),
+    );
   }
   return ok({ ...entrada, contaNegociacao: conta });
 }

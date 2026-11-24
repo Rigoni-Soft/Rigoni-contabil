@@ -15,6 +15,8 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 const PESSOA_JURIDICA = 1;
 const STATUS_EM_PROCESSAMENTO = 7;
 const STATUS_COM_CERTIDAO = [1, 2];
+const STATUS_HTTP_COM_CORPO_DE_CONSULTA = [200, 201, 202, 404];
+const MARGEM_DE_RENOVACAO_DO_TOKEN_EM_SEGUNDOS = 60;
 const TENTATIVAS = 4;
 const ESPERA_MS = 3000;
 
@@ -108,7 +110,7 @@ export class CertidaoCndSerproGateway implements CertidaoCndPort {
       this.token = null;
       return this.consultar(cnpj, chave, false);
     }
-    if (![200, 201, 202, 404].includes(r.status)) {
+    if (!STATUS_HTTP_COM_CORPO_DE_CONSULTA.includes(r.status)) {
       throw new ErroCnd(`Serviço de CND respondeu ${r.status}.`);
     }
     return respostaSchema.parse(JSON.parse(r.corpo));
@@ -130,7 +132,10 @@ export class CertidaoCndSerproGateway implements CertidaoCndPort {
     if (r.status !== 200)
       throw new ErroCnd(`Autenticação do serviço de CND respondeu ${r.status}.`);
     const t = tokenSchema.parse(JSON.parse(r.corpo));
-    this.token = { valor: t.access_token, expiraEm: Date.now() + (t.expires_in - 60) * 1000 };
+    this.token = {
+      valor: t.access_token,
+      expiraEm: Date.now() + (t.expires_in - MARGEM_DE_RENOVACAO_DO_TOKEN_EM_SEGUNDOS) * 1000,
+    };
     return this.token.valor;
   }
 }

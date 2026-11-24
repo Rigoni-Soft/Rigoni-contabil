@@ -28,6 +28,13 @@ import type { SetorSlug } from "@/shared/kernel/setores";
 
 type Upload = { caminho: string; arquivo: File };
 
+type DesfechoDaGravacaoIncerta = "gravacao_confirmada" | "gravacao_falhou";
+
+const semBarras = (nomeDoArquivo: string) => nomeDoArquivo.replace(/[/\\]/g, "_");
+
+const naoEditavelPeloUsuario = (atual: ParcelamentoSalvo): boolean =>
+  atual.quitado || atual.acordo?.origem === "pgfn";
+
 export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -75,14 +82,14 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
 
     const salvo = await this.parcelamentos.salvar(input.clienteId, input.setor, itens);
     if (!salvo.ok) {
-      const confirmado = await this.reconciliar(
+      const desfecho = await this.reconciliar(
         input.clienteId,
         input.setor,
         salvo.error,
         enviados.value,
       );
-      if (confirmado.ok && !confirmado.value) return salvo;
-      if (!confirmado.ok) return confirmado;
+      if (!desfecho.ok) return desfecho;
+      if (desfecho.value === "gravacao_falhou") return salvo;
     }
 
     const mantidos = new Set(itens.map((item) => item.id));
@@ -114,12 +121,12 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
         atual || !entrada.arquivo
           ? undefined
           : {
-              caminho: `${input.clienteId}/${id}-${entrada.arquivo.name.replace(/[/\\]/g, "_")}`,
+              caminho: `${input.clienteId}/${id}-${semBarras(entrada.arquivo.name)}`,
               arquivo: entrada.arquivo,
             };
 
       const item =
-        atual?.quitado || atual?.acordo?.origem === "pgfn"
+        atual && naoEditavelPeloUsuario(atual)
           ? ok(atual)
           : validarParcelamento({
               id,
@@ -147,15 +154,15 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
     setor: SetorSlug,
     erro: AppError,
     enviados: string[],
-  ): Promise<Result<boolean, AppError>> {
+  ): Promise<Result<DesfechoDaGravacaoIncerta, AppError>> {
     if (!(erro instanceof ResultadoIncertoError)) {
       await this.apagarAnexos(clienteId, enviados);
-      return ok(false);
+      return ok("gravacao_falhou");
     }
     const atuais = await this.parcelamentos.listar(clienteId, setor);
     if (atuais.ok && enviados.length > 0) {
       const gravados = new Set(atuais.value.map((p) => p.arquivoCaminho));
-      if (enviados.every((c) => gravados.has(c))) return ok(true);
+      if (enviados.every((c) => gravados.has(c))) return ok("gravacao_confirmada");
     }
     return err(
       new EstadoInconsistenteError(

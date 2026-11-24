@@ -14,6 +14,8 @@ import {
   useListaAvisosQuery,
 } from "@/modules/clientes/presentation/view-models/avisos-cadastro/avisos-cadastro.queries";
 
+function ignorarFalhaAoMarcarComoVisto() {}
+
 function modalDo(painelId: string) {
   return document.getElementById(painelId) as HTMLDialogElement | null;
 }
@@ -67,7 +69,9 @@ export function useSinoAvisos(painelId: string, usuarioId: string) {
       if (!aviso.visto) {
         try {
           await marcarAvisoVistoAction(aviso.id);
-        } catch {}
+        } catch {
+          ignorarFalhaAoMarcarComoVisto();
+        }
       }
       router.push(aviso.href);
       await queryClient.invalidateQueries({ queryKey: avisosCadastroKeys.todos(usuarioId) });

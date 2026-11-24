@@ -23,6 +23,7 @@ type Params = {
   setError: UseFormSetError<Valores>;
 };
 
+const ETAPA_DO_CADASTRO = null;
 const ETAPA_RESPONSAVEL = "atribuir o Responsável";
 
 export function useSalvarCadastroOperacional({
@@ -77,7 +78,7 @@ export function useSalvarCadastroOperacional({
       const cadastro = semChaves(valores, "responsavelId", "parcelamentos");
       const retrato = JSON.stringify(cadastro);
       if (cadastroSalvo !== retrato) {
-        const resultado = await naEtapa(null, () =>
+        const resultado = await naEtapa(ETAPA_DO_CADASTRO, () =>
           editarCadastroOperacionalAction({ ...cadastro, clienteId: dados.id }),
         );
         if (!resultado.ok) {

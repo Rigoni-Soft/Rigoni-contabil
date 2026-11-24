@@ -13,20 +13,27 @@ export type DadosDoAcordo = {
 
 type AcordoBruto = { [K in keyof DadosDoAcordo]?: unknown };
 
-export function normalizarAcordo(bruto: AcordoBruto): DadosDoAcordo {
-  const inteiroPositivo = (v: unknown) =>
-    Number.isInteger(v) && (v as number) >= 1 ? (v as number) : null;
-  const data = typeof bruto.dataDeAdesao === "string" ? bruto.dataDeAdesao : "";
+const CODIGO_MAXIMO = 60;
+
+const inteiroPositivoOuNulo = (v: unknown) =>
+  Number.isInteger(v) && (v as number) >= 1 ? (v as number) : null;
+
+function ehDataIsoExistente(data: string): boolean {
   const instante = new Date(`${data}T00:00:00Z`);
-  const dataValida =
+  return (
     /^\d{4}-\d{2}-\d{2}$/.test(data) &&
     !Number.isNaN(instante.getTime()) &&
-    instante.toISOString().startsWith(data);
+    instante.toISOString().startsWith(data)
+  );
+}
+
+export function normalizarAcordo(bruto: AcordoBruto): DadosDoAcordo {
+  const data = typeof bruto.dataDeAdesao === "string" ? bruto.dataDeAdesao : "";
   return {
     origem: ORIGENS_DO_PARCELAMENTO.find((o) => o === bruto.origem) ?? null,
-    totalDeParcelas: inteiroPositivo(bruto.totalDeParcelas),
-    valorDaParcelaCentavos: inteiroPositivo(bruto.valorDaParcelaCentavos),
-    dataDeAdesao: dataValida ? data : null,
+    totalDeParcelas: inteiroPositivoOuNulo(bruto.totalDeParcelas),
+    valorDaParcelaCentavos: inteiroPositivoOuNulo(bruto.valorDaParcelaCentavos),
+    dataDeAdesao: ehDataIsoExistente(data) ? data : null,
   };
 }
 
@@ -46,8 +53,8 @@ export function validarParcelamento(
   entrada: ParcelamentoProps,
 ): Result<ParcelamentoProps, ValidationError> {
   const codigo = entrada.codigo.trim();
-  if (codigo.length < 1 || codigo.length > 60) {
-    return err(new ValidationError("Código do parcelamento: de 1 a 60 caracteres."));
+  if (codigo.length < 1 || codigo.length > CODIGO_MAXIMO) {
+    return err(new ValidationError(`Código do parcelamento: de 1 a ${CODIGO_MAXIMO} caracteres.`));
   }
   if (!Number.isInteger(entrada.parcelasRestantes) || entrada.parcelasRestantes < 1) {
     return err(new ValidationError("Informe pelo menos 1 parcela restante."));
@@ -84,7 +91,7 @@ export function sugerirParcelamento(
     return { lido: false, motivo: "ilegivel" };
   }
   const lido = leitura.codigo?.trim() ?? "";
-  if (lido.length > 60) return { lido: false, motivo: "ilegivel" };
+  if (lido.length > CODIGO_MAXIMO) return { lido: false, motivo: "ilegivel" };
   return {
     lido: true,
     codigo: lido || gerarCodigoDeParcelamento(),

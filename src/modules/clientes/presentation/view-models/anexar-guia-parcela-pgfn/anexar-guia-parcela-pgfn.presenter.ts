@@ -11,9 +11,11 @@ export type {
 const rotuloDaCompetencia = (competencia: string) =>
   `${competencia.slice(4)}/${competencia.slice(0, 4)}`;
 
+const MES_E_ANO_DIGITADOS = /^(\d{1,2})\/(\d{4})$/;
+
 export function competenciaDoMes(mes: string) {
   const texto = mes.trim();
-  const mesAno = /^(\d{1,2})\/(\d{4})$/.exec(texto);
+  const mesAno = MES_E_ANO_DIGITADOS.exec(texto);
   if (mesAno) return `${mesAno[2]}${mesAno[1].padStart(2, "0")}`;
   return texto.replace("-", "");
 }

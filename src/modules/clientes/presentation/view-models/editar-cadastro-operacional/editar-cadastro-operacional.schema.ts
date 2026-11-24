@@ -45,14 +45,18 @@ export const editarCadastroOperacionalSchema = z.object({
   }),
 });
 
-const LIMITE_PDF_BYTES = 4 * 1024 * 1024;
+const LIMITE_DE_PDFS_POR_ACTION_EM_BYTES = 4 * 1024 * 1024;
 const pdfDoAcordo = z
   .instanceof(File, { message: "Anexe o PDF do parcelamento" })
   .refine((arquivo) => arquivo.type === "application/pdf", "Envie um arquivo PDF")
-  .refine((arquivo) => arquivo.size <= LIMITE_PDF_BYTES, "O arquivo passa de 4 MB");
+  .refine(
+    (arquivo) => arquivo.size <= LIMITE_DE_PDFS_POR_ACTION_EM_BYTES,
+    "O arquivo passa de 4 MB",
+  );
 
 const somaDosPdfsCabe = (parcelamentos: { arquivo?: File }[]) =>
-  parcelamentos.reduce((total, p) => total + (p.arquivo?.size ?? 0), 0) <= LIMITE_PDF_BYTES;
+  parcelamentos.reduce((total, p) => total + (p.arquivo?.size ?? 0), 0) <=
+  LIMITE_DE_PDFS_POR_ACTION_EM_BYTES;
 const MENSAGEM_SOMA_DOS_PDFS = "Os PDFs novos somam mais de 4 MB. Salve alguns de cada vez.";
 
 export const lerPdfDeParcelamentoSchema = z.object({ clienteId: z.guid(), arquivo: pdfDoAcordo });

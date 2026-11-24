@@ -18,7 +18,7 @@ function contar(
   }));
 }
 
-function porResponsavel(linhas: ResumoOperacionalRow[]): FatiaComparativoDto[] {
+function dasEnviadasPorResponsavel(linhas: ResumoOperacionalRow[]): FatiaComparativoDto[] {
   const grupos = new Map<string, FatiaComparativoDto>();
   for (const l of linhas) {
     const id = l.responsavelId ?? SEM_RESPONSAVEL_ID;
@@ -79,6 +79,6 @@ export function calcularComparativosSn(linhas: ResumoOperacionalRow[], agora: Da
       ],
       atividades,
     ),
-    responsaveis: porResponsavel(linhas),
+    responsaveis: dasEnviadasPorResponsavel(linhas),
   };
 }

@@ -66,13 +66,16 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     setResultado(undefined);
   };
 
-  const executar = async (rodar: () => Promise<string | undefined>, ehAnexo = false) => {
+  const executar = async (
+    rodar: () => Promise<string | undefined>,
+    { anexo = false }: { anexo?: boolean } = {},
+  ) => {
     if (pendente) {
       setErroServidor(undefined);
       setResultado({ tipo: "atencao", texto: AVISO_AGUARDE });
       return;
     }
-    setEmCurso(ehAnexo ? "anexo" : "outra");
+    setEmCurso(anexo ? "anexo" : "outra");
     limparAvisos();
     try {
       const erro = await rodar();
@@ -103,14 +106,17 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     }
     setErros({});
     setAcao(undefined);
-    return executar(async () => {
-      const resultado = await anexarGuiaParcelaPgfnAction(validado.data);
-      if (!resultado.ok) return resultado.error.message;
-      setMes("");
-      setContaNegociacao("");
-      setArquivo(undefined);
-      await avisarGuiaGravada(resultado.data, "anexada");
-    }, true);
+    return executar(
+      async () => {
+        const resultado = await anexarGuiaParcelaPgfnAction(validado.data);
+        if (!resultado.ok) return resultado.error.message;
+        setMes("");
+        setContaNegociacao("");
+        setArquivo(undefined);
+        await avisarGuiaGravada(resultado.data, "anexada");
+      },
+      { anexo: true },
+    );
   };
 
   const avisarGuiaGravada = async (guia: GuiaDaParcela, verbo: "anexada" | "trocada") => {

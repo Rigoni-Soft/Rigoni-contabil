@@ -21,6 +21,10 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
+function manterUploadsParaConferencia(enviados: string[]): void {
+  enviados.length = 0;
+}
+
 export class CriarCliente implements CriarClientePort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -81,7 +85,7 @@ export class CriarCliente implements CriarClientePort {
       if (!(salvo.error instanceof ResultadoIncertoError)) return salvo;
       const gravado = await this.clientes.buscarPorId(id);
       if (!(gravado.ok && gravado.value)) {
-        enviados.length = 0;
+        manterUploadsParaConferencia(enviados);
         return err(
           new EstadoInconsistenteError(
             "Não foi possível confirmar se o Cliente foi cadastrado. Os documentos foram mantidos; confira a lista de Clientes antes de tentar de novo.",

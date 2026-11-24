@@ -28,11 +28,14 @@ class PersistenciaError extends AppError {
   readonly code = "PERSISTENCIA_ERROR";
 }
 
+const PG_VIOLACAO_DE_CHECK = "23514";
+const PG_VIOLACAO_DE_UNICIDADE = "23505";
+
 const ERRO_DATA_FUTURA = "A data da alteração não pode ser futura.";
 
 const semDesfechoConhecido = (status: number) => status === 0 || status >= 502;
 const dataFutura = (error: { code?: string; message: string }) =>
-  error.code === "23514" && error.message.includes("alteracao_contratual_data_futura");
+  error.code === PG_VIOLACAO_DE_CHECK && error.message.includes("alteracao_contratual_data_futura");
 
 export class SupabaseClienteRepository implements ClienteRepository {
   constructor(
@@ -57,7 +60,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
     });
 
     if (error) {
-      if (error.code === "23505" && error.message.includes("clientes_cnpj_key")) {
+      if (error.code === PG_VIOLACAO_DE_UNICIDADE && error.message.includes("clientes_cnpj_key")) {
         return err(
           new ValidationError("CNPJ já cadastrado para outro Cliente.", {
             cnpj: ["já cadastrado"],
@@ -87,7 +90,7 @@ export class SupabaseClienteRepository implements ClienteRepository {
     });
 
     if (error) {
-      if (error.code === "23505") {
+      if (error.code === PG_VIOLACAO_DE_UNICIDADE) {
         return err(new ValidationError(erroNumeroRepetidoNoCliente(alteracao.numero)));
       }
       if (dataFutura(error)) return err(new ValidationError(ERRO_DATA_FUTURA));

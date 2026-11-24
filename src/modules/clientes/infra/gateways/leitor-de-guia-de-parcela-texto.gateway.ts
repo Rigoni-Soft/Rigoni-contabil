@@ -8,6 +8,8 @@ import { ConsoleRegistroDeErrosGateway } from "@/modules/clientes/infra/gateways
 import { centavos, dataIso, extrairTextoDoPdf, pega } from "./leitura-pdf.gateway";
 
 const NAO_LIDA: LeituraDeGuia = { lido: false };
+const CNPJ_NO_TEXTO = /CNPJ\s*:?\s*([0-9A-Z./-]{14,18})/;
+const juntarEspacos = (texto: string) => texto.replace(/\s+/g, " ").trim();
 
 function interpretar(texto: string): LeituraDeGuia {
   if (!/Documento de Arrecadação do Simples Nacional/i.test(texto) || !/PGFN-SISPAR/.test(texto)) {
@@ -16,7 +18,7 @@ function interpretar(texto: string): LeituraDeGuia {
   const periodo = /Período de Apuração\s*:?\s*(\d{2})\/(\d{4})/.exec(texto);
   return {
     lido: true,
-    cnpj: pega(texto, /CNPJ\s*:?\s*([0-9A-Z./-]{14,18})/) ?? null,
+    cnpj: pega(texto, CNPJ_NO_TEXTO) ?? null,
     contaNegociacao: pega(texto, /PGFN-SISPAR\s*:?\s*(\d+)/) ?? null,
     competencia: periodo ? `${periodo[2]}${periodo[1]}` : null,
     vencimento: dataIso(pega(texto, /Data de Vencimento\s*:?\s*(\d{2}\/\d{2}\/\d{4})/)),
@@ -32,7 +34,7 @@ export class LeitorDeGuiaDeParcelaTextoGateway implements LeitorDeGuiaDeParcelaP
 
   async ler(pdf: Uint8Array): Promise<LeituraDeGuia> {
     try {
-      return interpretar((await this.extrairTexto(pdf)).replace(/\s+/g, " ").trim());
+      return interpretar(juntarEspacos(await this.extrairTexto(pdf)));
     } catch {
       this.erros.registrar("Leitor de guia: falha ao extrair o texto do PDF.");
       return NAO_LIDA;

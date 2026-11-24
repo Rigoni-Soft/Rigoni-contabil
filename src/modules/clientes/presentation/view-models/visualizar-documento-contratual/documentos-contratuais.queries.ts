@@ -5,6 +5,8 @@ import type { DocumentoContratualVisivelDto } from "@/modules/clientes/applicati
 
 import { listarDocumentosContratuaisAction } from "./visualizar-documento-contratual.actions";
 
+const DOCUMENTOS_FRESCOS_POR_MS = 60_000;
+
 export const chaveDocumentosContratuais = (clienteId: string) =>
   ["clientes", "documentos-contratuais", clienteId] as const;
 
@@ -21,7 +23,7 @@ export function useDocumentosContratuais(
       return resultado.data;
     },
     initialData: iniciais,
-    staleTime: 60_000,
+    staleTime: DOCUMENTOS_FRESCOS_POR_MS,
   });
 
   const { data, refetch } = query;

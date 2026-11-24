@@ -17,6 +17,12 @@ type Props = { papel: string; setor: string; apenasSnMei?: boolean };
 const ID_LISTA = "buscar-cliente-lista";
 const idOpcao = (indice: number) => `buscar-cliente-opcao-${indice}`;
 
+function rotaDaTelaPropriaDoCliente(papel: string, setor: string, id: string): string | null {
+  if (papel === "admin") return `/clientes/${id}`;
+  if (usaCadastroDoRh(papel, setor)) return `/clientes/${id}?voltarPara=${ROTA_RH}`;
+  return null;
+}
+
 export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Props) {
   const router = useRouter();
   const {
@@ -32,8 +38,8 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
   } = useBuscarCliente(papel, setor, apenasSnMei);
 
   const aoSelecionar = (id: string) => {
-    if (papel === "admin") return router.push(`/clientes/${id}`);
-    if (usaCadastroDoRh(papel, setor)) return router.push(`/clientes/${id}?voltarPara=${ROTA_RH}`);
+    const rota = rotaDaTelaPropriaDoCliente(papel, setor, id);
+    if (rota) return router.push(rota);
     selecionarCliente(id);
   };
 

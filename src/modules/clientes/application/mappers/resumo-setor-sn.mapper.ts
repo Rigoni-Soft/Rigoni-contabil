@@ -149,11 +149,19 @@ function agrupar(buckets: readonly { id: string; grupo: string }[]): GrupoResumo
   return grupos;
 }
 
+const statusDaParcelaDoMes = (p: {
+  quitado: boolean;
+  enviadoNoMes: boolean;
+}): ParcelamentoBucketDto["status"] => {
+  if (p.quitado) return "quitado";
+  return p.enviadoNoMes ? "enviado" : "pendente";
+};
+
 const parcelamentosDaLista = (linha: LinhaDeParcelamento): ParcelamentoBucketDto[] =>
   linha.parcelamentos.map((p) => ({
     codigo: p.codigo,
     interno: p.interno,
-    status: p.quitado ? "quitado" : p.enviadoNoMes ? "enviado" : "pendente",
+    status: statusDaParcelaDoMes(p),
   }));
 
 const texto = (t: Texto | undefined, agora: Date) => (typeof t === "function" ? t(agora) : t);

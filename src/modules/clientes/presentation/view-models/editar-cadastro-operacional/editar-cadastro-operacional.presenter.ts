@@ -8,6 +8,7 @@ import {
 } from "@/shared/kernel/documento-obrigatorio-status";
 import { opcoesDe } from "@/shared/kernel/opcoes";
 import { rotuloResponsavel } from "@/shared/kernel/papeis";
+import { soDigitos } from "@/shared/kernel/telefone";
 
 type Opcao = { id: string; nome: string };
 
@@ -120,9 +121,11 @@ export function mudouParcelamentos(
 
 export const contatoNovo = () => ({ nome: "", telefone: "", email: "" });
 
+const PARCELAS_RESTANTES_DO_PARCELAMENTO_NOVO = 1;
+
 export const parcelamentoNovo = (): ParcelamentoFormValues => ({
   codigo: "",
-  parcelasRestantes: 1,
+  parcelasRestantes: PARCELAS_RESTANTES_DO_PARCELAMENTO_NOVO,
   interno: false,
   quitado: false,
   temEnvio: false,
@@ -131,13 +134,13 @@ export const parcelamentoNovo = (): ParcelamentoFormValues => ({
 });
 
 type ContatoDaLinha = { id?: string; nome: string; telefone: string };
-const contatoEmBranco = (c: ContatoDaLinha) =>
-  !c.id && !c.nome.trim() && !c.telefone.replace(/\D/g, "");
+const contatoEmBranco = (c: ContatoDaLinha) => !c.id && !c.nome.trim() && !soDigitos(c.telefone);
 const parcelamentoEmBranco = (p: ParcelamentoFormValues) =>
   !p.id &&
   !p.arquivo &&
   !p.codigo.trim() &&
-  (Number.isNaN(p.parcelasRestantes) || p.parcelasRestantes === 1);
+  (Number.isNaN(p.parcelasRestantes) ||
+    p.parcelasRestantes === PARCELAS_RESTANTES_DO_PARCELAMENTO_NOVO);
 
 export function descartarLinhasEmBranco<
   T extends { contatos: ContatoDaLinha[]; parcelamentos: ParcelamentoFormValues[] },
@@ -157,11 +160,13 @@ export function descartarLinhasEmBranco<
   };
 }
 
+const ehIndiceDeLista = (chave: string) => !Number.isNaN(Number(chave));
+
 export function reposicionarErros(erros: unknown, indicesOriginais: number[]): unknown {
   if (!Array.isArray(erros)) return erros;
   const reposicionados: Record<string, unknown> & unknown[] = Object.assign(
     [],
-    Object.fromEntries(Object.entries(erros).filter(([chave]) => Number.isNaN(Number(chave)))),
+    Object.fromEntries(Object.entries(erros).filter(([chave]) => !ehIndiceDeLista(chave))),
   );
   erros.forEach((erro, indice) => {
     if (erro !== undefined) reposicionados[indicesOriginais[indice]] = erro;
