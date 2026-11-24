@@ -10,13 +10,11 @@ export type RegistroAcaoFiltro = {
   acao?: string;
   alvo?: string;
   resultado?: string;
-  // ISO 8601 completo (não yyyy-mm-dd): o caso de uso já resolve o dia inteiro.
   dataInicio?: string;
   dataFim?: string;
 };
 
 export interface RegistroAcaoRepository {
   salvar(registro: RegistroAcao): Promise<Result<void, AppError>>;
-  // Read model (testes.md, seção 3.6): DTOs de leitura direto, sem reconstruir entidade.
   listar(filtro: RegistroAcaoFiltro): Promise<Result<RegistroAcaoDto[], AppError>>;
 }

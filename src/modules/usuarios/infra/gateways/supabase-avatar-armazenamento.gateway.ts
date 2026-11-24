@@ -8,8 +8,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const BUCKET = "avatares";
 
-// Só um client service_role escreve no bucket (ADR 0012): não há policy para `authenticated`. A
-// autorização ("é a foto do próprio usuário") é do caso de uso, que só passa o id da sessão.
 export class SupabaseAvatarArmazenamentoGateway implements AvatarArmazenamentoPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
@@ -22,7 +20,6 @@ export class SupabaseAvatarArmazenamentoGateway implements AvatarArmazenamentoPo
   }
 
   async apagar(usuarioId: UsuarioId): Promise<Result<void, AppError>> {
-    // `remove` de objeto inexistente devolve lista vazia, sem erro: apagar é idempotente.
     const { error } = await this.supabaseAdmin.storage.from(BUCKET).remove([usuarioId]);
     if (error) return err(new PersistenciaError(`Falha ao apagar a foto: ${error.message}`));
     return ok(undefined);
@@ -38,7 +35,6 @@ export class SupabaseAvatarArmazenamentoGateway implements AvatarArmazenamentoPo
   }
 }
 
-// O download de objeto inexistente chega como erro com status 400/404 ou "Object not found".
 function ehObjetoAusente(error: {
   message: string;
   status?: number;

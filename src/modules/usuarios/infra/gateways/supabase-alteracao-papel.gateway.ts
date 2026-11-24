@@ -11,8 +11,6 @@ import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Só um client service_role chama a RPC (ver docs/adr/0001): ela não aceita
-// EXECUTE de `authenticated`/`anon`, então a checagem "só Admin" fica no caso de uso.
 export class SupabaseAlteracaoPapelGateway implements AlteracaoPapelPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 

@@ -104,9 +104,7 @@ describe("ListarRegistros", () => {
       dataFim: "2026-09-22",
     });
 
-    // 2026-09-01T00:00:00 em São Paulo (UTC-3) = 2026-09-01T03:00:00.000Z
     expect(repositorio.filtroRecebido?.dataInicio).toBe("2026-09-01T03:00:00.000Z");
-    // 2026-09-22T23:59:59.999 em São Paulo (UTC-3) = 2026-09-23T02:59:59.999Z
     expect(repositorio.filtroRecebido?.dataFim).toBe("2026-09-23T02:59:59.999Z");
   });
 
@@ -114,8 +112,6 @@ describe("ListarRegistros", () => {
     const sessao = new SessaoFalsa();
     const repositorio = new RegistroAcaoRepositoryFalso();
 
-    // 2026-09-29 23:30 em São Paulo é 2026-09-30 02:30 UTC — um filtro "só
-    // 29/09" que usasse limites UTC literais excluiria esse instante.
     await new ListarRegistros(repositorio, sessao).execute({
       dataInicio: "2026-09-29",
       dataFim: "2026-09-29",

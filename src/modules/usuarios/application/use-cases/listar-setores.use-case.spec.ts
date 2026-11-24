@@ -63,7 +63,6 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
 }
 
 describe("ListarSetores", () => {
-  // JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
   it("devolve lista vazia quando o usuário foi desativado, mesmo com sessão ativa", async () => {
     const sessao = new SessaoFalsa();
     const usuarios = new UsuarioRepositoryFalso();

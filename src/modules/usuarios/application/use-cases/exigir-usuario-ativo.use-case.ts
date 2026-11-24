@@ -5,7 +5,6 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// O usuário da sessão, ativo. JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
 export async function exigirUsuarioAtivo(
   sessao: SessaoPort,
   usuarios: UsuarioRepository,

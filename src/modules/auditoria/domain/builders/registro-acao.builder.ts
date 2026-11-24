@@ -94,11 +94,6 @@ export class RegistroAcaoBuilder {
   }
 
   build(): Result<RegistroAcao, ValidationError> {
-    // Presença checada aqui, não nos setters: um setter nunca chamado não deixa
-    // rastro em camposInvalidos, e os `!` abaixo mascarariam undefined em runtime.
-    // O guard `!this.camposInvalidos.X` evita sobrescrever a mensagem específica
-    // que o setter já registrou quando FOI chamado com um valor inválido (ex.:
-    // comResultado("parcial")) — só entra quando o setter nunca rodou.
     if (!this.id) this.camposInvalidos.id = ["obrigatório"];
     if (this.ator === undefined && !this.camposInvalidos.ator)
       this.camposInvalidos.ator = ["obrigatório"];

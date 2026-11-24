@@ -38,7 +38,6 @@ export class EnviarAvatar implements EnviarAvatarPort {
     const imagem = ImagemAvatar.criar(bytes);
     if (!imagem.ok) return imagem;
 
-    // Objeto primeiro, coluna depois: a coluna só aponta para um objeto que existe.
     const gravada = await this.armazenamento.gravar(usuario.id, imagem.value.bytes);
     if (!gravada.ok) {
       await this.auditar(usuario, "falha");
@@ -65,9 +64,6 @@ export class EnviarAvatar implements EnviarAvatarPort {
     return ok({ avatarAtualizadoEm: gravadaEm.toISOString() });
   }
 
-  // A coluna falhou depois de o objeto ser gravado. Sem foto antes, o objeto novo ficaria órfão (a coluna
-  // segue nula), então compensa apagando. Com foto antes, o objeto já substituiu o antigo e a coluna ainda
-  // aponta para ele: apagar deixaria a coluna apontando para o nada, então o objeto fica e o envio se repete.
   private async falharNaMarca(usuario: Usuario, erro: AppError): Promise<Result<never, AppError>> {
     await this.auditar(usuario, "falha");
     if (usuario.temAvatar()) return err(erro);

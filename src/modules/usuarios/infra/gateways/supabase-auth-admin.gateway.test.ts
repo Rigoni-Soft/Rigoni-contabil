@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase Auth Admin API (testes.md, seção 3): requer
- * `npx supabase start` rodando localmente. Usa service_role (docs/adr/0001) —
- * nunca o client autenticado do usuário.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { SupabaseAuthAdminGateway } from "./supabase-auth-admin.gateway";
@@ -43,8 +38,6 @@ describe("SupabaseAuthAdminGateway (integração)", () => {
     if (!resultado.ok) expect(resultado.error.code).toBe("VALIDATION_ERROR");
   });
 
-  // removerConta é a compensação usada quando uma etapa pós-Auth falha — depois de
-  // removida, o mesmo e-mail volta a estar livre pra uma nova tentativa de cadastro.
   it("remove a conta e libera o e-mail pra uma nova tentativa (compensação)", async () => {
     const gateway = new SupabaseAuthAdminGateway(clienteAdmin());
     const email = `teste-${crypto.randomUUID()}@rigonicontabil.local`;

@@ -10,8 +10,6 @@ import {
   type FiltroFeedValues,
 } from "@/modules/auditoria/presentation/view-models/feed/feed.schema";
 
-// reset({}) não limpa inputs não controlados sem defaultValues no useForm — precisa
-// do valor "" explícito por campo (o vazio real de input/select nativos).
 const FILTRO_VAZIO: FiltroFeedValues = {
   setor: "",
   ator: "",

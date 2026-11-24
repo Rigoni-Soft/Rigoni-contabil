@@ -11,10 +11,8 @@ import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// ~100 anos: o Auth só aceita duração, não "banido pra sempre".
 const BAN_DURATION_INDEFINIDO = "876000h";
 
-// Base32 (sem 0/O/1/I) evita ambiguidade quando o Admin repassa a senha por telefone/anotação.
 const ALFABETO_SENHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 export function gerarSenhaProvisoria(): string {
@@ -22,8 +20,6 @@ export function gerarSenhaProvisoria(): string {
   return Array.from(bytes, (b) => ALFABETO_SENHA[b % ALFABETO_SENHA.length]).join("");
 }
 
-// Só esta classe usa o client service_role (ver docs/adr/0001) — nunca o client
-// autenticado do usuário, que não tem permissão pra criar conta de outra pessoa.
 export class SupabaseAuthAdminGateway implements AuthAdminPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 

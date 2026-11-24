@@ -1,7 +1,3 @@
-/**
- * Integração presentation ↔ application: o `main` é substituído por portas falsas
- * (testes.md, seção 3), sem tocar Supabase real.
- */
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok } from "@/shared/kernel/result";
 

@@ -277,7 +277,6 @@ describe("DesativarUsuario", () => {
         expect(resultado.error.message).toMatch(/conclusão pendente/);
       }
       expect(chamadas).not.toContain("zerar-foto:func-1:null");
-      // o banimento já tinha sido concluído
       expect(chamadas).toContain("bloquear:func-1");
     });
 

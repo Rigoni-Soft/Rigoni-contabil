@@ -1,7 +1,6 @@
 import { srcDoAvatar } from "@/shared/kernel/avatar";
 import { escopoDoUsuario } from "@/shared/kernel/escopo-do-usuario";
 
-// Limites do que o Funcionário escolhe (o navegador reduz para WebP 256×256 antes de enviar; ADR 0012).
 export const TIPOS_DA_FOTO = ["image/jpeg", "image/png", "image/webp"] as const;
 export const LIMITE_DA_FOTO_ENVIADA_BYTES = 5 * 1024 * 1024;
 export const LADO_DO_AVATAR = 256;
@@ -33,5 +32,4 @@ export function imagemDoAvatar({
   };
 }
 
-// O tipo mora na View; o presenter o reexporta para o hook ter uma fonte só.
 export type { AcaoDoAvatar } from "@/presentation/components/organisms/avatar-da-conta.component";

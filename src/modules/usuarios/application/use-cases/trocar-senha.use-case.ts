@@ -28,18 +28,12 @@ export class TrocarSenha implements TrocarSenhaPort {
     if (!id) return err(new ForbiddenError("Sessão inválida."));
 
     const perfil = await this.usuarios.buscarPorId(id);
-    // Erro técnico não vira "sem perfil cadastrado": propaga o AppError original
-    // em vez de mascará-lo.
     if (!perfil.ok) return perfil;
     if (!perfil.value) return err(new ForbiddenError("Usuário autenticado sem perfil cadastrado."));
     const usuario = perfil.value;
-    // JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
     if (usuario.estaDesativado()) return err(new ForbiddenError("Conta desativada."));
 
-    // Decide antes de qualquer escrita, senão precisaTrocarSenha() já viraria false.
     const primeiroAcesso = usuario.precisaTrocarSenha();
-    // O marcador só é gravado DEPOIS de updateUser() ter sucesso — prova que o Auth já tem a senha
-    // nova. Com ele, o estado pendente é só perfil + auditoria e o retry pula o Auth por completo.
     const authJaAlterado = primeiroAcesso && usuario.authJaAlterado();
 
     if (!authJaAlterado) {
@@ -47,13 +41,7 @@ export class TrocarSenha implements TrocarSenhaPort {
       if (trocada) return trocada;
     }
 
-    // A partir daqui a senha já mudou no Auth — não existe compensação possível:
-    // a aplicação não guarda a credencial anterior pra "desfazer" (ADR 0002).
-    // Falha daqui em diante vira EstadoInconsistenteError, recuperável por retry.
     if (primeiroAcesso) {
-      // Perfil + auditoria numa única transação idempotente (migration
-      // 20260924190000_usuarios_e_auditoria.sql): retry conclui só o que falta, sem nova troca no Auth e
-      // sem auditoria duplicada.
       const finalizada = await this.finalizarTrocaSenha.finalizar(id);
       if (!finalizada.ok) {
         this.erros.registrar(
@@ -71,8 +59,6 @@ export class TrocarSenha implements TrocarSenhaPort {
       return ok(undefined);
     }
 
-    // Troca voluntária: sem perfil a finalizar, a auditoria é o último passo —
-    // se falhar, nada foi escrito e o retry (same_password tolerado) registra 1x.
     const auditoria = await this.auditoria.registrar({
       ator: id,
       setor: usuario.setor.slug,
@@ -96,7 +82,6 @@ export class TrocarSenha implements TrocarSenhaPort {
     return ok(undefined);
   }
 
-  // Devolve o Result a propagar quando a troca no Auth deve parar o fluxo; undefined = seguir.
   private async trocarNoAuth(
     id: UsuarioId,
     novaSenha: string,
@@ -105,9 +90,6 @@ export class TrocarSenha implements TrocarSenhaPort {
     const trocada = await this.sessao.trocarSenha(novaSenha);
     if (!trocada.ok) {
       const senhaJaDefinida = trocada.error.code === "SENHA_JA_DEFINIDA";
-      // Fora do primeiro acesso, same_password é reenvio legítimo (a auditoria
-      // é o último passo e nada ficou gravado). Em primeiro acesso, sem prova
-      // de Auth alterado, só pode ser o usuário reenviando a senha provisória.
       if (senhaJaDefinida && primeiroAcesso) return err(this.senhaRepetida());
       if (!senhaJaDefinida) return trocada;
     }
@@ -121,8 +103,6 @@ export class TrocarSenha implements TrocarSenhaPort {
     });
   }
 
-  // Best-effort: se falhar, finalizar() ainda tenta concluir; se ambos falharem o retry cai em
-  // same_password e é recusado (seguro — nunca finaliza sem prova), pedindo outra senha.
   private async registrarProva(id: UsuarioId): Promise<void> {
     const registrada = await this.finalizarTrocaSenha.registrarAuthAlterado(id);
     if (!registrada.ok) {

@@ -6,8 +6,6 @@ import type { AppError } from "@/shared/errors/app.error";
 import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Só um client service_role grava a coluna: o gatilho `perfis_proteger_avatar` nega qualquer sessão
-// de usuário (ADR 0008).
 export class SupabaseAvatarMarcaGateway implements AvatarMarcaPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
