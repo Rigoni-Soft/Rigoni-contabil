@@ -125,16 +125,8 @@ values
   ('99ad8a31-1450-454f-8b5a-75c14fa77498', 'positivo', 'enviado');
 
 insert into public.cliente_responsaveis (cliente_id, setor, responsavel_id)
-values
-  ('078a3aae-80fc-4df7-b113-657873d96176', 'simples_nacional', '22222222-2222-2222-2222-222222222222'),
-  ('9238058c-cc25-4300-890e-93ca86288d41', 'simples_nacional', '22222222-2222-2222-2222-222222222222'),
-  ('68195e6c-03f6-4b15-8362-171a98175e13', 'simples_nacional', '22222222-2222-2222-2222-222222222222'),
-  ('2d0b7e0a-f1f1-410f-bdbc-a16e34e4c215', 'simples_nacional', '22222222-2222-2222-2222-222222222222'),
-  ('eec94956-1450-4ff1-b317-96546d30dd0e', 'simples_nacional', '22222222-2222-2222-2222-222222222222'),
-  ('ef2c35e9-00b9-4fbc-8f8d-06b9d1aa20e8', 'simples_nacional', '22222222-2222-2222-2222-222222222222'),
-  ('168178df-7d67-4925-b293-66e0ec2def9d', 'simples_nacional', '22222222-2222-2222-2222-222222222222'),
-  ('3e999809-f99b-4b51-9fb9-07d37a5b3c23', 'simples_nacional', '22222222-2222-2222-2222-222222222222'),
-  ('99ad8a31-1450-454f-8b5a-75c14fa77498', 'simples_nacional', '22222222-2222-2222-2222-222222222222');
+select id, 'simples_nacional', '22222222-2222-2222-2222-222222222222'
+from public.clientes;
 
 -- Parcelamentos (sem PDF real no Storage: o caminho é só referência). O envio do mês corrente de
 -- "Lanchonete" faz dela a Cliente com Parcelamento enviado.

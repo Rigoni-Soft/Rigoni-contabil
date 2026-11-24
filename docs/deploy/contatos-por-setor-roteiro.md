@@ -38,24 +38,18 @@ existem e as três consultas de pré-checagem) e [lembretes-cron.md](./lembretes
    ```
 
    O `project-ref` de cada ambiente está no painel do Supabase dele (Project Settings, General, Reference ID):
-   Homologação e Produção têm refs diferentes. A coluna "Remote" vazia marca o que falta. Esta frente traz, nesta ordem (aplicar todas, o `db push` já
-   respeita a ordem dos timestamps):
+   Homologação e Produção têm refs diferentes. A coluna "Remote" vazia marca o que falta. Nenhum remoto aplicou as
+   migrations abaixo; o `db push` aplica todas, na ordem dos timestamps. Antes, reconcilie o histórico com o
+   baseline: [reconciliar-baseline.md](./reconciliar-baseline.md).
 
    | Migration | O que traz |
    | --- | --- |
-   | `20261119100000_contato_com_setores_dono_e_id_estavel.sql` | Contato com e-mail, Setores e dono; id estável; sai o "contato padrão". **Mexe em dados.** |
-   | `20261119110000_destinos_de_envio_e_resolucao.sql` | Destinos de envio, tipos de envio e a resolução "quem recebe" no banco |
-   | `20261119120000_salvar_contato_do_cliente.sql` | "Salvar" de um contato só |
-   | `20261119130000_tipos_de_envio_do_contato.sql` | Tipos de envio de um contato por Setor |
-   | `20261119140000_canal_do_envio_do_contato.sql` | Canal (WhatsApp, e-mail ou os dois) do Destino |
-   | `20261123100000_envios_leem_destinos.sql` | Jobs de lembrete, DAS e parcelamento leem os Destinos; aviso "sem meio de envio" no sino |
-   | `20261124100000_cadastrar_contato_ura.sql` | Recepção cadastra o número do atendimento como contato URA |
+   | `20261030090000_baseline.sql` | Schema consolidado das 43 migrations antigas (já refletido no remoto pela reconciliação) |
+   | `20261030120000_setores_responsavel_e_parcelamento.sql` | Limite de 20 MB nos documentos; Responsável em uma tabela só; Parcelamento por Setor |
+   | `20261104100000_rh_ponto_convencao_e_alerta_por_setor.sql` | Acompanhamento mensal, cadastro, folha de ponto, convenção, holerite e cartão do RH; alerta por Setor |
+   | `20261117100000_avatar_bucket_e_coluna.sql` | Bucket e coluna do avatar |
+   | `20261118100000_ura_contatos_por_setor_e_destinos_de_envio.sql` | URA por Setor; Contato com e-mail, Setores e dono (**mexe em dados**: a pré-checagem do passo 2 vale para ela); Destinos e tipos de envio; jobs que leem os Destinos; Recepção cadastra o contato URA |
 
-   Se a lista do remoto também mostrar pendentes `20261117100000_avatar_bucket_e_coluna.sql` e
-   `20261118100000_ura_sessao_etapa_setor.sql`, elas entram no mesmo `db push`, na ordem dos timestamps: são de
-   outras frentes, mas estão antes das desta. Se algum ambiente já tiver aplicado uma versão **anterior**
-   de `20261119100000` a `20261123100000` (de uma branch de revisão), a migration mudou depois: recrie ali as
-   funções dela a partir do arquivo atual antes de seguir.
 4. Os jobs só agem com `LEMBRETES_AUTOMATICOS=ligada` (e, em produção, `MENSAGERIA_MODO=real`). Se estiverem
    desligados, ligar só depois da seção 3, nunca antes.
 
@@ -161,5 +155,5 @@ não envia nada ao Cliente, então não lê Destinos e não pede cadastro.
   `200 { "ativa": false }` sem enviar nada. Use enquanto o SN termina a seção 3.
 - **Cliente recebendo duas vezes ou pelo canal errado**: o canal é do Destino. Corrigir no "editar cadastro" do
   Cliente (forma de envio); não há dado a reverter no banco.
-- **Rollback**: não há migration de volta; a frente é de ida. Se a migration `20261119100000` abortou, nada foi
+- **Rollback**: não há migration de volta; a frente é de ida. Se a migration `20261118100000` abortou, nada foi
   aplicado (a transação reverte): corrija os dados que ela listou e rode o `db push` de novo.
