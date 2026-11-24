@@ -11,8 +11,7 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 // ~0,6 s de silêncio em ogg/opus (o formato da mensagem de voz do WhatsApp), tocável no navegador.
 const OGG_OPUS_BASE64 =
   "T2dnUwACAAAAAAAAAAAXuhUhAAAAAFlxWgQBE09wdXNIZWFkAQE4AYA+AAAAAABPZ2dTAAAAAAAAAAAAABe6FSEBAAAACFp2kQE+T3B1c1RhZ3MNAAAATGF2ZjYwLjE2LjEwMAEAAAAdAAAAZW5jb2Rlcj1MYXZjNjAuMzEuMTAyIGxpYm9wdXNPZ2dTAAS4cQAAAAAAABe6FSECAAAAvMlSqh8HBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGCAvkuaC8hAgHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxg==";
-// PNG de 1×1 pixel.
-const PNG_BASE64 =
+const PNG_1X1_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
 // Word e Excel mínimos e válidos (um parágrafo; uma planilha "Balancete" com duas linhas).
@@ -29,7 +28,7 @@ const CATALOGO: Record<string, () => MidiaBaixada> = {
     bytes: bytesDeBase64(OGG_OPUS_BASE64),
     mime: "audio/ogg; codecs=opus",
   }),
-  "midia-teste-imagem": () => ({ bytes: bytesDeBase64(PNG_BASE64), mime: "image/png" }),
+  "midia-teste-imagem": () => ({ bytes: bytesDeBase64(PNG_1X1_BASE64), mime: "image/png" }),
   "midia-teste-documento": () => ({
     bytes: Buffer.from("%PDF-1.4\n%%EOF\n"),
     mime: "application/pdf",
