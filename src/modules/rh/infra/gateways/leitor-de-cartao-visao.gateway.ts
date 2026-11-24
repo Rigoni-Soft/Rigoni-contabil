@@ -13,6 +13,9 @@ import { FORMATO_DATA_ISO } from "@/shared/kernel/data-iso";
 
 const URL_DA_API = "https://api.anthropic.com/v1/messages";
 const TEMPO_MAXIMO_MS = 45_000;
+const VERSAO_DA_API = "2023-06-01";
+const MAXIMO_DE_TOKENS_DA_RESPOSTA = 4096;
+const PARES_POR_DIA_NO_CARTAO = 2;
 
 const horario = z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/);
 const par = z.object({ entrada: horario, saida: horario });
@@ -21,7 +24,7 @@ const resposta = z.object({
   dias: z.array(
     z.object({
       dia: z.number().int(),
-      batidas: z.array(par).max(2),
+      batidas: z.array(par).max(PARES_POR_DIA_NO_CARTAO),
       extra: par.nullable(),
       anotacao: z.enum(["faltou", "atestado"]).nullable(),
     }),
@@ -179,12 +182,12 @@ export class LeitorDeCartaoVisaoGateway implements LeitorDeCartaoPort, LeitorDeA
         signal: AbortSignal.timeout(TEMPO_MAXIMO_MS),
         headers: {
           "x-api-key": this.chave,
-          "anthropic-version": "2023-06-01",
+          "anthropic-version": VERSAO_DA_API,
           "content-type": "application/json",
         },
         body: JSON.stringify({
           model: this.modelo,
-          max_tokens: 4096,
+          max_tokens: MAXIMO_DE_TOKENS_DA_RESPOSTA,
           tools: [ferramenta],
           tool_choice: { type: "tool", name: ferramenta.name },
           messages: [

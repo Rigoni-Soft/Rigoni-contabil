@@ -5,11 +5,18 @@ import { LIMITE_DA_FOTO_BYTES } from "@/shared/kernel/foto-do-ponto";
 import { TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
 
 const id = z.guid();
-const minuto = z.number().int().min(0).max(1439);
+const MINUTOS_NO_DIA = 24 * 60;
+const minuto = z
+  .number()
+  .int()
+  .min(0)
+  .max(MINUTOS_NO_DIA - 1);
+const BATIDAS_POR_DIA_MAXIMAS = 4;
 const par = z.object({ entrada: minuto, saida: minuto });
 const competencia = z.string().regex(FORMATO_COMPETENCIA);
 
-const jornadaSchema = z.array(z.number().int().min(0).max(1440)).length(7);
+const DIAS_DA_SEMANA = 7;
+const jornadaSchema = z.array(z.number().int().min(0).max(MINUTOS_NO_DIA)).length(DIAS_DA_SEMANA);
 
 export const cadastrarEmpregadoSchema = z.object({
   clienteId: id,
@@ -34,7 +41,7 @@ export const iniciarCartaoSchema = z.object({ empregadoId: id, competencia });
 export const salvarDiaSchema = z.object({
   empregadoId: id,
   data: z.string().regex(FORMATO_DATA_ISO),
-  batidas: z.array(par).max(4),
+  batidas: z.array(par).max(BATIDAS_POR_DIA_MAXIMAS),
   extra: par.nullable(),
   abono: z.boolean(),
 });

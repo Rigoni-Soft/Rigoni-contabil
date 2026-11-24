@@ -30,11 +30,13 @@ export type Totalizacao = {
   diasComLanche: number;
 };
 
+const MINUTOS_POR_DIA = 24 * 60;
+const PROPORCAO_DA_HORA_NOTURNA = 8 / 7;
 const TOLERANCIA_POR_MARCACAO = 5;
 const TOLERANCIA_POR_DIA = 10;
 const JANELAS_NOTURNAS: readonly [number, number][] = [
   [0, 5 * 60],
-  [22 * 60, 29 * 60],
+  [22 * 60, MINUTOS_POR_DIA + 5 * 60],
 ];
 
 export function horaParaMinutos(texto: string): number {
@@ -56,7 +58,7 @@ export function diaTemDados(dia: Pick<DiaDoCartao, "batidas" | "extra" | "abono"
 }
 
 function intervalo({ entrada, saida }: Par): [number, number] {
-  return [entrada, saida <= entrada ? saida + 1440 : saida];
+  return [entrada, saida <= entrada ? saida + MINUTOS_POR_DIA : saida];
 }
 
 function duracao(par: Par): number {
@@ -71,7 +73,7 @@ function minutosNoturnos(pares: Par[]): number {
     for (const [inicioDaJanela, fimDaJanela] of JANELAS_NOTURNAS)
       real += Math.max(0, Math.min(fim, fimDaJanela) - Math.max(inicio, inicioDaJanela));
   }
-  return Math.round((real * 8) / 7);
+  return Math.round(real * PROPORCAO_DA_HORA_NOTURNA);
 }
 
 export function minutosTrabalhados(dia: Pick<DiaDoCartao, "batidas" | "extra">): number {

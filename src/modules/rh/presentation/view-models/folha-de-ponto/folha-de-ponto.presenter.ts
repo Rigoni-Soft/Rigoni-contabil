@@ -19,7 +19,13 @@ import { ROTA_RH_FOLHA_DE_PONTO } from "@/shared/kernel/setores";
 
 const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 // TODO(#235): valor fixo até a Totalização deduzir a jornada da convenção
-export const JORNADA_PADRAO = [0, 525, 525, 525, 525, 525, 240];
+const MINUTOS_DE_UM_DIA_DE_SEMANA_DO_COMERCIO = 8 * 60 + 45;
+const MINUTOS_DE_UM_SABADO_DO_COMERCIO = 4 * 60;
+export const JORNADA_PADRAO = [
+  0,
+  ...Array<number>(5).fill(MINUTOS_DE_UM_DIA_DE_SEMANA_DO_COMERCIO),
+  MINUTOS_DE_UM_SABADO_DO_COMERCIO,
+];
 
 export function minutosParaHm(minutos: number): string {
   return `${String(Math.floor(minutos / 60)).padStart(2, "0")}:${String(minutos % 60).padStart(2, "0")}`;
@@ -250,27 +256,29 @@ export type DiaLido =
   | { ok: true; batidas: ParDto[]; extra: ParDto | null; abono: boolean }
   | { ok: false; erro: string };
 
-function par(c: Campos, entrada: string, saida: string): ParDto | null | "incompleto" {
+const PAR_INCOMPLETO = "incompleto";
+
+function par(c: Campos, entrada: string, saida: string): ParDto | null | typeof PAR_INCOMPLETO {
   const horaDeEntrada = texto(c, entrada);
   const horaDeSaida = texto(c, saida);
   if (!horaDeEntrada && !horaDeSaida) return null;
   const entradaEmMinutos = hmParaMinutos(horaDeEntrada);
   const saidaEmMinutos = hmParaMinutos(horaDeSaida);
   if (entradaEmMinutos === null || saidaEmMinutos === null || entradaEmMinutos === saidaEmMinutos)
-    return "incompleto";
+    return PAR_INCOMPLETO;
   return { entrada: entradaEmMinutos, saida: saidaEmMinutos };
 }
 
 export function lerDiaDoFormulario(c: Campos): DiaLido {
   const pares = [par(c, "entrada1", "saida1"), par(c, "entrada2", "saida2")];
   const extra = par(c, "extraEntrada", "extraSaida");
-  if ([...pares, extra].includes("incompleto")) {
+  if ([...pares, extra].includes(PAR_INCOMPLETO)) {
     return { ok: false, erro: "Preencha entrada e saída (horários diferentes) de cada par." };
   }
   return {
     ok: true,
-    batidas: pares.filter((p): p is ParDto => p !== null && p !== "incompleto"),
-    extra: extra === "incompleto" ? null : extra,
+    batidas: pares.filter((p): p is ParDto => p !== null && p !== PAR_INCOMPLETO),
+    extra: extra === PAR_INCOMPLETO ? null : extra,
     abono: c.get("abono") !== null,
   };
 }

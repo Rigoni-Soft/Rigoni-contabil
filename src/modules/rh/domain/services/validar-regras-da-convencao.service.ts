@@ -24,7 +24,8 @@ export type RegraCandidata = {
 
 const MAXIMO_TRECHO = 2000;
 const MAXIMO_PERCENTUAL = 300;
-const MINUTOS_NA_SEMANA = 7 * 1440;
+const MINUTOS_NO_DIA = 24 * 60;
+const MINUTOS_NA_SEMANA = 7 * MINUTOS_NO_DIA;
 
 export function validarRegrasDaConvencao(candidatas: RegraCandidata[]): RegrasDaConvencao {
   const aplicadas: RegraAplicada[] = [];
@@ -107,7 +108,7 @@ function ehNumerica(chave: ChaveDeRegra): chave is ChaveNumerica {
 function numeroValido(chave: ChaveNumerica, valor: unknown): valor is number {
   if (typeof valor !== "number" || !Number.isFinite(valor) || valor <= 0) return false;
   if (REFERENCIA_DA_LEGISLACAO[chave].unidade === "percentual") return valor <= MAXIMO_PERCENTUAL;
-  const maximo = chave === "jornada_semanal" ? MINUTOS_NA_SEMANA : 1440;
+  const maximo = chave === "jornada_semanal" ? MINUTOS_NA_SEMANA : MINUTOS_NO_DIA;
   return Number.isInteger(valor) && valor <= maximo;
 }
 

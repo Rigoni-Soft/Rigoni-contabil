@@ -5,6 +5,7 @@ import {
   hrefDaFolha,
   hrefDoCartao,
   itensDaTotalizacao,
+  JORNADA_PADRAO,
   lerDiaDoFormulario,
   lerEmpregadoDoFormulario,
   linhasDoCartao,
@@ -421,5 +422,11 @@ describe("resumoDoAtestado", () => {
     expect(resumoDoAtestado({ tipo: "atestado", abonados: 2, semCartao: 3 })).toContain(
       "3 dias em mês sem cartão iniciado ficou sem abono",
     );
+  });
+});
+
+describe("JORNADA_PADRAO do empregado novo", () => {
+  it("dado um empregado novo, quando a jornada é gravada, então segue a do comércio: domingo folga, 8h45 de segunda a sexta e 4h no sábado", () => {
+    expect(JORNADA_PADRAO).toEqual([0, 525, 525, 525, 525, 525, 240]);
   });
 });

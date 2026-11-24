@@ -42,7 +42,11 @@ export function diasAGravar(
 }
 
 const NOME = /^[\p{L}][\p{L} .'-]*$/u;
-const MAXIMO_DO_DIA_MIN = 16 * 60;
+const MAXIMO_DE_HORAS_NO_DIA = 16;
+const MAXIMO_DO_DIA_MIN = MAXIMO_DE_HORAS_NO_DIA * 60;
+const MAXIMO_DE_BATIDAS_NO_DIA = 4;
+const MAXIMO_DE_EXTRA_NO_DIA = 1;
+const PASSO_DA_JORNADA_EM_MIN = 5;
 
 export function nomeLegivel(lido: string | null): string | null {
   const nome = lido?.trim().replace(/\s+/g, " ") ?? "";
@@ -86,14 +90,14 @@ export function validarLeitura(
       return recusa(`Dia ${diaLido.dia} fora da quinzena ou repetido.`);
     }
     vistos.add(diaLido.dia);
-    const batidas = validarPares(diaLido.batidas, 4);
-    const extra = validarPares(diaLido.extra ? [diaLido.extra] : [], 1);
+    const batidas = validarPares(diaLido.batidas, MAXIMO_DE_BATIDAS_NO_DIA);
+    const extra = validarPares(diaLido.extra ? [diaLido.extra] : [], MAXIMO_DE_EXTRA_NO_DIA);
     if (!batidas.ok || !extra.ok) return recusa(`Horário inválido no dia ${diaLido.dia}.`);
     if (!emOrdem(batidas.value, extra.value[0] ?? null)) {
       return recusa(`Horários fora de ordem no dia ${diaLido.dia}.`);
     }
     if (trabalhado(batidas.value) > MAXIMO_DO_DIA_MIN) {
-      return recusa(`Mais de 16 horas no dia ${diaLido.dia}.`);
+      return recusa(`Mais de ${MAXIMO_DE_HORAS_NO_DIA} horas no dia ${diaLido.dia}.`);
     }
     const data = `${alvo.competencia}-${String(diaLido.dia).padStart(2, "0")}`;
     if (diaLido.faltou && batidas.value.length === 0) faltas.push(data);
@@ -121,7 +125,7 @@ export function deduzirJornada(dias: DiaDaLeitura[]): Jornada {
     if (valores.length === 0) return 0;
     const ordenados = [...valores].sort((a, b) => a - b);
     const meio = ordenados[Math.floor(ordenados.length / 2)];
-    return Math.round(meio / 5) * 5;
+    return Math.round(meio / PASSO_DA_JORNADA_EM_MIN) * PASSO_DA_JORNADA_EM_MIN;
   };
   return porDia.map(mediana) as unknown as Jornada;
 }

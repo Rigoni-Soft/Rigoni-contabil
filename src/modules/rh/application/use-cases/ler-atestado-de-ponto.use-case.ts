@@ -25,6 +25,8 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const MANUAL = "Não foi possível ler o atestado. Abone os dias à mão.";
 
+const mesDe = (data: string) => data.slice(0, 7);
+
 export class LerAtestadoDePonto extends LerDeFoto implements LerAtestadoDePontoPort {
   constructor(
     sessao: SessaoPort,
@@ -66,7 +68,7 @@ export class LerAtestadoDePonto extends LerDeFoto implements LerAtestadoDePontoP
     for (const competencia of competenciasDoAtestado(atestado)) {
       const iniciado = await this.repositorio.cartaoIniciado(empregado.id, competencia);
       if (!iniciado.ok) return iniciado;
-      if (iniciado.value) abertos.add(competencia.slice(0, 7));
+      if (iniciado.value) abertos.add(mesDe(competencia));
     }
     if (abertos.size === 0) {
       return err(
@@ -88,10 +90,8 @@ export class LerAtestadoDePonto extends LerDeFoto implements LerAtestadoDePontoP
       comBatida,
       new Set(feriados.value),
     );
-    const abonos = doAtestado.filter(
-      (data) => abertos.has(data.slice(0, 7)) && !jaAbonados.has(data),
-    );
-    const semCartao = doAtestado.filter((data) => !abertos.has(data.slice(0, 7))).length;
+    const abonos = doAtestado.filter((data) => abertos.has(mesDe(data)) && !jaAbonados.has(data));
+    const semCartao = doAtestado.filter((data) => !abertos.has(mesDe(data))).length;
     if (abonos.length === 0) {
       return err(
         new ValidationError(
@@ -114,7 +114,7 @@ export class LerAtestadoDePonto extends LerDeFoto implements LerAtestadoDePontoP
       this.registrarReprovacao("rh.atestado.leitura_reprovada", valido.error.message);
       return null;
     }
-    const meses = [valido.value.de, valido.value.ate].map((d) => Competencia.criar(d.slice(0, 7)));
+    const meses = [valido.value.de, valido.value.ate].map((d) => Competencia.criar(mesDe(d)));
     const agora = this.relogio.agora();
     if (meses.some((m) => !m.ok || m.value.ehFutura(agora))) {
       this.registrarReprovacao("rh.atestado.leitura_reprovada", "Mês que ainda não começou.");
