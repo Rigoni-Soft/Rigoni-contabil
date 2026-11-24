@@ -76,9 +76,9 @@ function verificar(caminho, arquivo) {
   if (VENDOR.test(rel)) return;
   const regra = ROLES.find(([re]) => re.test(rel));
   if (!regra) return;
-  const partes = arquivo.split(".").slice(0, -1); // sem extensão
-  if (["spec", "test"].includes(partes.at(-1))) partes.pop(); // *.spec = unitário/componente; *.test = integração
-  const papel = partes.length > 1 ? partes.at(-1) : undefined;
+  const partesSemExtensao = arquivo.split(".").slice(0, -1);
+  if (["spec", "test"].includes(partesSemExtensao.at(-1))) partesSemExtensao.pop(); // *.spec = unitário/componente; *.test = integração
+  const papel = partesSemExtensao.length > 1 ? partesSemExtensao.at(-1) : undefined;
   if (!regra[1].includes(papel))
     erros.push(`${caminho}: sufixo deve ser um de .${regra[1].join(", .")}`);
 }
