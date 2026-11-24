@@ -21,7 +21,13 @@ const SERVICE_ROLE_KEY =
 
 const CNPJ_A = "29700001000120";
 const CNPJ_B = "29700002000175";
-const TELEFONES = ["5561955590001", "5561955590002", "5561955590003", "5561955590004"];
+const TELEFONES = [
+  "5561955590001",
+  "5561955590002",
+  "5561955590003",
+  "5561955590004",
+  "5561955590005",
+];
 
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
@@ -43,6 +49,7 @@ async function atendimentoDe(
   telefone: string,
   setor: "recepcao" | "financeiro",
   funcionarioId: string | null,
+  clienteId: string | null = null,
 ): Promise<string> {
   // Só há um Atendimento em andamento por número: o de um teste anterior é encerrado.
   await admin
@@ -56,6 +63,7 @@ async function atendimentoDe(
       telefone,
       chave_telefone: telefone.slice(2),
       setor,
+      cliente_id: clienteId,
       funcionario_id: funcionarioId,
       assumido_em: funcionarioId ? new Date().toISOString() : null,
     })
@@ -216,6 +224,30 @@ describe("SupabaseContatoUraGateway", () => {
     expect(!donoEmOutroSetor.ok && donoEmOutroSetor.error.code).toBe("FORBIDDEN");
 
     expect(await contatosDoCliente(clienteA)).toHaveLength(1);
+  });
+
+  it("Atendimento já ligado a um Cliente só cadastra contato nesse Cliente", async () => {
+    const { supabase, id } = await comoRecepcao();
+    const gateway = new SupabaseContatoUraGateway(supabase, admin);
+    const atendimentoId = await atendimentoDe(TELEFONES[4], "recepcao", id, clienteA);
+
+    const noOutro = await gateway.cadastrar({
+      atendimentoId,
+      clienteId: clienteB,
+      nome: "Contato do Cliente errado",
+      email: null,
+    });
+    expect(!noOutro.ok && noOutro.error.code).toBe("VALIDATION_ERROR");
+    expect(!noOutro.ok && noOutro.error.message).toBe("Este Atendimento já é de outro Cliente.");
+    expect(await contatosDoCliente(clienteB)).toEqual([]);
+
+    const noDoAtendimento = await gateway.cadastrar({
+      atendimentoId,
+      clienteId: clienteA,
+      nome: "Contato do Cliente certo",
+      email: null,
+    });
+    expect(noDoAtendimento.ok && noDoAtendimento.value.status).toBe("criado");
   });
 
   it("a permissão se limita a criar: a Recepção não altera contato nem destinos de outro Setor, e criar o contato URA os deixa intactos", async () => {

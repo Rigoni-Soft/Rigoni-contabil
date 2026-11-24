@@ -33,6 +33,12 @@ begin
     raise exception 'Você não pode cadastrar contato neste Atendimento.' using errcode = '42501';
   end if;
 
+  -- Atendimento já ligado a um Cliente só cadastra contato nesse Cliente; o Atendimento sem Cliente (o caso
+  -- da URA que não achou o número) aceita o Cliente que a Recepção confirmou.
+  if v_atendimento.cliente_id is not null and v_atendimento.cliente_id <> p_cliente_id then
+    raise exception 'Este Atendimento já é de outro Cliente.' using errcode = '22023';
+  end if;
+
   select cnpj into v_cnpj from public.clientes where id = p_cliente_id;
   if not found then
     raise exception 'Cliente não encontrado.' using errcode = '22023';
@@ -68,8 +74,28 @@ begin
 
   -- A auditoria é desta ação (abaixo): o gatilho genérico de edição do cadastro não registra de novo.
   perform set_config('app.cliente_auditado', p_cliente_id::text, true);
-  insert into public.cliente_contatos (id, cliente_id, nome, telefone, email, dono_setor)
-  values (v_id, p_cliente_id, v_nome, v_chave, v_email, 'recepcao');
+  begin
+    insert into public.cliente_contatos (id, cliente_id, nome, telefone, email, dono_setor)
+    values (v_id, p_cliente_id, v_nome, v_chave, v_email, 'recepcao');
+  exception when unique_violation then
+    -- Outra chamada gravou o mesmo número ou e-mail entre as checagens acima e este insert (os índices
+    -- únicos do Cliente seguram): devolve o que ela criou, em vez de vazar o erro do índice.
+    select * into v_existente from public.cliente_contatos
+     where cliente_id = p_cliente_id and public.chave_telefone(telefone) = v_chave;
+    if found then
+      return jsonb_build_object('status', 'existente', 'contato_id', v_existente.id, 'nome', v_existente.nome);
+    end if;
+    if exists (select 1 from public.cliente_contatos
+                where cliente_id <> p_cliente_id and public.chave_telefone(telefone) = v_chave) then
+      return jsonb_build_object('status', 'em_outro_cliente');
+    end if;
+    select * into v_existente from public.cliente_contatos
+     where cliente_id = p_cliente_id and email = v_email;
+    if found then
+      return jsonb_build_object('status', 'email_em_uso', 'contato_id', v_existente.id, 'nome', v_existente.nome);
+    end if;
+    raise;
+  end;
 
   insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado, criado_em)
   values (gen_random_uuid(), auth.uid(), 'recepcao', 'contato.cadastrar-ura', v_cnpj, 'sucesso', now());
