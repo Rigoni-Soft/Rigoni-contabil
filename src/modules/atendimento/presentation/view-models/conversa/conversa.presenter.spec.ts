@@ -4,7 +4,6 @@ import {
   acrescentarAnteriores,
   aplicarLinksRenovados,
   avisoDoPainelDeContatoUra,
-  avisoDoResultadoDoContatoUra,
   conversaParaView,
   documentoDaOpcao,
   formatarCronometro,
@@ -260,16 +259,18 @@ describe("conversaParaView: cadastrar contato", () => {
   });
 });
 
-describe("avisoDoResultadoDoContatoUra", () => {
+describe("avisoDoPainelDeContatoUra: resultado do cadastro", () => {
   it("criado e existente são sucesso e dizem de qual Cliente é o contato", () => {
     expect(
-      avisoDoResultadoDoContatoUra(
+      avisoDoPainelDeContatoUra(
+        {},
         { status: "criado", contatoId: "c", nome: "Maria" },
         "Padaria Ltda",
       ),
     ).toEqual({ tipo: "sucesso", texto: "Maria cadastrado como contato de Padaria Ltda." });
     expect(
-      avisoDoResultadoDoContatoUra(
+      avisoDoPainelDeContatoUra(
+        {},
         { status: "existente", contatoId: "c", nome: "Joana" },
         "Padaria Ltda",
       ),
@@ -280,10 +281,11 @@ describe("avisoDoResultadoDoContatoUra", () => {
   });
 
   it("número em outro Cliente e e-mail repetido são erro e dizem que nada foi cadastrado", () => {
-    const outro = avisoDoResultadoDoContatoUra({ status: "em_outro_cliente" }, "Padaria Ltda");
-    expect(outro.tipo).toBe("erro");
-    expect(outro.texto).toContain("outro Cliente");
-    const email = avisoDoResultadoDoContatoUra(
+    const outro = avisoDoPainelDeContatoUra({}, { status: "em_outro_cliente" }, "Padaria Ltda");
+    expect(outro?.tipo).toBe("erro");
+    expect(outro?.texto).toContain("outro Cliente");
+    const email = avisoDoPainelDeContatoUra(
+      {},
       { status: "email_em_uso", contatoId: "c", nome: "Pedro" },
       "Padaria Ltda",
     );
@@ -647,9 +649,10 @@ describe("avisoDoPainelDeContatoUra", () => {
   });
 
   it("sem erro, o resultado vira o aviso do contato", () => {
-    expect(avisoDoPainelDeContatoUra({}, criado, "Padaria Ltda")).toEqual(
-      avisoDoResultadoDoContatoUra(criado, "Padaria Ltda"),
-    );
+    expect(avisoDoPainelDeContatoUra({}, criado, "Padaria Ltda")).toEqual({
+      tipo: "sucesso",
+      texto: "Maria cadastrado como contato de Padaria Ltda.",
+    });
   });
 
   it("sem erro nem resultado (ou sem Cliente), não há aviso", () => {

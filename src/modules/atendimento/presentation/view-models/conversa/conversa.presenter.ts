@@ -304,7 +304,7 @@ export function avisoDoPainelDeContatoUra(
   return undefined;
 }
 
-export function avisoDoResultadoDoContatoUra(
+function avisoDoResultadoDoContatoUra(
   resultado: ResultadoCadastroContatoUra,
   empresa: string,
 ): AvisoDoContatoUra {
