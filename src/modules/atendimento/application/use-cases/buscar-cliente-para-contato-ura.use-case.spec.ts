@@ -2,6 +2,10 @@ import type {
   AtendimentoEmAndamento,
   AtendimentoRepositoryPort,
 } from "@/modules/atendimento/application/ports/out/atendimento.repository";
+import type {
+  AuditoriaPort,
+  RegistrarAcaoAuditoria,
+} from "@/modules/atendimento/application/ports/out/auditoria.provider";
 import type { ContatoUraPort } from "@/modules/atendimento/application/ports/out/contato-ura.provider";
 import type { AtorSessaoDto } from "@/modules/atendimento/application/ports/out/sessao.provider";
 import { ok } from "@/shared/kernel/result";
@@ -29,6 +33,8 @@ function montar(
   const ator = opcoes.ator === undefined ? DONO : opcoes.ator;
   const atendimento = opcoes.atendimento === undefined ? ATENDIMENTO : opcoes.atendimento;
   const buscas: string[] = [];
+  const auditadas: RegistrarAcaoAuditoria[] = [];
+  const auditoria: AuditoriaPort = { registrar: async (acao) => void auditadas.push(acao) };
   const repositorio = {
     buscarEmAndamento: async () => ok(atendimento),
   } as unknown as AtendimentoRepositoryPort;
@@ -43,7 +49,11 @@ function montar(
     },
   } as unknown as ContatoUraPort;
   const sessao = { usuarioAtual: async () => ator };
-  return { buscar: new BuscarClienteParaContatoUra(sessao, repositorio, contatos), buscas };
+  return {
+    buscar: new BuscarClienteParaContatoUra(sessao, repositorio, contatos, auditoria),
+    buscas,
+    auditadas,
+  };
 }
 
 describe("BuscarClienteParaContatoUra", () => {
@@ -71,5 +81,47 @@ describe("BuscarClienteParaContatoUra", () => {
     const r = await buscar.execute({ atendimentoId: "at-1", cnpj: CNPJ });
     expect(!r.ok && r.error.code).toBe("FORBIDDEN");
     expect(buscas).toEqual([]);
+  });
+
+  it("audita a busca que achou o Cliente, com o CNPJ como alvo", async () => {
+    const { buscar, auditadas } = montar();
+    await buscar.execute({ atendimentoId: "at-1", cnpj: "11.444.777/0001-61" });
+    expect(auditadas).toEqual([
+      {
+        ator: "func-1",
+        setor: "recepcao",
+        acao: "contato.buscar-cliente-ura",
+        alvo: CNPJ,
+        resultado: "sucesso",
+      },
+    ]);
+  });
+
+  it("audita como falha o CNPJ sem Cliente (a busca CNPJ a CNPJ aparece na trilha)", async () => {
+    const { buscar, auditadas } = montar({ cliente: null });
+    await buscar.execute({ atendimentoId: "at-1", cnpj: CNPJ });
+    expect(auditadas).toEqual([expect.objectContaining({ alvo: CNPJ, resultado: "falha" })]);
+  });
+
+  it("não audita CNPJ inválido nem quem não pode consultar", async () => {
+    const invalido = montar();
+    await invalido.buscar.execute({ atendimentoId: "at-1", cnpj: "123" });
+    const semPermissao = montar({ ator: { ...DONO, id: "func-2" } });
+    await semPermissao.buscar.execute({ atendimentoId: "at-1", cnpj: CNPJ });
+    expect(invalido.auditadas).toEqual([]);
+    expect(semPermissao.auditadas).toEqual([]);
+  });
+
+  it("Atendimento já ligado a um Cliente aceita esse mesmo Cliente", async () => {
+    const { buscar } = montar({ atendimento: { ...ATENDIMENTO, clienteId: "cli-1" } });
+    const r = await buscar.execute({ atendimentoId: "at-1", cnpj: CNPJ });
+    expect(r.ok && r.value.id).toBe("cli-1");
+  });
+
+  it("Atendimento já ligado a um Cliente recusa outro Cliente e audita a falha", async () => {
+    const { buscar, auditadas } = montar({ atendimento: { ...ATENDIMENTO, clienteId: "cli-9" } });
+    const r = await buscar.execute({ atendimentoId: "at-1", cnpj: CNPJ });
+    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+    expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
   });
 });

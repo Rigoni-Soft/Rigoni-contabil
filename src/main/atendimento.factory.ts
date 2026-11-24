@@ -459,6 +459,7 @@ export async function makeBuscarClienteParaContatoUra(): Promise<BuscarClientePa
     sessaoViaUsuarios(supabase),
     new SupabaseAtendimentoRepository(admin),
     new SupabaseContatoUraGateway(supabase, admin),
+    auditoriaBestEffort(errosAtendimento),
   );
 }
 
