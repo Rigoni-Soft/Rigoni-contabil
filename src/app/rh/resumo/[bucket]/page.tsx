@@ -34,7 +34,7 @@ export default async function Page({ params }: Props) {
       }
     : { ok: false as const };
   const header = <CabecalhoDoShellContainer sessao={sessao} />;
-  const card = resumo.ok ? resumo.value.cards.find((c) => c.id === bucket) : undefined;
+  const card = resumo.ok ? resumo.value.cards.find((cartao) => cartao.id === bucket) : undefined;
   const acompanhamentoFalhou = !mensal.ok;
   if (!resumo.ok || (!card && acompanhamentoFalhou)) {
     return (

@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_SUPABASE_URL } from "@/env.client";
 import { createServerClient } from "@supabase/ssr";
 
+function ignorarEscritaDeCookieEmServerComponent(): void {}
+
 export async function createSupabaseServer() {
   const cookieStore = await cookies();
 
@@ -15,7 +17,9 @@ export async function createSupabaseServer() {
           cookiesParaSetar.forEach(({ name, value, options }) =>
             cookieStore.set(name, value, options),
           );
-        } catch {}
+        } catch {
+          ignorarEscritaDeCookieEmServerComponent();
+        }
       },
     },
   });

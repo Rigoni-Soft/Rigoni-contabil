@@ -6,6 +6,11 @@ import { SEGREDOS_MENSAGERIA_PLACEHOLDER } from "@/main/segredos-mensageria.fact
 
 export * from "./env.client";
 
+const emProductionDaVercel = process.env.VERCEL_ENV === "production";
+const CNPJ_ALFANUMERICO = /^[0-9A-Z]{14}$/;
+const TELEFONE_COM_DDI_SO_DIGITOS = /^[1-9]\d{9,14}$/;
+const TAMANHO_MINIMO_DO_SEGREDO_E2E = 16;
+
 const resultado = z
   .object({
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
@@ -22,10 +27,7 @@ const resultado = z
     SERPRO_CONSUMER_SECRET: z.string().min(1).optional(),
     SERPRO_CERTIFICADO_P12_BASE64: z.string().min(1).optional(),
     SERPRO_CERTIFICADO_SENHA: z.string().min(1).optional(),
-    SERPRO_CNPJ_ESCRITORIO: z
-      .string()
-      .regex(/^[0-9A-Z]{14}$/)
-      .optional(),
+    SERPRO_CNPJ_ESCRITORIO: z.string().regex(CNPJ_ALFANUMERICO).optional(),
     CND_MODO: z.enum(["mock", "serpro"]).default("mock"),
     SERPRO_CND_CONSUMER_KEY: z.string().min(1).optional(),
     SERPRO_CND_CONSUMER_SECRET: z.string().min(1).optional(),
@@ -40,7 +42,7 @@ const resultado = z
       .min(1)
       .default(SEGREDOS_MENSAGERIA_PLACEHOLDER.tokenVerificacao),
     MENSAGERIA_SEGREDO_SESSAO: z.string().min(1).default(SEGREDOS_MENSAGERIA_PLACEHOLDER.sessao),
-    E2E_ADAPTER_SECRET: z.string().min(16).optional(),
+    E2E_ADAPTER_SECRET: z.string().min(TAMANHO_MINIMO_DO_SEGREDO_E2E).optional(),
     WHATSAPP_TOKEN: z.string().min(1).optional(),
     WHATSAPP_PHONE_NUMBER_ID: z.string().min(1).optional(),
     CRON_SECRET: z.string().min(1).optional(),
@@ -57,11 +59,7 @@ const resultado = z
     LEITURA_CARTAO_MODO: z.enum(["falso", "indisponivel", "visao"]).default("falso"),
     ANTHROPIC_API_KEY: z.string().min(1).optional(),
     LEITURA_CARTAO_MODELO: z.string().min(1).default("claude-haiku-5-5"),
-    FINANCEIRO_TELEFONE: z
-      .string()
-      .regex(/^[1-9]\d{9,14}$/)
-      .optional()
-      .catch(undefined),
+    FINANCEIRO_TELEFONE: z.string().regex(TELEFONE_COM_DDI_SO_DIGITOS).optional().catch(undefined),
   })
   .refine(
     (v) =>
@@ -80,14 +78,15 @@ const resultado = z
     path: ["ANTHROPIC_API_KEY"],
   })
   .refine(
-    (v) =>
-      v.OBRIGACOES_FISCAIS_MODO !== "serpro" ||
-      (v.SERPRO_CNPJ_ESCRITORIO &&
-        (v.SERPRO_AMBIENTE === "trial" ||
-          (v.SERPRO_CONSUMER_KEY &&
-            v.SERPRO_CONSUMER_SECRET &&
-            v.SERPRO_CERTIFICADO_P12_BASE64 &&
-            v.SERPRO_CERTIFICADO_SENHA))),
+    (v) => {
+      if (v.OBRIGACOES_FISCAIS_MODO !== "serpro") return true;
+      const temCredencialDeProducao =
+        v.SERPRO_CONSUMER_KEY &&
+        v.SERPRO_CONSUMER_SECRET &&
+        v.SERPRO_CERTIFICADO_P12_BASE64 &&
+        v.SERPRO_CERTIFICADO_SENHA;
+      return v.SERPRO_CNPJ_ESCRITORIO && (v.SERPRO_AMBIENTE === "trial" || temCredencialDeProducao);
+    },
     {
       message:
         "OBRIGACOES_FISCAIS_MODO=serpro exige SERPRO_CNPJ_ESCRITORIO e, com SERPRO_AMBIENTE=producao, também SERPRO_CONSUMER_KEY, SERPRO_CONSUMER_SECRET, SERPRO_CERTIFICADO_P12_BASE64 e SERPRO_CERTIFICADO_SENHA.",
@@ -109,7 +108,7 @@ const resultado = z
   )
   .refine(
     (v) =>
-      process.env.VERCEL_ENV !== "production" ||
+      !emProductionDaVercel ||
       v.SERPRO_AMBIENTE === "producao" ||
       (v.OBRIGACOES_FISCAIS_MODO !== "serpro" && v.CND_MODO !== "serpro"),
     {
@@ -117,19 +116,15 @@ const resultado = z
       path: ["SERPRO_AMBIENTE"],
     },
   )
-  .refine((v) => v.MENSAGERIA_MODO !== "real" || (v.WHATSAPP_TOKEN && v.WHATSAPP_PHONE_NUMBER_ID), {
-    message: "MENSAGERIA_MODO=real exige WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID.",
-    path: ["WHATSAPP_TOKEN"],
-  })
-  .refine((v) => process.env.VERCEL_ENV !== "production" || v.LEITURA_CARTAO_MODO !== "falso", {
+  .refine((v) => !emProductionDaVercel || v.LEITURA_CARTAO_MODO !== "falso", {
     message: "Production da Vercel não pode usar LEITURA_CARTAO_MODO=falso.",
     path: ["LEITURA_CARTAO_MODO"],
   })
-  .refine((v) => process.env.VERCEL_ENV !== "production" || v.EXTRACAO_CONVENCAO_MODO !== "falso", {
+  .refine((v) => !emProductionDaVercel || v.EXTRACAO_CONVENCAO_MODO !== "falso", {
     message: "Production da Vercel não pode usar EXTRACAO_CONVENCAO_MODO=falso.",
     path: ["EXTRACAO_CONVENCAO_MODO"],
   })
-  .refine((v) => process.env.VERCEL_ENV !== "production" || !v.E2E_ADAPTER_SECRET, {
+  .refine((v) => !emProductionDaVercel || !v.E2E_ADAPTER_SECRET, {
     message: "Production da Vercel não pode definir E2E_ADAPTER_SECRET.",
     path: ["E2E_ADAPTER_SECRET"],
   })

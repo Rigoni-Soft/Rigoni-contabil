@@ -22,7 +22,7 @@ export default async function Page({ params, searchParams }: Props) {
   const dados = await carregarAcompanhamentoFuncionarios(mes, id);
   if (dados.ok && !dados.value.detalhe) notFound();
   const detalhe = dados.ok ? dados.value.detalhe : undefined;
-  const pendencia = detalhe?.pendencias.find((p) => p.servicoId === servicoId);
+  const pendencia = detalhe?.pendencias.find((pendencia) => pendencia.servicoId === servicoId);
   const titulo = dados.ok ? tituloDaListaDeFalta(dados.value, id, servicoId) : undefined;
   if (dados.ok && !titulo) notFound();
   const rotaDoFuncionario = `${ROTA_RH_FUNCIONARIOS}/${encodeURIComponent(id)}`;

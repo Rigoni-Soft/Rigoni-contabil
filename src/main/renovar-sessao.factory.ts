@@ -20,7 +20,8 @@ export async function renovarSessao(request: NextRequest): Promise<NextResponse>
     },
   });
 
-  await supabase.auth.getUser();
+  const renovarTokenExpirado = () => supabase.auth.getUser();
+  await renovarTokenExpirado();
 
   return response;
 }

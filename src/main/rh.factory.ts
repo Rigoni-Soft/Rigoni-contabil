@@ -110,7 +110,7 @@ function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   };
 }
 
-async function montar() {
+async function montarAcompanhamento() {
   const supabase = await createSupabaseServer();
   return {
     sessao: sessaoViaUsuarios(supabase),
@@ -120,17 +120,17 @@ async function montar() {
 }
 
 export async function makeObterAcompanhamentoMensal(): Promise<ObterAcompanhamentoMensalPort> {
-  const { sessao, repositorio } = await montar();
+  const { sessao, repositorio } = await montarAcompanhamento();
   return new ObterAcompanhamentoMensal(sessao, repositorio, new RelogioSistemaGateway());
 }
 
 export async function makeObterAcompanhamentoFuncionarios(): Promise<ObterAcompanhamentoFuncionariosPort> {
-  const { sessao, repositorio } = await montar();
+  const { sessao, repositorio } = await montarAcompanhamento();
   return new ObterAcompanhamentoFuncionarios(sessao, repositorio, new RelogioSistemaGateway());
 }
 
 export async function makeMarcarServicoAcompanhamento(): Promise<MarcarServicoAcompanhamentoPort> {
-  const { sessao, repositorio, auditoria } = await montar();
+  const { sessao, repositorio, auditoria } = await montarAcompanhamento();
   return new MarcarServicoAcompanhamento(
     sessao,
     repositorio,
@@ -140,22 +140,22 @@ export async function makeMarcarServicoAcompanhamento(): Promise<MarcarServicoAc
 }
 
 export async function makeDefinirServicoAplicavel(): Promise<DefinirServicoAplicavelPort> {
-  const { sessao, repositorio, auditoria } = await montar();
+  const { sessao, repositorio, auditoria } = await montarAcompanhamento();
   return new DefinirServicoAplicavel(sessao, repositorio, auditoria, new RelogioSistemaGateway());
 }
 
 export async function makeCriarServicoAcompanhamento(): Promise<CriarServicoAcompanhamentoPort> {
-  const { sessao, repositorio, auditoria } = await montar();
+  const { sessao, repositorio, auditoria } = await montarAcompanhamento();
   return new CriarServicoAcompanhamento(sessao, repositorio, auditoria);
 }
 
 export async function makeRenomearServicoAcompanhamento(): Promise<RenomearServicoAcompanhamentoPort> {
-  const { sessao, repositorio, auditoria } = await montar();
+  const { sessao, repositorio, auditoria } = await montarAcompanhamento();
   return new RenomearServicoAcompanhamento(sessao, repositorio, auditoria);
 }
 
 export async function makeDesativarServicoAcompanhamento(): Promise<DesativarServicoAcompanhamentoPort> {
-  const { sessao, repositorio, auditoria } = await montar();
+  const { sessao, repositorio, auditoria } = await montarAcompanhamento();
   return new DesativarServicoAcompanhamento(sessao, repositorio, auditoria);
 }
 
@@ -277,6 +277,12 @@ export async function makeObterConvencoesDoCliente(): Promise<ObterConvencoesDoC
   );
 }
 
+function extratorDeRegrasDaConvencao() {
+  return EXTRACAO_CONVENCAO_MODO === "falso"
+    ? new ExtratorDeRegrasFalsoGateway()
+    : new ExtratorDeRegrasIndisponivelGateway();
+}
+
 export async function makeEnviarConvencao(): Promise<EnviarConvencaoPort> {
   const supabase = await createSupabaseServer();
   return new EnviarConvencao(
@@ -284,9 +290,7 @@ export async function makeEnviarConvencao(): Promise<EnviarConvencaoPort> {
     new SupabaseFolhaDePontoRepository(supabase, errosRh),
     new SupabaseConvencaoRepository(supabase, errosRh),
     new SupabaseArmazenamentoDeConvencaoGateway(supabase),
-    EXTRACAO_CONVENCAO_MODO === "falso"
-      ? new ExtratorDeRegrasFalsoGateway()
-      : new ExtratorDeRegrasIndisponivelGateway(),
+    extratorDeRegrasDaConvencao(),
     auditoriaBestEffort(errosRh),
     errosRh,
   );

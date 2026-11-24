@@ -2,8 +2,10 @@ import { diaDoMes, ultimoDiaDoMes } from "./mes-atual";
 
 export const DIAS_DO_JOB_PARCELAMENTO = [20, 22, 24, 26, 28];
 
+const ULTIMO_DIA_DE_ENVIO = Math.max(...DIAS_DO_JOB_PARCELAMENTO);
+
 export const primeiroDiaEmAtraso = (agora: Date): number =>
-  Math.min(Math.max(...DIAS_DO_JOB_PARCELAMENTO) + 1, ultimoDiaDoMes(agora));
+  Math.min(ULTIMO_DIA_DE_ENVIO + 1, ultimoDiaDoMes(agora));
 
 export const jaEmAtraso = (agora: Date): boolean => diaDoMes(agora) >= primeiroDiaEmAtraso(agora);
 

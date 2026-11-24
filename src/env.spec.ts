@@ -16,6 +16,31 @@ afterEach(() => {
   process.env = { ...ORIGINAL };
 });
 
+describe("env: Serpro trial em Production da Vercel", () => {
+  const LEITORES_ESCOLHIDOS = {
+    LEITURA_CARTAO_MODO: "indisponivel",
+    EXTRACAO_CONVENCAO_MODO: "indisponivel",
+  };
+
+  it("recusa SERPRO_AMBIENTE=trial com o modo serpro ligado", async () => {
+    await expect(
+      carregarEnv({
+        VERCEL_ENV: "production",
+        ...LEITORES_ESCOLHIDOS,
+        OBRIGACOES_FISCAIS_MODO: "serpro",
+        SERPRO_AMBIENTE: "trial",
+        SERPRO_CNPJ_ESCRITORIO: "12345678000195",
+      }),
+    ).rejects.toThrow(/SERPRO_AMBIENTE=trial/);
+  });
+
+  it("aceita o trial enquanto o modo serpro está desligado", async () => {
+    await expect(
+      carregarEnv({ VERCEL_ENV: "production", ...LEITORES_ESCOLHIDOS, SERPRO_AMBIENTE: "trial" }),
+    ).resolves.toBeUndefined();
+  });
+});
+
 describe("env: leitores falsos em Production da Vercel", () => {
   it("recusa LEITURA_CARTAO_MODO=falso, inclusive o padrão herdado", async () => {
     await expect(

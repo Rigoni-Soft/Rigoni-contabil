@@ -40,11 +40,11 @@ export default async function Page() {
       conteudo={
         acompanhamento.ok && (
           <ListaDeClientes
-            clientes={acompanhamento.value.linhas.map((l) => ({
-              clienteId: l.clienteId,
-              empresa: l.empresa,
-              cnpj: l.cnpj,
-              href: hrefDaFolha(l.clienteId, {}),
+            clientes={acompanhamento.value.linhas.map((linha) => ({
+              clienteId: linha.clienteId,
+              empresa: linha.empresa,
+              cnpj: linha.cnpj,
+              href: hrefDaFolha(linha.clienteId, {}),
               acao: "Abrir folha →",
             }))}
           />

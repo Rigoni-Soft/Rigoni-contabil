@@ -29,7 +29,9 @@ export function pedeAdapterFalsoDoE2E(
   enviado: string | null,
 ): boolean {
   if (!esperado || !enviado) return false;
-  const a = Buffer.from(esperado);
-  const b = Buffer.from(enviado);
-  return a.length === b.length && timingSafeEqual(a, b);
+  const bytesEsperados = Buffer.from(esperado);
+  const bytesEnviados = Buffer.from(enviado);
+  return (
+    bytesEsperados.length === bytesEnviados.length && timingSafeEqual(bytesEsperados, bytesEnviados)
+  );
 }

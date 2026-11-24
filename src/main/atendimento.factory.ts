@@ -319,7 +319,8 @@ export async function makeEncerrarAtendimento(): Promise<EncerrarAtendimentoPort
 }
 
 function jobAutomaticoAtivo(flag: string): boolean {
-  return flag === "ligada" && !(NODE_ENV === "production" && MENSAGERIA_MODO === "falso");
+  const mensageriaFalsaEmProducao = NODE_ENV === "production" && MENSAGERIA_MODO === "falso";
+  return flag === "ligada" && !mensageriaFalsaEmProducao;
 }
 
 export function encerramentoAutomaticoAtivo(): boolean {
@@ -463,11 +464,13 @@ function caminhoDoFfmpeg(): Promise<string> {
   return resolverFfmpeg({
     comprimido: join(process.cwd(), ".ffmpeg", "ffmpeg.br"),
     destino: join(tmpdir(), "rigoni-ffmpeg", "ffmpeg"),
-    alternativo: async () => {
-      const pacote = await import("ffmpeg-static").catch(() => null);
-      return pacote?.default ?? "ffmpeg";
-    },
+    alternativo: ffmpegDoPacoteOuDoPath,
   });
+}
+
+async function ffmpegDoPacoteOuDoPath(): Promise<string> {
+  const pacote = await import("ffmpeg-static").catch(() => null);
+  return pacote?.default ?? "ffmpeg";
 }
 
 export async function makeEnviarAnexoAoCliente(): Promise<EnviarAnexoAoClientePort> {

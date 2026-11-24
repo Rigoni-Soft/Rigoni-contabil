@@ -31,7 +31,7 @@ export default async function Page({ params }: Props) {
     );
   }
 
-  const card = resumo.value.cards.find((c) => c.id === bucket);
+  const card = resumo.value.cards.find((cartao) => cartao.id === bucket);
   if (!card) notFound();
 
   return (

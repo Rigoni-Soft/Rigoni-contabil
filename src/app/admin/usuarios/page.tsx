@@ -20,16 +20,20 @@ export default async function Page() {
       lista={
         <UsuariosLista
           usuarios={usuarios.value}
-          acoes={(u) =>
-            u.papel === "admin" ? null : (
+          acoes={(usuario) =>
+            usuario.papel === "admin" ? null : (
               <GrupoDeAcoes>
-                {!u.desativacaoPendente && (
-                  <AlterarPapelContainer usuarioId={u.id} nome={u.nome} papel={u.papel} />
+                {!usuario.desativacaoPendente && (
+                  <AlterarPapelContainer
+                    usuarioId={usuario.id}
+                    nome={usuario.nome}
+                    papel={usuario.papel}
+                  />
                 )}
                 <DesativarUsuarioContainer
-                  usuarioId={u.id}
-                  nome={u.nome}
-                  desativacaoPendente={u.desativacaoPendente}
+                  usuarioId={usuario.id}
+                  nome={usuario.nome}
+                  desativacaoPendente={usuario.desativacaoPendente}
                 />
               </GrupoDeAcoes>
             )

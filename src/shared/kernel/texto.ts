@@ -8,8 +8,18 @@ export function contarCaracteres(texto: string): number {
 
 const EMOJI_TAMANHO_MAXIMO = 16;
 
-const EMOJI = /^[\p{Extended_Pictographic}\p{Regional_Indicator}\p{Emoji_Modifier}‍️⃣#*0-9]+$/u;
-const TEM_PICTOGRAMA = /[\p{Extended_Pictographic}\p{Regional_Indicator}⃣]/u;
+const JUNTOR_DE_EMOJI = "\\u200D";
+const SELETOR_DE_VARIACAO_EMOJI = "\\uFE0F";
+const KEYCAP = "\\u20E3";
+
+const EMOJI = new RegExp(
+  `^[\\p{Extended_Pictographic}\\p{Regional_Indicator}\\p{Emoji_Modifier}${JUNTOR_DE_EMOJI}${SELETOR_DE_VARIACAO_EMOJI}${KEYCAP}#*0-9]+$`,
+  "u",
+);
+const TEM_PICTOGRAMA = new RegExp(
+  `[\\p{Extended_Pictographic}\\p{Regional_Indicator}${KEYCAP}]`,
+  "u",
+);
 
 export function emojiValido(texto: string): boolean {
   return (

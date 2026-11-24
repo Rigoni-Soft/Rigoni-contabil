@@ -1,6 +1,6 @@
+const ehCaminhoRelativoDoSite = (valor: string) =>
+  valor.startsWith("/") && !valor.startsWith("//") && !valor.includes("://");
+
 export function hrefSeguro(valor: string | undefined, padrao = "/"): string {
-  if (valor && valor.startsWith("/") && !valor.startsWith("//") && !valor.includes("://")) {
-    return valor;
-  }
-  return padrao;
+  return valor && ehCaminhoRelativoDoSite(valor) ? valor : padrao;
 }
