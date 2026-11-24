@@ -18,7 +18,15 @@ existem e as três consultas de pré-checagem) e [lembretes-cron.md](./lembretes
    > e o Responsável no sino ("Cliente sem meio de envio"). Cadastre os Destinos de todos os Clientes do Setor
    > antes de DD/MM/AAAA (data da primeira rodada, tabela abaixo). Passo a passo na seção 3 do roteiro.
 
-   Preencha as duas datas com a linha da tabela da seção 4 que corresponde ao dia do deploy.
+   Preencha as duas datas com a linha da tabela da seção 4 que corresponde ao dia do deploy. A primeira data é a
+   do deploy; a segunda é o "Prazo dos Destinos do SN" da linha. Exemplo, para um deploy em 01/12/2026:
+
+   > Depois do deploy de 01/12/2026, o DAS, o lembrete de documento e as guias de parcelamento do Simples
+   > Nacional só saem para o contato que o Setor cadastrar como Destino de envio do Cliente. O contato padrão
+   > e a forma de envio do cadastro deixam de valer. Cliente sem Destino não recebe nada: o sistema avisa você
+   > e o Responsável no sino ("Cliente sem meio de envio"). Cadastre os Destinos de todos os Clientes do Setor
+   > antes de 04/12/2026 (a primeira rodada, de lembrete e DAS, é em 05/12/2026). Passo a passo na seção 3 do
+   > roteiro.
 2. **Pré-checagem dos Contatos** (somente leitura, em cópia dos dados de Homologação e depois no remoto): as três
    consultas de [contatos-com-setores.md](./contatos-com-setores.md). A primeira (Contato sem telefone com
    dígitos e sem e-mail) faz a migration abortar; corrija ou remova à mão antes.
@@ -29,7 +37,8 @@ existem e as três consultas de pré-checagem) e [lembretes-cron.md](./lembretes
    supabase migration list
    ```
 
-   A coluna "Remote" vazia marca o que falta. Esta frente traz, nesta ordem (aplicar todas, o `db push` já
+   O `project-ref` de cada ambiente está no painel do Supabase dele (Project Settings, General, Reference ID):
+   Homologação e Produção têm refs diferentes. A coluna "Remote" vazia marca o que falta. Esta frente traz, nesta ordem (aplicar todas, o `db push` já
    respeita a ordem dos timestamps):
 
    | Migration | O que traz |
@@ -113,27 +122,38 @@ select count(*) from alertas_setor where tipo = 'contato_ausente' and resolvido_
 
 ## 4. Data da primeira rodada depois do deploy
 
-Os jobs rodam às 08h de São Paulo (`0 11 ... * *` em UTC), em dias fixos do mês:
+Os jobs rodam às 08h de São Paulo (`0 11 ... * *` em UTC), em dias fixos do mês (`vercel.json`):
 lembrete de documento e DAS nos dias **01, 05, 10 e 15**; guias de parcelamento nos dias **20, 22, 24, 26 e
 28**. A tabela vale para um deploy **depois das 08h** do dia indicado (antes das 08h, a rodada do próprio dia já
 usa o código novo). Exemplo da regra: deploy em 04/12/2026 tem a primeira rodada de lembrete e DAS em
 05/12/2026.
 
-| Deploy em | 1ª rodada de lembrete e DAS | 1ª rodada de guias de parcelamento |
-| --- | --- | --- |
-| 23/11/2026 | 01/12/2026 | 24/11/2026 |
-| 24/11/2026 | 01/12/2026 | 26/11/2026 |
-| 25/11/2026 | 01/12/2026 | 26/11/2026 |
-| 26/11/2026 | 01/12/2026 | 28/11/2026 |
-| 27/11/2026 e 28/11/2026 | 01/12/2026 | 20/12/2026 |
-| 29/11/2026 a 30/11/2026 | 01/12/2026 | 20/12/2026 |
-| 01/12/2026 a 04/12/2026 | 05/12/2026 | 20/12/2026 |
-| 05/12/2026 a 09/12/2026 | 10/12/2026 | 20/12/2026 |
-| 10/12/2026 a 14/12/2026 | 15/12/2026 | 20/12/2026 |
-| 15/12/2026 a 19/12/2026 | 01/01/2027 | 20/12/2026 |
+| Deploy em | 1ª rodada de lembrete e DAS | 1ª rodada de guias de parcelamento | Prazo dos Destinos do SN |
+| --- | --- | --- | --- |
+| 23/11/2026 | 01/12/2026 | 24/11/2026 | 23/11/2026 |
+| 24/11/2026 a 25/11/2026 | 01/12/2026 | 26/11/2026 | 25/11/2026 |
+| 26/11/2026 a 27/11/2026 | 01/12/2026 | 28/11/2026 | 27/11/2026 |
+| 28/11/2026 a 30/11/2026 | 01/12/2026 | 20/12/2026 | 30/11/2026 |
+| 01/12/2026 a 04/12/2026 | 05/12/2026 | 20/12/2026 | 04/12/2026 |
+| 05/12/2026 a 09/12/2026 | 10/12/2026 | 20/12/2026 | 09/12/2026 |
+| 10/12/2026 a 14/12/2026 | 15/12/2026 | 20/12/2026 | 14/12/2026 |
+| 15/12/2026 a 19/12/2026 | 01/01/2027 | 20/12/2026 | 19/12/2026 |
+| 20/12/2026 a 21/12/2026 | 01/01/2027 | 22/12/2026 | 21/12/2026 |
+| 22/12/2026 a 23/12/2026 | 01/01/2027 | 24/12/2026 | 23/12/2026 |
+| 24/12/2026 a 25/12/2026 | 01/01/2027 | 26/12/2026 | 25/12/2026 |
+| 26/12/2026 a 27/12/2026 | 01/01/2027 | 28/12/2026 | 27/12/2026 |
+| 28/12/2026 a 31/12/2026 | 01/01/2027 | 20/01/2027 | 31/12/2026 |
 
-O prazo do SN para a seção 3 é o dia **anterior** à primeira rodada da linha do deploy. Para a data mais
-próxima (deploy em 27/11/2026), os Destinos têm de estar prontos até 30/11/2026.
+O prazo do SN para a seção 3 é o dia **anterior** à primeira rodada que vier primeiro, entre o lembrete e DAS e o
+parcelamento. Depois de 31/12/2026 vale a mesma regra: o lembrete e DAS segue os dias 01, 05, 10 e 15, e o
+parcelamento os dias 20, 22, 24, 26 e 28.
+
+O cadastro de Destinos só existe na tela depois do deploy. No **último dia de cada linha** da tabela (o deploy
+cai no dia anterior à rodada) o SN não tem tempo: mantenha `LEMBRETES_AUTOMATICOS` fora de `ligada` (seção 1,
+item 4) até a conferência da seção 3 voltar vazia.
+
+O job `lembretes-pgfn` (dias 01, 10 e 15) fica fora desta frente: ele só lembra a equipe do parcelamento PGFN,
+não envia nada ao Cliente, então não lê Destinos e não pede cadastro.
 
 ## 5. Se algo sair errado
 
