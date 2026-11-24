@@ -3,6 +3,8 @@
  * confirmado (`cadastrar_contato_ura`). Prova os três desfechos (criado, já no Cliente, em outro Cliente),
  * a permissão mínima e a auditoria. Requer `npx supabase start` com migrations + seed aplicados.
  */
+import { randomUUID } from "node:crypto";
+
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import {
@@ -216,29 +218,75 @@ describe("SupabaseContatoUraGateway", () => {
     expect(await contatosDoCliente(clienteA)).toHaveLength(1);
   });
 
-  it("a permissão se limita a criar: a Recepção não altera o contato nem os destinos de envio", async () => {
-    const { supabase } = await comoRecepcao();
-    const [contato] = await contatosDoCliente(clienteA);
+  it("a permissão se limita a criar: a Recepção não altera contato nem destinos de outro Setor, e criar o contato URA os deixa intactos", async () => {
+    const { supabase, id } = await comoRecepcao();
+    const contatoId = randomUUID();
+    const semente = await admin.from("cliente_contatos").insert({
+      id: contatoId,
+      cliente_id: clienteB,
+      nome: "Contato do Financeiro",
+      telefone: "61955590009",
+      dono_setor: "financeiro",
+    });
+    expect(semente.error).toBeNull();
+    const destinoSemente = await admin
+      .from("destinos_de_envio")
+      .insert({
+        cliente_id: clienteB,
+        setor: "financeiro",
+        contato_id: contatoId,
+        tipo: null,
+        canal: "whatsapp",
+      })
+      .select("id")
+      .single();
+    expect(destinoSemente.error).toBeNull();
+    const destinoId = destinoSemente.data!.id;
+
+    const atendimentoId = await atendimentoDe(TELEFONES[1], "recepcao", id);
+    const criado = await new SupabaseContatoUraGateway(supabase, admin).cadastrar({
+      atendimentoId,
+      clienteId: clienteB,
+      nome: "Paulo da Recepção",
+      email: null,
+    });
+    expect(criado.ok && criado.value.status).toBe("criado");
 
     const edicao = await supabase
       .from("cliente_contatos")
       .update({ nome: "Alterado pela Recepção" })
-      .eq("id", contato.id)
+      .eq("id", contatoId)
       .select("id");
     expect(edicao.data ?? []).toEqual([]);
-
-    const destino = await supabase
+    const remocao = await supabase
       .from("destinos_de_envio")
-      .insert({
-        cliente_id: clienteA,
-        setor: "recepcao",
-        contato_id: contato.id,
-        tipo: null,
-        canal: "whatsapp",
-      })
+      .delete()
+      .eq("id", destinoId)
       .select("id");
-    expect(destino.error ?? destino.data?.length === 0).toBeTruthy();
+    expect(remocao.data ?? []).toEqual([]);
+    const novoDestino = await supabase.from("destinos_de_envio").insert({
+      cliente_id: clienteB,
+      setor: "financeiro",
+      contato_id: contatoId,
+      tipo: null,
+      canal: "whatsapp",
+    });
+    expect(novoDestino.error?.code).toBe("42501");
 
-    expect((await contatosDoCliente(clienteA))[0].nome).toBe("Maria da Padaria");
+    const contatoDepois = await admin
+      .from("cliente_contatos")
+      .select("nome, telefone, dono_setor")
+      .eq("id", contatoId)
+      .single();
+    expect(contatoDepois.data).toEqual({
+      nome: "Contato do Financeiro",
+      telefone: "61955590009",
+      dono_setor: "financeiro",
+    });
+    const destinosDepois = await admin
+      .from("destinos_de_envio")
+      .select("id, setor")
+      .eq("cliente_id", clienteB);
+    expect(destinosDepois.data).toEqual([{ id: destinoId, setor: "financeiro" }]);
   });
 });
