@@ -34,7 +34,6 @@ export async function removerClientesDeTeste(cnpjs: readonly string[]): Promise<
     throw new Error(`Falha ao limpar Clientes de teste: ${clientes.error.message}`);
 }
 
-// Cria um Cliente pelo `criar_cliente` (service_role) e devolve o id. As suítes limpam pelo CNPJ.
 export async function criarClienteDeTeste(
   cnpj: string,
   regime: string,
