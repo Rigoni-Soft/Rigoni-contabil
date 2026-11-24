@@ -22,25 +22,22 @@ const SUITES_DE_STORAGE = [
   "supabase-documentos-contratuais.gateway.test.ts",
 ];
 
-function variavel(nome) {
-  if (process.env[nome]) return process.env[nome];
-  try {
-    const linha = readFileSync(".env.local", "utf8")
-      .split(/\r?\n/)
-      .find((l) => l.startsWith(`${nome}=`));
-    return linha?.slice(nome.length + 1).trim();
-  } catch {
-    return undefined;
-  }
+// O Jest e este script leem o mesmo .env.local (o que já estiver no ambiente tem prioridade).
+try {
+  process.loadEnvFile(".env.local");
+} catch {
+  // sem .env.local, valem as variáveis do ambiente
 }
+const chave = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = chave
+  ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321", chave, {
+      auth: { persistSession: false },
+    })
+  : undefined;
 
 async function storageQuebrado() {
-  const url = variavel("NEXT_PUBLIC_SUPABASE_URL") ?? "http://127.0.0.1:54321";
-  const chave = variavel("SUPABASE_SERVICE_ROLE_KEY");
-  if (!chave) return false;
-  const bucket = createClient(url, chave, { auth: { persistSession: false } }).storage.from(
-    "documentos-clientes",
-  );
+  if (!supabase) return false;
+  const bucket = supabase.storage.from("documentos-clientes");
   const caminho = `sonda/${Date.now()}.pdf`;
   const { error } = await bucket.upload(caminho, Buffer.from("%PDF-1.4"), {
     contentType: "application/pdf",
@@ -51,12 +48,8 @@ async function storageQuebrado() {
 
 // O banco local acumula Clientes de e2e e de rodadas anteriores; a carteira do RH aborta acima de 100 páginas.
 async function clientesAcumulados() {
-  const url = variavel("NEXT_PUBLIC_SUPABASE_URL") ?? "http://127.0.0.1:54321";
-  const chave = variavel("SUPABASE_SERVICE_ROLE_KEY");
-  if (!chave) return 0;
-  const { count } = await createClient(url, chave, { auth: { persistSession: false } })
-    .from("clientes")
-    .select("id", { count: "exact", head: true });
+  if (!supabase) return 0;
+  const { count } = await supabase.from("clientes").select("id", { count: "exact", head: true });
   return count ?? 0;
 }
 
