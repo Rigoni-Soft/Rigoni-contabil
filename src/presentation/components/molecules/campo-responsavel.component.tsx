@@ -37,7 +37,13 @@ export function CampoResponsavel({
     <Pilha espaco={1}>
       <Label htmlFor="responsavelId">Responsável</Label>
       {editavel ? (
-        <Select id="responsavelId" disabled={desabilitado} {...select} onFocus={onAbrir}>
+        <Select
+          id="responsavelId"
+          disabled={desabilitado}
+          aria-describedby={estadoLista === "erro" ? "responsavelId-erro" : undefined}
+          {...select}
+          onFocus={onAbrir}
+        >
           <Opcao value="">{semResponsavel}</Opcao>
           {estadoLista === "carregando" && <Opcao disabled>Carregando…</Opcao>}
           {opcoes.map((opcao) => (
@@ -51,7 +57,9 @@ export function CampoResponsavel({
       )}
       {estadoLista === "erro" && (
         <Linha alinhar="centro" quebra className="gap-x-2">
-          <FieldError>Não foi possível carregar a lista de Funcionários.</FieldError>
+          <FieldError id="responsavelId-erro">
+            Não foi possível carregar a lista de Funcionários.
+          </FieldError>
           <Button type="button" variant="ghost" size="sm" onClick={onTentarNovamente}>
             Tentar de novo
           </Button>
