@@ -43,7 +43,8 @@ export const buscarClienteParaContatoSchema = z.object({
   cnpj: z.string().trim().min(1, "Informe o CNPJ.").max(18, "CNPJ inválido."),
 });
 
-// E-mail em branco vale "sem e-mail"; o formato é conferido aqui e de novo no caso de uso.
+// E-mail em branco vale "sem e-mail". O formato é conferido aqui (mensagem de campo para a tela) e de
+// novo no caso de uso (a regra de negócio não depende de quem o chama).
 export const cadastrarContatoUraSchema = z.object({
   atendimentoId: atendimentoIdSchema,
   clienteId: z.guid("Cliente inválido."),

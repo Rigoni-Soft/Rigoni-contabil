@@ -19,12 +19,14 @@ export interface BuscarClienteParaContatoUraPort {
   }): Promise<Result<ClienteParaConfirmar, AppError>>;
 }
 
+export type CadastroContatoUraInput = {
+  atendimentoId: string;
+  clienteId: string;
+  nome: string;
+  email: string | null;
+};
+
 // Passo 2: o número do Atendimento vira Contato (setor URA, Recepção dona) do Cliente confirmado.
 export interface CadastrarContatoUraPort {
-  execute(input: {
-    atendimentoId: string;
-    clienteId: string;
-    nome: string;
-    email: string | null;
-  }): Promise<Result<ResultadoCadastroContatoUra, AppError>>;
+  execute(input: CadastroContatoUraInput): Promise<Result<ResultadoCadastroContatoUra, AppError>>;
 }

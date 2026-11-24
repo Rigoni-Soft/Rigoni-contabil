@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type {
+  CadastroContatoUraInput,
   ClienteParaConfirmar,
   ResultadoCadastroContatoUra,
 } from "@/modules/atendimento/application/ports/in/cadastrar-contato-ura.provider";
@@ -36,12 +37,9 @@ export class SupabaseContatoUraGateway implements ContatoUraPort {
     return ok(linha.data);
   }
 
-  async cadastrar(input: {
-    atendimentoId: string;
-    clienteId: string;
-    nome: string;
-    email: string | null;
-  }): Promise<Result<ResultadoCadastroContatoUra, AppError>> {
+  async cadastrar(
+    input: CadastroContatoUraInput,
+  ): Promise<Result<ResultadoCadastroContatoUra, AppError>> {
     const { data, error } = await this.supabaseUsuario.rpc("cadastrar_contato_ura", {
       p_atendimento_id: input.atendimentoId,
       p_cliente_id: input.clienteId,

@@ -1,5 +1,6 @@
 import type {
   CadastrarContatoUraPort,
+  CadastroContatoUraInput,
   ResultadoCadastroContatoUra,
 } from "@/modules/atendimento/application/ports/in/cadastrar-contato-ura.provider";
 import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
@@ -24,12 +25,9 @@ export class CadastrarContatoUra implements CadastrarContatoUraPort {
     private readonly contatos: ContatoUraPort,
   ) {}
 
-  async execute(input: {
-    atendimentoId: string;
-    clienteId: string;
-    nome: string;
-    email: string | null;
-  }): Promise<Result<ResultadoCadastroContatoUra, AppError>> {
+  async execute(
+    input: CadastroContatoUraInput,
+  ): Promise<Result<ResultadoCadastroContatoUra, AppError>> {
     const ator = await this.sessao.usuarioAtual();
     if (!ator) return err(new ForbiddenError("Faça login para cadastrar o contato."));
 
