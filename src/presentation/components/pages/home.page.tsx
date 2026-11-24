@@ -9,7 +9,6 @@ export function HomePage({ header, nav, busca }: HomePageProps) {
       header={header}
       nav={nav}
       largura="conteudo"
-      // O visual da home é a busca; o h1 existe para a hierarquia de títulos (leitor de tela).
       cabecalho={
         <Texto como="h1" variante="somenteLeitor">
           Busca de clientes

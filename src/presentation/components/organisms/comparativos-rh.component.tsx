@@ -10,12 +10,10 @@ import { ROTA_RH_FUNCIONARIOS } from "@/shared/kernel/setores";
 type Props = {
   acompanhamento: Fatia[];
   parcelamento: Fatia[];
-  // Só quem vê o acompanhamento dos funcionários (Líder e Admin) recebe; o card inteiro abre a lista deles.
   responsaveis?: Fatia[];
   totalClientes: number;
 };
 
-// ponytail: esqueleto repetido de comparativos-sn.component.tsx; parametrizar um só quando um 3º Setor tiver comparativos.
 export function ComparativosRh({
   acompanhamento,
   parcelamento,

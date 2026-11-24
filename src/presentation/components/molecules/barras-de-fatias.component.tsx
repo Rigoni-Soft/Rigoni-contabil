@@ -13,8 +13,6 @@ type BarrasDeFatiasProps = {
   className?: string;
 };
 
-// Barras horizontais proporcionais ao total de clientes, com rótulo e número em cada linha. A barra
-// é decorativa: o valor sempre aparece também como número.
 export function BarrasDeFatias({
   titulo,
   fatias,

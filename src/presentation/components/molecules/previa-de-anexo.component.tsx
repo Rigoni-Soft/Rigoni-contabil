@@ -8,14 +8,11 @@ import { Button } from "@/presentation/components/ui/button";
 type PreviaDeAnexoProps = {
   nome: string;
   tamanho: string;
-  // Só imagem tem miniatura (URL do arquivo local); o resto mostra o ícone.
   miniaturaUrl: string | null;
   onRemover: () => void;
-  // Enviando: o arquivo está subindo; remover fica indisponível e o estado é anunciado.
   enviando?: boolean;
 };
 
-// O arquivo escolhido, antes de enviar: miniatura (imagem) ou nome e tamanho, com opção de remover.
 export function PreviaDeAnexo({
   nome,
   tamanho,

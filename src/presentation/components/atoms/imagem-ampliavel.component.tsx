@@ -5,21 +5,13 @@ import { SUPERFICIE_DE_PAINEL } from "@/presentation/lib/superficie-de-painel";
 import { cn } from "@/presentation/lib/utils";
 
 type ImagemAmpliavelProps = {
-  // A miniatura (ou o original, se não houver) e o original que o painel mostra.
   src: string;
   ampliadaSrc: string;
-  // Endereço que baixa o original (Content-Disposition de anexo).
   baixarHref: string;
-  // Nome acessível da miniatura e da imagem ampliada.
   alt: string;
-  // Liga o botão ao painel; único na página (a View não gera id).
   painelId: string;
 };
 
-// Miniatura que abre a imagem ampliada num popover nativo: fecha com Esc, clicando fora ou pelo
-// botão (o primeiro Tab depois de abrir), sem estado nem script. A caixa da miniatura tem tamanho
-// fixo: a imagem que termina de carregar não desloca a conversa (rolar fecharia o seletor de
-// reação aberto).
 export function ImagemAmpliavel({
   src,
   ampliadaSrc,
@@ -54,7 +46,6 @@ export function ImagemAmpliavel({
           "max-h-[90dvh] max-w-[min(90vw,64rem)] min-w-[min(90vw,16rem)] overflow-visible p-2",
         )}
       >
-        {/* Ações numa faixa própria: sobre a foto cobririam justamente o que se quer ver. */}
         <div className="mb-2 flex items-center justify-end gap-2">
           <a
             href={baixarHref}
@@ -72,8 +63,6 @@ export function ImagemAmpliavel({
             popoverTarget={painelId}
             popoverTargetAction="hide"
             aria-label="Fechar imagem"
-            // O React trata `autoFocus` focando na montagem (o painel ainda está oculto); o atributo
-            // nativo é o que o popover usa para decidir o foco ao abrir.
             ref={(botao) => botao?.setAttribute("autofocus", "")}
             className="rounded-full"
           >
@@ -83,8 +72,6 @@ export function ImagemAmpliavel({
         {/* eslint-disable-next-line @next/next/no-img-element -- idem */}
         <img
           src={ampliadaSrc}
-          // O diálogo já se chama "Imagem ampliada: nome": repetir o nome faria o leitor de tela
-          // lê-lo duas vezes.
           alt=""
           loading="lazy"
           decoding="async"

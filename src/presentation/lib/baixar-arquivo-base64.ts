@@ -1,4 +1,3 @@
-// Entrega ao navegador um arquivo que o servidor mandou em base64: monta o Blob e clica num link com `download`.
 export function baixarArquivoBase64(nome: string, base64: string, tipo: string): void {
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
   const url = URL.createObjectURL(new Blob([bytes], { type: tipo }));
@@ -8,6 +7,5 @@ export function baixarArquivoBase64(nome: string, base64: string, tipo: string):
   document.body.appendChild(link);
   link.click();
   link.remove();
-  // Adiada: revogar na mesma volta do click() faz alguns navegadores cancelarem o download.
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }

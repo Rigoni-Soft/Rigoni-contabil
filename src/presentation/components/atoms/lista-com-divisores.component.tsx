@@ -1,7 +1,6 @@
 import { cn } from "@/presentation/lib/utils";
 
 type ListaComDivisoresProps = {
-  // Fundo de cartão (listas de dado) ou transparente (listas de navegação).
   cartao?: boolean;
   children: React.ReactNode;
 };

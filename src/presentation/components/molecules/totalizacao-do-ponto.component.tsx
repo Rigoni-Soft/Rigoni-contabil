@@ -6,11 +6,9 @@ export type ItemDaTotalizacao = { rotulo: string; valor: string };
 type Props = {
   titulo: string;
   itens: ItemDaTotalizacao[];
-  // Logo depois de salvar: o bloco ganha contorno e fundo para os números novos saltarem aos olhos.
   destaque?: boolean;
 };
 
-// A Totalização do período: um valor por linha, calculado pela convenção vigente, com a legislação onde ela não decide (nunca digitado).
 export function TotalizacaoDoPonto({ titulo, itens, destaque = false }: Props) {
   return (
     <Pilha

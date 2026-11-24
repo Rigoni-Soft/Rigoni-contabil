@@ -42,24 +42,16 @@ type CriarClienteFormProps = {
   pendente: boolean;
   erroServidor?: string;
   criado?: ClienteCriado;
-  // Chamado ao clicar "Cadastrar outro" na tela de confirmação — mesmo padrão do formulário de usuário.
   onCadastrarNovo: () => void;
-  // "Limpar" esvazia o formulário todo (campos, alterações, avisos e erros). Com algo preenchido, pede
-  // confirmação antes: `onPedirLimpar` abre o pedido, `onLimpar` confirma e `onCancelarLimpar` desiste.
   confirmandoLimpar: boolean;
   onPedirLimpar: () => void;
   onLimpar: () => void;
   onCancelarLimpar: () => void;
-  // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
   alteracoes: { id: string }[];
   onAdicionarAlteracao: () => void;
   onRemoverAlteracao: (indice: number) => void;
-  // Escolheu/limpou o arquivo da alteração: o Container sugere o nº pelo prefixo do nome.
   onArquivoDaAlteracao: (indice: number, arquivo: File | undefined) => void;
-  // CNPJ→autopreenchimento de Empresa/Regime via API pública — a consulta em si mora no Container.
   onCnpjBlur: (cnpjMascarado: string) => void;
-  // Avisos da consulta de CNPJ (não são erro de validação — o Zod não sabe
-  // se um CNPJ bem formado existe de verdade — por isso ficam fora de `errors`).
   avisoCnpj?: string;
   avisoRegime?: string;
   onRegimeChange: () => void;
@@ -111,9 +103,6 @@ export function CriarClienteForm({
     <Pilha espaco="formulario" como="form" onSubmit={onSubmit} noValidate>
       <NotaDeObrigatorio />
 
-      {/* CNPJ primeiro: autopreenche Empresa/Regime ao perder o foco, antes do resto do formulário ser
-          preenchido à mão. Em tela larga, 4 colunas: CNPJ, Empresa (dobro), Regime e, na linha de baixo, o
-          E-mail (opcional, destino do envio por e-mail); em tela média, 2 colunas; no celular, 1. */}
       <Grade colunas="1>2>4" espaco={4}>
         <Controller
           control={control}
@@ -175,13 +164,10 @@ export function CriarClienteForm({
         </Pilha>
       </Grade>
 
-      {/* Seção de documentos separada da identificação do Cliente — mais espaço
-          acima do heading que abaixo, mesma cadência de arquitetura.md/DESIGN.md. */}
       <Pilha espaco="formulario" className="mt-2 border-t border-border pt-6">
         <Texto variante="rotuloDeSecao" como="h2">
           Documentos
         </Texto>
-        {/* Erro do conjunto (soma dos arquivos acima do limite): do bloco, não de um arquivo só. */}
         {errors.root && <FieldError>{errors.root.message}</FieldError>}
 
         <Caixa className="sm:w-1/2 lg:w-1/4">
@@ -258,14 +244,12 @@ export function CriarClienteForm({
 
       {erroServidor && <FieldError>{erroServidor}</FieldError>}
 
-      {/* Botões do tamanho do rótulo, à direita: esticados na largura toda viram uma faixa. */}
       <Linha justificar="fim" alinhar="centro" espaco={2} quebra>
         {confirmandoLimpar ? (
           <>
             <Texto variante="apoio" como="p" role="alert" className="mr-auto">
               Limpar o formulário? O que foi preenchido e os arquivos escolhidos serão descartados.
             </Texto>
-            {/* Foco inicial no "Voltar": o padrão seguro, não o destrutivo. */}
             <Button type="button" variant="outline" onClick={onCancelarLimpar} autoFocus>
               Voltar
             </Button>

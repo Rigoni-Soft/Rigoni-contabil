@@ -15,34 +15,25 @@ import { cn } from "@/presentation/lib/utils";
 import { TEXTO_ENVIO_AUTOMATICO } from "@/shared/kernel/dias-do-job-parcelamento";
 
 type GuiaDaListaDto = {
-  // Id do item no DOM (alvo do foco depois de confirmar).
   id: string;
   competencia: string;
   rotulo: string;
   contaNegociacao: string;
   confirmada: boolean;
-  // O que conferir numa guia "a confirmar" (vem do leitor do PDF; some ao confirmar).
   motivo?: string;
-  // Id do botão Remover (alvo do foco ao cancelar a confirmação).
   idDaRemocao: string;
-  // Id do botão "Confirmar e liberar" (alvo do foco ao cancelar a conferência).
   idDaLiberacao: string;
-  // Já tem registro de envio: só pode ser aberta, não troca nem remove.
   enviada: boolean;
 };
 
-// Sucesso, ou atenção (anexada mas "a confirmar": o que fazer; não é sucesso nem erro).
 export type ResultadoDaGuia = { tipo: "sucesso" | "atencao"; texto: string };
 
-// A pergunta de risco aberta numa guia (uma por vez): liberar ao envio ou remover. `emCurso`: a
-// pessoa já confirmou e o servidor ainda responde.
 export type AcaoDaGuia = {
   tipo: "liberar" | "remover";
   competencia: string;
   emCurso: boolean;
 };
 
-// O formulário de anexo: o que se digitou e o erro de cada campo.
 export type DadosDoAnexo = {
   competencia: string;
   onCompetencia: (valor: string) => void;
@@ -53,7 +44,6 @@ export type DadosDoAnexo = {
   erros: { competencia?: string; contaNegociacao?: string; arquivo?: string };
 };
 
-// O que a pessoa pode fazer numa guia; o hook as entrega prontas (sem promessa solta).
 export type AcoesDasGuias = {
   pedir: (tipo: AcaoDaGuia["tipo"], competencia: string) => void;
   cancelar: () => void;
@@ -65,35 +55,26 @@ export type AcoesDasGuias = {
 };
 
 type GuiasDaParcelaPgfnProps = {
-  // Prefixo dos ids (um conjunto de campos por Parcelamento na mesma tela).
   id: string;
-  // Código do Parcelamento: nomeia a região (há uma por Parcelamento PGFN na mesma tela).
   codigo: string;
-  // Parcelamento interno: a guia vai ao financeiro do escritório, nunca ao Cliente.
   interno: boolean;
-  // Id da região (alvo do foco depois de remover uma guia); vem pronto do presenter.
   idDaRegiao: string;
   guias: GuiaDaListaDto[];
   carregando: boolean;
   erroDaLista?: string;
   onTentarNovamente: () => void;
   anexo: DadosDoAnexo;
-  // Qualquer ação em curso (trava os controles); `anexando` é só o envio do PDF (rótulo do botão).
   pendente: boolean;
   anexando: boolean;
   erroServidor?: string;
   resultado?: ResultadoDaGuia;
-  // Rótulo ("10/2026") da guia do mês corrente que ainda não foi anexada.
   competenciaEmFalta?: string;
   acao?: AcaoDaGuia;
   acoes: AcoesDasGuias;
 };
 
-// Nota que a pessoa precisa ler para agir: 14 px, não os 12 px da variante `nota`.
 const NOTA_LEGIVEL = "text-sm";
 
-// "Anexar guia do mês" na linha de um Parcelamento PGFN. Fica dentro do formulário do cadastro, então
-// nada aqui é <form> (nem submete): os botões são `button` e cada ação vai por Server Action própria.
 export function GuiasDaParcelaPgfn({
   id,
   codigo,
@@ -121,12 +102,10 @@ export function GuiasDaParcelaPgfn({
     onArquivo,
     erros,
   } = anexo;
-  // Mês e conta à mão abrem sozinhos se já têm valor ou erro, para a recusa nunca ficar escondida.
   const abrirManual = Boolean(
     competencia || contaNegociacao || erros.competencia || erros.contaNegociacao,
   );
 
-  // O que falta anexar: tudo (lista vazia) ou a guia do mês corrente.
   const pendencia =
     !carregando && !erroDaLista && guias.length === 0
       ? "Nenhuma guia anexada."
@@ -300,7 +279,6 @@ export function GuiasDaParcelaPgfn({
         </Pilha>
       )}
 
-      {/* Ponto fixo dos avisos (região viva sempre presente: o aviso inserido nela é anunciado). */}
       <Caixa aria-live="polite" className="space-y-1 empty:hidden">
         {erroServidor && <FieldError>{erroServidor}</FieldError>}
         {resultado && <AvisoDeStatus tipo={resultado.tipo} texto={resultado.texto} legivel />}
@@ -321,7 +299,6 @@ export function GuiasDaParcelaPgfn({
             como="summary"
             className="flex w-fit cursor-pointer items-center gap-1 rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11 pointer-coarse:py-2"
           >
-            {/* A seta é o aviso de que abre, também em tela de toque, sem o hover. */}
             <ChevronRight
               className="size-4 shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none"
               aria-hidden="true"
@@ -337,7 +314,6 @@ export function GuiasDaParcelaPgfn({
                 id={`${id}-competencia`}
                 rotulo="Competência"
                 type="month"
-                // Navegador sem seletor de mês (ex.: Firefox no desktop) mostra texto livre: o formato vai no placeholder.
                 placeholder="AAAA-MM"
                 aria-describedby={`${id}-leitura`}
                 value={competencia}

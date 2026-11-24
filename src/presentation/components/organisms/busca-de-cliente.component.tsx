@@ -12,7 +12,6 @@ type BuscaDeClienteProps = {
   onKeyDown: React.KeyboardEventHandler<HTMLInputElement>;
   buscando: boolean;
   sugestoes: Sugestao[];
-  // Destaque de teclado/mouse na lista de sugestões.
   indiceAtivo: number | null;
   onDestacar: (indice: number) => void;
   onSelecionar: (id: string) => void;
@@ -27,7 +26,6 @@ function anuncio(buscando: boolean, quantidade: number) {
   return `${quantidade} sugest${plural ? "ões" : "ão"} encontrada${plural ? "s" : ""}.`;
 }
 
-// Busca de Cliente por empresa ou CNPJ, com lista de sugestões (combobox + listbox).
 export function BuscaDeCliente({
   termo,
   onTermoChange,

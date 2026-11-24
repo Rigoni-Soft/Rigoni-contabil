@@ -16,16 +16,12 @@ type Props = {
   arquivo?: File;
   pendente: boolean;
   erro?: string;
-  // O erro é da foto escolhida (falta ou tamanho): vai no próprio campo; senão é da leitura.
   erroNoCampo?: boolean;
-  // O que a leitura fez, em uma frase (empregado, dias, faltas, abonos).
   resultado?: string;
   onArquivo: (arquivo?: File) => void;
   onLer: (campos: FormData) => void;
 };
 
-// "Ler foto do cartão": a foto de uma quinzena vira o cartão do empregado, sem tela de confirmação (o
-// Funcionário corrige à mão depois). Leitura que falha não bloqueia: o erro manda digitar.
 export function LeituraDeCartao({
   rotuloMes,
   arquivo,

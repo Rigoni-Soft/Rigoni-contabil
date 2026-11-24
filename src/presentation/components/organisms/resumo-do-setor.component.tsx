@@ -2,10 +2,6 @@ import { Caixa, Grade, Pilha } from "@/presentation/components/atoms/caixa.compo
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CartaoDeResumo } from "@/presentation/components/molecules/cartao-de-resumo.component";
 
-// Tipos estruturais locais (não importam o DTO do módulo clientes — view burra,
-// arquitetura.md §3.4): qualquer objeto com estes shapes serve.
-// `total` só os cards que não contam sobre a carteira inteira trazem (ex.: o acompanhamento do RH, que
-// conta sobre os clientes que têm Responsável).
 type Card = {
   id: string;
   titulo: string;
@@ -17,15 +13,12 @@ type Grupo = { titulo: string; cardIds: string[] };
 
 type Props = {
   cards: Card[];
-  // Como os cards se agrupam e em que ordem: quem monta o resumo do Setor declara, a tela não adivinha.
   grupos: Grupo[];
   totalClientes: number;
-  // Rota da lista de cada card: `${hrefBase}/${id do card}`.
   hrefBase: string;
   busca: React.ReactNode;
 };
 
-// 5 cards cabem em 5 colunas; outras quantidades em 5 colunas deixariam um órfão (6 viram 2 linhas de 3).
 const colunasPara = (quantidade: number) => (quantidade % 5 === 0 ? "2>3>5" : "2>3");
 
 function GrupoDeCards({
@@ -46,7 +39,6 @@ function GrupoDeCards({
       </Texto>
       <Grade colunas={colunasPara(cards.length)} espaco={4} como="ul">
         {cards.map((card) => (
-          // Em 2 colunas (celular) um grupo ímpar deixaria o último card sozinho: ele ocupa a linha toda.
           <Caixa como="li" key={card.id} className="max-sm:last:odd:col-span-2">
             <CartaoDeResumo
               href={`${hrefBase}/${card.id}`}
@@ -62,9 +54,6 @@ function GrupoDeCards({
   );
 }
 
-// Esqueleto do resumo de qualquer Setor: título, busca, aviso de lista vazia e os grupos de cards.
-// `busca` entra como slot: o Buscar cliente é do módulo clientes (Container com
-// estado), essa view global não pode importá-lo direto (arquitetura.md §3.4).
 export function ResumoDoSetor({ cards, grupos, totalClientes, hrefBase, busca }: Props) {
   const porId = new Map(cards.map((card) => [card.id, card]));
   return (

@@ -45,9 +45,9 @@ describe("LeituraDeAtestado", () => {
   it("enquanto lê, o botão diz que está lendo e fica aria-disabled (focável)", () => {
     render(<LeituraDeAtestado {...base} pendente />);
 
-    expect(
-      // A modal está fechada no jsdom: o botão fica fora da árvore de acessibilidade.
-      screen.getByRole("button", { name: "Lendo o atestado…", hidden: true }),
-    ).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("button", { name: "Lendo o atestado…", hidden: true })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
   });
 });

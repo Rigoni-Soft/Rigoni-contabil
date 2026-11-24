@@ -1,7 +1,3 @@
-// Aviso sonoro curto (dois tons) gerado pelo próprio navegador: não há arquivo de áudio para
-// carregar. Navegadores só liberam som depois de um gesto do usuário (política de autoplay), então
-// `prepararSom` cria o contexto no primeiro clique/tecla; antes disso, `tocarNotificacao` é
-// silencioso e nunca lança erro.
 let contexto: AudioContext | null = null;
 
 function criarContexto(): AudioContext | null {
@@ -20,15 +16,13 @@ export function prepararSom(): void {
     try {
       const audio = criarContexto();
       if (audio?.state === "suspended") void audio.resume();
-    } catch {
-      // sem áudio no ambiente: o aviso sonoro simplesmente não existe
-    }
+    } catch {}
   };
   window.addEventListener("pointerdown", liberar, { once: true });
   window.addEventListener("keydown", liberar, { once: true });
 }
 
-const TONS_HZ = [880, 1174.66]; // lá e ré, sobe um pouco: "chegou algo"
+const TONS_HZ = [880, 1174.66];
 const DURACAO_DE_CADA_TOM_S = 0.12;
 const VOLUME = 0.08;
 
@@ -43,7 +37,6 @@ export function tocarNotificacao(): void {
       const comeco = inicio + indice * DURACAO_DE_CADA_TOM_S;
       oscilador.type = "sine";
       oscilador.frequency.value = frequencia;
-      // Entrada e saída suaves: sem estalo no começo e no fim do tom.
       volume.gain.setValueAtTime(0.0001, comeco);
       volume.gain.exponentialRampToValueAtTime(VOLUME, comeco + 0.02);
       volume.gain.exponentialRampToValueAtTime(0.0001, comeco + DURACAO_DE_CADA_TOM_S);
@@ -51,7 +44,5 @@ export function tocarNotificacao(): void {
       oscilador.start(comeco);
       oscilador.stop(comeco + DURACAO_DE_CADA_TOM_S);
     });
-  } catch {
-    // o aviso sonoro nunca derruba a tela
-  }
+  } catch {}
 }

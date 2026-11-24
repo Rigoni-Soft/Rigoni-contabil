@@ -1,12 +1,8 @@
 import mammoth from "mammoth";
 import readXlsxFile from "read-excel-file/universal";
 
-// Visualização de Word (.docx) e Excel (.xlsx) feita no navegador, sem enviar o arquivo a nenhum
-// serviço externo. O resultado é só dado (HTML do documento, células da planilha): quem desenha o
-// HTML o isola (iframe sem script) porque o arquivo vem do cliente.
 export const PREVIA_LINHAS_MAXIMAS = 500;
 
-// O que o painel mostra depois de ler o arquivo.
 export type PreviaCarregada =
   | { tipo: "documento"; html: string }
   | { tipo: "planilha"; nome: string; linhas: string[][]; truncada: boolean };
@@ -14,7 +10,6 @@ export type PreviaCarregada =
 export type PlanilhaPrevia = {
   nome: string;
   linhas: string[][];
-  // A planilha tinha mais linhas do que `PREVIA_LINHAS_MAXIMAS`.
   truncada: boolean;
 };
 
@@ -23,7 +18,6 @@ export async function docxParaHtml(conteudo: ArrayBuffer): Promise<string> {
   return value;
 }
 
-// A primeira planilha do arquivo; célula vazia vira "", data e número viram texto.
 export async function xlsxParaTabela(conteudo: ArrayBuffer): Promise<PlanilhaPrevia> {
   const planilhas = await readXlsxFile(conteudo);
   const primeira = planilhas[0];

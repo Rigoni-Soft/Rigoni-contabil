@@ -11,25 +11,20 @@ export type LinhaDeRegra = {
   chave: string;
   rotulo: string;
   aplicada: boolean;
-  // Entra no cálculo da Totalização; a regra extraída que não entra aparece com a nota.
   noCalculo: boolean;
   valor: string;
   legislacao: string;
   diferenca: string;
   clausula: string;
   trecho: string;
-  // Só nos parâmetros que o modelo propôs e o domínio recusou.
   motivo: string | undefined;
 };
 
 type Props = {
-  // "Comércio · 01/05/2026 a 30/04/2027".
   titulo: string;
   linhas: LinhaDeRegra[];
 };
 
-// "Regras aplicadas", só leitura: por parâmetro, o valor da convenção, a cláusula de onde veio e a diferença
-// para a legislação. O que a convenção não trouxe (ou o domínio recusou) aparece como "Não aplicada".
 export function RegrasAplicadas({ titulo, linhas }: Props) {
   return (
     <Pilha como="section" espaco={3} aria-label="Regras aplicadas">

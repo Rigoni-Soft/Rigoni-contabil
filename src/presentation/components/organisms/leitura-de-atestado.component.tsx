@@ -6,13 +6,11 @@ import { PainelModal } from "@/presentation/components/molecules/painel-modal.co
 import { Button } from "@/presentation/components/ui/button";
 
 type Props = {
-  // Id do modal (e base dos ids internos); único na página.
   painelId: string;
   nomeDoEmpregado: string;
   arquivo?: File;
   pendente: boolean;
   erro?: string;
-  // O erro é da foto escolhida (falta ou tamanho): vai no próprio campo; senão é da leitura.
   erroNoCampo?: boolean;
   aoAbrir: () => void;
   aoFechar: () => void;
@@ -20,9 +18,6 @@ type Props = {
   onLer: () => void;
 };
 
-// "Ler atestado" no cartão do empregado (DESIGN.md → LeituraDeAtestado): o botão abre um <dialog> modal (o
-// Container o abre com showModal) com a foto do atestado ou da declaração de comparecimento. Sucesso fecha a
-// modal e o cartão se atualiza; erro mantém a modal aberta com o motivo e o cartão fica como estava.
 export function LeituraDeAtestado({
   painelId,
   nomeDoEmpregado,

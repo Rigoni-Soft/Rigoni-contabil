@@ -4,9 +4,6 @@ import { useRouter } from "next/navigation";
 
 import { LinkDeVoltar } from "@/presentation/components/atoms/link-de-voltar.component";
 
-// "Voltar" para a tela de onde o usuário veio. Só volta no histórico quando veio de outra tela do próprio
-// sistema (referrer da mesma origem): quem chega por favorito ou link externo segue o link para o início,
-// que também é o destino se o JS não carregar. Ctrl/Cmd/Shift/Alt-clique e botão do meio ficam com o navegador.
 export function VoltarAoHistoricoContainer() {
   const router = useRouter();
 

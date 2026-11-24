@@ -5,11 +5,9 @@ import { TelaDeTrabalhoTemplate } from "@/presentation/components/templates/tela
 
 type AcompanhamentoMensalPageProps = {
   header: React.ReactNode;
-  // Sem nav, a tela de formulário segue o desenho da edição do cadastro operacional.
   nav?: React.ReactNode;
   titulo: string;
   voltarHref: string;
-  // "cadastro" para tela de formulário (mesma largura da edição do cadastro operacional); "ampla" para tabela larga.
   largura?: "conteudo" | "cadastro" | "ampla";
   conteudo?: React.ReactNode;
   erro?: string;

@@ -17,29 +17,20 @@ const MOTIVO_SEM_REMOVER = "Já teve guia enviada: não pode ser removido.";
 
 type LinhaDeParcelamentoProps = {
   indice: number;
-  // Props dos inputs (o `register` do formulário, já resolvido por quem monta).
   codigo: React.ComponentProps<"input">;
   parcelas: React.ComponentProps<"input">;
   interno: React.ComponentProps<"input">;
   erroCodigo?: string;
   erroParcelas?: string;
-  // Ausente na linha ainda não salva: o status do mês só existe para o Parcelamento gravado.
   selo?: SeloDoParcelamento;
-  // Nome do PDF já gravado; no Parcelamento novo, o campo de arquivo (controlado pelo formulário).
   arquivo: React.ReactNode;
-  // Guias mensais anexadas (só o Parcelamento PGFN já salvo); ausente nos demais.
   guias?: React.ReactNode;
-  // Quitado não se edita: os campos ficam desabilitados.
   desabilitado?: boolean;
-  // Sem callback (visualização): o botão nem aparece. Com envio registrado, aparece bloqueado.
   onRemover?: () => void;
   bloqueadoPorEnvio?: boolean;
-  // Visualização: nada é obrigatório (não há o que preencher), então sem asterisco.
   somenteLeitura?: boolean;
 };
 
-// Um Parcelamento do Cliente: código, parcelas restantes, "É interno", selo do mês e remover, com o
-// PDF anexado abaixo. A numeração é 1-based.
 export function LinhaDeParcelamento({
   indice,
   codigo,
@@ -94,8 +85,6 @@ export function LinhaDeParcelamento({
           aria-describedby={`parcelamentos.${indice}.interno-dica`}
           {...interno}
         />
-        {/* Estado e ação juntos: no celular ocupam a linha toda (selo à esquerda, lixeira ao alcance do
-            polegar, à direita); a partir de sm ficam à direita dos campos. */}
         <Linha
           alinhar="centro"
           justificar="entre"
@@ -108,7 +97,6 @@ export function LinhaDeParcelamento({
               type="button"
               variant="ghost"
               size="icon"
-              // aria-disabled, não disabled: o botão segue focável e o leitor de tela ouve o motivo.
               onClick={bloqueadoPorEnvio ? undefined : onRemover}
               aria-disabled={bloqueadoPorEnvio || undefined}
               className={BOTAO_OCUPADO}
@@ -123,8 +111,6 @@ export function LinhaDeParcelamento({
       <Texto
         variante="nota"
         id={`parcelamentos.${indice}.interno-dica`}
-        // À vista só com a caixa marcada (a consequência que importa), por CSS: digitar na linha não
-        // re-renderiza o formulário. O leitor de tela a ouve sempre.
         className="sr-only group-has-[:checked]/linha:not-sr-only"
       >
         {DICA_INTERNO}

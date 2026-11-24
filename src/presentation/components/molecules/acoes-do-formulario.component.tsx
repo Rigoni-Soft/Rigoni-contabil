@@ -6,17 +6,11 @@ import { BOTAO_OCUPADO } from "@/presentation/lib/botao-ocupado";
 
 type AcoesDoFormularioProps = {
   pendente: boolean;
-  // Algo ainda em andamento (ex.: leitura de PDF): Salvar espera. O texto é o motivo, dito ao lado do
-  // botão e ligado a ele (aria-describedby); o botão segue focável (aria-disabled), como o Remover
-  // bloqueado do Parcelamento.
   motivoDoBloqueio?: string;
   onLimpar: () => void;
-  // Sem callback, "Cancelar" é um link para "/". Com callback (formulário inline na busca do
-  // dashboard) já estamos em "/": quem abriu o painel o fecha direto.
   onCancelar?: () => void;
 };
 
-// Salvar / Limpar / Cancelar, na ordem do contrato de ações de formulário do DESIGN.md.
 export function AcoesDoFormulario({
   pendente,
   motivoDoBloqueio,

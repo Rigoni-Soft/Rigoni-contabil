@@ -72,7 +72,7 @@ describe("ResumoDoSetor", () => {
   it("mostra a quantidade de cada card", () => {
     render(<ResumoDoSetor {...PROPS} totalClientes={9} busca={<div>busca</div>} />);
 
-    expect(screen.getAllByText("3")).toHaveLength(2); // das_emitidas e com_parcelamento
+    expect(screen.getAllByText("3")).toHaveLength(2);
   });
 
   it("mostra a busca entre o título e os grupos de cards", () => {

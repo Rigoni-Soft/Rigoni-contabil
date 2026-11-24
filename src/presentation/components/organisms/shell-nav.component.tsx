@@ -13,19 +13,12 @@ import { ROTA_POR_SETOR, SETOR_LABEL } from "@/shared/kernel/setores";
 type SetorNav = { slug: string };
 type ItemDeConfiguracao = { rotulo: string; href: string };
 
-// `rotaAtual`: a aba da tela aberta ganha o destaque cheio (e `aria-current`); em "/" nenhuma está
-// selecionada, e as que têm tela são só links comuns.
-// `pendentesDeAtendimento`: espera do Setor + conversas com o cliente aguardando. `anuncio`: o
-// texto que o leitor de tela lê quando esse contador cresce.
 export type ShellNavProps = {
   setores: SetorNav[];
   rotaAtual?: string;
   pendentesDeAtendimento?: number;
   anuncio?: string;
-  // Com muitos Setores (o Admin) e este destino, o celular troca os chips por um seletor; sem ele
-  // (ou com poucos Setores) os chips seguem em todo tamanho.
   onIrParaSetor?: (rota: string) => void;
-  // Itens do menu de configuração do Setor (engrenagem no extremo direito); sem itens, sem engrenagem.
   configuracoes?: ItemDeConfiguracao[];
 };
 
@@ -42,7 +35,6 @@ export function ShellNav({
 }: ShellNavProps) {
   const ativa = rotaAtual === ROTA_ATENDIMENTO;
   const comSeletor = onIrParaSetor !== undefined && setores.length > 2;
-  // Só um Setor com tela pode ser o atual (sem rota, `undefined === undefined` casaria o primeiro).
   const setorAtual =
     (rotaAtual && setores.find((s) => ROTA_POR_SETOR[s.slug] === rotaAtual)?.slug) || "";
   return (
@@ -106,7 +98,6 @@ export function ShellNav({
           </Caixa>
         );
       })}
-      {/* Aba de todo login, ao lado das de Setor: leva à tela Atendimento (espera do Setor e conversas). */}
       <Link
         href={ROTA_ATENDIMENTO}
         aria-current={ativa ? "page" : undefined}
@@ -124,9 +115,6 @@ export function ShellNav({
         )}
       >
         Atendimento
-        {/* Zero some; acima de 99 vira 99+. Cor própria: o link ativo já é `primary` e a pílula sumiria
-            nele, então ali ela ganha um anel `card`; nos demais o anel tem a cor do fundo da pílula (o
-            hover do link não mostra um aro). */}
         {pendentesDeAtendimento > 0 && (
           <Caixa
             como="span"
@@ -160,7 +148,6 @@ export function ShellNav({
           </Caixa>
         </MenuSuspenso>
       )}
-      {/* Montada desde o início (mesmo vazia): leitor de tela só anuncia região que já existia. */}
       <Texto como="span" variante="somenteLeitor" role="status">
         {anuncio}
       </Texto>

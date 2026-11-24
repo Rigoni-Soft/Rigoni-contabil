@@ -5,11 +5,8 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 
 type LinhaDeUsuarioProps = {
   nome: string;
-  // E-mail, Papel e Setor, já formatados para exibição.
   resumo: string;
-  // Desativado, mas falta o bloqueio da conta ou apagar a foto.
   desativacaoPendente?: boolean;
-  // Ações da linha (slot montado no servidor).
   acoes?: React.ReactNode;
 };
 

@@ -16,14 +16,10 @@ import { TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
 export type EmpregadoDoQuadro = {
   id: string;
   nome: string;
-  // Abre o empregado em edição (o Editar do quadro).
   href: string;
-  // Tela própria do Cartão de ponto dele.
   cartaoHref: string;
-  // Desligado da empresa: sem Cartão de ponto na lista (não há cartão a lançar).
   ativo: boolean;
   selecionado: boolean;
-  // Selos curtos: "desligado", "sem movimento", "comissionado".
   selos: string[];
 };
 
@@ -31,12 +27,10 @@ export type EmpregadoEmEdicao = {
   id: string;
   nome: string;
   comissionado: boolean;
-  // Falso = desligado da empresa.
   ativo: boolean;
   semMovimento: boolean;
 };
 
-// O foco vai para este elemento depois de desligar ou readmitir (a tela, a View, só o expõe).
 export const ID_DO_RESULTADO = "resultado-do-quadro";
 
 type Props = {
@@ -47,14 +41,9 @@ type Props = {
   editavel: boolean;
   pendente: boolean;
   erro?: string;
-  // Erro do cadastro: aparece colado ao formulário "Novo empregado" e ligado ao campo Nome.
   erroDoNovo?: string;
-  // Muda quando o cadastro dá certo: o formulário é remontado e o que foi digitado some.
   chaveDoNovo: number;
-  // Com um empregado em edição o formulário "Novo empregado" some: este link o traz de volta.
   novoHref: string;
-  // O resultado de desligar ou readmitir (o Editar fecha): fica numa região viva que recebe o foco, para o
-  // teclado e o leitor de tela não se perderem quando o botão clicado some.
   resultado?: string;
   onCadastrar: (campos: FormData) => void;
   onCorrigir: (campos: FormData) => void;
@@ -63,8 +52,6 @@ type Props = {
   onPadrao: (comissionados: boolean) => void;
 };
 
-// Células da grade de 4 colunas do formulário: o nome (2 colunas) e a marca "comissionado".
-// A Jornada não se cadastra: a Totalização a deduz da convenção e da legislação.
 function CamposDoEmpregado({
   prefixo,
   nome,
@@ -97,7 +84,6 @@ function CamposDoEmpregado({
   );
 }
 
-// O Quadro de funcionários do Cliente: nome e a marca "comissionado"; cada empregado tem o Cartão de ponto à parte.
 export function QuadroDeFuncionarios({
   empregados,
   emEdicao,
@@ -156,7 +142,6 @@ export function QuadroDeFuncionarios({
           Nenhum empregado cadastrado neste cliente.{editavel && " Cadastre o primeiro abaixo."}
         </Texto>
       ) : (
-        // Mesma lista com divisores da lista de clientes dos cards do dashboard (ListaDeClientes).
         <ListaComDivisores>
           {empregados.map((e) => (
             <Caixa como="li" key={e.id} className={cn(e.selecionado && "bg-accent/50")}>
@@ -178,8 +163,6 @@ export function QuadroDeFuncionarios({
                       <Eye className="size-4" aria-hidden="true" />
                     )}
                   </LinkDeAcao>
-                  {/* Ação principal da linha: cheio na cor primária; o lápis fica neutro, só contorno.
-                      Empregado desligado não tem cartão a lançar. */}
                   {e.ativo && (
                     <LinkDeAcao
                       href={e.cartaoHref}
@@ -289,13 +272,11 @@ export function QuadroDeFuncionarios({
               )}
               {editavel && (
                 <Linha espaco={3} quebra alinhar="centro">
-                  {/* Desligado não tem nada a salvar: o Salvar só existe para quem está na empresa. */}
                   {emEdicao.ativo && (
                     <Button type="submit" disabled={pendente}>
                       Salvar empregado
                     </Button>
                   )}
-                  {/* Desligar e readmitir gravam na hora e fecham o Editar. Vermelho: desligar é a ação de atenção. */}
                   <Button
                     type="button"
                     variant={emEdicao.ativo ? "destructive" : "default"}
@@ -304,7 +285,6 @@ export function QuadroDeFuncionarios({
                   >
                     {emEdicao.ativo ? "Desligar da empresa" : "Readmitir empregado"}
                   </Button>
-                  {/* Cancelar descarta a edição: volta ao formulário "Novo empregado" limpo. */}
                   <LinkDeAcao href={novoHref} variant="outline">
                     Cancelar
                   </LinkDeAcao>

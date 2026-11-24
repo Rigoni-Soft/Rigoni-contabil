@@ -33,7 +33,6 @@ function renderizar(props: Partial<React.ComponentProps<typeof SinoAvisos>> = {}
       {...props}
     />,
   );
-  // O Container abre o <dialog> com showModal (o jsdom não o implementa): aqui ele já nasce aberto.
   document.querySelector("dialog")?.setAttribute("open", "");
   return callbacks;
 }

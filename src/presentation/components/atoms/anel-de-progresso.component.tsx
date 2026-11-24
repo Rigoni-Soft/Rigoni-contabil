@@ -4,7 +4,6 @@ const CIRCUNFERENCIA = 2 * Math.PI * RAIO;
 type AnelDeProgressoProps = {
   quantidade: number;
   total: number;
-  // Classe `stroke-*` do traço (cor semântica do status).
   classe: string;
 };
 

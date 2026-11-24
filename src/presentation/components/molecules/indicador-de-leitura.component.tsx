@@ -7,13 +7,10 @@ export type EstadoDeLeitura = "lendo" | "sugerido" | "falhou";
 
 type IndicadorDeLeituraProps = {
   id: string;
-  // Ausente: a região viva fica vazia (existe antes da leitura, para o leitor de tela anunciar a mudança).
   estado?: EstadoDeLeitura;
   texto?: string;
 };
 
-// Estado de resultado: ícone + texto + cor, nunca só cor (DESIGN.md "Indicadores de estado"), no
-// mesmo desenho do selo do mês. Falhar a leitura não é erro (cai no "digite à mão"): neutro, sem destructive.
 const ESTADO: Record<EstadoDeLeitura, { Icone: LucideIcon; classes?: string }> = {
   lendo: { Icone: LoaderCircle },
   sugerido: { Icone: CheckCircle2, classes: "text-primary" },

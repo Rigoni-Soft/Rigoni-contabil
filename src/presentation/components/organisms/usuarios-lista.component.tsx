@@ -14,8 +14,6 @@ type UsuarioListado = {
 
 type UsuariosListaProps = {
   usuarios: UsuarioListado[];
-  // Ação de cada linha, montada no servidor (arquitetura.md §4.6, regra 5): a
-  // lista não vira código de cliente por causa de um botão.
   acoes: (usuario: UsuarioListado) => React.ReactNode;
 };
 

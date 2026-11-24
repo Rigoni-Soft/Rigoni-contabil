@@ -24,9 +24,6 @@ import { ResponsavelDoCadastro, type ResponsavelCampo } from "./responsavel-do-c
 
 export type { LeituraDaLinha, ParcelamentoLinha };
 
-// View global não importa módulos (arquitetura.md §3.4) — o shape espelha
-// EditarCadastroOperacionalFormValues (módulo clientes) por estrutura, não
-// por import; o Container (dentro do módulo) garante a compatibilidade.
 export type EditarCadastroOperacionalFormValues = {
   formaEnvio: FormaEnvioValor;
   contatos: {
@@ -36,9 +33,7 @@ export type EditarCadastroOperacionalFormValues = {
     email: string;
     donoSetor?: string | null;
     tipos?: string[];
-    // Por onde o Setor envia ao contato com os dois canais ("" = não escolhido).
     canal?: string;
-    // Os Setores que usam o contato (vem do servidor): decide quem o vê na lista do Setor.
     setores?: readonly string[];
   }[];
   documentoObrigatorio: DocumentoObrigatorioStatusValor | null;
@@ -47,7 +42,6 @@ export type EditarCadastroOperacionalFormValues = {
   parcelamentos: ParcelamentoLinha[];
   observacoesGerais: string;
   atividadeMes: { industria: boolean; comercio: boolean; servico: boolean };
-  // "" = Sem responsável.
   responsavelId: string;
 };
 
@@ -62,26 +56,16 @@ type EditarCadastroOperacionalFormProps = ParcelamentosProps & {
   pendente: boolean;
   readOnly: boolean;
   responsavel: ResponsavelCampo;
-  // DAS já `enviado` pelo sistema: a opção aparece só pra exibir o valor atual.
   dasEnviadoPeloSistema: boolean;
-  // Opções dos selects de status (valor/rótulo), vindas do Container (dado de domínio fora da View).
   opcoes: { documento: Opcao[]; das: Opcao[] };
   erroServidor?: string;
   sucesso?: boolean;
-  // Até hidratar, os campos (não controlados) ainda não têm os valores: o HTML do servidor mostraria
-  // placeholders no lugar do dado. Oculto sem sair do layout (e revelado após 3 s se a hidratação falhar), aparece já preenchido.
   oculto?: boolean;
-  // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
   contatos: { id: string }[];
   onAdicionarContato: () => void;
   linhasDeContato: AcoesDasLinhasDeContato;
   onLimpar: () => void;
-  // Sem callback (uso em /clientes/[id]): "Cancelar" navega pro mesmo destino
-  // do "Voltar" do topo. Com callback (uso inline na busca do dashboard):
-  // já está em "/" — um <Link href="/"> não dispara navegação nem reseta nada,
-  // então o Container que abriu o form inline fecha o painel diretamente.
   onCancelar?: () => void;
-  // Cartão do documento contratual com "Abrir em nova aba" (só leitura); ausente = ator sem acesso.
   documentoContratual?: React.ReactNode;
 };
 

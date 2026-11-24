@@ -4,7 +4,6 @@ import { ArrowLeft } from "lucide-react";
 type LinkDeVoltarProps = {
   href: string;
   children?: React.ReactNode;
-  // Callback só chega de um Container (função não cruza de Server para Client).
   onClick?: React.MouseEventHandler<HTMLAnchorElement>;
 };
 

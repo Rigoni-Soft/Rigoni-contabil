@@ -6,7 +6,6 @@ import { Button } from "@/presentation/components/ui/button";
 
 type DesativarUsuarioProps = {
   nome: string;
-  // Conta já desativada cujo bloqueio no Auth falhou: um clique repete, sem confirmação.
   desativacaoPendente?: boolean;
   confirmando: boolean;
   pendente: boolean;

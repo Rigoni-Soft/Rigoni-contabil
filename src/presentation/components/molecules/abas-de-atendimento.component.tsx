@@ -2,8 +2,6 @@ import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { cn } from "@/presentation/lib/utils";
 
-// `contadorTexto`: o contador dito por extenso ("2 clientes"), para o leitor de tela; a pílula visual
-// é só o número.
 type AbaView<T extends string> = {
   valor: T;
   rotulo: string;
@@ -17,8 +15,6 @@ type AbasDeAtendimentoProps<T extends string> = {
   onEscolher: (valor: T) => void;
 };
 
-// Padrão WAI-ARIA de abas: só a ativa entra na ordem do Tab; as setas, Home e End movem o foco entre
-// as abas e já as ativam.
 function aoTeclar<T extends string>(
   evento: React.KeyboardEvent<HTMLElement>,
   abas: AbaView<T>[],
@@ -40,7 +36,6 @@ function aoTeclar<T extends string>(
     [destino]?.focus();
 }
 
-// Abas sobrepostas: só o painel da ativa fica na tela. O contador avisa de trabalho novo.
 export function AbasDeAtendimento<T extends string>({
   abas,
   ativa,
@@ -69,7 +64,6 @@ export function AbasDeAtendimento<T extends string>({
           )}
         >
           {rotulo}
-          {/* Zero some: o contador só aparece quando há o que fazer. */}
           {contador > 0 && (
             <>
               <Caixa

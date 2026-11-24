@@ -12,14 +12,10 @@ type Opcao = { valor: string; rotulo: string };
 
 type DasDoCadastroProps = {
   register: UseFormRegister<EditarCadastroOperacionalFormValues>;
-  // Opções dos selects (valor/rótulo), já montadas pelo Container.
   opcoes: { documento: Opcao[]; das: Opcao[] };
-  // DAS já `enviado` pelo sistema: o select fica travado, exibindo o valor atual.
   dasEnviadoPeloSistema: boolean;
 };
 
-// Células da grade do fieldset: documento, DAS, data de envio e atividade do mês. A forma de envio saiu
-// daqui: é o canal de cada Destino de envio.
 export function DasDoCadastro({ register, opcoes, dasEnviadoPeloSistema }: DasDoCadastroProps) {
   return (
     <>
@@ -37,8 +33,6 @@ export function DasDoCadastro({ register, opcoes, dasEnviadoPeloSistema }: DasDo
         opcoes={opcoes.das}
         placeholder="Não definido"
         className="gap-1"
-        // "Enviado" é do sistema: nem o Admin troca depois que o envio foi concluído. Fica
-        // esmaecido, como todo campo desativado: o esmaecimento é o sinal de não editável (DESIGN.md).
         disabled={dasEnviadoPeloSistema}
         ajuda={dasEnviadoPeloSistema ? "Definido pelo sistema." : undefined}
         {...register("dasStatus")}
@@ -49,7 +43,6 @@ export function DasDoCadastro({ register, opcoes, dasEnviadoPeloSistema }: DasDo
         type="date"
         className="gap-1"
         readOnly
-        // Só o sistema define a data: desativada, com o esmaecimento de qualquer campo travado.
         disabled
         ajuda="Preenchida pelo sistema quando o DAS é enviado."
         {...register("dataEnvioDas")}

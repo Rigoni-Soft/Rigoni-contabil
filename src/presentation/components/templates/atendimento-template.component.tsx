@@ -8,9 +8,6 @@ type AtendimentoTemplateProps = {
   acoes: React.ReactNode;
 };
 
-// Lista à esquerda, chat ao centro e ações à direita. Em tela larga a página não rola; cada coluna
-// rola por dentro. Em tela estreita as colunas empilham (os slots se escondem sozinhos: a lista
-// quando há conversa aberta, o chat quando não há) e o wrapper some do layout (`contents`).
 export function AtendimentoTemplate({ header, nav, lista, chat, acoes }: AtendimentoTemplateProps) {
   return (
     <Caixa className="flex min-h-dvh flex-col bg-background lg:h-dvh lg:min-h-0 lg:overflow-hidden">
@@ -22,10 +19,6 @@ export function AtendimentoTemplate({ header, nav, lista, chat, acoes }: Atendim
             {lista}
           </Caixa>
           <Caixa className="contents lg:flex lg:min-h-0 lg:flex-col xl:row-span-2">{chat}</Caixa>
-          {/* Abaixo de xl as ações ficam sob o chat, com altura limitada e rolagem própria: sem o
-              teto elas tomam a coluna e deixam as mensagens com uma fresta. Sem ações (nenhuma
-              conversa aberta, ou ela já encerrada) o slot fica vazio e a terceira coluna não existe:
-              o chat ocupa a largura. */}
           <Caixa
             data-acoes=""
             className="contents lg:col-start-2 lg:max-h-[28dvh] lg:overflow-y-auto lg:not-empty:block xl:col-start-3 xl:row-span-2 xl:row-start-1 xl:max-h-none"

@@ -1,8 +1,3 @@
-// Máscara de exibição — (00) 0000-0000 pra fixo, (00) 00000-0000 pra celular,
-// aplicada progressivamente enquanto o usuário digita (mesmo padrão de
-// cnpj-mask.ts). Sem VO próprio validando dígito verificador — telefone só
-// tem presença obrigatória (Contato.criar) — então essa máscara não precisa
-// de contraparte de normalização no domínio, ao contrário do CNPJ.
 export function formatarTelefone(entrada: string): string {
   const digitos = entrada.replace(/\D/g, "").slice(0, 11);
   if (digitos.length === 0) return "";
@@ -18,7 +13,6 @@ export function formatarTelefone(entrada: string): string {
   return resultado;
 }
 
-// O telefone do Atendimento vem com DDI; a máscara é de DDD + número.
 export function telefoneParaExibicao(telefone: string): string {
   const digitos = telefone.replace(/\D/g, "");
   return formatarTelefone(

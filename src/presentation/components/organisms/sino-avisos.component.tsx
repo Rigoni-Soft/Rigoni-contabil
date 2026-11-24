@@ -11,16 +11,13 @@ import { Button } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
 
 type SinoAvisosProps = {
-  // Id do modal (e base dos ids internos); único na página.
   painelId: string;
   contador: number;
-  // Texto para leitor de tela quando chegam avisos novos; vazio fora disso.
   anuncio: string;
   avisos: AvisoDeCadastro[];
   estado: "carregando" | "erro" | "pronto";
   temMais: boolean;
   carregandoMais: boolean;
-  // Chamado ao abrir: o Container carrega a lista. Abrir não marca nada como visto.
   aoAbrir: () => void;
   aoFechar: () => void;
   aoSelecionar: (aviso: AvisoDeCadastro) => void;
@@ -30,10 +27,6 @@ type SinoAvisosProps = {
 
 const TETO_DO_SELO = 99;
 
-// Sino fixo do cabeçalho (DESIGN.md → Sino de Avisos de cadastro): maior que o ícone padrão de
-// 44 px, com selo de contador e cor de destaque enquanto houver aviso não visto. Abre direto um
-// <dialog> modal (o Container o abre com showModal: foco preso, fundo inerte, Esc fecha) com a
-// lista; só o clique no aviso o marca como visto.
 export function SinoAvisos({
   painelId,
   contador,
@@ -51,7 +44,6 @@ export function SinoAvisos({
   const destaque = contador > 0;
   return (
     <>
-      {/* O polling muda o contador sem o foco passar pelo sino: a região avisa o leitor de tela. */}
       <Texto variante="somenteLeitor" como="span" role="status">
         {anuncio}
       </Texto>
