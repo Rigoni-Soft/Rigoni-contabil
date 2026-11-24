@@ -56,7 +56,6 @@ export const criarClienteSchema = z
           .email("Informe um e-mail válido, como nome@empresa.com.br"),
       ])
       .optional(),
-    // Opcional.
     contratoSocial: arquivoDocumento("Arquivo inválido").optional(),
     alteracoesContratuais: z
       .array(
