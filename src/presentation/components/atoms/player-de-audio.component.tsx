@@ -1,4 +1,3 @@
-// Player nativo: reproduzir/pausar, barra de progresso e duração, com teclado e leitor de tela.
 export function PlayerDeAudio({ src, nome }: { src: string; nome: string }) {
   return (
     <audio

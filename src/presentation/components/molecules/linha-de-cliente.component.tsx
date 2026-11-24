@@ -15,7 +15,6 @@ type LinhaDeClienteProps = {
   acao?: string;
 };
 
-// Cliente em lista: leva ao cadastro operacional dele.
 export function LinhaDeCliente({
   href,
   empresa,

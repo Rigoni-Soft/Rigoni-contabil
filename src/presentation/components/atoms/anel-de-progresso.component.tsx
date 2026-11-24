@@ -8,7 +8,6 @@ type AnelDeProgressoProps = {
   classe: string;
 };
 
-// Anel proporcional a quantidade/total, com a quantidade no centro.
 export function AnelDeProgresso({ quantidade, total, classe }: AnelDeProgressoProps) {
   const proporcao = total === 0 ? 0 : Math.max(0, Math.min(1, quantidade / total));
   const offset = CIRCUNFERENCIA * (1 - proporcao);

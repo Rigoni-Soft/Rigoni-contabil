@@ -13,7 +13,6 @@ type CabecalhoDeTelaProps = {
   voltar?: React.ReactNode;
 };
 
-// Topo de uma tela de trabalho: "Voltar", título e, opcionalmente, uma descrição.
 export function CabecalhoDeTela({
   titulo,
   descricao,
