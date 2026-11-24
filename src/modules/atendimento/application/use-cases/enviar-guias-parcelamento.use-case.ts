@@ -61,6 +61,9 @@ type DestinosDoCliente = (setor: SetorSlug) => Promise<Result<DestinoDeEnvio[], 
 
 type Triagem = { entregaveis: Set<string>; falhas: Map<SetorSlug, AppError> };
 
+const TEMPLATE_GUIA_INTERNA = "envio_guia_parcelamento_interno";
+const IDIOMA_DO_TEMPLATE = "pt_BR";
+
 const leituraFalhou = (parcelamento: ParcelamentoDoCliente, falhas: Triagem["falhas"]) =>
   !parcelamento.interno && falhas.has(parcelamento.setor);
 
@@ -231,7 +234,11 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
       });
     }
     try {
-      andamentos.push(...(await this.entregarGuias(cliente, destinos, agora, atribuidas, true)));
+      andamentos.push(
+        ...(await this.entregarGuias(cliente, destinos, agora, atribuidas, {
+          travarAcordoNaFalha: true,
+        })),
+      );
     } finally {
       await Promise.all(reservas.map((r) => this.pgfn.liberar(r.id, r.competencia, r.token)));
     }
@@ -317,7 +324,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
     destinos: DestinosDoCliente,
     agora: Date,
     atribuidas: GuiaAtribuida[],
-    pararNoAcordo = false,
+    { travarAcordoNaFalha = false }: { travarAcordoNaFalha?: boolean } = {},
   ): Promise<Andamento[]> {
     let cadastro: Promise<Result<CadastroFiscalCliente, AppError>> | undefined;
     const cnpjDoCliente = () =>
@@ -348,7 +355,7 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
         { ...atribuida, restantesDepois },
         cnpjDoCliente,
       );
-      if (pararNoAcordo && !entrega.completa) travados.add(id);
+      if (travarAcordoNaFalha && !entrega.completa) travados.add(id);
       if (entrega.descontou) descontadas.set(id, (descontadas.get(id) ?? 0) + 1);
       andamentos.push(noSetor(entrega.andamento, atribuida.parcelamento.setor));
     }
@@ -447,8 +454,8 @@ export class EnviarGuiasParcelamento implements EnviarGuiasParcelamentoPort {
 
     const template = {
       telefone,
-      nome: "envio_guia_parcelamento_interno",
-      idioma: "pt_BR",
+      nome: TEMPLATE_GUIA_INTERNA,
+      idioma: IDIOMA_DO_TEMPLATE,
       variaveis: [
         cliente.empresa,
         cadastro.value.cnpj,

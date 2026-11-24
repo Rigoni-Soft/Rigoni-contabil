@@ -3,6 +3,8 @@ import { useCallback, useRef, useState } from "react";
 import type { PreviaCarregada } from "@/presentation/lib/previa-de-office";
 import type { FormatoDeOffice } from "@/shared/kernel/anexo";
 
+const DOWNLOAD_DA_PREVIA_TIMEOUT_MS = 30_000;
+
 type EstadoDaPrevia = "fechado" | "carregando" | "erro" | "pronto";
 
 export function usePreviaDeOffice(url: string, formato: FormatoDeOffice) {
@@ -15,7 +17,9 @@ export function usePreviaDeOffice(url: string, formato: FormatoDeOffice) {
     emAndamento.current = true;
     setEstado("carregando");
     try {
-      const resposta = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+      const resposta = await fetch(url, {
+        signal: AbortSignal.timeout(DOWNLOAD_DA_PREVIA_TIMEOUT_MS),
+      });
       if (!resposta.ok) throw new Error("download");
       const conteudo = await resposta.arrayBuffer();
       const office = await import("@/presentation/lib/previa-de-office");

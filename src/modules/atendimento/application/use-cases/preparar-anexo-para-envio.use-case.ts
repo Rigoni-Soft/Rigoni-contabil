@@ -65,6 +65,10 @@ function legendaRecusada(legenda: string | undefined, tipo: TipoAnexoMensagem) {
     : null;
 }
 
+function semExtensao(nome: string): string {
+  return nome.replace(/\.[^.]+$/, "");
+}
+
 export class PrepararAnexoParaEnvio {
   constructor(
     private readonly anexos: AnexosAtendimentoPort,
@@ -176,7 +180,7 @@ export class PrepararAnexoParaEnvio {
     const convertido = await this.conversor.paraOggOpus(arquivo.conteudo);
     if (!convertido.ok) return convertido;
     return ok({
-      nome: arquivo.nome.replace(/\.[^.]+$/, "") + ".ogg",
+      nome: `${semExtensao(arquivo.nome)}.ogg`,
       tipoMime: AUDIO_MIME_OGG,
       conteudo: convertido.value,
     });

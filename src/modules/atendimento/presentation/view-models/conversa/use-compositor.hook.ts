@@ -27,12 +27,13 @@ export function useCompositor(atendimentoId: string, initialData: ConversaVista)
     pendente.limpar();
     setEnviadas((n) => n + 1);
   };
-  const envio =
-    audioMutation.isPending || audioMutation.isError
-      ? audioMutation
-      : arquivo || anexoMutation.isPending || anexoMutation.isError
-        ? anexoMutation
-        : mensagem;
+  const audioEmEnvioOuComFalha = audioMutation.isPending || audioMutation.isError;
+  const anexoEmEnvioOuComFalha = arquivo || anexoMutation.isPending || anexoMutation.isError;
+  const envio = audioEmEnvioOuComFalha
+    ? audioMutation
+    : anexoEmEnvioOuComFalha
+      ? anexoMutation
+      : mensagem;
 
   const visivel = !conversa.encerrado && !conversa.somenteLeitura && !transferido;
   const aoAnexar = (novo: File) => {

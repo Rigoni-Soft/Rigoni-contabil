@@ -26,7 +26,7 @@ import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
-import type { SetorSlug } from "@/shared/kernel/setores";
+import { SETOR_RECEPCAO, type SetorSlug } from "@/shared/kernel/setores";
 
 const RESUMO_TAMANHO_MAXIMO = 1000;
 
@@ -125,7 +125,7 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
     atendimento: AtendimentoEmAndamento,
     setorDestino: SetorSlug,
   ): Promise<Result<string | null, AppError>> {
-    if (setorDestino === "recepcao") return ok(null);
+    if (setorDestino === SETOR_RECEPCAO) return ok(null);
     const roteamento = atendimento.clienteId
       ? await this.repositorio.roteamentoDoCliente(atendimento.clienteId, setorDestino)
       : ok(null);

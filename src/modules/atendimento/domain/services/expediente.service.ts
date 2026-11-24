@@ -1,7 +1,10 @@
 import { FUSO_DE_NEGOCIO as FUSO } from "@/shared/kernel/mes-atual";
 
-const ABRE = 8;
-const FECHA = 18;
+const HORA_DE_ABERTURA = 8;
+const HORA_DE_FECHAMENTO = 18;
+const DESLOCAMENTO_DE_SAO_PAULO = "-03:00";
+const DOMINGO = 0;
+const SABADO = 6;
 const DIAS_SEMANA = [
   "domingo",
   "segunda-feira",
@@ -11,7 +14,17 @@ const DIAS_SEMANA = [
   "sexta-feira",
   "sábado",
 ];
-const FIXOS = ["01-01", "04-21", "05-01", "09-07", "10-12", "11-02", "11-15", "11-20", "12-25"];
+const FERIADOS_FIXOS_MES_DIA = [
+  "01-01",
+  "04-21",
+  "05-01",
+  "09-07",
+  "10-12",
+  "11-02",
+  "11-15",
+  "11-20",
+  "12-25",
+];
 
 const formatador = new Intl.DateTimeFormat("en-CA", {
   timeZone: FUSO,
@@ -37,7 +50,7 @@ function diaDaSemana(data: string): number {
   return new Date(`${data}T00:00:00Z`).getUTCDay();
 }
 
-function pascoa(ano: number): string {
+function pascoaGregoriana(ano: number): string {
   const a = ano % 19;
   const b = Math.floor(ano / 100);
   const c = ano % 100;
@@ -66,31 +79,37 @@ export function feriadosNacionais(ano: number): string[] {
   return datas;
 }
 
+const DIAS_DA_PASCOA_ATE_CARNAVAL_SEGUNDA = -48;
+const DIAS_DA_PASCOA_ATE_CARNAVAL_TERCA = -47;
+const DIAS_DA_PASCOA_ATE_SEXTA_SANTA = -2;
+const DIAS_DA_PASCOA_ATE_CORPUS_CHRISTI = 60;
+
 function calcularNacionais(ano: number): string[] {
-  const p = pascoa(ano);
+  const domingoDePascoa = pascoaGregoriana(ano);
   return [
-    ...FIXOS.map((md) => `${ano}-${md}`),
-    somarDias(p, -48),
-    somarDias(p, -47),
-    somarDias(p, -2),
-    somarDias(p, 60),
+    ...FERIADOS_FIXOS_MES_DIA.map((mesDia) => `${ano}-${mesDia}`),
+    somarDias(domingoDePascoa, DIAS_DA_PASCOA_ATE_CARNAVAL_SEGUNDA),
+    somarDias(domingoDePascoa, DIAS_DA_PASCOA_ATE_CARNAVAL_TERCA),
+    somarDias(domingoDePascoa, DIAS_DA_PASCOA_ATE_SEXTA_SANTA),
+    somarDias(domingoDePascoa, DIAS_DA_PASCOA_ATE_CORPUS_CHRISTI),
   ];
 }
 
 function diaUtil(data: string, extras: ReadonlySet<string>): boolean {
-  const dow = diaDaSemana(data);
-  if (dow === 0 || dow === 6 || extras.has(data)) return false;
+  const diaDaSemanaDaData = diaDaSemana(data);
+  const fimDeSemana = diaDaSemanaDaData === DOMINGO || diaDaSemanaDaData === SABADO;
+  if (fimDeSemana || extras.has(data)) return false;
   return !feriadosNacionais(Number(data.slice(0, 4))).includes(data);
 }
 
 export function estaAbertoEm(instante: Date, extras: ReadonlySet<string>): boolean {
   const { data, hora } = partesEmSp(instante);
-  return diaUtil(data, extras) && hora >= ABRE && hora < FECHA;
+  return diaUtil(data, extras) && hora >= HORA_DE_ABERTURA && hora < HORA_DE_FECHAMENTO;
 }
 
 export function proximaAbertura(instante: Date, extras: ReadonlySet<string>): string {
   const { data, hora } = partesEmSp(instante);
-  let candidata = hora < ABRE ? data : somarDias(data, 1);
+  let candidata = hora < HORA_DE_ABERTURA ? data : somarDias(data, 1);
   while (!diaUtil(candidata, extras)) candidata = somarDias(candidata, 1);
   return candidata;
 }
@@ -98,7 +117,7 @@ export function proximaAbertura(instante: Date, extras: ReadonlySet<string>): st
 export function avisoDeFechado(instante: Date, extras: ReadonlySet<string>): string {
   const { data: hoje } = partesEmSp(instante);
   const volta = proximaAbertura(instante, extras);
-  return `Olá! No momento o escritório está fechado. Voltamos a atender ${quandoVoltamos(hoje, volta)}, às ${ABRE}h.`;
+  return `Olá! No momento o escritório está fechado. Voltamos a atender ${quandoVoltamos(hoje, volta)}, às ${HORA_DE_ABERTURA}h.`;
 }
 
 function quandoVoltamos(hoje: string, volta: string): string {
@@ -108,16 +127,21 @@ function quandoVoltamos(hoje: string, volta: string): string {
   return `${DIAS_SEMANA[diaDaSemana(volta)]}, ${dia}/${mes}`;
 }
 
+function horaDoDia(data: string, hora: number): number {
+  return new Date(
+    `${data}T${String(hora).padStart(2, "0")}:00:00${DESLOCAMENTO_DE_SAO_PAULO}`,
+  ).getTime();
+}
+
 export function expedienteDecorrido(de: Date, ate: Date, extras: ReadonlySet<string>): number {
   const inicio = de.getTime();
   const fim = ate.getTime();
-  const hora = (h: number) => String(h).padStart(2, "0");
   let total = 0;
   const ultimo = partesEmSp(ate).data;
   for (let dia = partesEmSp(de).data; dia <= ultimo; dia = somarDias(dia, 1)) {
     if (!diaUtil(dia, extras)) continue;
-    const abre = new Date(`${dia}T${hora(ABRE)}:00:00-03:00`).getTime();
-    const fecha = new Date(`${dia}T${hora(FECHA)}:00:00-03:00`).getTime();
+    const abre = horaDoDia(dia, HORA_DE_ABERTURA);
+    const fecha = horaDoDia(dia, HORA_DE_FECHAMENTO);
     total += Math.max(0, Math.min(fim, fecha) - Math.max(inicio, abre));
   }
   return total;

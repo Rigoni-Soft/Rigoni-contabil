@@ -39,16 +39,16 @@ export function atribuirGuiasParcelamento(
       (e) => e.parcela === parcela && !abertos.has(e.parcelamentoId) && e.identidade !== identidade,
     );
     if (deAcordoQuitado) continue;
-    const candidatos = parcelamentos.filter(
+    const compativeis = parcelamentos.filter(
       (p) =>
         parcelamentos.length === 1 ||
         p.valorParcelaCentavos === null ||
         valorCentavos === undefined ||
         p.valorParcelaCentavos <= valorCentavos,
     );
-    if (candidatos.length === 0) continue;
-    if (candidatos.length > 1) continue;
-    const dono = candidatos[0];
+    const semDonoComprovado = compativeis.length !== 1;
+    if (semDonoComprovado) continue;
+    const dono = compativeis[0];
     if (recebidas.get(dono.id)?.has(parcela)) continue;
     recebidas.get(dono.id)?.add(parcela);
     atribuidas.push({ parcelamento: dono, guia, parcela });

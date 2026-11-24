@@ -9,6 +9,7 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const VERSAO_API = "v21.0";
 const TIMEOUT_MS = 15_000;
+const STATUS_DE_MIDIA_QUE_NAO_VOLTA = [400, 404];
 
 export class DownloadMidiaWhatsappGateway implements DownloadMidiaPort {
   constructor(
@@ -45,7 +46,7 @@ export class DownloadMidiaWhatsappGateway implements DownloadMidiaPort {
     if (resposta.ok) return ok(resposta);
     const texto = `Download recusado (${resposta.status}).`;
     return err(
-      resposta.status === 400 || resposta.status === 404
+      STATUS_DE_MIDIA_QUE_NAO_VOLTA.includes(resposta.status)
         ? new ValidationError(texto)
         : new ServicoExternoError(texto),
     );

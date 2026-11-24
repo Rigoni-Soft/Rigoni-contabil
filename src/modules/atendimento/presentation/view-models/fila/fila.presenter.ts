@@ -25,6 +25,10 @@ export function itemDaFilaParaView(
   podeAssumir = true,
 ): ItemDaFilaView {
   const filaDesdeMs = new Date(item.filaDesde).getTime();
+  const dirigidoAUmUsuario = item.filaDoFuncionarioId !== null;
+  const usuarioPodeAssumirEste = dirigidoAUmUsuario
+    ? item.filaDoFuncionarioId === usuarioId
+    : item.esperaComum;
   return {
     id: item.atendimentoId,
     contato: item.contato.contatoNome ?? "Contato não identificado",
@@ -33,13 +37,9 @@ export function itemDaFilaParaView(
     telefone: telefoneParaExibicao(item.telefone),
     resumo: item.resumo,
     origem: item.origem && textoDaOrigem(item.origem),
-    dirigido: item.filaDoFuncionarioId !== null,
+    dirigido: dirigidoAUmUsuario,
     espera: agora === undefined ? item.espera : formatarEspera(agora - filaDesdeMs),
-    assumivel:
-      podeAssumir &&
-      (item.filaDoFuncionarioId === null
-        ? item.esperaComum
-        : item.filaDoFuncionarioId === usuarioId),
+    assumivel: podeAssumir && usuarioPodeAssumirEste,
   };
 }
 

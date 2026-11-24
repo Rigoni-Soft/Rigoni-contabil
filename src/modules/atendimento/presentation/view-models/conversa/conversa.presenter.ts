@@ -70,6 +70,10 @@ export function formatarCronometro(segundos: number): string {
   return `${mm}:${String(segundos % 60).padStart(2, "0")}`;
 }
 
+function linkVencendo(anexo: { expiraEm: string }, agora: number, margemMs: number): boolean {
+  return Date.parse(anexo.expiraEm) - agora <= margemMs;
+}
+
 export function reaproveitarLinks(
   nova: ConversaVista,
   anterior: ConversaVista | undefined,
@@ -82,7 +86,7 @@ export function reaproveitarLinks(
     ...nova,
     mensagens: nova.mensagens.map((m) => {
       const antigo = anteriores.get(m.id);
-      if (!m.anexo || !antigo || Date.parse(antigo.expiraEm) - agora <= margemMs) return m;
+      if (!m.anexo || !antigo || linkVencendo(antigo, agora, margemMs)) return m;
       return {
         ...m,
         anexo: {
@@ -103,8 +107,9 @@ export function manterHistorico(nova: ConversaVista, anterior: ConversaVista | u
   const antigas = anterior.mensagens.filter((m) => antesDe(m, primeira));
   if (!antigas.length) return nova;
   const ids = new Set(nova.mensagens.map((m) => m.id));
-  const sobrepoe = anterior.mensagens.some((m) => ids.has(m.id));
-  if (!sobrepoe && nova.temMaisAnteriores) return nova;
+  const janelasSeSobrepoem = anterior.mensagens.some((m) => ids.has(m.id));
+  const podeHaverIntervaloOculto = !janelasSeSobrepoem && nova.temMaisAnteriores;
+  if (podeHaverIntervaloOculto) return nova;
   return {
     ...nova,
     mensagens: [...antigas, ...nova.mensagens],
@@ -117,7 +122,8 @@ export function acrescentarAnteriores(
   cursorId: string,
   pagina: { mensagens: MensagemVista[]; temMaisAnteriores: boolean },
 ): ConversaVista {
-  if (atual.mensagens[0]?.id !== cursorId) return atual;
+  const pollingTrocouAJanela = atual.mensagens[0]?.id !== cursorId;
+  if (pollingTrocouAJanela) return atual;
   const ja = new Set(atual.mensagens.map((m) => m.id));
   return {
     ...atual,
@@ -134,7 +140,7 @@ export function idsComLinkVencendo(
   elegivel: (id: string) => boolean = () => true,
 ): string[] {
   return conversa.mensagens
-    .filter((m) => m.anexo && Date.parse(m.anexo.expiraEm) - agora <= margemMs && elegivel(m.id))
+    .filter((m) => m.anexo && linkVencendo(m.anexo, agora, margemMs) && elegivel(m.id))
     .slice(0, limite)
     .map((m) => m.id);
 }
@@ -194,6 +200,7 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
   const telefone = telefoneParaExibicao(conversa.telefone);
   const { contatoNome, empresa, cnpj } = conversa.contato;
   const nomeDoContato = contatoNome ?? telefone;
+  const lendoConversaDeOutro = !conversa.encerrado && !conversa.podeAtender;
   const cnpjDoContato = cnpj ? `CNPJ ${formatarCnpj(cnpj)}` : "CNPJ não definido";
 
   return {
@@ -205,7 +212,7 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
           ? `Provável cliente novo · CNPJ informado ${formatarCnpj(conversa.ura.cnpjInformado)} · ${telefone}`
           : "Cliente não identificado",
     encerrado: conversa.encerrado,
-    somenteLeitura: !conversa.encerrado && !conversa.podeAtender,
+    somenteLeitura: lendoConversaDeOutro,
     semCliente: !conversa.clienteVinculado,
     contatoUra: {
       pode: conversa.podeCadastrarContato,

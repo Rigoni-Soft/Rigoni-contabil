@@ -34,37 +34,37 @@ export class EnvioMensagemWhatsappGateway implements EnvioMensagemPort {
   }
 
   enviar({ telefone, texto }: MensagemEnviada): Promise<Result<void, AppError>> {
-    return this.mensagem({ to: telefone, type: "text", text: { body: texto } });
+    return this.enviarParte({ to: telefone, type: "text", text: { body: texto } });
   }
 
   async enviarDocumento(documento: DocumentoEnviado): Promise<Result<void, AppError>> {
     const filename = documento.nomeArquivo;
     if ("url" in documento) {
       const document = { link: documento.url, filename };
-      return this.mensagem({ to: documento.telefone, type: "document", document });
+      return this.enviarParte({ to: documento.telefone, type: "document", document });
     }
     const midia = await this.subirMidia(documento.pdfBase64, filename);
     if (!midia.ok) return midia;
     const document = { id: midia.value, filename };
-    return this.mensagem({ to: documento.telefone, type: "document", document });
+    return this.enviarParte({ to: documento.telefone, type: "document", document });
   }
 
   enviarTemplate(template: TemplateEnviado): Promise<Result<void, AppError>> {
-    return this.mensagem(parteTemplate(template));
+    return this.enviarParte(parteTemplate(template));
   }
 
   enviarAnexo(anexo: AnexoEnviado): Promise<Result<void, AppError>> {
-    return this.mensagem(parteAnexo(anexo));
+    return this.enviarParte(parteAnexo(anexo));
   }
 
   reagir(reacao: ReacaoEnviada): Promise<Result<void, AppError>> {
-    return this.mensagem(parteReacao(reacao));
+    return this.enviarParte(parteReacao(reacao));
   }
 
-  private async mensagem(parte: ParteCorpo): Promise<Result<void, AppError>> {
+  private async enviarParte(parte: ParteCorpo): Promise<Result<void, AppError>> {
     const corpo = JSON.stringify(envelope(parte));
-    const r = await this.chamar("/messages", { "Content-Type": "application/json" }, corpo);
-    return r.ok ? ok(undefined) : r;
+    const resposta = await this.chamar("/messages", { "Content-Type": "application/json" }, corpo);
+    return resposta.ok ? ok(undefined) : resposta;
   }
 
   private async subirMidia(
@@ -76,9 +76,9 @@ export class EnvioMensagemWhatsappGateway implements EnvioMensagemPort {
     form.set("messaging_product", "whatsapp");
     form.set("type", "application/pdf");
     form.set("file", pdf, nomeArquivo);
-    const r = await this.chamar("/media", {}, form);
-    if (!r.ok) return r;
-    const id = (r.value as { id?: unknown } | null)?.id;
+    const resposta = await this.chamar("/media", {}, form);
+    if (!resposta.ok) return resposta;
+    const id = (resposta.value as { id?: unknown } | null)?.id;
     return typeof id === "string"
       ? ok(id)
       : err(new ServicoExternoError("Serviço de mensageria não devolveu o id da mídia."));

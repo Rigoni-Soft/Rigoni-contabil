@@ -132,7 +132,7 @@ async function levantarAlertas(
   return { gravados, naoGravados: grupos.length - gravados };
 }
 
-async function resolverNaoRenovados(
+async function resolverNaoRenovadosContandoFalha(
   alertas: AlertaSetorPort,
   agora: Date,
   clienteIds: string[],
@@ -175,7 +175,8 @@ export async function executarRodada<C extends { clienteId: string }>(
     .filter((_, i) => !andamentos[i].some((andamento) => andamento.naoReavaliado))
     .map((cliente) => cliente.clienteId);
   falhas +=
-    naoGravadosTotal + (await resolverNaoRenovados(alertas, agora, avaliados, naoGravadosTotal));
+    naoGravadosTotal +
+    (await resolverNaoRenovadosContandoFalha(alertas, agora, avaliados, naoGravadosTotal));
   return { andamentos, alertas: gravadosTotal, falhas };
 }
 

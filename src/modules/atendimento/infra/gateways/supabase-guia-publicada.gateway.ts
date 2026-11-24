@@ -14,6 +14,11 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 const BUCKET = "guias-fiscais";
 const VALIDADE_LINK_SEGUNDOS = 7 * 24 * 60 * 60;
 
+const STATUS_OBJETO_JA_EXISTE = "409";
+
+const pertenceAoCliente = (clienteId: string, caminho: string) =>
+  caminho.startsWith(`${clienteId}/`) && !caminho.includes("..");
+
 const pastaDaGuia = (clienteId: string, { id }: ChaveGuia) => `${clienteId}/${id}`;
 
 export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
@@ -32,7 +37,8 @@ export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
       contentType: "application/pdf",
       upsert: false,
     });
-    const jaExistia = (error as { statusCode?: string } | null)?.statusCode === "409";
+    const jaExistia =
+      (error as { statusCode?: string } | null)?.statusCode === STATUS_OBJETO_JA_EXISTE;
     if (error && !jaExistia) return err(new ServicoExternoError("Falha ao guardar a guia."));
     const link = await bucket.createSignedUrl(caminho, VALIDADE_LINK_SEGUNDOS);
     if (link.error || !link.data) {
@@ -42,7 +48,7 @@ export class SupabaseGuiaPublicadaGateway implements GuiaPublicadaPort {
   }
 
   async reencontrar(clienteId: string, caminho: string): Promise<Result<string, AppError>> {
-    if (!caminho.startsWith(`${clienteId}/`) || caminho.includes("..")) {
+    if (!pertenceAoCliente(clienteId, caminho)) {
       return err(new ServicoExternoError("Guia não pertence ao cliente."));
     }
     const link = await this.supabaseAdmin.storage

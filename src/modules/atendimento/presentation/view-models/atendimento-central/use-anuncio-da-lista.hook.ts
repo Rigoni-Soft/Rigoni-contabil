@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { AtendimentoEmAndamentoView } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.presenter";
 
-const ESPACO_INVISIVEL = String.fromCharCode(0x00a0);
+const ESPACO_SEM_QUEBRA = String.fromCharCode(0x00a0);
 
 type Espera = { id: string };
 type Conversa = Pick<AtendimentoEmAndamentoView, "id" | "titulo" | "aguardando" | "sinal">;
@@ -19,7 +19,7 @@ export function useAnuncioDaLista(
 
   const anunciar = (texto: string) => {
     vezes.current += 1;
-    setAnuncio(vezes.current % 2 === 0 ? `${texto}${ESPACO_INVISIVEL}` : texto);
+    setAnuncio(vezes.current % 2 === 0 ? `${texto}${ESPACO_SEM_QUEBRA}` : texto);
   };
 
   const idsDaEspera = espera.map((item) => item.id).join(",");

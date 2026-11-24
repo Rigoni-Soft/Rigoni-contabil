@@ -128,6 +128,11 @@ const LISTA_MUDOU =
 
 const ALTERACOES_POR_PAGINA = 10;
 
+const COMANDO_MENU = "menu";
+const COMANDO_MAIS = "mais";
+const ESCOLHA_CONTRATO_E_ALTERACOES = "1";
+const ESCOLHA_NAO_SEI_O_SETOR = "0";
+
 type Modo = "contrato" | "alteracoes" | "ambos";
 const MODOS: Record<string, Modo> = { "1": "contrato", "2": "alteracoes", "3": "ambos" };
 
@@ -145,9 +150,13 @@ function origemDe(
 }
 
 function impressaoDaLista(alteracoes: DocumentoContratual[]): string {
+  return cyrb53(alteracoes.map((a) => a.caminho).join("\n"));
+}
+
+function cyrb53(texto: string): string {
   let h1 = 0xdeadbeef;
   let h2 = 0x41c6ce57;
-  for (const ch of alteracoes.map((a) => a.caminho).join("\n")) {
+  for (const ch of texto) {
     const codigo = ch.codePointAt(0) as number;
     h1 = Math.imul(h1 ^ codigo, 2654435761);
     h2 = Math.imul(h2 ^ codigo, 1597334677);
@@ -221,7 +230,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
       idExterno: mensagem.id,
       texto: mensagem.texto,
     };
-    if (texto === "menu") {
+    if (texto === COMANDO_MENU) {
       const limpa = await this.sessoes.limpar(chave);
       if (!limpa.ok) return limpa;
       return this.responderMenu(conversa, texto);
@@ -250,10 +259,10 @@ export class ReceberMensagem implements ReceberMensagemPort {
     sessao: SessaoAtendimento | null,
   ): Promise<Result<void, AppError>> {
     const origem: Origem = { telefone, chave, idExterno, textoDoContato, clienteId: null };
-    const etapa = texto === "menu" ? null : sessao?.etapa;
+    const etapa = texto === COMANDO_MENU ? null : sessao?.etapa;
     const semAcento = tirarAcentos(texto);
 
-    if (texto !== "menu" && PEDIDO_DE_ATENDENTE.test(semAcento)) {
+    if (texto !== COMANDO_MENU && PEDIDO_DE_ATENDENTE.test(semAcento)) {
       return this.encaminhar(origem, { resumo: RESUMO_PEDIU_ATENDENTE });
     }
     if (etapa === "ja_cliente") {
@@ -343,7 +352,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
 
   private async responderMenu(conversa: Conversa, texto: string): Promise<Result<void, AppError>> {
     const { contato, telefone, chave } = conversa;
-    if (texto === "1") {
+    if (texto === ESCOLHA_CONTRATO_E_ALTERACOES) {
       const salva = await this.sessoes.salvar(chave, { etapa: "tipo_documento" });
       return salva.ok ? this.enviar(telefone, PERGUNTA_TIPO) : salva;
     }
@@ -387,11 +396,11 @@ export class ReceberMensagem implements ReceberMensagemPort {
     sessao: Extract<SessaoAtendimento, { etapa: "setor" }>,
     texto: string,
   ): Promise<Result<void, AppError>> {
-    if (texto === "0" || pedeUmaPessoa(texto)) {
+    if (texto === ESCOLHA_NAO_SEI_O_SETOR || pedeUmaPessoa(texto)) {
       return this.paraRecepcaoSemSetor(
         conversa,
         RESUMO_NAO_ESCOLHEU_SETOR,
-        texto === "0" ? ROTULO_NAO_SEI_O_SETOR : undefined,
+        texto === ESCOLHA_NAO_SEI_O_SETOR ? ROTULO_NAO_SEI_O_SETOR : undefined,
       );
     }
 
@@ -399,7 +408,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (!lista.ok) return lista;
     const setores = lista.value;
     const exibida = paginar(setores, sessao.pagina, SETORES_POR_PAGINA);
-    if (texto === "mais" && exibida.temMais) {
+    if (texto === COMANDO_MAIS && exibida.temMais) {
       return this.mostrarSetores(conversa, setores, { pagina: exibida.pagina + 1, invalidos: 0 });
     }
 
@@ -514,7 +523,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     }
 
     const exibida = paginar(alteracoes, sessao.pagina, ALTERACOES_POR_PAGINA);
-    if (texto === "mais" && exibida.temMais) {
+    if (texto === COMANDO_MAIS && exibida.temMais) {
       return this.mostrarPagina(conversa, { ...sessao, pagina: exibida.pagina + 1 }, alteracoes);
     }
 
@@ -556,8 +565,12 @@ export class ReceberMensagem implements ReceberMensagemPort {
         : await this.enviar(telefone, SEM_CONTRATO);
       if (!enviado.ok) return enviado;
     }
-    await this.sessoes.limpar(chave);
+    await this.limparSessaoIgnorandoFalha(chave);
     return ok(undefined);
+  }
+
+  private async limparSessaoIgnorandoFalha(chave: string): Promise<void> {
+    await this.sessoes.limpar(chave);
   }
 
   private async enviarDocumento(

@@ -38,10 +38,7 @@ export class SupabaseSessaoAtendimentoGateway implements SessaoAtendimentoPort {
   }
 
   async salvar(telefone: string, sessao: SessaoAtendimento): Promise<Result<void, AppError>> {
-    const varredura = await this.supabaseAdmin
-      .from("atendimento_sessoes")
-      .delete()
-      .lt("atualizado_em", this.limite());
+    const varredura = await this.varrerSessoesExpiradas();
     if (varredura.error) return falha("gravar");
 
     const { error } = await this.supabaseAdmin.from("atendimento_sessoes").upsert({
@@ -62,6 +59,13 @@ export class SupabaseSessaoAtendimentoGateway implements SessaoAtendimentoPort {
       .delete()
       .eq("chave", this.chave(telefone));
     return error ? falha("encerrar") : ok(undefined);
+  }
+
+  private varrerSessoesExpiradas() {
+    return this.supabaseAdmin
+      .from("atendimento_sessoes")
+      .delete()
+      .lt("atualizado_em", this.limite());
   }
 
   private chave(telefone: string): string {

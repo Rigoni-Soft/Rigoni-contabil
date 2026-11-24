@@ -33,6 +33,7 @@ import {
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
 import { filaKeys } from "@/modules/atendimento/presentation/view-models/fila/fila.queries";
 import { meusAtendimentosKeys } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.queries";
+import { ANEXO_LINK_MARGEM_MS } from "@/shared/kernel/anexo";
 
 export const conversaKeys = {
   conversa: (atendimentoId: string) => ["atendimento", "conversa", atendimentoId] as const,
@@ -46,6 +47,9 @@ const RENOVACAO_LOTE = 20;
 const RENOVACAO_ESPERA_MS = 60_000;
 const renovacaoPedidaEm = new Map<string, number>();
 
+const ignorarFalhaDaRenovacao = () => null;
+const semRespostaDoServidor = () => null;
+
 async function renovarLinksVencendo(
   atendimentoId: string,
   conversa: ConversaVista,
@@ -55,13 +59,13 @@ async function renovarLinksVencendo(
     conversa,
     agora,
     RENOVACAO_LOTE,
-    undefined,
+    ANEXO_LINK_MARGEM_MS,
     (id) => agora - (renovacaoPedidaEm.get(id) ?? 0) >= RENOVACAO_ESPERA_MS,
   );
   if (!ids.length) return conversa;
   for (const id of ids) renovacaoPedidaEm.set(id, agora);
   const renovadas = await renovarLinksDeAnexosAction({ atendimentoId, mensagemIds: ids }).catch(
-    () => null,
+    ignorarFalhaDaRenovacao,
   );
   return renovadas?.ok ? aplicarLinksRenovados(conversa, renovadas.data) : conversa;
 }
@@ -211,7 +215,7 @@ function useEnviarGuardadoMutation(atendimentoId: string, falha: string) {
       dados.set("nome", arquivo.name);
       if (legenda) dados.set("legenda", legenda);
       if (miniatura) dados.set("miniatura", miniatura);
-      const resultado = await enviarAnexoGuardadoAction(dados).catch(() => null);
+      const resultado = await enviarAnexoGuardadoAction(dados).catch(semRespostaDoServidor);
       if (!resultado) throw new Error(falha);
       if (!resultado.ok) throw new Error(resultado.error.message);
     },

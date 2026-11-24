@@ -16,6 +16,16 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
+const PG_PRIVILEGIO_INSUFICIENTE = "42501";
+const PG_PARAMETRO_INVALIDO = "22023";
+const PG_VIOLACAO_DE_CHECK = "23514";
+const PG_VIOLACAO_DE_UNICIDADE = "23505";
+const PG_ERROS_DE_VALIDACAO = [
+  PG_PARAMETRO_INVALIDO,
+  PG_VIOLACAO_DE_CHECK,
+  PG_VIOLACAO_DE_UNICIDADE,
+];
+
 export class SupabaseContatoUraGateway implements ContatoUraPort {
   constructor(
     private readonly supabaseUsuario: SupabaseClient,
@@ -45,8 +55,8 @@ export class SupabaseContatoUraGateway implements ContatoUraPort {
       p_email: input.email,
     });
     if (error) {
-      if (error.code === "42501") return err(new ForbiddenError(error.message));
-      if (error.code === "22023" || error.code === "23514" || error.code === "23505") {
+      if (error.code === PG_PRIVILEGIO_INSUFICIENTE) return err(new ForbiddenError(error.message));
+      if (PG_ERROS_DE_VALIDACAO.includes(error.code)) {
         return err(new ValidationError(error.message));
       }
       return err(new ServicoExternoError("Falha ao cadastrar o contato."));

@@ -4,9 +4,11 @@ import { useFilaQuery } from "@/modules/atendimento/presentation/view-models/fil
 import { atendimentoParaView } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.presenter";
 import { useMeusAtendimentosQuery } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.queries";
 
+const nuncaNotifica = () => () => undefined;
+
 export function usePendentesDoMenu() {
   const hidratado = useSyncExternalStore(
-    () => () => undefined,
+    nuncaNotifica,
     () => true,
     () => false,
   );

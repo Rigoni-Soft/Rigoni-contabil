@@ -15,6 +15,8 @@ const ARGS_OGG_OPUS = [
   ...["-ac", "1", "-c:a", "libopus", "-b:a", "32k", "-f", "ogg", "pipe:1"],
 ];
 
+const ignorarPipeFechadoPeloFfmpeg = () => {};
+
 export class FfmpegConversorDeAudioGateway implements ConversorDeAudioPort {
   constructor(private readonly caminho: string | (() => Promise<string>) = "ffmpeg") {}
 
@@ -59,7 +61,7 @@ export class FfmpegConversorDeAudioGateway implements ConversorDeAudioPort {
             : err(new ServicoExternoError(FALHA_NA_CONVERSAO)),
         );
       });
-      processo.stdin.on("error", () => {});
+      processo.stdin.on("error", ignorarPipeFechadoPeloFfmpeg);
       processo.stdin.end(conteudo);
     });
   }

@@ -13,6 +13,7 @@ export function jobAgendadoWebhook(
     if (!ativo()) return Response.json({ ativa: false });
     const resultado = await executar();
     if (!resultado.ok) return new Response(resultado.error.message, { status: 502 });
-    return Response.json(resultado.value, { status: resultado.value.falhas > 0 ? 500 : 200 });
+    const rodadaComFalhaPorItem = resultado.value.falhas > 0;
+    return Response.json(resultado.value, { status: rodadaComFalhaPorItem ? 500 : 200 });
   };
 }

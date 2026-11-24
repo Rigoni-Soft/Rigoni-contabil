@@ -13,15 +13,20 @@ import { useConversa } from "@/modules/atendimento/presentation/view-models/conv
 import { useEmojisRecentes } from "@/modules/atendimento/presentation/view-models/conversa/use-emojis-recentes.hook";
 import { useFechaSeletor } from "@/modules/atendimento/presentation/view-models/conversa/use-fecha-seletor.hook";
 
-const PAINEL_ALTURA = 272;
-const PAINEL_LARGURA = 288;
-const FOLGA = 8;
+const PAINEL_ALTURA_PX = 272;
+const PAINEL_LARGURA_PX = 288;
+const FOLGA_DA_JANELA_PX = 8;
+const DISTANCIA_DO_BOTAO_PX = 4;
 
 function posicaoDoPainel(botao: DOMRect): React.CSSProperties {
-  const left = Math.max(FOLGA, Math.min(botao.left, window.innerWidth - PAINEL_LARGURA - FOLGA));
-  return window.innerHeight - botao.bottom >= PAINEL_ALTURA
-    ? { left, top: botao.bottom + 4 }
-    : { left, bottom: window.innerHeight - botao.top + 4 };
+  const left = Math.max(
+    FOLGA_DA_JANELA_PX,
+    Math.min(botao.left, window.innerWidth - PAINEL_LARGURA_PX - FOLGA_DA_JANELA_PX),
+  );
+  const cabeAbaixoDoBotao = window.innerHeight - botao.bottom >= PAINEL_ALTURA_PX;
+  return cabeAbaixoDoBotao
+    ? { left, top: botao.bottom + DISTANCIA_DO_BOTAO_PX }
+    : { left, bottom: window.innerHeight - botao.top + DISTANCIA_DO_BOTAO_PX };
 }
 
 export function useMensagensConversa(atendimentoId: string, initialData: ConversaVista) {
@@ -39,10 +44,9 @@ export function useMensagensConversa(atendimentoId: string, initialData: Convers
   const fechar = useCallback(() => setAberta(null), []);
   useFechaSeletor(aberta !== null, raiz, botao, fechar);
 
+  const conversaDoUsuario = !conversa.encerrado && !transferido;
   const arraste = useArrastarArquivo(
-    !conversa.encerrado && !transferido && !enviandoAnexo
-      ? (arquivo: File) => pendente.anexar(arquivo)
-      : undefined,
+    conversaDoUsuario && !enviandoAnexo ? (arquivo: File) => pendente.anexar(arquivo) : undefined,
   );
 
   return {
@@ -55,7 +59,7 @@ export function useMensagensConversa(atendimentoId: string, initialData: Convers
     },
     arraste,
     reacao: {
-      ativa: !conversa.encerrado && !transferido,
+      ativa: conversaDoUsuario,
       abertaId: aberta?.id ?? null,
       estilo: aberta?.estilo,
       completo,

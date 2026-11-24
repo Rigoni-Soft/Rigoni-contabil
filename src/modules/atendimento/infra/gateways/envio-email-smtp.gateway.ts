@@ -12,6 +12,18 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 const AVISO_NAO_RESPONDER =
   "\n\n--\nEsta é uma mensagem automática. Por favor, não responda este e-mail.";
 
+function enderecoRecusado({
+  code,
+  responseCode,
+}: {
+  code?: string;
+  responseCode?: number;
+}): boolean {
+  const recusaDeDestinatario =
+    responseCode !== undefined && responseCode >= 550 && responseCode <= 553;
+  return code === "EENVELOPE" || recusaDeDestinatario;
+}
+
 export type TransporteEmail = { sendMail(mensagem: object): Promise<unknown> };
 
 export type ConfigSmtp = { usuario: string; senha: string; remetente: string };
@@ -41,11 +53,7 @@ export class EnvioEmailSmtpGateway implements EnvioEmailPort {
       });
       return ok(undefined);
     } catch (e) {
-      const { code, responseCode } = e as { code?: string; responseCode?: number };
-      if (
-        code === "EENVELOPE" ||
-        (responseCode !== undefined && responseCode >= 550 && responseCode <= 553)
-      ) {
+      if (enderecoRecusado(e as { code?: string; responseCode?: number })) {
         return err(new ValidationError("E-mail recusado pelo provedor (destinatário inválido)."));
       }
       return err(new ServicoExternoError("Serviço de e-mail indisponível."));

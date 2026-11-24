@@ -39,6 +39,10 @@ type Preparado = {
 
 const ehGuia = (tipo: DocumentoParaEnviar["tipo"]): tipo is TipoGuia => tipo in ROTULO_GUIA;
 
+function extensaoDoCaminho(caminho: string): string {
+  return /\.[A-Za-z0-9]+$/.exec(caminho)?.[0] ?? "";
+}
+
 export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -152,7 +156,7 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
   ): Promise<Result<void, AppError>> {
     const link = await this.documentos.linkTemporario(caminho);
     if (!link.ok) return link;
-    const extensao = /\.[A-Za-z0-9]+$/.exec(caminho)?.[0] ?? "";
+    const extensao = extensaoDoCaminho(caminho);
     return this.despachar({
       telefone,
       url: link.value,

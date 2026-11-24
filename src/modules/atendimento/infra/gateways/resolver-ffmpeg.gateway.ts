@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 import { promisify } from "node:util";
 import { brotliDecompress } from "node:zlib";
 
+const PERMISSAO_DE_EXECUCAO = 0o755;
 const descomprimir = promisify(brotliDecompress);
 
 async function existe(caminho: string) {
@@ -26,7 +27,7 @@ export async function resolverFfmpeg({
   await mkdir(dirname(destino), { recursive: true });
   const parcial = `${destino}.${process.pid}.${Date.now()}`;
   await writeFile(parcial, await descomprimir(await readFile(comprimido)));
-  await chmod(parcial, 0o755);
+  await chmod(parcial, PERMISSAO_DE_EXECUCAO);
   await rename(parcial, destino);
   return destino;
 }

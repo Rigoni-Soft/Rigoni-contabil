@@ -1,3 +1,5 @@
+const NUMERO_DE_OPCAO = /^[1-9]\d*$/;
+
 export type Pagina<T> = {
   total: number;
   pagina: number;
@@ -20,6 +22,6 @@ export function paginar<T>(itens: T[], pagina: number, porPagina: number): Pagin
     pagina: atual,
     itens: daPagina,
     temMais: atual < total,
-    escolher: (texto) => (/^[1-9]\d*$/.test(texto) ? daPagina[Number(texto) - 1] : undefined),
+    escolher: (texto) => (NUMERO_DE_OPCAO.test(texto) ? daPagina[Number(texto) - 1] : undefined),
   };
 }

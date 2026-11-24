@@ -8,10 +8,13 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const BUCKET = "anexos-atendimento";
 const PARTE_BYTES = 6 * 1024 * 1024;
+const ESPERAS_ENTRE_TENTATIVAS_MS = [0, 1000, 3000, 5000];
+const CACHE_DO_ANEXO_EM_SEGUNDOS = "3600";
+const TAMANHO_MAXIMO_DO_NOME = 120;
 const FALHA = "Não foi possível enviar o arquivo. Confira a conexão e tente de novo.";
 
 function nomeSeguro(nome: string): string {
-  return nome.replace(/[^\w.-]+/g, "_").slice(-120) || "arquivo";
+  return nome.replace(/[^\w.-]+/g, "_").slice(-TAMANHO_MAXIMO_DO_NOME) || "arquivo";
 }
 
 export class TusUploadDeAnexoGateway implements UploadDeAnexoPort {
@@ -40,12 +43,12 @@ export class TusUploadDeAnexoGateway implements UploadDeAnexoPort {
         headers: { authorization: `Bearer ${token}`, "x-upsert": "false" },
         uploadDataDuringCreation: true,
         chunkSize: PARTE_BYTES,
-        retryDelays: [0, 1000, 3000, 5000],
+        retryDelays: ESPERAS_ENTRE_TENTATIVAS_MS,
         metadata: {
           bucketName: BUCKET,
           objectName: caminho,
           contentType: normalizarMime(tipoMime),
-          cacheControl: "3600",
+          cacheControl: CACHE_DO_ANEXO_EM_SEGUNDOS,
         },
         onError: () => resolve(err(new ServicoExternoError(FALHA))),
         onSuccess: () => resolve(ok(caminho)),

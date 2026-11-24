@@ -131,4 +131,13 @@ describe("SupabaseGuiaPublicadaGateway", () => {
     expect(bucket.remove).not.toHaveBeenCalled();
     expect(objetos.size).toBe(2);
   });
+
+  it("nunca assina o caminho de outro Cliente nem um caminho com ..", async () => {
+    const { gateway, bucket } = montar(() => false);
+
+    expect((await gateway.reencontrar("c1", "c2/acordo/202610-abc.pdf")).ok).toBe(false);
+    expect((await gateway.reencontrar("c1", "c1/../c2/acordo/202610-abc.pdf")).ok).toBe(false);
+    expect((await gateway.reencontrar("c1", "c1/acordo/202610-abc.pdf")).ok).toBe(true);
+    expect(bucket.createSignedUrl).toHaveBeenCalledTimes(1);
+  });
 });

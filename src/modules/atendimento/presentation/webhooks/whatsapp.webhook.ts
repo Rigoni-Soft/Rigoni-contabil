@@ -80,8 +80,9 @@ export async function POST(request: Request): Promise<Response> {
             texto: recebida.texto,
             id: recebida.id,
           });
+    const falhaTransitoria = !resultado.ok && resultado.error instanceof ServicoExternoError;
     if (resultado.ok) continue;
-    if (resultado.error instanceof ServicoExternoError) {
+    if (falhaTransitoria) {
       return resposta("Falha transitória; reenvie.", 502);
     }
     makeRegistroDeErros().registrar(`Mensagem ${mensagem.id} descartada:`, resultado.error.message);

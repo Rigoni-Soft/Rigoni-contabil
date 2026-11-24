@@ -4,10 +4,12 @@ import type { SetorSlug } from "@/shared/kernel/setores";
 type Ator = { id: string; papel: Papel; setor: SetorSlug };
 type AtendimentoDoSetor = { setor: SetorSlug; funcionarioId: string | null };
 
+const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function normalizarEmailDoContato(entrada: string | null): string | null | undefined {
   const email = (entrada ?? "").trim().toLowerCase();
   if (email === "") return null;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : undefined;
+  return EMAIL_VALIDO.test(email) ? email : undefined;
 }
 
 export function podeCadastrarContatoUra(ator: Ator, atendimento: AtendimentoDoSetor): boolean {

@@ -14,7 +14,11 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-const BUCKET = "parcelamentos-clientes";
+const BUCKET_DOS_ACORDOS = "parcelamentos-clientes";
+
+function guiaPertenceAoCliente(clienteId: string, caminho: string): boolean {
+  return caminho.startsWith(`${clienteId}/guias-pgfn/`) && !caminho.includes("..");
+}
 
 const linhaSchema = z.array(
   parcelamentoSchema.extend({
@@ -59,10 +63,12 @@ export class SupabaseGuiasPgfnGateway implements GuiasPgfnPort {
   }
 
   async ler(clienteId: string, caminho: string): Promise<Result<string, AppError>> {
-    if (!caminho.startsWith(`${clienteId}/guias-pgfn/`) || caminho.includes("..")) {
+    if (!guiaPertenceAoCliente(clienteId, caminho)) {
       return err(new ServicoExternoError("Guia não pertence ao cliente."));
     }
-    const { data, error } = await this.supabaseAdmin.storage.from(BUCKET).download(caminho);
+    const { data, error } = await this.supabaseAdmin.storage
+      .from(BUCKET_DOS_ACORDOS)
+      .download(caminho);
     if (error || !data) return err(new ServicoExternoError("Falha ao ler a guia do parcelamento."));
     return ok(Buffer.from(await data.arrayBuffer()).toString("base64"));
   }

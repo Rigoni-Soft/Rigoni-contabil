@@ -3,6 +3,8 @@ import { useState } from "react";
 const CHAVE = "emojis-recentes";
 const MAXIMO = 8;
 
+const ignorarStorageIndisponivel = () => undefined;
+
 function ler(): string[] {
   try {
     const lista: unknown = JSON.parse(localStorage.getItem(CHAVE) ?? "[]");
@@ -25,7 +27,9 @@ export function useEmojisRecentes() {
       setRecentes(novos);
       try {
         localStorage.setItem(CHAVE, JSON.stringify(novos));
-      } catch {}
+      } catch {
+        ignorarStorageIndisponivel();
+      }
     },
   };
 }

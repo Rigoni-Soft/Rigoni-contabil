@@ -55,6 +55,9 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
+const COLUNAS_DA_MENSAGEM =
+  "id, autor, texto, criado_em, id_externo, reacao, entrega, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor)";
+
 function paraMensagemLida(m: z.infer<typeof mensagemDaConversaRowSchema>): MensagemLida {
   return {
     id: m.id,
@@ -345,7 +348,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
         funcionarioNome: linha.dono?.nome ?? null,
         telefone: linha.telefone,
         criadoEm: linha.criado_em,
-        contato: dadosDoContato(linha.clientes, nomes[i]?.ok ? nomes[i].value : null),
+        contato: dadosDoContato(linha.clientes, nomeOuNenhum(nomes[i])),
         ultimaMensagem: linha.mensagens[0]
           ? {
               autor: linha.mensagens[0].autor,
@@ -375,7 +378,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
       .select(
-        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, resumo_ura, cnpj_informado, clientes(empresa, cnpj), mensagens(id, autor, texto, criado_em, id_externo, reacao, entrega, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor)), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))",
+        `id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, resumo_ura, cnpj_informado, clientes(empresa, cnpj), mensagens(${COLUNAS_DA_MENSAGEM}), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))`,
       )
       .eq("id", atendimentoId)
       .order("criado_em", { referencedTable: "mensagens", ascending: false })
@@ -424,16 +427,9 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
   ): Promise<Result<MensagensAnteriores | null, AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
-      .select(
-        "setor, funcionario_id, mensagens(id, autor, texto, criado_em, id_externo, reacao, entrega, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor))",
-      )
+      .select(`setor, funcionario_id, mensagens(${COLUNAS_DA_MENSAGEM})`)
       .eq("id", atendimentoId)
-      .or(
-        `criado_em.lt."${antes.criadoEm}",and(criado_em.eq."${antes.criadoEm}",id.lt.${antes.id})`,
-        {
-          referencedTable: "mensagens",
-        },
-      )
+      .or(filtroDeMensagensEstritamenteAnterioresA(antes), { referencedTable: "mensagens" })
       .order("criado_em", { referencedTable: "mensagens", ascending: false })
       .order("id", { referencedTable: "mensagens", ascending: false })
       .limit(limite + 1, { referencedTable: "mensagens" })
@@ -455,9 +451,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
   ): Promise<Result<MensagensPorId | null, AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
-      .select(
-        "setor, funcionario_id, mensagens(id, autor, texto, criado_em, id_externo, reacao, entrega, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor))",
-      )
+      .select(`setor, funcionario_id, mensagens(${COLUNAS_DA_MENSAGEM})`)
       .eq("id", atendimentoId)
       .in("mensagens.id", ids)
       .maybeSingle();
@@ -528,6 +522,15 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     if (error) return err(new ServicoExternoError("Falha ao registrar a reação."));
     return ok(undefined);
   }
+}
+
+function filtroDeMensagensEstritamenteAnterioresA(cursor: CursorDaConversa): string {
+  const { criadoEm, id } = cursor;
+  return `criado_em.lt."${criadoEm}",and(criado_em.eq."${criadoEm}",id.lt.${id})`;
+}
+
+function nomeOuNenhum(nome: Result<string | null, AppError> | undefined): string | null {
+  return nome?.ok ? nome.value : null;
 }
 
 type ClienteEmbutido = z.infer<typeof atendimentoDoFuncionarioRowSchema>["clientes"];

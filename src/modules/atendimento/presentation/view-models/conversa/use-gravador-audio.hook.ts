@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 
 import { ANEXO_TAMANHO_MAXIMO, AUDIO_DURACAO_MAXIMA_S } from "@/shared/kernel/anexo";
 
-const FORMATOS = ["audio/ogg;codecs=opus", "audio/mp4;codecs=mp4a.40.2", "audio/mp4"];
+const FORMATOS_ACEITOS_PELO_WHATSAPP = [
+  "audio/ogg;codecs=opus",
+  "audio/mp4;codecs=mp4a.40.2",
+  "audio/mp4",
+];
 
 export const GRAVACAO_SEM_HTTPS = "A gravação de áudio exige uma conexão segura (HTTPS).";
 export const GRAVACAO_SEM_SUPORTE = "Este navegador não permite gravar áudio.";
@@ -10,6 +14,11 @@ export const GRAVACAO_PERMISSAO_NEGADA =
   "Libere o microfone nas configurações do navegador para gravar.";
 export const GRAVACAO_SEM_MICROFONE = "Nenhum microfone encontrado neste equipamento.";
 export const GRAVACAO_FALHOU = "Não foi possível acessar o microfone.";
+
+const FORMATO_PADRAO_DO_NAVEGADOR = "audio/webm";
+const ENTREGA_DE_PARTES_MS = 1000;
+const UM_SEGUNDO_MS = 1000;
+const AUDIO_MONO = { channelCount: 1 };
 
 export type EstadoGravacao = "ocioso" | "gravando" | "pronto";
 
@@ -20,7 +29,7 @@ function motivoSemSuporte(): string {
   }
   return "";
 }
-const semAssinatura = () => () => {};
+const semAssinaturaPorqueSuporteNaoMuda = () => () => {};
 
 function extensao(mime: string) {
   if (mime.startsWith("audio/ogg")) return "ogg";
@@ -36,7 +45,11 @@ function mensagemDoErro(erro: unknown) {
 }
 
 export function useGravadorAudio() {
-  const indisponivel = useSyncExternalStore(semAssinatura, motivoSemSuporte, () => "");
+  const indisponivel = useSyncExternalStore(
+    semAssinaturaPorqueSuporteNaoMuda,
+    motivoSemSuporte,
+    () => "",
+  );
   const [estado, setEstado] = useState<EstadoGravacao>("ocioso");
   const [segundos, setSegundos] = useState(0);
   const [erro, setErro] = useState<string>();
@@ -81,12 +94,14 @@ export function useGravadorAudio() {
     setErro(undefined);
     let microfone: MediaStream;
     try {
-      microfone = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1 } });
+      microfone = await navigator.mediaDevices.getUserMedia({ audio: AUDIO_MONO });
     } catch (falha) {
       setErro(mensagemDoErro(falha));
       return;
     }
-    const formato = FORMATOS.find((tipo) => MediaRecorder.isTypeSupported(tipo));
+    const formato = FORMATOS_ACEITOS_PELO_WHATSAPP.find((tipo) =>
+      MediaRecorder.isTypeSupported(tipo),
+    );
     let atual: MediaRecorder;
     try {
       atual = new MediaRecorder(microfone, formato ? { mimeType: formato } : undefined);
@@ -115,7 +130,7 @@ export function useGravadorAudio() {
     atual.onstop = () => {
       liberar();
       if (descartado.current) return;
-      const tipo = atual.mimeType || formato || "audio/webm";
+      const tipo = atual.mimeType || formato || FORMATO_PADRAO_DO_NAVEGADOR;
       const gravado = new File(partes, `gravacao.${extensao(tipo)}`, { type: tipo });
       arquivoGravado.current = gravado;
       setEstado("pronto");
@@ -128,8 +143,8 @@ export function useGravadorAudio() {
       decorridos += 1;
       setSegundos(decorridos);
       if (decorridos >= AUDIO_DURACAO_MAXIMA_S) encerrarPorLimite();
-    }, 1000);
-    atual.start(1000);
+    }, UM_SEGUNDO_MS);
+    atual.start(ENTREGA_DE_PARTES_MS);
   }
 
   return {

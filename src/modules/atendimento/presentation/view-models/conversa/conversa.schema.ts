@@ -24,6 +24,11 @@ export const enviarDocumentoSchema = z
   });
 
 const RESUMO_TAMANHO_MAXIMO = 1000;
+const CNPJ_COM_MASCARA_TAMANHO = 18;
+const NOME_DO_CONTATO_TAMANHO_MAXIMO = 120;
+const EMAIL_TAMANHO_MAXIMO = 254;
+const LINKS_POR_RENOVACAO_MAXIMO = 50;
+const CAMINHO_DE_ANEXO_ENVIADO = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[\w.-]{1,120}$/i;
 
 export const transferirAtendimentoSchema = z.object({
   atendimentoId: atendimentoIdSchema,
@@ -37,7 +42,7 @@ export const transferirAtendimentoSchema = z.object({
 
 export const buscarClienteParaContatoSchema = z.object({
   atendimentoId: atendimentoIdSchema,
-  cnpj: z.string().trim().min(1, "Informe o CNPJ.").max(18, "CNPJ inválido."),
+  cnpj: z.string().trim().min(1, "Informe o CNPJ.").max(CNPJ_COM_MASCARA_TAMANHO, "CNPJ inválido."),
 });
 
 export const cadastrarContatoUraSchema = z.object({
@@ -47,11 +52,14 @@ export const cadastrarContatoUraSchema = z.object({
     .string()
     .trim()
     .min(1, "Informe o nome do contato.")
-    .max(120, "O nome aceita até 120 caracteres."),
+    .max(
+      NOME_DO_CONTATO_TAMANHO_MAXIMO,
+      `O nome aceita até ${NOME_DO_CONTATO_TAMANHO_MAXIMO} caracteres.`,
+    ),
   email: z
     .string()
     .trim()
-    .max(254, "E-mail inválido.")
+    .max(EMAIL_TAMANHO_MAXIMO, "E-mail inválido.")
     .refine((valor) => valor === "" || z.email().safeParse(valor).success, {
       message: "Informe um e-mail válido.",
     })
@@ -81,7 +89,7 @@ export const mensagensAnterioresSchema = z.object({
 
 export const renovarLinksSchema = z.object({
   atendimentoId: atendimentoIdSchema,
-  mensagemIds: z.array(z.guid("Mensagem inválida.")).min(1).max(50),
+  mensagemIds: z.array(z.guid("Mensagem inválida.")).min(1).max(LINKS_POR_RENOVACAO_MAXIMO),
 });
 
 export const reagirAMensagemSchema = z.object({
@@ -92,7 +100,7 @@ export const reagirAMensagemSchema = z.object({
 
 export const enviarAnexoGuardadoSchema = z.object({
   atendimentoId: atendimentoIdSchema,
-  caminho: z.string().regex(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[\w.-]{1,120}$/i, "Arquivo inválido."),
+  caminho: z.string().regex(CAMINHO_DE_ANEXO_ENVIADO, "Arquivo inválido."),
   nome: z.string().trim().min(1).max(255),
   legenda: z.string().optional(),
 });

@@ -27,8 +27,10 @@ export function useFilaQuery(
     },
     initialData,
     enabled: habilitado,
-    refetchInterval: (query) =>
-      setor === null && query.state.error?.cause === "FORBIDDEN" ? false : INTERVALO_MS,
+    refetchInterval: (query) => {
+      const minhaFilaNegada = setor === null && query.state.error?.cause === "FORBIDDEN";
+      return minhaFilaNegada ? false : INTERVALO_MS;
+    },
     staleTime: INTERVALO_MS,
     retry: false,
   });
