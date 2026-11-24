@@ -13,8 +13,6 @@ class PersistenciaError extends AppError {
   readonly code = "PERSISTENCIA_ERROR";
 }
 
-// Só mexe no Responsável; o banco (trigger + RLS) é a última barreira — Funcionário nem chega a
-// gravar por este caminho. Todo Setor guarda em `cliente_responsaveis` (um por Cliente e Setor).
 export class SupabaseResponsavelClienteRepository implements ResponsavelClienteRepository {
   constructor(
     private readonly supabase: SupabaseClient,
@@ -41,7 +39,6 @@ export class SupabaseResponsavelClienteRepository implements ResponsavelClienteR
             );
     if (!error) return ok(undefined);
     if (error.code === "42501") return err(new ForbiddenError(error.message));
-    // O gatilho recusa quem não é Funcionário ativo do Setor.
     if (error.code === "23514") {
       return err(
         new ValidationError("O Responsável deve ser Funcionário ativo do Setor.", {

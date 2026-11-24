@@ -11,7 +11,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const POR_PAGINA = 30;
 
-// Cada usuário só vê os próprios avisos (RLS). Pede um a mais para saber se há próxima página.
 export class ListarAvisosCadastro implements ListarAvisosCadastroPort {
   constructor(
     private readonly sessao: SessaoPort,

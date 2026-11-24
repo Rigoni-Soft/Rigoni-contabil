@@ -1,9 +1,3 @@
-/**
- * Integração infra ↔ Supabase: Parcelamentos do Cliente (tabela filha `cliente_parcelamentos`) e o
- * registro de envio por parcela. Requer `npx supabase start` com migrations + seed aplicados.
- * Prova a matriz de RLS por papel, os gatilhos BEFORE (ADR 0008), a imutabilidade do `cliente_id`,
- * a remoção bloqueada por envio, a auditoria e o bucket privado.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
@@ -80,7 +74,6 @@ async function criarClienteResponsavelFuncionarioSN(cnpj: string): Promise<strin
   return construido.value.id;
 }
 
-// O anexo pertence ao Parcelamento: `<cliente>/<id>-<nome>` (gatilho de criação).
 const parcelamento = (clienteId: string, sobrescrever: Partial<Record<string, unknown>> = {}) => {
   const id = crypto.randomUUID();
   return {
@@ -111,7 +104,6 @@ describe("Parcelamentos do Cliente", () => {
       ]),
     );
 
-    // editar mantém o anexo; remover é "ausente da lista"
     expect(
       (
         await repo.salvar(clienteId, "simples_nacional", [
@@ -146,7 +138,6 @@ describe("Parcelamentos do Cliente", () => {
     const salvo = await repo.listar(clienteId, "simples_nacional");
     expect(salvo.ok && salvo.value[0].acordo).toEqual(acordo);
 
-    // Editar as parcelas restantes devolve o mesmo acordo; o que vier de novo é ignorado.
     await repo.salvar(clienteId, "simples_nacional", [
       { ...a, parcelasRestantes: 3, acordo: { ...acordo, totalDeParcelas: 99 } },
     ]);
@@ -211,8 +202,6 @@ describe("Parcelamentos do Cliente", () => {
       ).ok,
     ).toBe(false);
 
-    // cada Setor só vê os seus: outro Setor não lê os do SN, nem sendo Responsável do Cliente, e não
-    // grava neles; o Funcionário SN não responsável também não lê
     const financeiro = new SupabaseClienteParcelamentoRepository(await comoFuncionarioFinanceiro());
     const semAtribuicao = await financeiro.listar(clienteId, "simples_nacional");
     expect(semAtribuicao.ok && semAtribuicao.value).toEqual([]);
@@ -287,7 +276,6 @@ describe("Parcelamentos do Cliente", () => {
       const repo = new SupabaseClienteParcelamentoRepository(await comoFuncionarioSN());
       const p = parcelamento(clienteId, { parcelasRestantes: 1 });
       expect((await repo.salvar(clienteId, "simples_nacional", [p])).ok).toBe(true);
-      // o sistema (sem sessão) entrega a última parcela e zera
       const zerou = await servico()
         .from("cliente_parcelamentos")
         .update({ parcelas_restantes: 0, situacao: "quitado" })
@@ -296,7 +284,6 @@ describe("Parcelamentos do Cliente", () => {
 
       const lista = await repo.listar(clienteId, "simples_nacional");
       expect(lista.ok && lista.value[0]).toMatchObject({ parcelasRestantes: 0, quitado: true });
-      // reenviar o mesmo valor (o formulário reenvia a lista inteira) passa; mudar, não
       expect(
         (await repo.salvar(clienteId, "simples_nacional", [{ ...p, parcelasRestantes: 0 }])).ok,
       ).toBe(true);
@@ -367,7 +354,6 @@ describe("Parcelamentos do Cliente", () => {
       const p = parcelamento(clienteId);
       expect((await repo.salvar(clienteId, "simples_nacional", [p])).ok).toBe(true);
 
-      // nenhuma sessão grava, nem o Admin
       for (const quem of [sessao, await comoAdmin(), await comoLiderSN()]) {
         const r = await quem
           .from("cliente_parcelamento_envios")
@@ -401,7 +387,6 @@ describe("Parcelamentos do Cliente", () => {
       const lista = await repo.listar(clienteId, "simples_nacional");
       expect(lista.ok && lista.value[0]).toMatchObject({ temEnvio: true, enviadoNoMes: true });
 
-      // a sessão lê o registro (RLS pelo Cliente) mas não o apaga
       const lido = await sessao
         .from("cliente_parcelamento_envios")
         .select("parcela")
@@ -414,7 +399,6 @@ describe("Parcelamentos do Cliente", () => {
         .eq("parcelamento_id", p.id);
       expect(restou.data).toHaveLength(1);
 
-      // remoção bloqueada, pela RPC e pelo DML direto
       const removido = await repo.salvar(clienteId, "simples_nacional", []);
       expect(removido.ok).toBe(false);
       expect(

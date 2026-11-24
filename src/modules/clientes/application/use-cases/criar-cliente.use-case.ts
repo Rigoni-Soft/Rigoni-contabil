@@ -37,8 +37,6 @@ export class CriarCliente implements CriarClientePort {
     }
 
     const id = crypto.randomUUID();
-    // Todo caminho enviado ao Storage entra aqui: qualquer falha depois do primeiro upload remove
-    // tudo, em vez de deixar documento jurídico órfão sem Cliente.
     const enviados: string[] = [];
     const criado = await this.cadastrar(id, input, enviados);
     if (criado.ok) return criado;
@@ -50,11 +48,9 @@ export class CriarCliente implements CriarClientePort {
     input: CriarClienteInput,
     enviados: string[],
   ): Promise<Result<CriarClienteOutput, AppError>> {
-    // Antes de qualquer upload: CNPJ inválido não deve nem tocar o Storage.
     const cnpj = Cnpj.criar(input.cnpj);
     if (!cnpj.ok) return cnpj;
 
-    // Opcional: só envia ao Storage quando o Admin anexou um arquivo.
     let contratoSocialCaminho: string | null = null;
     if (input.contratoSocial) {
       const contratoSocial = await this.storage.enviar(
@@ -80,16 +76,12 @@ export class CriarCliente implements CriarClientePort {
       .build();
     if (!construido.ok) return construido;
 
-    // A auditoria de sucesso é gravada pelo banco na mesma transação deste
-    // INSERT (trigger em `clientes`): sem evento, o cadastro inteiro falha.
     const salvo = await this.clientes.criar(construido.value);
     if (!salvo.ok) {
       if (!(salvo.error instanceof ResultadoIncertoError)) return salvo;
-      // Resposta perdida não prova rollback, e leitura vazia também não: o INSERT original pode
-      // confirmar depois da leitura. Só Cliente visível vira sucesso; senão os arquivos ficam.
       const gravado = await this.clientes.buscarPorId(id);
       if (!(gravado.ok && gravado.value)) {
-        enviados.length = 0; // arquivos mantidos: podem estar referenciados pelo Cliente gravado
+        enviados.length = 0;
         return err(
           new EstadoInconsistenteError(
             "Não foi possível confirmar se o Cliente foi cadastrado. Os documentos foram mantidos; confira a lista de Clientes antes de tentar de novo.",
@@ -124,10 +116,6 @@ export class CriarCliente implements CriarClientePort {
     return ok(restauradas);
   }
 
-  // Falha da própria compensação não é mascarada como o erro original: vira
-  // `EstadoInconsistenteError` (objetos podem ter ficado órfãos) + auditoria
-  // `falha_compensacao` + log com os caminhos — caminho de reconciliação manual,
-  // mesmo padrão do cadastro de usuário.
   private async falhar(
     ator: AtorSessaoDto,
     input: CriarClienteInput,

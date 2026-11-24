@@ -14,7 +14,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 const MENSAGEM_DUPLICADO = "Este Cliente já tem um contato com este WhatsApp ou e-mail.";
 const MENSAGEM_INVALIDO = "Confira o nome e o WhatsApp ou o e-mail do contato.";
 
-// Uma função do banco (`salvar_contato_do_cliente`) cria ou atualiza um contato e confere quem pode.
 export class SupabaseContatoDoClienteRepository implements ContatoDoClienteRepository {
   constructor(
     private readonly supabase: SupabaseClient,
@@ -31,8 +30,6 @@ export class SupabaseContatoDoClienteRepository implements ContatoDoClienteRepos
     });
     if (error) {
       if (error.code === "42501") return err(new ForbiddenError(error.message));
-      // A duplicidade pega pelo trigger traz o nome do contato existente (e o `hint`); a do índice único
-      // (corrida) e a da chave primária (id forjado) trazem constraint e valores: texto fixo.
       if (error.code === "23505") {
         return err(new ValidationError(error.hint ? error.message : MENSAGEM_DUPLICADO));
       }

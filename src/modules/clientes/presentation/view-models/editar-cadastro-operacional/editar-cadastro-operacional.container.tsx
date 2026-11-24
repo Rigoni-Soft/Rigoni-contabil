@@ -37,22 +37,12 @@ import { useSalvarCadastroOperacional } from "./use-salvar-cadastro-operacional.
 type Props = {
   dados: CadastroOperacionalClienteDto | null;
   readOnly: boolean;
-  // Quem abre o cadastro: o Admin só cadastra contatos (não tem Setor, então não define destinos); o
-  // Setor SN define os destinos dele e edita só os contatos que cadastrou.
   ator: { papel: string; setor: string };
-  // Só o Líder do SN, neste cadastro (os outros Setores têm o bloco próprio): troca o Select de Responsável editável.
   podeAtribuirResponsavel?: boolean;
   onCancelar?: () => void;
-  // Depois de salvar com sucesso, o painel precisa fechar/voltar: painel embutido no dashboard
-  // (busca do /simples-nacional) fecha de volta pra busca e atualiza os cards; tela própria
-  // (/clientes/[id]) navega de volta pra onde a lista do bucket (ou o próprio dashboard) ficou.
-  // Os dois destinos são exclusivos: união discriminada por `tipo`.
   aoSalvar?: { tipo: "fechar"; executar: () => void } | { tipo: "voltar"; href: string };
-  // Carga inicial do servidor (tela própria); no painel embutido da busca vem vazia e o botão lê por action.
   documentosContratuais?: DocumentoContratualVisivelDto[];
-  // Só o Admin na tela própria: o botão de anexar fica no cartão do documento.
   podeAnexar?: boolean;
-  // Nº da alteração do aviso por onde se chegou: o cartão do documento a abre e destaca o botão.
   alteracaoEmFoco?: number;
 };
 
@@ -67,21 +57,16 @@ export function EditarCadastroOperacionalContainer({
   podeAnexar,
   alteracaoEmFoco,
 }: Props) {
-  // Falso no servidor e na hidratação; verdadeiro assim que o cliente assume (snapshots do React).
   const hidratado = useSyncExternalStore(
     () => () => undefined,
     () => true,
     () => false,
   );
   const admin = ator.papel === "admin";
-  // Extraído pra reusar no reset() do botão "Limpar" — reverte pro que veio
-  // do servidor, não esvazia campos (formaEnvio é enum obrigatório, sem opção
-  // em branco no Select; "limpar" um form de edição significa desfazer, não zerar).
   const valoresIniciais = dados
     ? {
         formaEnvio:
           (dados.formaEnvio as EditarCadastroOperacionalFormValues["formaEnvio"]) ?? "whatsapp",
-        // Seção sem registros abre com uma linha em branco (descartada se ninguém a tocar).
         contatos: contatosIniciais(dados.contatos, dados.destinos, {
           verTodos: admin || readOnly,
           setor: SETOR_SN,
@@ -100,7 +85,6 @@ export function EditarCadastroOperacionalContainer({
     : undefined;
 
   const form = useForm<EditarCadastroOperacionalFormValues>({
-    // Valida sem as linhas em branco; o que sai daqui (inclusive para o submit) já vem sem elas.
     resolver: async (valores, contexto, opcoes) => {
       const semBranco = descartarLinhasEmBranco(valores);
       const resultado = await zodResolver(editarCadastroOperacionalFormSchema)(
@@ -137,7 +121,6 @@ export function EditarCadastroOperacionalContainer({
     formState: { errors },
   } = form;
 
-  // Lista de Funcionários só é buscada quando o Líder abre o Select.
   const [listaAberta, setListaAberta] = useState(false);
   const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
@@ -152,7 +135,6 @@ export function EditarCadastroOperacionalContainer({
     admin,
     verTodos: admin || readOnly,
   });
-  // Esta tela é o cadastro operacional do Simples Nacional.
   const parcelamentos = useParcelamentosDoCadastro({
     clienteId: dados?.id ?? "",
     setor: "simples_nacional",
@@ -184,7 +166,6 @@ export function EditarCadastroOperacionalContainer({
   }
 
   if (!regimeTemCadastroOperacionalSn(dados.regime)) {
-    // Documento jurídico não depende do cadastro SN: Admin ainda abre e anexa em Lucro Presumido/Real.
     return (
       <Pilha espaco={6}>
         <Texto variante="apoio" role="status">

@@ -13,14 +13,11 @@ import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.e
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Mesmo teto da Server Action (corpo de 4,5 MB na Vercel, ADR 0007): o Storage é relido aqui.
 const LIMITE_BYTES = 4 * 1024 * 1024;
 
-// Motivo da confirmação que o banco não aceitou na hora: o Funcionário confirma à mão.
 const MOTIVO_CONFIRMACAO_FALHOU =
   "Não consegui confirmar a guia na hora: confira e confirme à mão.";
 
-// Não confia só na tela: relê no Storage o tipo e o tamanho do que subiu. Devolve a recusa, ou nulo.
 export async function revalidarPdfNoStorage(
   storage: ArquivoInspecionavelPort,
   caminho: string,
@@ -37,8 +34,6 @@ export async function revalidarPdfNoStorage(
   return null;
 }
 
-// Sem motivo a guia é confirmada na hora; se o banco recusar (ou outro PDF já a substituiu), ela segue
-// "a confirmar" (a confirmação à mão continua valendo) e o arquivo e a linha não se perdem.
 export async function confirmarOuManter(
   guias: GuiaParcelaPgfnRepository,
   parcelamentoId: string,
@@ -51,14 +46,11 @@ export async function confirmarOuManter(
     versao: guia.arquivoCaminho,
   };
   if (motivo) return ok({ ...base, estado: "a_confirmar", motivo });
-  // Só a versão lida confirma: se outro PDF entrou no meio, o dele segue "a confirmar".
   const confirmada = await guias.confirmar(parcelamentoId, guia.competencia, guia.arquivoCaminho);
   if (confirmada.ok) return ok({ ...base, estado: "confirmada" });
   return ok({ ...base, estado: "a_confirmar", motivo: MOTIVO_CONFIRMACAO_FALHOU });
 }
 
-// Remove o PDF que a guia deixou de usar. Falha deixa objeto órfão em bucket privado, só logada: não
-// desfaz o que já foi gravado.
 export async function apagarObjeto(
   storage: ArquivoStoragePort,
   erros: RegistroDeErrosPort,
@@ -74,7 +66,6 @@ export async function apagarObjeto(
   }
 }
 
-// Falha da própria remoção não é mascarada como o erro original: o arquivo ficou órfão.
 export async function desfazerUpload(
   storage: ArquivoInspecionavelPort,
   erros: RegistroDeErrosPort,

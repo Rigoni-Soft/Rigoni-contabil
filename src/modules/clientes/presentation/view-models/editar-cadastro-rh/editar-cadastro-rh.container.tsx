@@ -32,20 +32,15 @@ import { editarCadastroRhFormSchema } from "./editar-cadastro-rh.schema";
 type Props = {
   dados: CadastroRhClienteDto | null;
   readOnly: boolean;
-  // Quem abre o cadastro: o RH define os destinos dele; o Admin só cadastra contatos (não tem Setor).
   ator: { papel: string; setor: string };
-  // De onde a tela foi aberta: depois de salvar, volta para lá.
   voltarHref: string;
   documentosContratuais?: DocumentoContratualVisivelDto[];
-  // Montados no servidor e encaixados no cartão: o Responsável do RH e o acompanhamento do mês.
   responsavel?: React.ReactNode;
   acompanhamento?: React.ReactNode;
 };
 
 type Valores = EditarCadastroOperacionalFormValues;
 
-// O formulário reaproveita os campos do formulário do SN (contatos e observações gerais); os do SN ficam
-// com o valor neutro e nunca são enviados.
 const valoresIniciaisDe = (
   dados: CadastroRhClienteDto,
   readOnly: boolean,
@@ -89,10 +84,8 @@ export function EditarCadastroRhContainer({
   const admin = ator.papel === "admin";
   const valoresIniciais = dados ? valoresIniciaisDe(dados, readOnly, ator) : undefined;
   const form = useForm<Valores>({
-    // Valida sem as linhas de contato em branco, como o formulário do SN.
     resolver: async (valores, contexto, opcoes) => {
       const semBranco = descartarLinhasEmBranco(valores);
-      // O schema só conhece os campos do RH; os do SN (neutros) ficam de fora, daí os `never`.
       const resultado = await zodResolver(editarCadastroRhFormSchema)(
         semBranco.valores as never,
         contexto as never,
@@ -154,7 +147,6 @@ export function EditarCadastroRhContainer({
     setErroServidor(undefined);
     setSucesso(false);
     try {
-      // O que o contato recebe do Setor (`tipos`, `canal`) grava por ação própria: não vai neste payload.
       const contatos = descartarLinhasEmBranco(getValues()).valores.contatos.map((c) =>
         semChaves(c, "tipos", "canal"),
       );
@@ -166,13 +158,11 @@ export function EditarCadastroRhContainer({
       if (!resultado.ok) {
         setErroServidor(resultado.error.message);
         for (const [campo, mensagens] of Object.entries(resultado.error.fields ?? {})) {
-          // O formulário chama de `observacoesGerais` o que a action chama de `observacoes`.
           const nome = campo === "observacoes" ? "observacoesGerais" : campo;
           if (mensagens[0]) setError(nome as keyof Valores, { message: mensagens[0] });
         }
         return;
       }
-      // Os Parcelamentos têm PDF: vão por Server Action própria, depois do cadastro.
       const erroParcelamentos = await parcelamentos.salvar(valores);
       if (erroParcelamentos) {
         setErroServidor(erroParcelamentos);

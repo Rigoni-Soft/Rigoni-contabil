@@ -6,8 +6,6 @@ import type { EditarCadastroOperacionalFormValues } from "@/modules/clientes/pre
 import type { EstadoDaLeitura } from "./editar-cadastro-operacional.presenter";
 import { lerPdfDeParcelamentoAction } from "./ler-pdf-de-parcelamento.actions";
 
-// Sem resposta nesse tempo, a leitura vira "digite à mão": a Server Action não se cancela, mas a
-// tela não fica presa nem o Salvar travado.
 const TEMPO_LIMITE_MS = 20_000;
 
 async function comLimite<T>(promessa: Promise<T>): Promise<T> {
@@ -22,10 +20,6 @@ async function comLimite<T>(promessa: Promise<T>): Promise<T> {
   }
 }
 
-// Lê o PDF escolhido numa linha nova e a preenche como sugestão editável. Falha de leitura (ou da
-// própria Server Action) nunca bloqueia: a linha volta a ficar livre para digitar à mão.
-// `campos` é a lista do useFieldArray: o índice atual da linha sai do id do campo, lido no momento da
-// resposta (a lista pode mudar durante a leitura).
 export function useLeituraDoPdf(
   clienteId: string,
   setValue: UseFormSetValue<EditarCadastroOperacionalFormValues>,
@@ -37,8 +31,6 @@ export function useLeituraDoPdf(
   });
   const indiceDe = (id: string) => camposAtuais.current.findIndex((campo) => campo.id === id);
   const [leituras, setLeituras] = useState<Record<string, EstadoDaLeitura>>({});
-  // O PDF mais recente de cada linha: resposta de um PDF já trocado ou de uma linha removida (`ler(id, undefined)`) é
-  // descartada.
   const vigente = useRef<Record<string, File | undefined>>({});
 
   const definir = (id: string, leitura: EstadoDaLeitura | undefined) =>
@@ -51,8 +43,6 @@ export function useLeituraDoPdf(
 
   const ler = async (id: string, arquivo: File | undefined) => {
     vigente.current[id] = arquivo;
-    // Os dados do acordo pertencem ao PDF que os trouxe: trocar, remover ou falhar a leitura não pode
-    // deixar os do PDF anterior gravados junto do arquivo novo.
     const atual = indiceDe(id);
     if (atual >= 0) setValue(`parcelamentos.${atual}.acordo`, undefined);
     if (!arquivo) return definir(id, undefined);
@@ -69,13 +59,10 @@ export function useLeituraDoPdf(
         setValue(`parcelamentos.${indice}.acordo`, acordo);
         leitura = { estado: "sugerido", codigoGerado, cnpjConfere };
       }
-    } catch {
-      // Sem alerta: cai no "digite à mão".
-    }
+    } catch {}
     if (vigente.current[id] === arquivo) definir(id, leitura);
   };
 
-  // Formulário refeito (Limpar): todas as linhas somem, então nenhum estado nem resposta tardia vale.
   const esquecerTodas = () => {
     vigente.current = {};
     setLeituras({});

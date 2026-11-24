@@ -110,7 +110,6 @@ describe("fluxo de anexar alteração (hook + container, #141)", () => {
     expect(
       await within(tela.dialogo).findByText("Não foi possível anexar a alteração."),
     ).toBeInTheDocument();
-    // Preserva o que foi digitado enquanto o diálogo segue aberto.
     expect(tela.numero()).toHaveValue(4);
 
     act(() => {

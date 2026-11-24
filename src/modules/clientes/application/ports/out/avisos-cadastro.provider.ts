@@ -5,7 +5,6 @@ import type {
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
-// Sessão do usuário (RLS): cada um só enxerga e marca os próprios avisos.
 export interface AvisosCadastroPort {
   listar(
     cursor: CursorAvisoCadastro | null,

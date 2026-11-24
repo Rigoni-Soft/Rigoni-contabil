@@ -4,7 +4,6 @@ import type { Result } from "@/shared/kernel/result";
 export type ConfirmarGuiaParcelaPgfnInput = {
   parcelamentoId: string;
   competencia: string;
-  // A versão da guia que a tela mostrava (`GuiaDaParcela.versao`).
   versao: string;
 };
 

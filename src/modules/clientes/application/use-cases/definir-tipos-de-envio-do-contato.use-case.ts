@@ -8,8 +8,6 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, type Result } from "@/shared/kernel/result";
 
-// O Destino é sempre do Setor de quem chama; o Admin não tem Setor, então não define (o banco confere isso,
-// a permissão por Cliente e o catálogo do Setor). Aqui se exige sessão e se tiram os tipos repetidos.
 export class DefinirTiposDeEnvioDoContato implements DefinirTiposDeEnvioDoContatoPort {
   constructor(
     private readonly sessao: SessaoPort,

@@ -9,7 +9,6 @@ import type { AvisosCadastroPort } from "@/modules/clientes/application/ports/ou
 import { AppError } from "@/shared/errors/app.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Row da RPC: falha alto se o banco divergir (arquitetura.md §3.9).
 const rowSchema = z.array(
   z.object({
     id: z.string(),
@@ -27,7 +26,6 @@ class AvisosCadastroError extends AppError {
   readonly code = "AVISOS_CADASTRO_ERROR";
 }
 
-// Sessão do usuário: a RLS de `avisos_cadastro` limita tudo aos avisos de quem está logado.
 export class SupabaseAvisosCadastroGateway implements AvisosCadastroPort {
   constructor(private readonly supabase: SupabaseClient) {}
 

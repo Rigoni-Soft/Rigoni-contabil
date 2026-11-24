@@ -5,7 +5,6 @@ import type {
   ContatoProps,
 } from "@/modules/clientes/domain/value-objects/contato.vo";
 
-// Embed de `cliente_contatos` com os Setores do Contato, para todo select que traz Contatos.
 export const EMBED_CONTATOS = "cliente_contatos(*, cliente_contato_setores(setor))";
 
 export const contatoRowSchema = z.object({
@@ -33,7 +32,6 @@ export function contatoDoRow(row: ContatoRow): ContatoProps {
   };
 }
 
-// O que vai ao banco: só o que o dono edita. Sem `id` o contato é novo (`salvar_contato_do_cliente`).
 export function contatoParaRpc(contato: ContatoEditavel) {
   return {
     id: contato.id ?? null,

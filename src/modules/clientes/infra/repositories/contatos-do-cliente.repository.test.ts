@@ -1,9 +1,3 @@
-/**
- * Integração Supabase: o Contato do Cliente com e-mail, Setores, Setor dono e id estável. Um caminho
- * único de salvar (`salvar_contatos_do_cliente`), só o dono e o Admin editam, número e e-mail não
- * repetem no Cliente (mas repetem entre Clientes) e a busca por telefone vive numa função só.
- * Requer `npx supabase start` com migrations + seed aplicados. Dados fictícios (LGPD).
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { ForbiddenError } from "@/shared/errors/forbidden.error";

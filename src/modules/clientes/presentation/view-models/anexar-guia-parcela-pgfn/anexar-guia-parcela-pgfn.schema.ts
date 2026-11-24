@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// Teto de 4,5 MB do corpo de uma Server Action na Vercel (ADR 0007): 4 MB deixa folga para o resto.
 const LIMITE_ARQUIVO_BYTES = 4 * 1024 * 1024;
 
 const competencia = z
@@ -21,8 +20,6 @@ const arquivoDaGuia = z
     "O arquivo passa de 4 MB. Envie um arquivo menor.",
   );
 
-// Vazio vira ausente: competência e conta só se digitam quando o PDF não pôde ser lido (ou para
-// corrigir o que ele traz); o servidor lê o PDF e confere. Segundo anexo na competência e competência já enviada não entram aqui: o banco recusa.
 export const anexarGuiaParcelaPgfnSchema = z.object({
   parcelamentoId: z.guid(),
   competencia: opcionalVazio(competencia),
@@ -32,13 +29,11 @@ export const anexarGuiaParcelaPgfnSchema = z.object({
   arquivo: arquivoDaGuia,
 });
 
-// Trocar, remover e abrir a guia: a chave é a mesma da guia anexada. A troca refaz a leitura do PDF.
 export const chaveDaGuiaParcelaPgfnSchema = z.object({
   parcelamentoId: z.guid(),
   competencia,
 });
 
-// Confirmar vale para a versão que a tela mostrava: se outro PDF entrou depois, a confirmação é recusada.
 export const confirmarGuiaParcelaPgfnSchema = chaveDaGuiaParcelaPgfnSchema.extend({
   versao: z.string().min(1),
 });

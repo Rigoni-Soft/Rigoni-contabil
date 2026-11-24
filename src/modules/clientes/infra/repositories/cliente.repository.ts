@@ -17,9 +17,6 @@ import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 import { erroNumeroRepetidoNoCliente } from "@/shared/kernel/numero-alteracao";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Lê da view `clientes_basico` (sem contrato social/alterações): quem edita o cadastro operacional
-// (Funcionário SN) não tem SELECT em `clientes`. O Cliente reconstituído aqui não carrega os
-// documentos jurídicos — só o Admin os lê, e `atualizarOperacional` não os grava.
 const SELECT_CLIENTE_BASICO = `
   *,
   cliente_cadastro_operacional_sn(*),
@@ -33,7 +30,6 @@ class PersistenciaError extends AppError {
 
 const ERRO_DATA_FUTURA = "A data da alteração não pode ser futura.";
 
-// Sem resposta (status 0) ou gateway/timeout (502-504): o banco pode ter confirmado a transação.
 const semDesfechoConhecido = (status: number) => status === 0 || status >= 502;
 const dataFutura = (error: { code?: string; message: string }) =>
   error.code === "23514" && error.message.includes("alteracao_contratual_data_futura");
@@ -44,9 +40,6 @@ export class SupabaseClienteRepository implements ClienteRepository {
     private readonly erros: RegistroDeErrosPort = new ConsoleRegistroDeErrosGateway(),
   ) {}
 
-  // Cliente e suas Alterações contratuais são o mesmo agregado (raiz + entidades
-  // filhas, arquitetura.md seção 3.5): gravados juntos via RPC transacional
-  // (`criar_cliente`) em vez de dois inserts soltos.
   async criar(cliente: Cliente): Promise<Result<void, AppError>> {
     const { error, status } = await this.supabase.rpc("criar_cliente", {
       p_id: cliente.id,
@@ -64,9 +57,6 @@ export class SupabaseClienteRepository implements ClienteRepository {
     });
 
     if (error) {
-      // Mesmo padrão de SupabaseAuthAdminGateway pro email_exists: erro de
-      // negócio conhecido vira ValidationError amigável, apontando o campo —
-      // nunca a mensagem crua do driver Postgres direto pro usuário.
       if (error.code === "23505" && error.message.includes("clientes_cnpj_key")) {
         return err(
           new ValidationError("CNPJ já cadastrado para outro Cliente.", {
@@ -110,7 +100,6 @@ export class SupabaseClienteRepository implements ClienteRepository {
     return ok(undefined);
   }
 
-  // Reconciliação após `ResultadoIncertoError`: o vínculo exato Cliente/nº/caminho prova o commit.
   async alteracaoContratualGravada(
     clienteId: string,
     numero: number,
@@ -148,9 +137,6 @@ export class SupabaseClienteRepository implements ClienteRepository {
     return ok(clienteDoRow(data as unknown as ClienteRow));
   }
 
-  // cliente_cadastro_operacional_sn + cliente_contatos + cliente_atividades_mensais
-  // são extensão do mesmo agregado Cliente (arquitetura.md seção 3.5): gravados
-  // juntos via RPC transacional (`editar_cadastro_operacional_cliente`).
   async atualizarOperacional(cliente: Cliente): Promise<Result<void, AppError>> {
     const anoMes = cliente.atividadeMesAtual
       ? `${cliente.atividadeMesAtual.anoMes}-01`
@@ -165,7 +151,6 @@ export class SupabaseClienteRepository implements ClienteRepository {
         ? cliente.dataEnvioDas.toISOString().slice(0, 10)
         : null,
       p_observacoes_gerais: cliente.observacoesGerais,
-      // Na lista (`salvar_contatos_do_cliente`) todo contato leva id.
       p_contatos: cliente.contatos.map((c) => ({
         ...contatoParaRpc(c),
         id: c.id ?? crypto.randomUUID(),

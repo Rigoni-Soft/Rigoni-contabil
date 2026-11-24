@@ -366,7 +366,6 @@ describe("SalvarParcelamentosCliente", () => {
     it("commit tardio (depois da leitura): mantém o PDF do que acabou gravado", async () => {
       const existente = salvo();
       const { caso, gravar, storage, listar } = montar({ existentes: [existente] });
-      // A leitura da reconciliação ainda não vê o commit, que conclui logo depois.
       gravar.mockImplementation(async (_, __, itens) => {
         listar.mockResolvedValueOnce(ok([existente]));
         queueMicrotask(() => listar.mockResolvedValue(ok(itens.map((i) => salvo(i)))));

@@ -17,7 +17,6 @@ function linha(sobrescritas: Partial<ResumoOperacionalRow> = {}): ResumoOperacio
   };
 }
 
-// 2026-10-28 e 2026-10-29, meio-dia em São Paulo: antes e depois da última rodada do job.
 const DIA_28 = new Date("2026-10-28T15:00:00Z");
 const DIA_29 = new Date("2026-10-29T15:00:00Z");
 
@@ -71,14 +70,12 @@ describe("calcularComparativosSn", () => {
       linha({ parcelamentos: [] }),
     ];
 
-    // 1º Cliente: pendente (Q sem envio) e interno; 2º: enviado; 3º (só quitado) e 4º: nenhum.
     expect(qtd(calcularComparativosSn(linhas, DIA_28).parcelamento)).toEqual({
       enviado: 1,
       pendente: 1,
       em_atraso: 0,
       interno: 1,
     });
-    // A partir do dia 29 o pendente também é atraso (mesma regra do card).
     expect(qtd(calcularComparativosSn(linhas, DIA_29).parcelamento).em_atraso).toBe(1);
   });
 

@@ -1,8 +1,3 @@
-/**
- * Integração Supabase: Destinos de envio por Setor, catálogo de tipos e a resolução "quem recebe este
- * envio" no banco (`destinos_de_envio_resolvidos`). Requer `npx supabase start` com migrations + seed
- * aplicados. Dados fictícios (LGPD).
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
@@ -311,7 +306,6 @@ describe("Destinos de envio (integração)", () => {
       .insert(destino("simples_nacional", null, ana.id, "whatsapp"));
     await rh.from("destinos_de_envio").insert(destino("rh", null, ana.id, "whatsapp"));
 
-    // O RH (dono) tira o Ana da lista dele: o SN ainda a usa.
     const excluido = await salvarContatos(rh, [
       { nome: "Bia Exemplo", telefone: "11988880000" },
       { nome: "Caio Exemplo", email: "caio@exemplo.com" },
@@ -409,7 +403,6 @@ describe("Destinos de envio (integração)", () => {
       telefone: "11999990000",
     });
 
-    // Canal que o contato alheio não tem: o DEFINER antigo recusava com o nome dele na mensagem.
     const deOutroCliente = await servico
       .from("destinos_de_envio")
       .insert(destino("rh", null, alheio, "email"));
@@ -444,7 +437,6 @@ describe("Destinos de envio (integração)", () => {
 });
 
 describe("definir_tipos_de_envio_do_contato (integração)", () => {
-  // A Ana tem os dois canais: o Setor escolhe por onde enviar (o banco recusa sem o canal).
   const definir = (
     supabase: SupabaseClient,
     contatoId: string,
@@ -513,12 +505,10 @@ describe("definir_tipos_de_envio_do_contato (integração)", () => {
       { setor: "simples_nacional", tipo: "das", canal: "email" },
     ]);
 
-    // Deixar de usar não tem envio, então não pede canal.
     const vazio = await definir(sn, ana.id, []);
     expect(vazio.error).toBeNull();
     expect(await destinosDe(ana.id)).toEqual([]);
 
-    // A Bia só tem WhatsApp: o canal é o dela, não o informado.
     const umCanal = await definir(sn, bia.id, ["das"], "email");
     expect(umCanal.error).toBeNull();
     expect(await destinosDe(bia.id)).toEqual([

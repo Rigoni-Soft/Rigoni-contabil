@@ -9,8 +9,6 @@ import { centavos, dataIso, extrairTextoDoPdf, pega } from "./leitura-pdf.gatewa
 
 const NAO_LIDA: LeituraDeGuia = { lido: false };
 
-// ponytail: um modelo só, o DAS do SENDA com `PGFN-SISPAR`. Outro modelo, PDF escaneado ou corrompido
-// vira `lido: false` e a guia fica "a confirmar"; modelo novo = parser novo, escaneado = OCR só se aparecer.
 function interpretar(texto: string): LeituraDeGuia {
   if (!/Documento de Arrecadação do Simples Nacional/i.test(texto) || !/PGFN-SISPAR/.test(texto)) {
     return NAO_LIDA;
@@ -26,7 +24,6 @@ function interpretar(texto: string): LeituraDeGuia {
   };
 }
 
-// Lê direto a camada de texto do PDF (sem API externa: o dado fiscal não sai do servidor).
 export class LeitorDeGuiaDeParcelaTextoGateway implements LeitorDeGuiaDeParcelaPort {
   constructor(
     private readonly extrairTexto: (pdf: Uint8Array) => Promise<string> = extrairTextoDoPdf,

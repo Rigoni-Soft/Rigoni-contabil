@@ -31,28 +31,16 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
     podeAtribuirResponsavel,
   } = useBuscarCliente(papel, setor, apenasSnMei);
 
-  // O Admin segue para a tela própria do Cliente (`/clientes/[id]`), a única com "Anexar alteração";
-  // o RH também (o cadastro do RH e o Responsável do RH, sem o cadastro do SN); os demais papéis
-  // editam/visualizam no painel embutido.
   const aoSelecionar = (id: string) => {
     if (papel === "admin") return router.push(`/clientes/${id}`);
     if (usaCadastroDoRh(papel, setor)) return router.push(`/clientes/${id}?voltarPara=${ROTA_RH}`);
     selecionarCliente(id);
   };
 
-  // Destaque de teclado (ArrowUp/ArrowDown/Enter) na lista de sugestões —
-  // estado puramente visual/efêmero, então fica no Container, não no hook
-  // (arquitetura.md §4.7: "UI efêmera e visual... useState no Container").
   const [indiceAtivo, setIndiceAtivo] = useState<number | null>(null);
-  // Sem efeito pra "resetar ao mudar a lista": deriva direto no render (React
-  // recomenda: evita o cascading render de setState dentro de useEffect).
-  // Continua válido só enquanto apontar pra dentro da lista atual.
   const indiceAtivoValido =
     indiceAtivo !== null && indiceAtivo < sugestoesVisiveis.length ? indiceAtivo : null;
 
-  // Foco move pro título do painel ao selecionar um cliente — sem isso, quem
-  // navega por teclado/leitor de tela perde o contexto da troca (a lista de
-  // sugestões desaparece e o formulário aparece sem nenhum anúncio).
   const tituloPainelRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (clienteSelecionado) tituloPainelRef.current?.focus();
@@ -92,9 +80,6 @@ export function BuscarClienteContainer({ papel, setor, apenasSnMei = false }: Pr
           readOnly={readOnly}
           podeAtribuirResponsavel={podeAtribuirResponsavel}
           onCancelar={fecharPainel}
-          // Salvar fecha o painel (volta pra busca) e atualiza os dados da
-          // página — se esta busca estiver embutida no resumo do setor
-          // (/simples-nacional), os cards refletem a mudança na hora.
           aoSalvar={{
             tipo: "fechar",
             executar: () => {

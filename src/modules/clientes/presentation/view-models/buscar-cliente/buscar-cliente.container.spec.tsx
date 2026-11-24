@@ -28,9 +28,6 @@ jest.mock("@/main/clientes.factory", () => ({
 
 const CADASTRO: CadastroOperacionalClienteDto = cadastroOperacionalDeTeste();
 
-// Sem retry: com fake timers, o backoff de retry do React Query enfileira
-// setTimeout extras que os testes não avançam, travando o findBy.
-// Padrão: Funcionário do Simples Nacional (edita no painel embutido); o Admin vai à tela própria.
 function renderComQueryClient(papel = "funcionario", setor = "simples_nacional") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -310,8 +307,6 @@ describe("BuscarClienteContainer", () => {
     expect(screen.queryByLabelText(/documento recebido/i)).not.toBeInTheDocument();
   });
 
-  // Salvar precisa fechar o painel (volta pra busca) e atualizar os dados da página — se esta busca
-  // estiver embutida no resumo do setor, os cards refletem a mudança na hora.
   it("salvar fecha o painel, volta pro campo de busca e atualiza a página (router.refresh)", async () => {
     buscarClientesActionMock.mockResolvedValue({
       ok: true,

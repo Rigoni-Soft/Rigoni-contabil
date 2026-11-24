@@ -5,13 +5,11 @@ import type {
 } from "@/modules/clientes/application/dtos/aviso-cadastro.dto";
 import { FUSO_DE_NEGOCIO } from "@/shared/kernel/mes-atual";
 
-// O hook não importa a View (arquitetura.md): o tipo chega por aqui.
 export type { AvisoDeCadastro };
 
 const TITULO: Record<TipoAvisoCadastro, string> = {
   novo_cliente: "Novo Cliente no Cadastro operacional",
   nova_alteracao: "Nova Alteração contratual",
-  // O título do "sem meio de envio" é o texto do alerta (`mensagem`); este só cobre o aviso sem texto.
   sem_meio_de_envio: "Cliente sem meio de envio",
 };
 
@@ -21,8 +19,6 @@ const QUANDO = new Intl.DateTimeFormat("pt-BR", {
   timeStyle: "short",
 });
 
-// O nº só existe no aviso de alteração (a trigger o grava): vai no título, para duas alterações do mesmo
-// Cliente não parecerem iguais, e no destino, para a tela destacar o botão e abrir aquela alteração.
 export function avisoCadastroParaView(aviso: AvisoCadastroDto): AvisoDeCadastro {
   const numero = aviso.tipo === "nova_alteracao" ? aviso.alteracaoNumero : null;
   const cliente = `/clientes/${aviso.clienteId}`;
@@ -36,7 +32,6 @@ export function avisoCadastroParaView(aviso: AvisoCadastroDto): AvisoDeCadastro 
   };
 }
 
-// Texto do anúncio ao leitor de tela quando chegam avisos novos.
 export function anuncioDeAvisos(naoVistos: number): string {
   return `${naoVistos} ${naoVistos === 1 ? "aviso de cadastro não visto" : "avisos de cadastro não vistos"}`;
 }

@@ -10,8 +10,6 @@ import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Uma função do banco (`editar_cadastro_rh_cliente`) grava observações e contatos na mesma transação e
-// confere quem pode por Cliente; ela só toca no que é do RH ou compartilhado.
 export class SupabaseCadastroRhRepository implements CadastroRhRepository {
   constructor(
     private readonly supabase: SupabaseClient,

@@ -3,10 +3,6 @@ import type {
   LeituraDeParcelamento,
 } from "@/modules/clientes/application/ports/out/leitor-de-parcelamento.provider";
 
-// Adapter falso e determinístico (padrão em dev, CI e Preview; nenhum teste chama a API). Os
-// marcadores no texto do PDF escolhem o cenário: `[leitor:falha]` não lê, `[leitor:sem-codigo]` lê
-// só a quantidade (como o Recibo de Adesão da Receita), `[leitor:cnpj-outro]` lê o CNPJ de outra
-// empresa; sem marcador, lê sempre o mesmo código, quantidade e dados do acordo (sem CNPJ).
 export class LeitorDeParcelamentoFalsoGateway implements LeitorDeParcelamentoPort {
   async ler(pdf: Uint8Array): Promise<LeituraDeParcelamento> {
     const texto = Buffer.from(pdf).toString("latin1");

@@ -4,16 +4,13 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 export const ORIGENS_DO_PARCELAMENTO = ["receita_federal", "pgfn"] as const;
 export type OrigemDoParcelamento = (typeof ORIGENS_DO_PARCELAMENTO)[number];
 
-// Dados do acordo lidos do PDF e gravados com o Parcelamento (informativos: conferem o valor da guia,
-// dizem de qual órgão é e quando aderiu). Cada um é nulo quando o PDF não traz ou veio inválido.
 export type DadosDoAcordo = {
   origem: OrigemDoParcelamento | null;
   totalDeParcelas: number | null;
   valorDaParcelaCentavos: number | null;
-  dataDeAdesao: string | null; // AAAA-MM-DD
+  dataDeAdesao: string | null;
 };
 
-// Entrada vinda do leitor ou do formulário: não se confia no formato, cada campo inválido vira nulo.
 type AcordoBruto = { [K in keyof DadosDoAcordo]?: unknown };
 
 export function normalizarAcordo(bruto: AcordoBruto): DadosDoAcordo {
@@ -42,12 +39,9 @@ export type ParcelamentoProps = {
   acordo?: DadosDoAcordo;
 };
 
-// Rótulo interno quando o PDF e o usuário não trazem código (o Serpro emite a guia pela parcela).
 export const gerarCodigoDeParcelamento = () =>
   `PARC-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
-// Parcelamento digitado à mão: o mínimo de parcelas restantes é 1 (o zero só é gravado pelo sistema
-// ao quitar), e o anexo é obrigatório.
 export function validarParcelamento(
   entrada: ParcelamentoProps,
 ): Result<ParcelamentoProps, ValidationError> {
@@ -80,9 +74,6 @@ export type SugestaoLida =
     }
   | { lido: false; motivo: MotivoDeLeituraFalha };
 
-// Validação final do que o leitor devolveu (o leitor só sugere): quantidade inteira >= 1, senão a
-// leitura não vale. PDF sem código recebe um interno; o Serpro emite a
-// guia só pela parcela, então o código serve de rótulo e pode ser trocado na tela.
 export function sugerirParcelamento(
   leitura:
     | ({ lido: true; codigo: string | null; quantidadeDeParcelas: number } & AcordoBruto)
@@ -93,7 +84,6 @@ export function sugerirParcelamento(
     return { lido: false, motivo: "ilegivel" };
   }
   const lido = leitura.codigo?.trim() ?? "";
-  // Código lido longo demais não é um código: leitura ilegível, nunca trocado em silêncio.
   if (lido.length > 60) return { lido: false, motivo: "ilegivel" };
   return {
     lido: true,

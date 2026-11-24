@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase: o Líder do RH e o Admin acham todo Cliente; o Funcionário do RH só o que é
- * atribuído a ele; só o Líder do RH atribui o Responsável do RH (com auditoria). Requer
- * `npx supabase start` com migrations + seed aplicados.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
@@ -60,7 +55,6 @@ beforeAll(async () => {
     },
   ]);
   if (clientes.error) throw clientes.error;
-  // O Responsável do SN é outro Funcionário: o RH não vira Responsável por isso.
   const sn = await servico.from("cliente_responsaveis").insert({
     cliente_id: clienteSnId,
     setor: "simples_nacional",
@@ -73,7 +67,6 @@ afterAll(async () => {
   await removerClientesDeTeste([CNPJ_SN, CNPJ_PRESUMIDO]);
 });
 
-// Cada teste parte sem Responsável do RH: nenhum depende do vínculo deixado por outro.
 afterEach(async () => {
   await servico
     .from("cliente_responsaveis")
@@ -246,7 +239,6 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
           .eq("setor", "rh")
       ).data;
     try {
-      // O colega do RH, que não é o Responsável, não grava.
       const doColega = await salvar(await comoFuncionario2RH(), [item]);
       expect(doColega.error).not.toBeNull();
       expect(await codigosDoRh()).toEqual([]);
@@ -255,7 +247,6 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
       expect(proprio.error).toBeNull();
       expect(await codigosDoRh()).toEqual([{ codigo: "RH-FUNC" }]);
 
-      // Lista vazia remove o Parcelamento (sem registro de envio).
       const removido = await salvar(await comoFuncionarioRH(), []);
       expect(removido.error).toBeNull();
       expect(await codigosDoRh()).toEqual([]);
@@ -329,7 +320,6 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
     expect(gravadas.data).toEqual([]);
   });
 
-  // Isolamento entre cadastros operacionais de Setores diferentes: o do RH, quando existir, terá o próprio teste de edição.
   it("o RH não edita o que é do SN: nem o Funcionário Responsável do RH do Cliente, nem o Líder", async () => {
     await servico.from("cliente_responsaveis").upsert({
       cliente_id: clienteSnId,
@@ -392,7 +382,6 @@ describe("RH: busca por atribuição e Responsável do RH (integração)", () =>
   it("a carteira vem inteira mesmo quando o servidor devolve menos do que a página pedida", async () => {
     const lider = await comoLiderRH();
     const inteira = await new SupabaseCarteiraDoSetorGateway(lider).listar("rh");
-    // Páginas pedidas de 1000 e `max_rows` simulado em 1: o corte não pode passar por "última página".
     const comMaxRows1 = {
       from: (tabela: string) => ({
         select: (colunas: string) => {

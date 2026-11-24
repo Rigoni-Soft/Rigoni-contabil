@@ -23,7 +23,6 @@ jest.mock("@/main/clientes.factory", () => ({
   makeObterLinkDocumentoContratual: () => ({ execute: jest.fn() }),
 }));
 
-// As actions têm teste próprio; aqui a tela é testada contra o contrato delas.
 const anexarMock = jest.fn();
 const confirmarMock = jest.fn();
 const listarMock = jest.fn();
@@ -53,7 +52,6 @@ const parcelamento = (id: string, origem: "pgfn" | "receita_federal", codigo: st
   acordo: { origem, totalDeParcelas: 12, valorDaParcelaCentavos: 10000, dataDeAdesao: null },
 });
 
-// O Admin só cadastra contatos (sem Setor, não define destinos): os testes de contatos e do resto do cadastro.
 const ADMIN = { papel: "admin", setor: "administrativo" };
 
 const dados = {
@@ -94,7 +92,6 @@ const regiaoDaGuia = () => screen.findByRole("group", { name: "Guias da parcela 
 const NOME_CONFIRMAR = "Confirmar e liberar guia de 10/2026 ao envio";
 const NOME_LIBERAR = "Liberar 10/2026 ao envio";
 
-// Confirmar libera a guia ao Cliente: abre a conferência e só a segunda ação chama o servidor.
 async function liberarGuia(usuario: ReturnType<typeof userEvent.setup>) {
   await usuario.click(await screen.findByRole("button", { name: NOME_CONFIRMAR }));
   await usuario.click(screen.getByRole("button", { name: NOME_LIBERAR }));
@@ -176,7 +173,6 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
 
     expect(await screen.findByText(/conta do PDF .999. é diferente/)).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
-    // Quem confirma com leitor de tela ouve o que conferir junto do botão.
     expect(
       screen.getByRole("button", { name: "Confirmar e liberar guia de 10/2026 ao envio" }),
     ).toHaveAccessibleDescription(/conta do PDF .999. é diferente/);
@@ -209,7 +205,6 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     });
     expect(await screen.findByText("Liberada ao envio")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /confirmar guia/i })).not.toBeInTheDocument();
-    // O botão sumiu: o foco vai ao item da guia, não cai no topo da página.
     expect(screen.getByText(/10\/2026 · conta 123456/).closest("li")).toHaveFocus();
   });
 
@@ -280,12 +275,10 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
 
     await usuario.click(await screen.findByRole("button", { name: NOME_CONFIRMAR }));
 
-    // Diz o que será liberado (mês, conta), que vai ao Cliente e que não se desfaz.
     expect(screen.getByRole("alert")).toHaveTextContent(
       /Libera a guia de 10\/2026 \(conta 123456\)\. Vai ao Cliente, pela forma de envio do cadastro\. Sai no envio automático \(dias 20, 22, 24, 26, 28\) ou quando o Cliente pedir; até lá ainda dá para trocar ou remover\. Depois de enviada, não se altera\./,
     );
     expect(confirmarMock).not.toHaveBeenCalled();
-    // Quem abriu sem querer cai no gesto seguro.
     const cancelar = screen.getByRole("button", { name: "Cancelar liberação da guia de 10/2026" });
     expect(cancelar).toHaveFocus();
 
@@ -313,7 +306,6 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     expect(botao).toHaveTextContent("Liberando…");
     expect(await regiaoDaGuia()).toHaveAttribute("aria-busy", "true");
     concluir({ ok: true, data: undefined });
-    // Terminou: a conferência fecha.
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: NOME_LIBERAR })).not.toBeInTheDocument(),
     );
@@ -365,7 +357,6 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
 
     expect(await screen.findByText(/conta do PDF .999. é diferente/)).toBeInTheDocument();
     expect(screen.getByText(/ainda não liberada ao envio/)).toBeInTheDocument();
-    // Pede conferência, não comemora: nada de "anexada e confirmada".
     expect(screen.queryByText(/anexada e confirmada/i)).not.toBeInTheDocument();
   });
 
@@ -381,7 +372,6 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     const usuario = userEvent.setup();
     render();
     const regiao = within(await regiaoDaGuia());
-    // A relistagem do anexo nunca responde: o aviso não pode depender dela.
     listarMock.mockReturnValue(new Promise(() => undefined));
 
     await usuario.upload(regiao.getByLabelText(/pdf da guia/i), pdf);
@@ -409,7 +399,6 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     await usuario.upload(regiao.getByLabelText(/pdf da guia/i), pdf);
     await usuario.click(regiao.getByRole("button", { name: "Anexar guia" }));
     expect(await screen.findByText(/ainda não liberada ao envio/)).toBeInTheDocument();
-    // Os campos de texto travam durante o envio; o seletor de PDF não, e trocar o arquivo é editar.
     await usuario.upload(regiao.getByLabelText(/pdf da guia/i), pdf);
     expect(screen.queryByText(/ainda não liberada ao envio/)).not.toBeInTheDocument();
 
@@ -440,7 +429,6 @@ describe("guia da parcela PGFN na linha do Parcelamento", () => {
     expect(
       await screen.findByText(/ainda não liberada ao envio\. A conta do PDF/i),
     ).toBeInTheDocument();
-    // O motivo aparece no aviso e no item da lista: a pessoa o lê onde estiver olhando.
     expect(screen.getAllByText(/conta do PDF .999. é diferente/)).toHaveLength(2);
   });
 
@@ -502,7 +490,6 @@ describe("competência digitada sem seletor de mês", () => {
     render();
     const regiao = within(await regiaoDaGuia());
     const campo = regiao.getByLabelText(/competência/i);
-    // jsdom trata type=month como texto livre, como o Firefox no desktop.
     fireEvent.change(campo, { target: { value: "10/2026" } });
     await usuario.type(regiao.getByLabelText(/conta de negociação/i), "123456");
     await usuario.upload(regiao.getByLabelText(/pdf da guia/i), pdf);
@@ -572,7 +559,6 @@ describe("mensagem de sucesso", () => {
 
 describe("avisos de erro ao corrigir", () => {
   it("o erro do campo e a recusa do servidor somem quando a pessoa corrige", async () => {
-    // Sem nenhuma guia anexada o formulário de anexo fica à vista (com guia do mês, recolhido).
     listarMock.mockResolvedValue({ ok: true, data: [] });
     anexarMock.mockResolvedValue({
       ok: false,
@@ -583,7 +569,6 @@ describe("avisos de erro ao corrigir", () => {
     const regiao = within(await regiaoDaGuia());
 
     const conta = regiao.getByLabelText(/conta de negociação/i);
-    // maxLength do campo barra a digitação; o schema ainda guarda o limite.
     fireEvent.change(conta, { target: { value: "9".repeat(41) } });
     await usuario.click(regiao.getByRole("button", { name: "Anexar guia" }));
     expect(regiao.getByText("Conta de negociação: no máximo 40 caracteres.")).toBeInTheDocument();
@@ -591,7 +576,6 @@ describe("avisos de erro ao corrigir", () => {
     expect(
       regiao.queryByText("Conta de negociação: no máximo 40 caracteres."),
     ).not.toBeInTheDocument();
-    // Os outros campos seguem acusando o que falta.
     expect(regiao.getByText("Anexe o PDF da guia.")).toBeInTheDocument();
 
     await usuario.upload(regiao.getByLabelText(/pdf da guia/i), pdf);
@@ -744,7 +728,6 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     listarMock.mockResolvedValue({ ok: true, data: [] });
 
     await usuario.click(botao);
-    // Um clique só não apaga: pede confirmação na própria linha.
     expect(removerMock).not.toHaveBeenCalled();
     await usuario.click(
       regiao.getByRole("button", { name: "Confirmar remoção da guia de 10/2026" }),
@@ -847,7 +830,6 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
     await usuario.upload(regiao.getByLabelText(/^Trocar guia de 10\/2026/), pdf);
 
     expect(trocarMock).not.toHaveBeenCalled();
-    // Não é erro: é espera, anunciada como status (com a mesma apresentação de "atenção").
     const aviso = await regiao.findByRole("status");
     expect(aviso).toHaveTextContent(/aguarde a ação em andamento/i);
     expect(regiao.queryByRole("alert", { name: /aguarde/i })).not.toBeInTheDocument();
@@ -874,7 +856,6 @@ describe("trocar, remover e visualizar a guia anexada (#184)", () => {
 
   it("ver: abre o link temporário numa aba nova", async () => {
     obterLinkMock.mockResolvedValue({ ok: true, data: { url: "https://storage.exemplo/guia" } });
-    // A aba abre no clique (senão o bloqueador de pop-up barra) e recebe o link quando ele chega.
     const aba = { location: { href: "" }, close: jest.fn(), opener: {} };
     const abrir = jest.spyOn(window, "open").mockReturnValue(aba as unknown as Window);
     const usuario = userEvent.setup();

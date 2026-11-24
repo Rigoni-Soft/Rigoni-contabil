@@ -33,13 +33,11 @@ const avisoAConfirmar = (
   verbo: "anexada" | "trocada",
   motivo = 'Confira o motivo na lista e, estando certa, use "Confirmar e liberar".',
 ) => `Guia ${verbo}, mas ainda não liberada ao envio. ${motivo}`;
-// Diz também quando a guia sai: a pessoa não fica sem saber o desfecho.
 const TEXTO_LIBERADA = `Guia confirmada e liberada ao envio. ${TEXTO_ENVIO_AUTOMATICO}.`;
 const AVISO_AGUARDE = "Aguarde a ação em andamento terminar.";
 const ERRO_ABRIR = "Não foi possível abrir a guia. Tente novamente.";
 const ERRO_TRANSPORTE = "Não foi possível concluir agora. Verifique a conexão e tente novamente.";
 
-// `prefixo`: o mesmo que a View usa nos ids; o foco volta ao item da guia confirmada.
 export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const queryClient = useQueryClient();
   const chave = ["clientes", "guias-parcela-pgfn", parcelamentoId];
@@ -47,19 +45,14 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
   const [contaNegociacao, setContaNegociacao] = useState("");
   const [arquivo, setArquivo] = useState<File | undefined>();
   const [erros, setErros] = useState<DadosDoAnexo["erros"]>({});
-  // Alguma ação em curso; só o envio do PDF ("anexo") troca o rótulo do botão Anexar.
   const [emCurso, setEmCurso] = useState<"anexo" | "outra" | undefined>();
   const pendente = emCurso !== undefined;
   const [erroServidor, setErroServidor] = useState<string | undefined>();
-  // "atencao": guia anexada e gravada, mas ainda não liberada (pede conferência; não é sucesso nem erro).
   const [resultado, setResultado] = useState<ResultadoDaGuia | undefined>();
-  // Liberar ao envio e remover não se desfazem: pedem confirmação na linha antes de chamar a action.
-  // Uma pergunta de risco por vez; `emCurso`: já confirmada, o servidor ainda responde.
   const [acao, setAcao] = useState<AcaoDaGuia | undefined>();
 
   const lista = useQuery<GuiaDaParcela[]>({
     queryKey: chave,
-    // Toda ação da própria pessoa invalida a lista: sem isto, cada foco da janela a relia.
     staleTime: 30_000,
     queryFn: async () => {
       const resultado = await listarGuiasParcelaPgfnAction({ parcelamentoId });
@@ -73,10 +66,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     setResultado(undefined);
   };
 
-  // As ações compartilham o ciclo: limpa os avisos, roda, e a lista é relida do banco.
   const executar = async (rodar: () => Promise<string | undefined>, ehAnexo = false) => {
-    // Os botões ficam aria-disabled (não perdem o foco) e por isso ainda recebem o clique: ele não
-    // some em silêncio: a pessoa é avisada de que há uma ação em curso (espera, não erro).
     if (pendente) {
       setErroServidor(undefined);
       setResultado({ tipo: "atencao", texto: AVISO_AGUARDE });
@@ -115,7 +105,6 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     setAcao(undefined);
     return executar(async () => {
       const resultado = await anexarGuiaParcelaPgfnAction(validado.data);
-      // O arquivo e a competência ficam no formulário em caso de erro, para corrigir e reenviar.
       if (!resultado.ok) return resultado.error.message;
       setMes("");
       setContaNegociacao("");
@@ -124,9 +113,7 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     }, true);
   };
 
-  // Anexo e troca terminam igual: aviso de confirmada, ou de "a confirmar" com o que conferir.
   const avisarGuiaGravada = async (guia: GuiaDaParcela, verbo: "anexada" | "trocada") => {
-    // Sai já, sem esperar a lista.
     setResultado(
       guia.estado === "confirmada"
         ? { tipo: "sucesso", texto: `Guia ${verbo} e confirmada: liberada ao envio.` }
@@ -154,7 +141,6 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     setAcao({ tipo, competencia, emCurso: false });
   };
 
-  // O botão que abriu a pergunta volta: o foco volta a ele.
   const cancelarAcao = () => {
     const cancelada = acao;
     setAcao(undefined);
@@ -165,7 +151,6 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
     );
   };
 
-  // A pergunta fica aberta enquanto o servidor responde (o botão mostra "Removendo…" ou "Liberando…").
   const comAcao = (
     tipo: AcaoDaGuia["tipo"],
     competencia: string,
@@ -186,7 +171,6 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
       if (!resultado.ok) return resultado.error.message;
       setResultado({ tipo: "sucesso", texto: "Guia removida." });
       await queryClient.invalidateQueries({ queryKey: chave });
-      // A linha some com o botão: sem isto o foco cairia no topo da página.
       document.getElementById(idDaRegiao(prefixo))?.focus();
     });
 
@@ -201,7 +185,6 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
 
   const confirmar = (competencia: string) =>
     comAcao("liberar", competencia, async () => {
-      // Confirma o PDF que a tela mostrava; se outro entrou no meio, o servidor recusa.
       const versao = lista.data?.find((g) => g.competencia === competencia)?.versao;
       if (!versao) return "Não encontramos esta guia. Atualize a página.";
       const resultado = await confirmarGuiaParcelaPgfnAction({
@@ -210,17 +193,14 @@ export function useGuiasDaParcela(parcelamentoId: string, prefixo: string) {
         versao,
       });
       if (!resultado.ok) {
-        // A guia que sobrou na tela é a antiga: relê para mostrar a que está valendo.
         await queryClient.invalidateQueries({ queryKey: chave });
         return resultado.error.message;
       }
       setResultado({ tipo: "sucesso", texto: TEXTO_LIBERADA });
       await queryClient.invalidateQueries({ queryKey: chave });
-      // O botão Confirmar some com a guia confirmada: sem isto o foco cairia no topo da página.
       document.getElementById(idDaGuia(prefixo, competencia))?.focus();
     });
 
-  // Mexer num campo tira da tela o aviso do anexo anterior, a recusa do servidor e o erro daquele campo.
   const aoEditar =
     <T>(campo: keyof DadosDoAnexo["erros"], definir: (valor: T) => void) =>
     (valor: T) => {

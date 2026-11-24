@@ -34,7 +34,6 @@ import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { SETOR_RH, SETOR_SN, type SetorSlug } from "@/shared/kernel/setores";
 
-// Row da view `clientes_basico`: falha alto se o banco divergir (arquitetura.md §3.9).
 const cadastroRhSchema = z.object({
   id: z.string(),
   empresa: z.string(),
@@ -78,8 +77,6 @@ const responsavelDe = (responsaveis: ResponsavelRow[] | null) => ({
   responsavelNome: responsaveis?.[0]?.responsavel?.nome ?? null,
 });
 
-// Lê da view `clientes_basico`, que não tem contrato_social_caminho: a confidencialidade é
-// garantida no banco, não só pelo select ou pelo shape do DTO de saída.
 const SELECT_CADASTRO_BASICO = `
   id, empresa, cnpj, regime,
   ${EMBED_OPERACIONAL},
@@ -89,12 +86,8 @@ const SELECT_CADASTRO_BASICO = `
   ${EMBED_PARCELAMENTOS}
 `;
 
-// Caminho no Storage: `{clienteId}/{parcelamentoId}-{nome}`; a tela mostra só o nome.
 const nomeDoArquivo = (caminho: string) => caminho.replace(/^[^/]*\/[0-9a-f-]{36}-/, "");
 
-// Resumo do setor: só o que os cards e comparativos leem. O embed de envios é filtrado pela parcela
-// do mês (sem isso volta uma linha por mês de vida de cada Parcelamento) e as colunas são listadas
-// (sem `*`, que traria observações gerais e o caminho do PDF).
 const SELECT_RESUMO = `
   id, empresa, cnpj,
   cliente_cadastro_operacional_sn(documento_obrigatorio, das_status),
@@ -134,7 +127,6 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       .eq("cliente_atividades_mensais.ano_mes", anoMesAtual)
       .eq("cliente_responsaveis.setor", "simples_nacional")
       .eq("cliente_parcelamentos.setor", "simples_nacional")
-      // Mesma ordem do repositório; sem isso o embed volta em ordem arbitrária entre leituras.
       .order("criado_em", { referencedTable: "cliente_parcelamentos" })
       .order("codigo", { referencedTable: "cliente_parcelamentos" })
       .maybeSingle();
@@ -174,8 +166,6 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     });
   }
 
-  // Os Destinos do Setor no Cliente (a RLS só entrega os do Setor de quem lê, e o Admin lê todos) e os
-  // tipos de envio que o Setor faz.
   private async destinosDoSetor(
     clienteId: string,
     setor: SetorSlug,
@@ -237,7 +227,6 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       cliente_observacoes_setor: observacoes,
       ...basicos
     } = lido.data;
-    // O embed de Parcelamentos é lido com o tipo da linha (como no cadastro do SN), fora do zod.
     const { cliente_parcelamentos: linhas } = data as unknown as {
       cliente_parcelamentos: ParcelamentoRow[] | null;
     };
@@ -287,16 +276,8 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
     termo: string,
     apenasSnMei: boolean,
   ): Promise<Result<SugestaoClienteDto[], AppError>> {
-    // `,`/`()` têm significado especial na sintaxe de filtro `.or()` do
-    // PostgREST — sem escapar, um termo com vírgula (ex. "Pão, Quente Ltda")
-    // vira duas condições em vez de texto literal. Envolver em aspas duplas
-    // (com `"`/`\` escapados) trata o valor inteiro como literal.
     const valor = `%${termo}%`.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-    // View `clientes_basico`, não `clientes`: o dashboard é de qualquer Funcionário
-    // do setor, e só Admin lê a tabela (contrato social).
     let query = this.supabase.from("clientes_basico").select("id, empresa, cnpj");
-    // Só a busca embutida no dashboard do Simples Nacional restringe o Regime — Admin/qualquer
-    // setor fora dessa tela busca em qualquer Cliente.
     if (apenasSnMei) query = query.in("regime", ["simples_nacional", "mei"]);
     const { data, error } = await query
       .or(`cnpj.ilike."${valor}",empresa.ilike."${valor}"`)
@@ -308,7 +289,6 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
   }
 
   async listarResumoOperacional(): Promise<Result<ResumoOperacionalRow[], AppError>> {
-    // View `clientes_basico`: o dashboard é de qualquer Funcionário do setor.
     const anoMesAtual = primeiroDiaDoMesAtual();
     const { data, error } = await this.supabase
       .from("clientes_basico")
@@ -317,8 +297,6 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
       .eq("cliente_responsaveis.setor", "simples_nacional")
       .eq("cliente_parcelamentos.setor", "simples_nacional")
       .eq("cliente_parcelamentos.cliente_parcelamento_envios.parcela", parcelaDoMesAtual())
-      // Mesmo escopo da busca: só Regime com cadastro operacional de
-      // verdade (nasce automático só pra Simples Nacional/MEI).
       .in("regime", ["simples_nacional", "mei"]);
 
     if (error) return err(new ConsultaError(`Erro ao listar resumo operacional: ${error.message}`));
@@ -334,7 +312,6 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
           cnpj: linha.cnpj,
           documentoObrigatorio: operacional?.documento_obrigatorio ?? null,
           dasStatus: operacional?.das_status ?? null,
-          // O filtro do select deixa nos envios só a parcela do mês corrente.
           parcelamentos: (linha.cliente_parcelamentos ?? []).map((p) => ({
             codigo: p.codigo,
             interno: p.interno,

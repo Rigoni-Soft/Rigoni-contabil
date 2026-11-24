@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase para o gateway dos Avisos de cadastro.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";

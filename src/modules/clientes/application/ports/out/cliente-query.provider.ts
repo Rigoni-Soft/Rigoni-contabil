@@ -4,14 +4,8 @@ import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
-// Read model puro (arquitetura.md, seção 3.6): nunca passa pelo builder/entidade
-// Cliente. Deliberadamente SEM contratoSocialCaminho/alteracoesContratuais —
-// a confidencialidade destes campos nesta tela é garantida pelo shape do DTO,
-// não por lógica condicional na View (RLS é por linha, não por coluna).
-// Read model do Parcelamento: o nome do PDF no lugar do caminho no Storage.
 export type ParcelamentoDto = Omit<ParcelamentoSalvo, "arquivoCaminho"> & { arquivoNome: string };
 
-// Destino de envio do Setor do cadastro e o catálogo de tipos que o Setor envia.
 type DestinoDto = { id: string; contatoId: string; tipo: string | null; canal: string };
 type TipoDeEnvioDto = { slug: string; rotulo: string };
 export type DestinosDoSetorDto = { destinos: DestinoDto[]; tiposDeEnvio: TipoDeEnvioDto[] };
@@ -29,30 +23,21 @@ export type CadastroOperacionalClienteDto = DestinosDoSetorDto & {
   parcelamentos: ParcelamentoDto[];
   observacoesGerais: string;
   atividadeMes: { industria: boolean; comercio: boolean; servico: boolean };
-  // Responsável: null = "Sem responsável". Nome vem null quando o RLS
-  // esconde o perfil (leitor de outro Setor) — o id continua conhecido.
   responsavelId: string | null;
   responsavelNome: string | null;
 };
 
-// O cadastro do Cliente no RH: empresa e CNPJ, os contatos (de todos os Setores) e as observações gerais do RH.
-// Não traz o Regime nem nada do cadastro operacional do SN.
 export type CadastroRhClienteDto = SugestaoClienteDto &
   DestinosDoSetorDto & {
     contatos: ContatoProps[];
     observacoes: string;
-    // Os Parcelamentos do RH (os do SN não aparecem aqui).
     parcelamentos: ParcelamentoDto[];
   };
 
 export type ResponsavelOpcaoDto = { id: string; nome: string };
 
-// Resultado leve da busca — não é o cadastro operacional completo, só
-// o necessário pra listar sugestões (empresa + CNPJ) antes de escolher um cliente.
 export type SugestaoClienteDto = { id: string; empresa: string; cnpj: string };
 
-// Read model pro resumo do setor — só os campos usados pra classificar um Cliente nos 11 cards, mais
-// empresa/cnpj pra exibir no drill-down. Mesmo raciocínio de confidencialidade do DTO acima.
 export type ParcelamentoDoResumo = {
   codigo: string;
   interno: boolean;
@@ -66,10 +51,7 @@ export type ResumoOperacionalRow = {
   cnpj: string;
   documentoObrigatorio: string | null;
   dasStatus: string | null;
-  // Um item por Parcelamento cadastrado (em aberto ou quitado); enviadoNoMes = há registro de envio
-  // da parcela do mês corrente (fuso de São Paulo).
   parcelamentos: ParcelamentoDoResumo[];
-  // Atividade do mês corrente; tudo false quando ainda não há registro.
   atividadeMes: { industria: boolean; comercio: boolean; servico: boolean };
   responsavelId: string | null;
   responsavelNome: string | null;
@@ -80,12 +62,8 @@ export interface ClienteQueryPort {
     clienteId: string,
   ): Promise<Result<CadastroOperacionalClienteDto | null, AppError>>;
 
-  // O cadastro do RH (view `clientes_basico`, contatos e observações do RH): para quem não vê o cadastro do SN.
   buscarCadastroRh(clienteId: string): Promise<Result<CadastroRhClienteDto | null, AppError>>;
 
-  // apenasSnMei: a busca embutida no dashboard do Simples Nacional só mostra Cliente com cadastro
-  // operacional (regime simples_nacional/mei); a busca geral do Admin/qualquer setor não tem essa
-  // restrição — Admin precisa achar cliente de qualquer Regime.
   buscarPorTermo(
     termo: string,
     apenasSnMei: boolean,
@@ -93,10 +71,8 @@ export interface ClienteQueryPort {
 
   listarResumoOperacional(): Promise<Result<ResumoOperacionalRow[], AppError>>;
 
-  // Funcionários ativos do Setor, candidatos a Responsável.
   listarResponsaveisElegiveis(setor: SetorSlug): Promise<Result<ResponsavelOpcaoDto[], AppError>>;
 
-  // Responsável do Cliente num Setor fora do Simples Nacional (este vive no cadastro operacional).
   buscarResponsavelDoSetor(
     clienteId: string,
     setor: SetorSlug,

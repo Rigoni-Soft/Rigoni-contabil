@@ -12,10 +12,6 @@ const SEM_DADOS = {
   valorCentavos: null,
 };
 
-// Adapter falso e determinístico (padrão em dev, CI e Preview; nenhum teste depende do conteúdo do
-// PDF). Os marcadores no texto escolhem o cenário: `[leitor:falha]` não lê, `[leitor:cnpj-outro]`
-// lê o CNPJ de outra empresa, `[leitor:guia=<cnpj>;<conta>;<AAAAMM>]` lê exatamente esses três
-// (para a guia nascer confirmada); sem marcador, lê sem nada conferível e a guia fica a confirmar.
 export class LeitorDeGuiaDeParcelaFalsoGateway implements LeitorDeGuiaDeParcelaPort {
   async ler(pdf: Uint8Array): Promise<LeituraDeGuia> {
     const texto = Buffer.from(pdf).toString("latin1");

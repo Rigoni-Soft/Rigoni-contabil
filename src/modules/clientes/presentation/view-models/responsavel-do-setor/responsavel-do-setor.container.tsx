@@ -11,7 +11,6 @@ type Props = {
   clienteId: string;
   setorRotulo: string;
   atual: { id: string; nome: string } | null;
-  // Dentro do cartão do cadastro do RH (campo no cabeçalho, como o do SN).
   embutido?: boolean;
 };
 

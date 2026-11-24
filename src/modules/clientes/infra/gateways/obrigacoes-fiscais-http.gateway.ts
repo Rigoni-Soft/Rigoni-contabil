@@ -34,9 +34,6 @@ const autorizacaoSchema = z.discriminatedUnion("vigente", [
   z.object({ vigente: z.literal(false) }),
 ]);
 
-// Fala o contrato neutro de docs/contratos/obrigacoes-fiscais.md com qualquer
-// servidor que o implemente: o mock de `mock-api/` em dev, um tradutor pro
-// provedor real depois. Falha de rede/HTTP/formato vira ServicoExternoError.
 export class ObrigacoesFiscaisHttpGateway implements ObrigacoesFiscaisPort {
   constructor(
     private readonly baseUrl: string,
@@ -47,7 +44,6 @@ export class ObrigacoesFiscaisHttpGateway implements ObrigacoesFiscaisPort {
     return this.obter(cnpj, "das", dasSchema);
   }
 
-  // O regime é do adapter do provedor: o contrato só leva as parcelas já entregues.
   async buscarGuiasParcelamento(
     cnpj: string,
     { ignorar }: PedidoGuiasParcelamento,

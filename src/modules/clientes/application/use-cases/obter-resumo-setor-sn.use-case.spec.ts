@@ -41,7 +41,6 @@ class ClienteQueryPortFalso implements ClienteQueryPort {
 const sessaoDe = (papel: string, setor: string): SessaoPort => ({
   usuarioAtual: async () => ({ id: "u1", papel, setor }),
 });
-// 2026-10-28 e 2026-10-29 ao meio-dia em São Paulo: antes e depois da última rodada do job.
 const relogioEm = (iso: string): RelogioPort => ({ agora: () => new Date(iso) });
 const DIA_28 = relogioEm("2026-10-28T15:00:00Z");
 const DIA_29 = relogioEm("2026-10-29T15:00:00Z");

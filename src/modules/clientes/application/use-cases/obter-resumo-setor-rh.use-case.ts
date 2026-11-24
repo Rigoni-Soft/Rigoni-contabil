@@ -23,7 +23,6 @@ import {
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { SETOR_RH } from "@/shared/kernel/setores";
 
-// ponytail: `doBucket` repete o molde de obter-resumo-setor-sn; extrair no 3º Setor com resumo.
 const doBucket = ({ clienteId, empresa, cnpj, parcelamentos }: ClienteDaCarteiraRow) => ({
   clienteId,
   empresa,
@@ -31,8 +30,6 @@ const doBucket = ({ clienteId, empresa, cnpj, parcelamentos }: ClienteDaCarteira
   parcelamentos,
 });
 
-// Um grupo por Responsável presente na carteira (mais "Sem responsável" quando há Cliente sem
-// atribuição), contando os Clientes de cada um.
 function porResponsavel(linhas: ClienteDaCarteiraRow[]): FatiaComparativoDto[] {
   const grupos = new Map<string, FatiaComparativoDto>();
   for (const l of linhas) {
@@ -51,8 +48,6 @@ function porResponsavel(linhas: ClienteDaCarteiraRow[]): FatiaComparativoDto[] {
   );
 }
 
-// Resumo do Setor RH: Admin (suporte), Líder e Funcionário do RH. O Funcionário vê só os Clientes de
-// que é Responsável; Líder e Admin, a carteira inteira e o comparativo por Responsável.
 export class ObterResumoSetorRh {
   constructor(
     private readonly sessao: SessaoPort,
@@ -73,7 +68,6 @@ export class ObterResumoSetorRh {
     const veTudo = veCarteiraInteira(ator.papel);
     const linhas = veTudo ? lidas.value : lidas.value.filter((l) => l.responsavelId === ator.id);
 
-    // O grupo Parcelamento é o do SN, alimentado com os Parcelamentos do RH.
     const doRh = linhas.map(doBucket);
     const agora = this.relogio.agora();
     const parcelamentos = classificarParcelamento(doRh, agora);

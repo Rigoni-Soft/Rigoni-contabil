@@ -50,14 +50,9 @@ export class ClienteBuilder {
   private empresa?: string;
   private cnpj?: Cnpj;
   private regime?: Regime;
-  // Opcional — sem sentinela `undefined` pra
-  // distinguir "setter nunca chamado" porque não há mais checagem de presença.
   private contratoSocialCaminho: string | null = null;
   private email: Email | null = null;
   private alteracoesContratuais: AlteracaoContratual[] = [];
-  // Campos operacionais do Simples Nacional — todos opcionais/com default, igual a
-  // contratoSocialCaminho: um Cliente recém-criado ainda não tem nenhum deles preenchido.
-  // formaEnvio só vira VO no build() (default "whatsapp" quando o setter nunca foi chamado).
   private formaEnvio: FormaEnvio | null = null;
   private contatos: Contato[] = [];
   private documentoObrigatorio: DocumentoObrigatorioStatus | null = null;
@@ -105,7 +100,6 @@ export class ClienteBuilder {
     return this;
   }
 
-  // Vazio ou só espaços é "sem e-mail".
   comEmail(entrada: string | null): this {
     const texto = entrada?.trim();
     if (!texto) {
@@ -247,11 +241,6 @@ export class ClienteBuilder {
   }
 
   build(): Result<Cliente, ValidationError> {
-    // Presença checada aqui, não nos setters: um setter nunca chamado não deixa
-    // rastro em camposInvalidos, e os `!` abaixo mascarariam undefined em runtime.
-    // O guard `!this.camposInvalidos.X` evita sobrescrever a mensagem específica
-    // que comCnpj/comRegime já registraram quando FORAM chamados com um valor
-    // inválido — só entra quando o setter nunca rodou.
     if (!this.id) this.camposInvalidos.id = ["obrigatório"];
     if (this.empresa === undefined) this.camposInvalidos.empresa = ["obrigatório"];
     if (this.cnpj === undefined && !this.camposInvalidos.cnpj)

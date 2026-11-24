@@ -14,7 +14,6 @@ import { useContatosDoCadastro } from "../editar-cadastro-operacional/use-contat
 import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
 import { EditarCadastroRhContainer } from "./editar-cadastro-rh.container";
 
-// Passa a chamada adiante (o hook real roda); só os casos de "ligação com o hook" o substituem.
 jest.mock("../editar-cadastro-operacional/use-contatos-do-cadastro.hook", () => {
   const real = jest.requireActual("../editar-cadastro-operacional/use-contatos-do-cadastro.hook");
   return { ...real, useContatosDoCadastro: jest.fn(real.useContatosDoCadastro) };
@@ -42,7 +41,6 @@ jest.mock("@/main/clientes.factory", () => ({
   makeObterLinkDocumentoContratual: () => ({ execute: jest.fn() }),
 }));
 
-// O Admin só cadastra contatos (sem Setor, não define destinos): os testes de contatos e do resto do cadastro.
 const ADMIN = { papel: "admin", setor: "administrativo" };
 
 const dados: CadastroRhClienteDto = cadastroRhDeTeste({
@@ -175,7 +173,6 @@ describe("EditarCadastroRhContainer", () => {
     expect(routerPush).not.toHaveBeenCalled();
   });
 
-  // A lógica das linhas de contato é testada no hook (use-contatos-do-cadastro.hook.spec.ts): aqui só a ligação.
   describe("ligação com o hook das linhas de contato", () => {
     const hookReal = (
       jest.requireActual("../editar-cadastro-operacional/use-contatos-do-cadastro.hook") as {
