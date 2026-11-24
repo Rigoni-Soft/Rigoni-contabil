@@ -16,7 +16,6 @@ import {
 import { useCabecalhoConversa } from "./use-cabecalho-conversa.hook";
 import { useMensagensConversa } from "./use-mensagens-conversa.hook";
 
-// conversa.queries invalida as chaves da Fila e dos Meus atendimentos: importa os módulos delas.
 jest.mock("@/main/client/upload-de-anexo.factory", () => ({ makeUploadDeAnexo: jest.fn() }));
 jest.mock("../fila/fila.actions", () => ({ listarFilaAction: jest.fn() }));
 jest.mock("../meus-atendimentos/meus-atendimentos.actions", () => ({
@@ -162,7 +161,6 @@ describe("regiões da conversa que leem a mesma consulta", () => {
     act(() => result.current.transferencia.mutate({ setorDestino: "tributario", resumo: "x" }));
 
     await waitFor(() => expect(result.current.transferencia.isSuccess).toBe(true));
-    // Transferida: a conversa deixa de ser atualizada.
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(obter).not.toHaveBeenCalled();
   });
@@ -195,7 +193,6 @@ describe("renovação dos links de anexos do histórico já aberto", () => {
     const velho = mensagem("m0", anexo("https://l/velho", venceEmBreve));
     const recente = mensagem("m1", null);
     const inicial = { ...CONVERSA, mensagens: [velho, recente], temMaisAnteriores: false };
-    // A leitura do servidor traz só a janela recente (sem a Mensagem antiga).
     obter.mockResolvedValue({ ok: true, data: { ...CONVERSA, mensagens: [recente] } });
     renovar.mockResolvedValue({
       ok: true,
@@ -205,7 +202,6 @@ describe("renovação dos links de anexos do histórico já aberto", () => {
     const { result } = renderHook(() => useConversaQuery("at-1", inicial, false), {
       wrapper: criarWrapper(),
     });
-    // O React Query só re-renderiza pelo que foi lido: a View lê `data`.
     expect(result.current.data).toBeDefined();
     await act(async () => {
       await result.current.refetch();
@@ -235,7 +231,6 @@ describe("renovação dos links de anexos do histórico já aberto", () => {
     const { result } = renderHook(() => useConversaQuery("at-1", inicial, false), {
       wrapper: criarWrapper(),
     });
-    // O React Query só re-renderiza pelo que foi lido: a View lê `data`.
     expect(result.current.data).toBeDefined();
     await act(async () => {
       await result.current.refetch();

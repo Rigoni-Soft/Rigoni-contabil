@@ -1,6 +1,3 @@
-// Expediente da URA: aberto em dia útil (não sábado/domingo/feriado), das 8h às 18h, horário de
-// São Paulo. As datas civis circulam como "AAAA-MM-DD"; os cálculos de calendário usam UTC só
-// como aritmética de dias, sem relação com o fuso.
 import { FUSO_DE_NEGOCIO as FUSO } from "@/shared/kernel/mes-atual";
 
 const ABRE = 8;
@@ -14,7 +11,6 @@ const DIAS_SEMANA = [
   "sexta-feira",
   "sábado",
 ];
-// Feriados nacionais de data fixa (mês-dia).
 const FIXOS = ["01-01", "04-21", "05-01", "09-07", "10-12", "11-02", "11-15", "11-20", "12-25"];
 
 const formatador = new Intl.DateTimeFormat("en-CA", {
@@ -41,7 +37,6 @@ function diaDaSemana(data: string): number {
   return new Date(`${data}T00:00:00Z`).getUTCDay();
 }
 
-// Algoritmo anônimo gregoriano (Meeus/Jones/Butcher).
 function pascoa(ano: number): string {
   const a = ano % 19;
   const b = Math.floor(ano / 100);
@@ -75,10 +70,10 @@ function calcularNacionais(ano: number): string[] {
   const p = pascoa(ano);
   return [
     ...FIXOS.map((md) => `${ano}-${md}`),
-    somarDias(p, -48), // segunda de Carnaval
-    somarDias(p, -47), // terça de Carnaval
-    somarDias(p, -2), // Sexta-feira Santa
-    somarDias(p, 60), // Corpus Christi
+    somarDias(p, -48),
+    somarDias(p, -47),
+    somarDias(p, -2),
+    somarDias(p, 60),
   ];
 }
 
@@ -93,7 +88,6 @@ export function estaAbertoEm(instante: Date, extras: ReadonlySet<string>): boole
   return diaUtil(data, extras) && hora >= ABRE && hora < FECHA;
 }
 
-// Data (dia útil) em que o escritório volta a atender às 8h: hoje, se ainda não abriu.
 export function proximaAbertura(instante: Date, extras: ReadonlySet<string>): string {
   const { data, hora } = partesEmSp(instante);
   let candidata = hora < ABRE ? data : somarDias(data, 1);
@@ -114,9 +108,6 @@ function quandoVoltamos(hoje: string, volta: string): string {
   return `${DIAS_SEMANA[diaDaSemana(volta)]}, ${dia}/${mes}`;
 }
 
-// Tempo (ms) de expediente aberto entre dois instantes: a noite, o fim de semana e os feriados não
-// contam. ponytail: offset fixo -03:00 (o Brasil não tem horário de verão desde 2019); se voltar,
-// derivar o instante de abertura do FUSO.
 export function expedienteDecorrido(de: Date, ate: Date, extras: ReadonlySet<string>): number {
   const inicio = de.getTime();
   const fim = ate.getTime();

@@ -28,12 +28,10 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
-const RESUMO_TAMANHO_MAXIMO = 1000; // repetido na CHECK de `transferencias.resumo`
+const RESUMO_TAMANHO_MAXIMO = 1000;
 
 type Transferido = Extract<ResultadoTransferencia, { status: "transferido" }>;
 
-// O Atendimento vai para a espera do Setor de destino; no Setor Simples Nacional, dirigido ao
-// Responsável do Cliente (ou ao Líder). Ninguém é escolhido pelo sistema: quem atende o assume.
 export class TransferirAtendimento implements TransferirAtendimentoPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -70,8 +68,6 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
       return gravada;
     }
 
-    // Transferido: falhar daqui em diante não desfaz nada; o erro diz que o Atendimento já está
-    // com o destino e o cliente não foi avisado.
     const { destinatarioNome, origemNome, contato } = gravada.value;
     const aviso = await this.avisar.execute({
       telefone: atendimento.value.telefone,
@@ -125,10 +121,6 @@ export class TransferirAtendimento implements TransferirAtendimentoPort {
     return ok(atendimento);
   }
 
-  // Fica dirigido ao Responsável do Cliente naquele Setor, ou ao Líder se não houver (sem Líder
-  // ativo, cai na espera do Setor). A Recepção é a exceção: todos os Funcionários e o Líder
-  // respondem por todo cliente que chega, então a espera dela é sempre comum. O Simples Nacional
-  // ainda só recebe Cliente do Simples Nacional/MEI.
   private async dirigidoA(
     atendimento: AtendimentoEmAndamento,
     setorDestino: SetorSlug,

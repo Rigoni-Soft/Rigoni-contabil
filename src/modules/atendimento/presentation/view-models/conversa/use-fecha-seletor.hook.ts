@@ -1,6 +1,5 @@
 import { useEffect, type RefObject } from "react";
 
-// Seletor aberto: Esc (de qualquer foco) e clique fora fecham; Esc devolve o foco ao botão.
 export function useFechaSeletor(
   aberto: boolean,
   raiz: RefObject<HTMLElement | null>,
@@ -17,7 +16,6 @@ export function useFechaSeletor(
     const aoClicar = (evento: PointerEvent) => {
       if (!raiz.current?.contains(evento.target as Node)) fechar();
     };
-    // O painel de reação é `fixed`: rolar a conversa o deixaria solto do botão.
     const aoRolar = (evento: Event) => {
       if (!raiz.current?.contains(evento.target as Node)) fechar();
     };

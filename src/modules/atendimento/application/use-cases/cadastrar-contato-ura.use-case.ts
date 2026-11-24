@@ -16,8 +16,6 @@ import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, type Result } from "@/shared/kernel/result";
 
-// O número do Atendimento vira Contato do Cliente que a Recepção confirmou. A permissão é só esta:
-// criar um Contato (setor URA, Recepção dona); nenhum Contato nem Destino de outro Setor é tocado.
 export class CadastrarContatoUra implements CadastrarContatoUraPort {
   constructor(
     private readonly sessao: SessaoPort,

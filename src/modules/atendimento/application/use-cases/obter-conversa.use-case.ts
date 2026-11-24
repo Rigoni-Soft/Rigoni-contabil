@@ -33,8 +33,6 @@ import { NotFoundError } from "@/shared/errors/not-found.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
-// Mesma regra de quem pode agir sobre o Atendimento que a Transferência (dono, Líder do Setor ou
-// Admin). Os serviços que o Funcionário pode disparar vêm junto: uma leitura só por interação.
 export class ObterConversa implements ObterConversaPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -86,8 +84,6 @@ export class ObterConversa implements ObterConversaPort {
     });
   }
 
-  // Mesma regra de quem pode ver que a leitura da conversa; o cursor é a Mensagem mais antiga que
-  // a tela já tem.
   async mensagensAnteriores({
     atendimentoId,
     antes,
@@ -114,7 +110,6 @@ export class ObterConversa implements ObterConversaPort {
     });
   }
 
-  // Mesma regra de quem pode ver que a leitura da conversa. Pedido além do limite é cortado.
   async renovarLinks({
     atendimentoId,
     mensagemIds,
@@ -138,7 +133,6 @@ export class ObterConversa implements ObterConversaPort {
     return ok(await this.vistas(comAnexo));
   }
 
-  // Sem os links os anexos aparecem sem arquivo, mas o texto da conversa continua legível.
   private async vistas(mensagens: ConversaLida["mensagens"]): Promise<MensagemVista[]> {
     const buscados = await this.links(mensagens);
     const links = buscados.ok ? buscados.value : {};
@@ -171,7 +165,6 @@ export class ObterConversa implements ObterConversaPort {
     return ok(setoresDeDestino(setor, roteamento.value?.regime ?? null));
   }
 
-  // Um pedido só para todos os anexos da conversa.
   private async links(
     mensagens: ConversaLida["mensagens"],
   ): Promise<Result<Record<string, LinkTemporario>, AppError>> {

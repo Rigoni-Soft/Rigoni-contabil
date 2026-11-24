@@ -11,8 +11,6 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// O que este gateway usa das obrigações fiscais; o `main` entrega o adapter de `clientes`
-// (arquitetura.md 3.11: módulos não se importam, a forma é a mesma da porta de lá).
 export interface ObrigacoesFiscais {
   consultarAutorizacao(cnpj: string): Promise<Result<{ vigente: boolean }, AppError>>;
   buscarDas(cnpj: string): Promise<Result<GuiaFiscal, AppError>>;
@@ -22,7 +20,6 @@ export interface ObrigacoesFiscais {
   ): Promise<Result<GuiaFiscal[], AppError>>;
 }
 
-// A CND vem de fonte própria (porta separada em `clientes`).
 export interface CertidaoCnd {
   buscarCnd(cnpj: string): Promise<Result<GuiaFiscal, AppError>>;
 }
@@ -54,15 +51,12 @@ export class GuiasFiscaisGateway implements GuiasFiscaisPort, GuiasParcelamentoP
     const cadastro = await this.clientes.cadastroFiscalDoCliente(clienteId);
     if (!cadastro.ok) return cadastro;
     const { cnpj, regime } = cadastro.value;
-    // Só o Simples Nacional e o MEI têm parcelamento ordinário nesse provedor.
     if (regime !== "simples_nacional" && regime !== "mei") {
       return err(new ValidationError("Este regime não tem guia de parcelamento do Simples."));
     }
-    // Direto, sem pré-consulta: o provedor consulta a autorização só se a emissão falhar.
     return this.obrigacoes.buscarGuiasParcelamento(cnpj, { regime, ignorar });
   }
 
-  // ponytail: a tela Atendimento entrega só a guia mais atrasada.
   private async guiaMaisAtrasada(clienteId: string): Promise<Result<GuiaFiscal, AppError>> {
     const guias = await this.buscarGuiasParcelamento(clienteId, []);
     if (!guias.ok) return guias;

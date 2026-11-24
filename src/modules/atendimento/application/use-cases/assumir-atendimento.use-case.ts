@@ -16,8 +16,6 @@ const ERRO_POR_STATUS = {
   inexistente: () => new NotFoundError("Atendimento não encontrado ou já encerrado."),
 };
 
-// Qualquer usuário ativo do Setor assume, sem teto de simultâneos. Quem decide a corrida e a
-// elegibilidade é o banco (atômico, no perfil real); aqui só se traduz o resultado.
 export class AssumirAtendimento implements AssumirAtendimentoPort {
   constructor(
     private readonly sessao: SessaoPort,

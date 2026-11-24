@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) do job de envio da guia de parcelamento:
- * leitura paginada dos pendentes, reserva/conclusão com posse por token e auditoria da URA, e
- * alertas separados por origem e por Cliente avaliado. Destrutiva: só roda no Supabase local e limpa pelos IDs da própria execução. Requer `npx supabase start`.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
@@ -24,7 +19,6 @@ const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
-// O destino é validado antes de o client existir: remoto falha alto, sem tocar em dados alheios.
 const admin = criarAdminLocal(SERVICE_KEY);
 const clientes = new SupabaseClientesParaParcelamentoGateway(admin);
 const alertasParcelamento = new SupabaseAlertaSetorGateway(admin, "parcelamento");
@@ -45,7 +39,6 @@ function cnpjUnico(): string {
 async function ok<T>(consulta: PromiseLike<{ data: T; error: { message: string } | null }>) {
   const { data, error } = await consulta;
   if (error) throw new Error(error.message);
-  // Quem lê (select) recebe o dado; insert/update sem retorno não usa o valor.
   return data as NonNullable<T>;
 }
 
@@ -67,7 +60,6 @@ async function criarParcelamento(
   );
 }
 
-// "Pendente" = nenhum Parcelamento do Cliente tem registro de envio (a parcela do mês corrente).
 async function recolocarPendente(clienteId: string) {
   const ids = await ok(
     admin.from("cliente_parcelamentos").select("id").eq("cliente_id", clienteId),
@@ -113,7 +105,6 @@ async function criarCliente(
         telefone: opcoes.telefone,
       }),
     );
-    // O Simples Nacional manda todos os envios a esse contato, pelo WhatsApp.
     await ok(
       admin.from("destinos_de_envio").insert({
         cliente_id: fixture.id,
@@ -153,7 +144,6 @@ afterAll(async () => {
   const registrar = (rotulo: string, e: { message: string } | null) => {
     if (e) erros.push(`${rotulo}: ${e.message}`);
   };
-  // O filtro vai na URL: em lotes, para a lista de 1.001 Clientes não estourar o tamanho dela.
   const emLotes = async <T>(
     itens: T[],
     apagar: (lote: T[]) => PromiseLike<{ error: { message: string } | null }>,
@@ -163,7 +153,6 @@ afterAll(async () => {
       registrar(rotulo, (await apagar(itens.slice(i, i + 100))).error);
     }
   };
-  // Alertas, avisos, Destinos e reservas saem em cascata com o Cliente.
   await emLotes(
     criados.map((c) => c.cnpj),
     (l) => admin.from("registros_auditoria").delete().in("alvo", l),
@@ -286,7 +275,6 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
 
     expect(await statusDoParcelamento(pendente.id)).toBe("pendente");
     expect(await clientes.concluir(pendente.id, token)).toEqual({ ok: true, value: false });
-    // Ainda há parcelamento sem registro do mês: a próxima rodada pode reservar de novo.
     const proxima = await clientes.reservar(pendente.id);
     expect(proxima.ok && typeof proxima.value).toBe("string");
     await clientes.liberar(pendente.id, proxima.ok ? proxima.value! : "");
@@ -325,7 +313,6 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
     expect(tokenB).not.toBe(tokenA);
     expect(await clientes.concluir(pendente.id, tokenB)).toEqual({ ok: true, value: true });
 
-    // A volta atrasada (e o cadastro foi recolocado em pendente por alguém): sem posse, nada muda.
     await recolocarPendente(pendente.id);
     expect(await clientes.concluir(pendente.id, tokenA)).toEqual({ ok: true, value: false });
     expect(await statusDoParcelamento(pendente.id)).toBe("pendente");
@@ -345,10 +332,6 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
   });
 });
 
-// A conclusão nunca pode registrar envio num acordo diferente do
-// entregue. Com a regra única, a conclusão só fecha a reserva do Cliente e o registro de envio é
-// gravado pelo ID do acordo entregue (`registrar_envio_parcelamento`), então trocar o acordo durante o
-// envio não desloca o registro para o substituto.
 describe("a conclusão não registra envio em acordo algum (F3 do PR #191, regra única do #126)", () => {
   async function acordo(clienteId: string, origem: "receita_federal" | "pgfn" | null) {
     const id = crypto.randomUUID();
@@ -583,7 +566,6 @@ describe("alertas por origem e por Cliente avaliado", () => {
       const alvo = await criarCliente({ empresa: "Resolve Ltda" });
       await alertasParcelamento.alertar(doSetor(alvo.id, "simples_nacional", "sn"));
       await alertasParcelamento.alertar(doSetor(alvo.id, "rh", "rh"));
-      // O limite vem do relógio do banco: o alerta do RH, renovado depois dele, não é resolvido.
       const [{ criado_em }] = await ok(
         admin
           .from("alertas_setor")
@@ -681,7 +663,6 @@ describe("rodada real com a reserva ocupada", () => {
       telefone: `(61) 97${sufixo.slice(0, 3)}-${sufixo.slice(3, 7)}`,
       empresa: "Rodada Ocupada Ltda",
     });
-    // Só o Cliente do teste participa da rodada (o banco local pode ter outros pendentes).
     const apenasOAlvo = {
       listarPendentes: async () => {
         const todos = await clientes.listarPendentes();
@@ -752,19 +733,16 @@ describe("rodada real com a reserva ocupada", () => {
       );
     const diaDoJob = new Date("2026-10-22T12:00:00Z");
 
-    // T0: a entrega cai; falha_envio aberto e a reserva fica vigente, o cadastro segue pendente.
     await montar(diaDoJob).execute();
     expect(await abertos()).toEqual([{ tipo: "falha_envio" }]);
     expect(await statusDoParcelamento(alvo.id)).toBe("pendente");
 
-    // T0 + 2 min: a reserva vigente devolve null; nada é entregue nem concluído, e o alerta fica.
     quedaNaEntrega = false;
     await montar(new Date(diaDoJob.getTime() + 2 * 60_000)).execute();
     expect(envio.requisicoes).toHaveLength(0);
     expect(await statusDoParcelamento(alvo.id)).toBe("pendente");
     expect(await abertos()).toEqual([{ tipo: "falha_envio" }]);
 
-    // A reserva vence: a retomada entrega, conclui e só então resolve o alerta.
     await ok(
       admin
         .from("envios_automaticos")

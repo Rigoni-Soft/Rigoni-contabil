@@ -4,7 +4,6 @@ import { assumirAtendimentoAction } from "@/modules/atendimento/presentation/vie
 import { filaKeys } from "@/modules/atendimento/presentation/view-models/fila/fila.queries";
 import { meusAtendimentosKeys } from "@/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.queries";
 
-// Assumir pelo card. Também no erro ("já assumido"): a Fila relida tira o card de quem perdeu.
 export function useAssumirAtendimentoMutation() {
   const queryClient = useQueryClient();
 

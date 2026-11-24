@@ -8,7 +8,6 @@ const pendente = (nome: string, miniaturaUrl: string | null = null) => ({
 });
 
 describe("useConversaStore", () => {
-  // O jsdom não implementa revokeObjectURL.
   const revogar = jest.fn();
   URL.revokeObjectURL = revogar;
 

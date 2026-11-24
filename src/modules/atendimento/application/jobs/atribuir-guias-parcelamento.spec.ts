@@ -140,7 +140,6 @@ describe("atribuirGuiasParcelamento", () => {
   });
 
   it("nova emissão da guia de quem já a recebeu é descartada, não vai a outro parcelamento", () => {
-    // a (30 mil) já recebeu 202610; o provedor a emite de novo e b (10 mil) ainda espera a dele.
     const atribuidas = atribuirGuiasParcelamento(
       [guia("202610", 30_000), guia("202610", 10_000)],
       [parcelamento("a", 30_000, ["202610"]), parcelamento("b", 10_000)],

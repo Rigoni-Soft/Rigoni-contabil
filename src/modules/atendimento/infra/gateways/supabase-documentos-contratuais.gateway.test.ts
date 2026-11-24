@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) da entrega de documentos contratuais.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { SupabaseDocumentosContratuaisGateway } from "./supabase-documentos-contratuais.gateway";
@@ -37,7 +33,6 @@ beforeAll(async () => {
     },
   ]);
   if (clientes.error) throw clientes.error;
-  // Inseridas fora de ordem e com datas contrárias ao nº: a listagem tem que ordenar por nº.
   const alteracoes = await admin.from("cliente_alteracoes_contratuais").insert([
     {
       id: crypto.randomUUID(),

@@ -7,7 +7,6 @@ import { AcoesConversaContainer } from "./acoes-conversa.container";
 import { useAcoesConversa } from "./use-acoes-conversa.hook";
 
 jest.mock("./use-acoes-conversa.hook", () => ({ useAcoesConversa: jest.fn() }));
-// O cadastro de contato tem container e spec próprios: aqui só importa se o painel o encaixa.
 jest.mock("./contato-ura.container", () => ({
   ContatoUraContainer: () => <p>cadastro de contato</p>,
 }));

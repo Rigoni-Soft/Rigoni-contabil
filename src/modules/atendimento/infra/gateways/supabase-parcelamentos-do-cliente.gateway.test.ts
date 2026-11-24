@@ -1,9 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) do núcleo de envio das guias de parcelamento:
- * leitura dos parcelamentos em aberto e registro de envio por parcela (desconto de uma parcela
- * restante uma vez só, quitação ao zerar, auditoria da URA). Destrutiva: só roda no Supabase local
- * e limpa pelos IDs da própria execução. Requer `npx supabase start`.
- */
 import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/encerramento-automatico.service";
 
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
@@ -13,7 +7,6 @@ const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
-// O destino é validado antes de o client existir: remoto falha alto, sem tocar em dados alheios.
 const admin = criarAdminLocal(SERVICE_KEY);
 const parcelamentos = new SupabaseParcelamentosDoClienteGateway(admin);
 
@@ -74,7 +67,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // Parcelamentos e registros de envio saem em cascata com o Cliente.
   await admin.from("registros_auditoria").delete().eq("alvo", cnpj);
   await admin.from("clientes").delete().eq("id", clienteId);
 });
@@ -137,7 +129,6 @@ describe("SupabaseParcelamentosDoClienteGateway", () => {
       ok: true,
       value: "registrado",
     });
-    // Quem repete o registro com outro caminho não troca o do envio aceito.
     expect(
       await parcelamentos.registrarEnvio(id, "202610", "202610:10000", "c1/outro/202610-z.pdf"),
     ).toEqual({ ok: true, value: "ja_registrado" });

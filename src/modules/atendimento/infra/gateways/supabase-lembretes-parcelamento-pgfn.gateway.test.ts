@@ -1,9 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) do job de lembretes PGFN: leitura dos Clientes
- * com Parcelamento PGFN e do que falta da guia do mês, e o ciclo do alerta de origem própria
- * (abre, renova, resolve sem tocar nos alertas de outra origem). Destrutiva: só roda no Supabase
- * local e limpa pelos IDs da própria execução. Requer `npx supabase start`.
- */
 import { ExecutarLembretesParcelamentoPgfn } from "@/modules/atendimento/application/use-cases/executar-lembretes-parcelamento-pgfn.use-case";
 import { mesAtual } from "@/shared/kernel/mes-atual";
 
@@ -15,7 +9,6 @@ const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
-// O destino é validado antes de o client existir: remoto falha alto, sem tocar em dados alheios.
 const admin = criarAdminLocal(SERVICE_KEY);
 const clientes = new SupabaseClientesComParcelamentoPgfnGateway(admin);
 const alertas = new SupabaseAlertaSetorGateway(admin, "lembrete_pgfn");
@@ -100,7 +93,6 @@ async function pendenciasDe(cliente: Fixture) {
 afterAll(async () => {
   const ids = criados.map((c) => c.id);
   if (ids.length === 0) return;
-  // Parcelamentos, guias e alertas saem em cascata com o Cliente.
   const { error } = await admin.from("clientes").delete().in("id", ids);
   expect(error).toBeNull();
 });
@@ -145,8 +137,6 @@ describe("leitura dos Clientes com Parcelamento PGFN", () => {
 });
 
 describe("ciclo do alerta", () => {
-  // O relógio injetado cai no dia do job (1, 10 ou 15) mais recente que já passou: no futuro, o alerta
-  // gravado agora pelo banco pareceria não renovado e seria resolvido na mesma rodada.
   const diaDoJob = (() => {
     const agora = new Date();
     for (const mesesAtras of [0, 1]) {
@@ -161,8 +151,6 @@ describe("ciclo do alerta", () => {
   })();
   const relogio = { agora: () => diaDoJob };
 
-  // O banco grava `criado_em` com o relógio real; o do job é injetado. Envelhece o alerta para ele
-  // contar como "não renovado" na rodada seguinte (a renovação regrava `criado_em` com o agora real).
   const envelhecer = (clienteId: string) =>
     ok(
       admin

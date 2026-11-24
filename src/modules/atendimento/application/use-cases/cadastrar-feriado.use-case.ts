@@ -7,7 +7,6 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, type Result } from "@/shared/kernel/result";
 
-// A auditoria (`feriado.cadastrar`) nasce no banco, na mesma transação do INSERT.
 export class CadastrarFeriado implements CadastrarFeriadoPort {
   constructor(
     private readonly sessao: SessaoPort,

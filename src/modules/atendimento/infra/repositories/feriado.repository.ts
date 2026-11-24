@@ -13,8 +13,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const UNIQUE_VIOLATION = "23505";
 
-// Com o client da sessão do Admin a RLS e a auditoria do banco valem; com o service_role (webhook)
-// só `listarDatas` é usado.
 export class SupabaseFeriadoRepository implements FeriadoRepositoryPort, FeriadosPort {
   constructor(private readonly supabase: SupabaseClient) {}
 

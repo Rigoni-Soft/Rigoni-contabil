@@ -2,7 +2,6 @@ import { encerramentoAutomaticoAtivo, makeEncerrarPorSilencio } from "@/main/ate
 
 import { jobAgendadoWebhook } from "./job-agendado.webhook";
 
-// Chamada periódica: encerra o Atendimento cujo cliente está há 23h50 sem escrever.
 export const POST = jobAgendadoWebhook(encerramentoAutomaticoAtivo, () =>
   makeEncerrarPorSilencio().execute(),
 );

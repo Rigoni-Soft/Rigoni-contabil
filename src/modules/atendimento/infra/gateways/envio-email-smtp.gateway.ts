@@ -12,15 +12,10 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 const AVISO_NAO_RESPONDER =
   "\n\n--\nEsta é uma mensagem automática. Por favor, não responda este e-mail.";
 
-// Só o que o gateway usa do transporte (o do nodemailer atende; os testes passam um falso).
 export type TransporteEmail = { sendMail(mensagem: object): Promise<unknown> };
 
 export type ConfigSmtp = { usuario: string; senha: string; remetente: string };
 
-// Adapter real da porta EnvioEmailPort, por SMTP do Gmail com senha de app. Endereço
-// recusado (EENVELOPE ou 550-553) não melhora ao repetir: ValidationError. O resto (senha de app
-// inválida, limite diário, indisponibilidade, rede) é falha do serviço: ServicoExternoError.
-// O Gmail não deduplica envios: uma falha após o aceite pode repetir o e-mail na retentativa.
 export class EnvioEmailSmtpGateway implements EnvioEmailPort {
   constructor(
     private readonly config: ConfigSmtp,

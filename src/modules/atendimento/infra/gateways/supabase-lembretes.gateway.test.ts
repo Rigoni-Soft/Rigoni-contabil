@@ -1,10 +1,4 @@
 import type { RegistroDeErrosPort } from "@/modules/atendimento/application/ports/out/registro-de-erros.provider";
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) do job de lembrete de documento e DAS:
- * leitura paginada dos Clientes, janela de 24h pela chave nacional do telefone, reserva/conclusão do
- * envio do DAS com posse por token, alertas por Cliente e guia publicada. Destrutiva: só roda no
- * Supabase local e limpa pelos IDs da própria execução. Requer `npx supabase start`.
- */
 import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import { EntregarDasNaUra } from "@/modules/atendimento/application/use-cases/entregar-das-na-ura.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
@@ -27,7 +21,6 @@ const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
-// O destino é validado antes de o client existir: remoto falha alto, sem tocar em dados alheios.
 const admin = criarAdminLocal(SERVICE_KEY);
 const clientes = new SupabaseClientesParaLembreteGateway(admin);
 const alertas = new SupabaseAlertaSetorGateway(admin, "lembretes");
@@ -48,11 +41,9 @@ function cnpjUnico(): string {
 async function ok<T>(consulta: PromiseLike<{ data: T; error: { message: string } | null }>) {
   const { data, error } = await consulta;
   if (error) throw new Error(error.message);
-  // Quem lê (select) recebe o dado; insert/update sem retorno não usa o valor.
   return data as NonNullable<T>;
 }
 
-// Cliente com cadastro (DAS pronto) e o contato padrão com o telefone dado, como o Admin o digita.
 async function criarCliente(telefoneCadastrado: string): Promise<Fixture> {
   const nacional = soDigitosNacionais(telefoneCadastrado);
   const fixture = { id: crypto.randomUUID(), cnpj: cnpjUnico(), nacional };
@@ -83,7 +74,6 @@ async function criarCliente(telefoneCadastrado: string): Promise<Fixture> {
       telefone: telefoneCadastrado,
     }),
   );
-  // O Simples Nacional manda todos os envios a esse contato, pelo WhatsApp.
   await ok(
     admin.from("destinos_de_envio").insert({
       cliente_id: fixture.id,
@@ -118,7 +108,6 @@ let principal: Fixture;
 const publicados: string[] = [];
 
 beforeAll(async () => {
-  // 11 dígitos, digitado com máscara.
   principal = await criarCliente(`(11) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`);
 });
 
@@ -127,7 +116,6 @@ afterAll(async () => {
   const registrar = (rotulo: string, e: { message: string } | null) => {
     if (e) erros.push(`${rotulo}: ${e.message}`);
   };
-  // O filtro vai na URL: em lotes, para a lista de 1.001 Clientes não estourar o tamanho dela.
   const emLotes = async <T>(
     itens: T[],
     apagar: (lote: T[]) => PromiseLike<{ error: { message: string } | null }>,
@@ -137,7 +125,6 @@ afterAll(async () => {
       registrar(rotulo, (await apagar(itens.slice(i, i + 100))).error);
     }
   };
-  // Alertas, avisos, Destinos e reservas saem em cascata com o Cliente.
   await emLotes(
     criados.map((c) => c.cnpj),
     (l) => admin.from("registros_auditoria").delete().in("alvo", l),
@@ -230,7 +217,6 @@ describe("reserva e conclusão do envio do DAS", () => {
         resultado: "sucesso",
       },
     ]);
-    // Já concluída: o mesmo token não conclui de novo e não há nova reserva (DAS não está pronto).
     expect(await clientes.concluirDas(principal.id, token, "2026-10-10", CAMINHO_DAS)).toEqual({
       ok: true,
       value: false,
@@ -249,7 +235,6 @@ describe("reserva e conclusão do envio do DAS", () => {
     const b = await clientes.reservarDas(principal.id);
     const tokenB = b.ok ? b.value! : "";
     expect(tokenB).not.toBe(tokenA);
-    // O token A é antigo: liberar não derruba a reserva B, que conclui normalmente.
     await clientes.liberarDas(principal.id, tokenA);
     expect(await clientes.reservarDas(principal.id)).toEqual({ ok: true, value: null });
     expect(await clientes.concluirDas(principal.id, tokenB, "2026-10-05", CAMINHO_DAS)).toEqual({
@@ -264,7 +249,6 @@ describe("reserva e conclusão do envio do DAS", () => {
     const a = await clientes.reservarDas(principal.id);
     const tokenA = a.ok ? a.value! : "";
 
-    // A queda deixou a reserva A para trás; o Funcionário mexe no cadastro e o recoloca em pronto.
     await ok(
       admin
         .from("envios_automaticos")
@@ -288,7 +272,6 @@ describe("reserva e conclusão do envio do DAS", () => {
       value: true,
     });
 
-    // A volta atrasada: sem posse, não altera a conclusão de B nem a data.
     expect(await clientes.concluirDas(principal.id, tokenA, "2026-10-01", CAMINHO_DAS)).toEqual({
       ok: true,
       value: false,
@@ -416,7 +399,6 @@ describe("alertas do setor", () => {
     await alertas.alertar(alerta(principal.id, "entrega_parcial"));
     await alertas.alertar(alerta(outro.id, "falha_envio"));
 
-    // "Avaliado" é só o `principal`: o alerta do `outro` não pode ser resolvido por esta rodada.
     await alertas.resolverNaoRenovados(new Date(Date.now() + 60_000), [principal.id]);
 
     expect(await abertos(principal.id)).toEqual([{ tipo: "entrega_parcial" }]);
@@ -435,7 +417,6 @@ describe("alertas do setor", () => {
 describe("rodada real com a reserva ocupada", () => {
   it("segunda rodada com a reserva vigente não resolve o alerta de falha do DAS, mesmo com o lembrete enviado", async () => {
     const alvo = await criarCliente(`(11) 97${sufixo.slice(0, 3)}-${sufixo.slice(3, 7)}`);
-    // Só o Cliente do teste participa da rodada (o banco local pode ter outros).
     const apenasOAlvo = {
       listar: async () => {
         const todos = await clientes.listar();
@@ -510,21 +491,17 @@ describe("rodada real com a reserva ocupada", () => {
       );
     const diaDoJob = new Date("2026-10-05T12:00:00Z");
 
-    // T0: o lembrete sai, a entrega do DAS cai; falha_envio aberto, reserva vigente, DAS pronto.
     await montar(diaDoJob).execute();
     expect(await abertos()).toEqual([{ tipo: "falha_envio" }]);
     expect((await statusDoDas(alvo.id)).das_status).toBe("pronto");
     const lembretesNaPrimeira = envio.templatesEnviados.length;
     expect(lembretesNaPrimeira).toBeGreaterThan(0);
 
-    // T0 + 2 min: o lembrete sai de novo, mas a reserva do DAS devolve null: nada é concluído e o
-    // alerta da tarefa não reavaliada continua aberto.
     quedaNaEntrega = false;
     await montar(new Date(diaDoJob.getTime() + 2 * 60_000)).execute();
     expect((await statusDoDas(alvo.id)).das_status).toBe("pronto");
     expect(await abertos()).toEqual([{ tipo: "falha_envio" }]);
 
-    // A reserva vence: a retomada entrega, conclui o DAS e só então resolve o alerta.
     await ok(
       admin
         .from("envios_automaticos")
@@ -550,7 +527,6 @@ describe("guia publicada", () => {
 
     expect(link.ok && link.value.url).toContain("/guias-fiscais/");
     const url = link.ok ? link.value.url : "";
-    // O objeto é limpo no teardown pelo caminho que o link carrega.
     const caminho = new URL(url).pathname.split("/guias-fiscais/")[1];
     if (caminho) publicados.push(decodeURIComponent(caminho));
     expect(link.ok && link.value.caminho).toBe(decodeURIComponent(caminho ?? ""));
@@ -644,7 +620,6 @@ describe("DAS pedido pela URA (#124)", () => {
       },
     ]);
 
-    // O job do mesmo dia lê o Cliente já enviado: não reenvia nem chama o provedor.
     const envioDoJob = new EnvioMensagemFalsoGateway();
     jest.spyOn(console, "info").mockImplementation(() => undefined);
     const apenasOAlvo = {

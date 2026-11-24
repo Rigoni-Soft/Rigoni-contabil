@@ -20,12 +20,9 @@ export type EntradaDaLista = {
   filaInicial: ItemDaFilaVisto[];
   meusInicial: AtendimentoVisto[];
   podeEscolherSetor: boolean;
-  // Líder do Setor ou Admin: leem os Atendimentos dos outros e a espera dirigida, sem agir.
   supervisiona: boolean;
 };
 
-// A região da lista: a espera do Setor, os Atendimentos do usuário e o assumir. Aba e conversa
-// aberta ficam no store da tela, porque o chat e as ações também dependem delas.
 export function useAtendimentoCentral({
   usuarioId,
   setorInicial,
@@ -38,14 +35,11 @@ export function useAtendimentoCentral({
   const meus = useMeusAtendimentosQuery(true, meusInicial);
   const assumir = useAssumirAtendimentoMutation();
   const { aba, abertoId, escolherAba, abrir, aoAssumir } = useAtendimentoCentralStore();
-  // A equipe só aparece na aba "Em atendimento": fora dela não há motivo para ler a cada 15 s.
   const equipe = useEquipeQuery(supervisiona && aba === "atendimento" ? fila.setor : null);
   const { isError, reset } = assumir;
   const emAtendimento = (meus.data ?? []).map(atendimentoParaView);
-  // Sem leitura (carregando ou falhou) a seção não existe: "ninguém em atendimento" seria mentira.
   const daEquipe = equipe.data?.map((a) => ({
     ...atendimentoParaView(a),
-    // Quem supervisiona não responde: sem o sinal de "cliente aguardando", que não conta no contador nem no som.
     aguardando: false,
     detalhe: `Com ${a.donoNome ?? "outro usuário"} · ${a.contato.empresa ?? "Cliente não identificado"}`,
   }));
@@ -56,7 +50,6 @@ export function useAtendimentoCentral({
     abertoId,
   );
 
-  // "Já assumido" informa uma tentativa, não um estado da tela: some sozinho, e ao trocar de aba.
   useEffect(() => {
     if (!isError) return;
     const timer = setTimeout(reset, AVISO_DE_ASSUNCAO_MS);
@@ -74,7 +67,6 @@ export function useAtendimentoCentral({
     anuncio,
     emAtendimento,
     daEquipe,
-    // Só quem supervisiona lê o card dirigido a outro.
     aoLer: supervisiona ? abrir : undefined,
     abertoId,
     abrir,

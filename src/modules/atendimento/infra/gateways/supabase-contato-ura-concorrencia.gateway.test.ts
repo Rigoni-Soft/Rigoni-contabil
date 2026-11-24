@@ -1,8 +1,3 @@
-/**
- * Concorrência real (duas conexões) de `cadastrar_contato_ura`: outra chamada grava o mesmo número ou
- * e-mail entre as checagens da função e o insert. Os índices únicos do Cliente seguram; a função devolve o
- * que a outra criou, sem vazar o erro do índice. Requer `npx supabase start` local.
- */
 import { createClient } from "@supabase/supabase-js";
 import { Client } from "pg";
 
@@ -19,12 +14,11 @@ const SERVICE_KEY =
 const DATABASE_URL =
   process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
-// Antes de qualquer setup destrutivo: a suíte nunca roda contra base remota.
 exigirSupabaseLocal(SUPABASE_URL, DATABASE_URL);
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-const RECEPCAO = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"; // funcionario.recepcao do seed
+const RECEPCAO = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const CNPJ = "70000071000170";
 const TELEFONE_EMAIL = "61955590021";
 const TELEFONE_NUMERO = "61955590022";
@@ -61,7 +55,6 @@ async function atendimentoDaRecepcao(telefone: string): Promise<string> {
   return data.id;
 }
 
-// A Recepção chamando a função como o PostgREST chama: papel authenticated e o JWT dela.
 async function comoRecepcao(c: Client): Promise<void> {
   await c.query("begin");
   await c.query("select set_config('request.jwt.claims', $1, true)", [
@@ -70,7 +63,6 @@ async function comoRecepcao(c: Client): Promise<void> {
   await c.query("set local role authenticated");
 }
 
-// Espera a outra conexão parar no lock do índice único (a janela que o teste quer provocar).
 async function esperarBloqueio(c: Client): Promise<void> {
   for (let i = 0; i < 100; i += 1) {
     const { rows } = await c.query(

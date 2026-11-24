@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// O que `cadastrar_contato_ura` devolve (jsonb); o `status` decide o que a tela mostra.
 export const cadastroContatoUraRpcSchema = z.discriminatedUnion("status", [
   z.object({
     status: z.enum(["criado", "existente", "email_em_uso"]),
@@ -10,7 +9,6 @@ export const cadastroContatoUraRpcSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("em_outro_cliente") }),
 ]);
 
-// Linha de `clientes` lida só para o Cliente que a Recepção confirma.
 export const clienteParaConfirmarRowSchema = z.object({
   id: z.guid(),
   empresa: z.string(),

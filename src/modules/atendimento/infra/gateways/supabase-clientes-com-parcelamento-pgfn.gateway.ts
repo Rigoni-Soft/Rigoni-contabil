@@ -23,7 +23,6 @@ const linhaSchema = z.object({
   ),
 });
 
-// Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
 export class SupabaseClientesComParcelamentoPgfnGateway implements ClientesComParcelamentoPgfnPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 

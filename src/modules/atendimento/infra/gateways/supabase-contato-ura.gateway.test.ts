@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase: a Recepção cadastra o número do Atendimento como Contato URA do Cliente
- * confirmado (`cadastrar_contato_ura`). Prova os três desfechos (criado, já no Cliente, em outro Cliente),
- * a permissão mínima e a auditoria. Requer `npx supabase start` com migrations + seed aplicados.
- */
 import { randomUUID } from "node:crypto";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -51,7 +46,6 @@ async function atendimentoDe(
   funcionarioId: string | null,
   clienteId: string | null = null,
 ): Promise<string> {
-  // Só há um Atendimento em andamento por número: o de um teste anterior é encerrado.
   await admin
     .from("atendimentos")
     .update({ status: "encerrado" })

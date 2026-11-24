@@ -14,7 +14,6 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { lerTodasAsPaginas, TAMANHO_DA_PAGINA } from "@/shared/kernel/paginacao-por-cursor";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
 export class SupabaseClientesParaParcelamentoGateway implements ClientesParaParcelamentoPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 

@@ -2,8 +2,6 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 
 import { ANEXO_TAMANHO_MAXIMO, AUDIO_DURACAO_MAXIMA_S } from "@/shared/kernel/anexo";
 
-// Primeiro formato que o navegador gravar: o que o WhatsApp aceita sem conversão. Sem nenhum deles
-// (Chrome/Edge), grava o padrão do navegador (webm) e o servidor converte (docs/adr/0006).
 const FORMATOS = ["audio/ogg;codecs=opus", "audio/mp4;codecs=mp4a.40.2", "audio/mp4"];
 
 export const GRAVACAO_SEM_HTTPS = "A gravação de áudio exige uma conexão segura (HTTPS).";
@@ -15,7 +13,6 @@ export const GRAVACAO_FALHOU = "Não foi possível acessar o microfone.";
 
 export type EstadoGravacao = "ocioso" | "gravando" | "pronto";
 
-// "" quando dá para gravar; senão, o motivo. Lido só no navegador (o servidor assume que sim).
 function motivoSemSuporte(): string {
   if (window.isSecureContext === false) return GRAVACAO_SEM_HTTPS;
   if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) {
@@ -23,7 +20,7 @@ function motivoSemSuporte(): string {
   }
   return "";
 }
-const semAssinatura = () => () => {}; // `subscribe` de useSyncExternalStore: o suporte não muda
+const semAssinatura = () => () => {};
 
 function extensao(mime: string) {
   if (mime.startsWith("audio/ogg")) return "ogg";
@@ -38,9 +35,6 @@ function mensagemDoErro(erro: unknown) {
   return GRAVACAO_FALHOU;
 }
 
-// Gravação pelo microfone (UI efêmera, arquitetura.md §4.7). A permissão só é pedida em `iniciar`.
-// O microfone é liberado ao parar, ao descartar e ao sair da tela; nada fica guardado no navegador.
-// `estado` "pronto": parou (a pedido, ou sozinha ao atingir duração/tamanho) e espera enviar ou descartar.
 export function useGravadorAudio() {
   const indisponivel = useSyncExternalStore(semAssinatura, motivoSemSuporte, () => "");
   const [estado, setEstado] = useState<EstadoGravacao>("ocioso");
@@ -87,7 +81,6 @@ export function useGravadorAudio() {
     setErro(undefined);
     let microfone: MediaStream;
     try {
-      // Mono: o que a mensagem de voz do WhatsApp exige (o plano B do servidor também converte a mono).
       microfone = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1 } });
     } catch (falha) {
       setErro(mensagemDoErro(falha));
@@ -110,7 +103,6 @@ export function useGravadorAudio() {
     fluxo.current = microfone;
     gravador.current = atual;
 
-    // Duração ou tamanho: para sozinha e fica "pronto", esperando a confirmação para enviar.
     const encerrarPorLimite = () => {
       if (atual.state !== "inactive") atual.stop();
     };
@@ -137,14 +129,12 @@ export function useGravadorAudio() {
       setSegundos(decorridos);
       if (decorridos >= AUDIO_DURACAO_MAXIMA_S) encerrarPorLimite();
     }, 1000);
-    // Entrega os pedaços a cada segundo: o tamanho é conferido durante a gravação, não só no fim.
     atual.start(1000);
   }
 
   return {
     estado,
     segundos,
-    // Motivo fixo de o botão não funcionar; `erro` é o da última tentativa (permissão, sem microfone).
     indisponivel: indisponivel || undefined,
     erro,
     iniciar,

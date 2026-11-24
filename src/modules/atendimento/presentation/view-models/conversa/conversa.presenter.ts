@@ -16,11 +16,9 @@ import { SETOR_LABEL } from "@/shared/kernel/setores";
 type AnexoView = {
   tipo: TipoAnexoMensagem;
   nome: string;
-  // Já formatado ("1,2 MB").
   tamanho: string;
   url: string;
   urlVisualizacao: string;
-  // Imagem com miniatura: a conversa mostra esta e amplia `url`.
   miniaturaUrl: string | null;
 };
 
@@ -28,14 +26,11 @@ type MensagemView = {
   id: string;
   lado: "contato" | "ura" | "atendente";
   autor: string;
-  // Só no balão do cliente: a empresa a que o Atendimento pertence.
   detalhe: string | null;
   texto: string;
   hora: string;
-  // Reação do escritório (emoji) e se ainda dá para reagir a esta Mensagem.
   reacao: string | null;
   reagivel: boolean;
-  // Preenchido quando o envio ao cliente não foi confirmado.
   aviso: string | null;
   anexo: AnexoView | null;
 };
@@ -44,13 +39,9 @@ export type ConversaView = {
   titulo: string;
   subtitulo: string;
   encerrado: boolean;
-  // Líder do Setor ou Admin lendo a conversa de outro: sem responder, serviços nem transferência.
   somenteLeitura: boolean;
   semCliente: boolean;
-  // "Cadastrar como contato deste Cliente": só a Recepção dona, com o número sem contato. O CNPJ
-  // sugerido é o do Cliente ligado ao Atendimento ou, sem ele, o que o número informou na URA.
   contatoUra: { pode: boolean; telefone: string; cnpjSugerido: string };
-  // De onde veio o Atendimento: a última Transferência ou, sem ela, o que a URA já sabia.
   contexto: { origem: string; resumo: string } | null;
   mensagens: MensagemView[];
   temMaisAnteriores: boolean;
@@ -74,14 +65,11 @@ export function formatarTamanho(bytes: number): string {
   return `${FORMATO_TAMANHO.format(bytes / (1024 * 1024))} MB`;
 }
 
-// Cronômetro da gravação: 65 → "01:05".
 export function formatarCronometro(segundos: number): string {
   const mm = String(Math.floor(segundos / 60)).padStart(2, "0");
   return `${mm}:${String(segundos % 60).padStart(2, "0")}`;
 }
 
-// A conversa é relida a cada 5 s e cada leitura gera links novos, o que recarregaria as imagens.
-// Mantém o link que a leitura anterior já tinha até faltar `margemMs` para expirar.
 export function reaproveitarLinks(
   nova: ConversaVista,
   anterior: ConversaVista | undefined,
@@ -109,8 +97,6 @@ export function reaproveitarLinks(
   };
 }
 
-// O polling devolve só a janela recente; o histórico já aberto é mantido, mas só se as janelas se
-// sobrepõem. Sem Mensagem em comum pode haver um intervalo oculto: a janela nova vale sozinha.
 export function manterHistorico(nova: ConversaVista, anterior: ConversaVista | undefined) {
   const primeira = nova.mensagens[0];
   if (!anterior || !primeira) return nova;
@@ -126,8 +112,6 @@ export function manterHistorico(nova: ConversaVista, anterior: ConversaVista | u
   };
 }
 
-// Histórico pedido a partir de `cursorId`. Só entra se ainda é o começo da conversa: se o polling
-// trocou a janela no meio, a página não é contígua e é descartada (o "ver anteriores" refaz).
 export function acrescentarAnteriores(
   atual: ConversaVista,
   cursorId: string,
@@ -142,8 +126,6 @@ export function acrescentarAnteriores(
   };
 }
 
-// Ids das Mensagens carregadas cujo link de anexo está perto de vencer. `limite` corta só os
-// `elegivel`: objetos ausentes que continuam vencendo não ocupam as vagas dos válidos.
 export function idsComLinkVencendo(
   conversa: ConversaVista,
   agora: number,
@@ -157,7 +139,6 @@ export function idsComLinkVencendo(
     .map((m) => m.id);
 }
 
-// Troca só os links (e a validade) dos anexos renovados; o resto da conversa não muda.
 export function aplicarLinksRenovados(
   conversa: ConversaVista,
   renovadas: MensagemVista[],
@@ -172,7 +153,6 @@ export function aplicarLinksRenovados(
   };
 }
 
-// Mais antiga na ordem da conversa: data e, no empate, id (o mesmo cursor da leitura no servidor).
 function antesDe(
   a: { criadoEm: string; id: string },
   b: { criadoEm: string; id: string },
@@ -180,8 +160,6 @@ function antesDe(
   return a.criadoEm < b.criadoEm || (a.criadoEm === b.criadoEm && a.id < b.id);
 }
 
-// Mesmo fuso de negócio do feed de auditoria (não o do navegador). Um formatter só, reusado por
-// todas as Mensagens.
 const FORMATO_HORA = new Intl.DateTimeFormat("pt-BR", {
   timeZone: FUSO_DE_NEGOCIO,
   day: "2-digit",
@@ -265,7 +243,6 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
         : null,
     })),
     setoresDestino: opcoesDe(conversa.setoresDestino, SETOR_LABEL),
-    // Já vêm na ordem do menu da URA: o contrato primeiro, as alterações por nº decrescente.
     servicos: conversa.documentos.map((doc) => ({
       valor: valorDaOpcao(doc),
       rotulo: doc.descricao,
@@ -274,8 +251,6 @@ export function conversaParaView(conversa: ConversaVista): ConversaView {
   };
 }
 
-// Polling da conversa aberta: rápido enquanto a conversa está acontecendo (Mensagem recente) e espaçado quando parada. Parada, a Mensagem nova do cliente aparece em até 15 s
-// (o aviso global já o avisa nesse prazo) e, ao chegar, a conversa volta ao ritmo rápido.
 export const POLLING_RAPIDO_MS = 5_000;
 export const POLLING_LENTO_MS = 15_000;
 const JANELA_ATIVA_MS = 120_000;
@@ -288,9 +263,6 @@ export function intervaloDaConversa(conversa: ConversaVista | undefined, agora: 
     : POLLING_LENTO_MS;
 }
 
-// O que a Recepção lê depois de pedir o cadastro: criado e já existente são sucesso (o número tem
-// contato no Cliente); em outro Cliente e e-mail repetido não cadastram nada e pedem atenção.
-// `campo`: o campo do formulário a que o erro pertence (o leitor de tela anuncia só esse como inválido).
 export type AvisoDoContatoUra = { tipo: "erro" | "sucesso"; texto: string; campo?: "email" };
 
 export function avisoDoPainelDeContatoUra(

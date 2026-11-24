@@ -8,13 +8,11 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { ANEXO_TAMANHO_MAXIMO } from "@/shared/kernel/anexo";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// ~0,6 s de silêncio em ogg/opus (o formato da mensagem de voz do WhatsApp), tocável no navegador.
 const OGG_OPUS_BASE64 =
   "T2dnUwACAAAAAAAAAAAXuhUhAAAAAFlxWgQBE09wdXNIZWFkAQE4AYA+AAAAAABPZ2dTAAAAAAAAAAAAABe6FSEBAAAACFp2kQE+T3B1c1RhZ3MNAAAATGF2ZjYwLjE2LjEwMAEAAAAdAAAAZW5jb2Rlcj1MYXZjNjAuMzEuMTAyIGxpYm9wdXNPZ2dTAAS4cQAAAAAAABe6FSECAAAAvMlSqh8HBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGCAvkuaC8hAgHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxggHxrMOxg==";
 const PNG_1X1_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
-// Word e Excel mínimos e válidos (um parágrafo; uma planilha "Balancete" com duas linhas).
 const DOCX_BASE64 =
   "UEsDBBQAAAAIAANaTl15bjPX6AAAAK0BAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbH1QyU7DMBD9FWuuKHHggBCK0wPLETiUDxjZk8SqN3nc0v49Tlt6QIXjzFv1+tXeO7GjzDYGBbdtB4KCjsaGScHn+rV5AMEFg0EXAyk4EMNq6NeHRCyqNrCCuZT0KCXrmTxyGxOFiowxeyz1zJNMqDc4kbzrunupYygUSlMWDxj6Zxpx64p42df3qUcmxyCeTsQlSwGm5KzGUnG5C+ZXSnNOaKvyyOHZJr6pBJBXExbk74Cz7r0Ok60h8YG5vKGvLPkVs5Em6q2vyvZ/mys94zhaTRf94pZy1MRcF/euvSAebfjpL49zD99QSwMEFAAAAAgAA1pOXZv9N+qtAAAAKQEAAAsAAABfcmVscy8ucmVsc43POw7CMAwG4KtE3mlaBoRQ0y4IqSsqB7ASN61oHkrCo7cnAwNFDIy2f3+W6/ZpZnanECdnBVRFCYysdGqyWsClP232wGJCq3B2lgQsFKFt6jPNmPJKHCcfWTZsFDCm5A+cRzmSwVg4TzZPBhcMplwGzT3KK2ri27Lc8fBpwNpknRIQOlUB6xdP/9huGCZJRydvhmz6ceIrkWUMmpKAhwuKq3e7yCzwpuarF5sXUEsDBBQAAAAIAANaTl0rPyu7xgAAACABAAARAAAAd29yZC9kb2N1bWVudC54bWxtj8FqwzAMhl/F+N463WGMkKSHwp5gewAvVluDLRnJSdbHGTv0QfJiswujh/byCSHp41e3/45BzcDiCXu92zZaAY7kPJ56/fnxvnnTSrJFZwMh9PoCovdDt7SOxikCZlUEKO3S63POqTVGxjNEK1tKgGV2JI42l5ZPZiF2iWkEkeKPwbw0zauJ1qOuyi9yl1pTBVfk4UCY2WZSDlRiKFHW6/p7awV49uuVpDN1s5JvTA+SsP5MMgVbFD6CZ/vkxPwHMPfnhj9QSwECFAAUAAAACAADWk5deW4z1+gAAACtAQAAEwAAAAAAAAAAAAAAgAEAAAAAW0NvbnRlbnRfVHlwZXNdLnhtbFBLAQIUABQAAAAIAANaTl2b/TfqrQAAACkBAAALAAAAAAAAAAAAAACAARkBAABfcmVscy8ucmVsc1BLAQIUABQAAAAIAANaTl0rPyu7xgAAACABAAARAAAAAAAAAAAAAACAAe8BAAB3b3JkL2RvY3VtZW50LnhtbFBLBQYAAAAAAwADALkAAADkAgAAAAA=";
 const XLSX_BASE64 =
@@ -22,7 +20,6 @@ const XLSX_BASE64 =
 
 const bytesDeBase64 = (base64: string) => new Uint8Array(Buffer.from(base64, "base64"));
 
-// Mídias de teste do adapter falso, escolhidas pelo id que a notificação traz.
 const CATALOGO: Record<string, () => MidiaBaixada> = {
   "midia-teste-audio": () => ({
     bytes: bytesDeBase64(OGG_OPUS_BASE64),
@@ -55,8 +52,6 @@ const CATALOGO: Record<string, () => MidiaBaixada> = {
   }),
 };
 
-// Adapter falso (padrão em dev/e2e): não fala com o provedor. Reproduz os dois erros que a Cloud API
-// dá ao baixar: mídia expirada/inexistente (permanente) e indisponibilidade (transitória).
 export class DownloadMidiaFalsoGateway implements DownloadMidiaPort {
   async baixar(idDaMidia: string): Promise<Result<MidiaBaixada, AppError>> {
     if (idDaMidia === "midia-teste-fora-do-ar") {

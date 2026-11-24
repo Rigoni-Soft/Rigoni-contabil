@@ -6,7 +6,6 @@ import type { ConversaVista } from "@/modules/atendimento/application/ports/in/o
 import { obterConversaAction, reagirAMensagemAction } from "./conversa.actions";
 import { useMensagensConversa } from "./use-mensagens-conversa.hook";
 
-// conversa.queries invalida as chaves da Fila e dos Meus atendimentos: importa os módulos delas.
 jest.mock("@/main/client/upload-de-anexo.factory", () => ({ makeUploadDeAnexo: jest.fn() }));
 jest.mock("../fila/fila.actions", () => ({ listarFilaAction: jest.fn() }));
 jest.mock("../meus-atendimentos/meus-atendimentos.actions", () => ({
@@ -112,7 +111,6 @@ describe("useMensagensConversa — reação (#84)", () => {
     });
     expect(result.current.arraste.ligacoes).toBeDefined();
 
-    // Uma mutação de anexo em andamento (a região do campo de resposta é quem a dispara).
     let concluir: () => void = () => {};
     void cliente
       .getMutationCache()

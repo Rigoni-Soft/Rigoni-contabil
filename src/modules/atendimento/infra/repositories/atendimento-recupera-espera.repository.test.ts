@@ -1,9 +1,3 @@
-/**
- * A espera sem destinatário (fora da Recepção) passa ao destinatário assim que ele surge:
- * Responsável atribuído depois ou Líder ativado depois. Mesmo ID, mensagens e tempo; a espera já dirigida,
- * o Atendimento assumido e a Recepção não mudam; só o destinatário assume, mesmo na disputa.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { exigirSupabaseLocal } from "../../../../../test-support/exigir-supabase-local";
@@ -67,7 +61,6 @@ async function estado(id: string) {
 }
 
 beforeAll(async () => {
-  // Setor sem Líder nem espera aberta: senão o destino já existiria.
   await admin.from("atendimentos").delete().eq("setor", SETOR).is("funcionario_id", null);
   const r = await admin.from("clientes").insert({
     id: clienteId,

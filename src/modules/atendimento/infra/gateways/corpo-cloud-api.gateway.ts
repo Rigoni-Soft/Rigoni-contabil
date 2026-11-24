@@ -4,8 +4,6 @@ import type {
   TemplateEnviado,
 } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
 
-// Corpo de `POST /{phone-number-id}/messages` da WhatsApp Cloud API (Meta), compartilhado pelo
-// adapter real e pelo falso pra que o falso não divirja do que vai pro provedor.
 export type TemplateComponents = (
   | {
       type: "header";
@@ -60,7 +58,6 @@ export function parteTemplate(template: TemplateEnviado): ParteCorpo {
 
 export function parteAnexo(anexo: AnexoEnviado): ParteCorpo {
   const { telefone: to, url, nomeArquivo, legenda } = anexo;
-  // Áudio não tem legenda na Cloud API; imagem e documento têm `caption`.
   const caption = legenda ? { caption: legenda } : {};
   if (anexo.tipo === "imagem") return { to, type: "image", image: { link: url, ...caption } };
   if (anexo.tipo === "audio") return { to, type: "audio", audio: { link: url } };

@@ -23,7 +23,6 @@ export function FeriadosContainer({ feriados }: FeriadosContainerProps) {
     formState: { errors },
   } = useForm<CadastrarFeriadoFormValues>({ resolver: zodResolver(cadastrarFeriadoSchema) });
 
-  // Cadastrar e remover compartilham o ciclo: pendente, erro do servidor e recarga da lista.
   const executar = async (acao: () => Promise<{ ok: boolean; error?: { message: string } }>) => {
     setPendente(true);
     setErroServidor(undefined);

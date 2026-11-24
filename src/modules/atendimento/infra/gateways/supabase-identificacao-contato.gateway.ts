@@ -10,7 +10,6 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Usa o client service_role (docs/adr/0001): quem escreve pelo WhatsApp não tem sessão.
 export class SupabaseIdentificacaoContatoGateway implements IdentificacaoContatoPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
@@ -21,7 +20,6 @@ export class SupabaseIdentificacaoContatoGateway implements IdentificacaoContato
       p_telefone: telefone,
     });
     if (error) return err(new ServicoExternoError("Falha ao identificar o contato."));
-    // O banco devolve uma linha por Cliente; mais de uma é número ambíguo.
     const linhas = (data as { cliente_id: string; nome: string; empresa: string }[] | null) ?? [];
     if (new Set(linhas.map((l) => l.cliente_id)).size > 1) return ok("ambiguo");
     const linha = linhas[0];
@@ -44,7 +42,6 @@ export class SupabaseIdentificacaoContatoGateway implements IdentificacaoContato
     return ok(linha.data.regime);
   }
 
-  // Só existência: não há linha de Cliente a mapear, então não passa por Row DTO.
   async cnpjCadastrado(cnpj: string): Promise<Result<boolean, AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("clientes")

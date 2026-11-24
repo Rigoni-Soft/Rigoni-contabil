@@ -109,12 +109,10 @@ function montar(
       buscados.push(telefone);
       return ok(opcoes.contato === undefined ? ana : opcoes.contato);
     },
-    // Por padrão o Cliente é do Simples Nacional (a lista de setores inclui o Simples Nacional).
     regimeDoCliente: async () =>
       opcoes.regimeFalha
         ? err(new ServicoExternoError("banco"))
         : ok(opcoes.regime === undefined ? "simples_nacional" : opcoes.regime),
-    // Por padrão o CNPJ de teste existe em um Cliente (o número é que não é Contato).
     cnpjCadastrado: async (cnpj) =>
       opcoes.cnpjFalha
         ? err(new ServicoExternoError("banco"))
@@ -165,7 +163,6 @@ function montar(
       return ok({ id: "at-1" });
     },
   };
-  // Por padrão: quarta-feira, 10h em São Paulo (expediente aberto).
   const relogio: RelogioPort = {
     agora: () => opcoes.agora ?? new Date("2026-10-07T10:00:00-03:00"),
   };
@@ -284,7 +281,6 @@ describe("ReceberMensagem", () => {
     const { caso, enviadas, documentosEnviados, guiasBuscadas } = montar();
     const r = await caso.execute({ telefone: "5511912345678", texto: "4" });
     expect(r.ok).toBe(true);
-    // O CNPJ nunca é perguntado: a busca usa o Cliente ligado ao contato.
     expect(guiasBuscadas).toEqual([{ clienteId: ana.clienteId, tipo: "cnd" }]);
     expect(documentosEnviados).toEqual([
       { telefone: "5511912345678", nomeArquivo: "cnd.pdf", pdfBase64: "pdf-cnd" },
@@ -528,8 +524,6 @@ describe("ReceberMensagem — fora do expediente (#72)", () => {
 });
 
 function alteracoes(quantidade: number): DocumentoContratual[] {
-  // Como o gateway entrega: nº decrescente. As datas correm ao contrário, para provar que a
-  // ordem é pelo nº.
   return Array.from({ length: quantidade }, (_, i) => ({
     tipo: "alteracao" as const,
     numero: i + 1,
@@ -698,7 +692,6 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     expect(enviadas[1].texto).toContain("página 1 de 2");
     await caso.execute({ telefone: FONE, texto: "mais" });
     expect(enviadas[2].texto).toContain("página 2 de 2");
-    // Valor fixo: o hash vem só dos caminhos, na ordem exibida (alt-12 … alt-1).
     expect(gravadas[0]).toEqual({ etapa: "tipo_documento" });
     expect(gravadas[1]).toMatchObject({ pagina: 1, lista: "1m5itzn0pj2" });
   });
@@ -947,7 +940,6 @@ describe("ReceberMensagem — lista de alterações mudou com a sessão aberta",
       expect(enviadas.at(-1)?.texto).toContain(documentos.length === 4 ? "4 - " : "2 - ");
       expect(sessoes.get(CHAVE)).not.toEqual(antes);
 
-      // Com a lista nova já exibida, a mesma escolha passa a valer.
       await caso.execute({ telefone: FONE, texto: "1" });
       expect(documentosEnviados).toHaveLength(1);
     },

@@ -14,7 +14,6 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Bucket privado dos acordos, onde a guia anexada fica guardada.
 const BUCKET = "parcelamentos-clientes";
 
 const linhaSchema = z.array(
@@ -30,7 +29,6 @@ const linhaSchema = z.array(
   }),
 );
 
-// Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
 export class SupabaseGuiasPgfnGateway implements GuiasPgfnPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
@@ -61,7 +59,6 @@ export class SupabaseGuiasPgfnGateway implements GuiasPgfnPort {
   }
 
   async ler(clienteId: string, caminho: string): Promise<Result<string, AppError>> {
-    // A guia nasce em `${clienteId}/guias-pgfn/...`: a de outro Cliente nunca é lida.
     if (!caminho.startsWith(`${clienteId}/guias-pgfn/`) || caminho.includes("..")) {
       return err(new ServicoExternoError("Guia não pertence ao cliente."));
     }

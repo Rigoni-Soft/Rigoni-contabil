@@ -16,8 +16,6 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// O cadastro roda com a sessão do usuário (a função do banco confere Recepção e dono do Atendimento
-// e audita). A leitura do Cliente usa o service_role: a Recepção não lê `clientes` direto (só o Admin).
 export class SupabaseContatoUraGateway implements ContatoUraPort {
   constructor(
     private readonly supabaseUsuario: SupabaseClient,

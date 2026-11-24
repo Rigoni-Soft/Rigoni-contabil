@@ -12,9 +12,6 @@ import type { AppError } from "@/shared/errors/app.error";
 import { comTentativas } from "@/shared/kernel/com-tentativas";
 import { ok, type Result } from "@/shared/kernel/result";
 
-// Janela de 24h aberta: formato próprio do sistema (grátis). Fechada: template aprovado.
-// Cada envio repete sozinho em falha transitória (`tentativas`): na janela aberta o texto que já
-// chegou não sai de novo quando só o documento falhou.
 export class EnviarComunicacaoProativa implements EnviarComunicacaoProativaPort {
   constructor(
     private readonly envio: EnvioMensagemPort,

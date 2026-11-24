@@ -78,7 +78,6 @@ describe("ListarFila", () => {
       return r.ok ? r.value.map((i) => i.atendimentoId) : null;
     };
 
-    // at-1 não tem destinatário e at-2 é dirigido a func-1.
     expect(await ids({ id: "func-2", papel: "funcionario", setor: "contabil" })).toEqual([]);
     expect(await ids(FUNCIONARIO)).toEqual(["at-2"]);
     expect(await ids({ id: "lid", papel: "lider_setor", setor: "contabil" })).toEqual([

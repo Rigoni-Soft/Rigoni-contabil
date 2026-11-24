@@ -6,7 +6,6 @@ import type { FormatoDeOffice } from "@/shared/kernel/anexo";
 
 type PreviaDeOfficeContainerProps = {
   nome: string;
-  // Endereço do arquivo para o navegador ler (sem cabeçalho de download).
   url: string;
   formato: FormatoDeOffice;
   painelId: string;

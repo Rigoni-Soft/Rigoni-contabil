@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) de assumir um Atendimento da espera do Setor.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { SupabaseAtendimentoRepository } from "./atendimento.repository";
@@ -14,7 +10,6 @@ const SERVICE_KEY =
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 const repositorio = new SupabaseAtendimentoRepository(admin);
 
-// A espera comum (sem destinatário) existe só na Recepção: é onde dois Funcionários disputam o clique.
 const SETOR = "recepcao" as const;
 const OUTRO_SETOR = "rh" as const;
 const TELEFONES = [
@@ -43,7 +38,6 @@ async function criarUsuario(
   return id;
 }
 
-// Atendimento aguardando no Setor, sem dono: gravado direto, como no estado de espera.
 async function emEspera(telefone: string): Promise<string> {
   const { data, error } = await admin
     .from("atendimentos")

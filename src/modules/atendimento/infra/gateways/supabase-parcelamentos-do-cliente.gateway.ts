@@ -12,7 +12,6 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { SETORES } from "@/shared/kernel/setores";
 
-// O que se lê de um Parcelamento em aberto; a leitura das guias PGFN acrescenta só as guias.
 export const COLUNAS_DO_PARCELAMENTO =
   "id, codigo, interno, setor, valor_parcela_centavos, parcelas_restantes, cliente_parcelamento_envios(parcela)";
 
@@ -50,7 +49,6 @@ const entreguesSchema = z.array(
 );
 const registroSchema = z.enum(["registrado", "ja_registrado", "nao_elegivel"]);
 
-// Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
 export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoClientePort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
@@ -61,8 +59,6 @@ export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoCli
       .eq("cliente_id", clienteId)
       .eq("situacao", "em_aberto")
       .gt("parcelas_restantes", 0)
-      // PGFN tem outro caminho (o PDF do escritório): nunca vai ao provedor fiscal. Origem nula
-      // (digitado à mão) é tratada como Receita.
       .or("origem.is.null,origem.eq.receita_federal")
       .order("criado_em");
     const lidas = linhaSchema.safeParse(data);
@@ -91,8 +87,6 @@ export class SupabaseParcelamentosDoClienteGateway implements ParcelamentosDoCli
         "parcelamento_id, parcela, identidade, caminho, cliente_parcelamentos!inner(cliente_id)",
       )
       .eq("cliente_parcelamentos.cliente_id", clienteId)
-      // A identidade só prende guia do provedor fiscal a acordo dele: o envio PGFN (PDF do escritório)
-      // não pode excluir nem consumir guia da Receita da mesma parcela.
       .or("origem.is.null,origem.eq.receita_federal", { referencedTable: "cliente_parcelamentos" });
     const lidas = entreguesSchema.safeParse(data);
     if (error || !lidas.success) {

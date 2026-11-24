@@ -25,7 +25,6 @@ describe("useFocoNoChat", () => {
     rerender(<Chat abertoId="a" pronto />);
     expect(foco()).toBe("chat");
 
-    // O usuário foi para outro lugar: reler a mesma conversa não puxa o foco de volta.
     getByLabelText("chat").blur();
     rerender(<Chat abertoId="a" pronto />);
     expect(foco()).toBeNull();

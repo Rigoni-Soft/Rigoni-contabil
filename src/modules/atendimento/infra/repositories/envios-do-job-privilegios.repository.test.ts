@@ -1,8 +1,3 @@
-/**
- * Fronteira de acesso das RPCs que só o job de envio (service_role) chama: `anon` e `authenticated`
- * não têm EXECUTE (o baseline concede EXECUTE a authenticated por default privileges, então o REVOKE de
- * PUBLIC não basta). Só tentativa de leitura: não escreve nada. Requer `npx supabase start` local.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { exigirSupabaseLocal } from "../../../../../test-support/exigir-supabase-local";
@@ -66,8 +61,6 @@ describe("RPCs do job de envio: só o service_role executa", () => {
   });
 });
 
-// Escreve no sino (SECURITY DEFINER): só o service_role e o trigger a chamam. O teste só tenta como
-// quem não pode, então nada é gravado.
 describe("avisar_sem_meio_de_envio: quem não é service_role é negado", () => {
   const args = {
     p_cliente_id: crypto.randomUUID(),

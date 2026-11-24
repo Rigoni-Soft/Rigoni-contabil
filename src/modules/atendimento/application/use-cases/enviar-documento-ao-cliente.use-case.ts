@@ -32,7 +32,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const ACAO = "atendimento.enviar_documento";
 
-// O que o Funcionário escolheu, já resolvido: como o cliente o vê e como entregá-lo.
 type Preparado = {
   descricao: string;
   entregar: (telefone: string, chaveIdempotencia: string) => Promise<Result<void, AppError>>;
@@ -40,8 +39,6 @@ type Preparado = {
 
 const ehGuia = (tipo: DocumentoParaEnviar["tipo"]): tipo is TipoGuia => tipo in ROTULO_GUIA;
 
-// Funcionário dispara o mesmo serviço do menu da URA usando o Cliente já vinculado ao Atendimento
-// (sem perguntar o CNPJ de novo). Mesma regra de quem pode agir que a Transferência.
 export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -74,8 +71,6 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
       return err(new ValidationError("O Atendimento não tem Cliente vinculado."));
     }
 
-    // Antes de registrar: documento ausente, guia sem autorização fiscal ou provedor fora do ar
-    // devolvem o erro sem deixar Mensagem no Atendimento, mas a tentativa fica auditada.
     const preparado = await this.preparar(atendimento.clienteId, documento);
     if (!preparado.ok) {
       await this.auditar(ator, atendimentoId, "falha");
@@ -83,7 +78,6 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
     }
     const { descricao, entregar } = preparado.value;
 
-    // Registro antes da entrega, sob o lock do Atendimento (ver EnviarMensagemAoCliente).
     const registrada = await this.repositorio.registrarMensagemDoFuncionario(
       atendimentoId,
       ator,
@@ -127,8 +121,6 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
     });
   }
 
-  // O CNPJ vem do cadastro do Cliente, como na URA. Sem autorização fiscal vigente o provedor
-  // devolve `ForbiddenError`, que o painel mostra ao Funcionário.
   private async prepararGuia(
     clienteId: string,
     tipo: TipoGuia,
@@ -137,7 +129,6 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
     try {
       guia = await this.guias.buscar(clienteId, tipo);
     } catch (erro) {
-      // Só a mensagem: o objeto de erro inteiro poderia levar o CNPJ ao log.
       this.erros.registrar(
         `Falha inesperada ao buscar a guia ${tipo}:`,
         erro instanceof Error ? erro.message : "erro desconhecido",

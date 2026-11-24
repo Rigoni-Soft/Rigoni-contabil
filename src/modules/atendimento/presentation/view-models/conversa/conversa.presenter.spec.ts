@@ -178,7 +178,6 @@ describe("conversaParaView", () => {
     expect(conversaParaView({ ...semCliente, ura: null }).subtitulo).toBe(
       "Cliente não identificado",
     );
-    // O CNPJ informado aparece mesmo sem resumo da URA; o bloco de contexto é que some.
     const semResumo = { ...semCliente, ura: { resumo: null, cnpjInformado: "11444777000161" } };
     expect(conversaParaView(semResumo).subtitulo).toContain("Provável cliente novo");
     expect(conversaParaView(semResumo).contexto).toBeNull();
@@ -428,7 +427,6 @@ describe("manterHistorico", () => {
     expect(manterHistorico(nova, lida([["c", "2026-10-14T12:00:00Z"]], true))).toBe(nova);
   });
 
-  // Mensagens m001..m350 em ordem, uma por minuto (id ordenável como a data).
   const sequencia = (de: number, ate: number) =>
     Array.from({ length: ate - de + 1 }, (_, i): [string, string] => {
       const n = de + i;
@@ -461,7 +459,6 @@ describe("manterHistorico", () => {
   });
 
   it("depois da recarga, as páginas anteriores recompõem uma sequência contínua e alcançável", () => {
-    // A janela nova vale sozinha; o cursor do "ver anteriores" parte da primeira dela.
     const recarregada = manterHistorico(
       lida(sequencia(251, 350), true),
       lida(sequencia(1, 100), false),
@@ -502,7 +499,6 @@ describe("renovação de links de anexos antigos", () => {
     ]);
 
     expect(idsComLinkVencendo(c, AGORA_MS, 20, margem)).toEqual(["velho", "vencido"]);
-    // Uma hora depois todos estão vencendo.
     expect(idsComLinkVencendo(c, AGORA_MS + 60 * 60_000, 20, margem)).toEqual([
       "velho",
       "longe",
@@ -526,7 +522,6 @@ describe("renovação de links de anexos antigos", () => {
     const ids = idsComLinkVencendo(c, AGORA_MS, 20, margem, (id) => !emEspera.has(id));
 
     expect(ids).toEqual(["m20", "m21", "m22", "m23", "m24"]);
-    // Sem ninguém em espera, o teto do lote continua valendo.
     expect(idsComLinkVencendo(c, AGORA_MS, 20, margem, () => true)).toHaveLength(20);
   });
 
@@ -580,12 +575,10 @@ describe("página anterior atrasada", () => {
   });
 
   it("descarta a página se o polling trocou a janela: sem junção descontínua nem falso fim", () => {
-    // Pedido feito com a tela em m101..; o polling a substituiu por m351.. e só então a página chega.
     const atual = tela(["m351", "m352"], true);
     const r = acrescentarAnteriores(atual, "m101", pagina(["m1", "m100"], false));
     expect(r).toBe(atual);
     expect(r.temMaisAnteriores).toBe(true);
-    // Um novo pedido, agora a partir do cursor atual, entra normalmente.
     const refeita = acrescentarAnteriores(atual, "m351", pagina(["m350"], true));
     expect(refeita.mensagens.map((m) => m.id)).toEqual(["m350", "m351", "m352"]);
   });

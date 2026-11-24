@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase Storage (testes.md, seção 3) do bucket `anexos-atendimento`.
- * Requer `npx supabase start` local com a migration de anexos aplicada.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { SupabaseAnexosAtendimentoGateway } from "./supabase-anexos-atendimento.gateway";
@@ -29,7 +25,6 @@ async function guardar(nome: string, tipoMime: string, conteudo = new Uint8Array
   return r;
 }
 
-// Atendimento real: a reserva tem chave estrangeira para ele.
 const ATENDIMENTO_REAL = crypto.randomUUID();
 const TELEFONE_DA_RESERVA = `6195559${Date.now().toString().slice(-4)}`;
 
@@ -44,7 +39,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // A reserva cai em cascata com o Atendimento.
   await admin.from("atendimentos").delete().eq("id", ATENDIMENTO_REAL);
 });
 
@@ -120,7 +114,6 @@ describe("SupabaseAnexosAtendimentoGateway", () => {
     const resposta = await fetch(link!.url);
     expect(resposta.status).toBe(200);
     expect([...new Uint8Array(await resposta.arrayBuffer())]).toEqual([1, 2, 3]);
-    // Baixar força o download (anexo); ver serve o mesmo arquivo para o navegador abrir.
     expect(resposta.headers.get("content-disposition")).toMatch(/^attachment/);
     const ver = await fetch(link!.urlVisualizacao);
     expect(ver.status).toBe(200);
@@ -160,7 +153,6 @@ describe("SupabaseAnexosAtendimentoGateway", () => {
 
     expect((await gateway.remover(caminho)).ok).toBe(true);
 
-    // Sem arquivo não há link, e isso não é erro da leitura: o anexo some da resposta.
     const links = await gateway.linksTemporarios([caminho]);
     expect(links.ok && links.value[caminho]).toBeUndefined();
   });

@@ -5,7 +5,6 @@ import type { ConversaVista } from "@/modules/atendimento/application/ports/in/o
 import { useContatoUra } from "@/modules/atendimento/presentation/view-models/conversa/use-contato-ura.hook";
 import { useConversa } from "@/modules/atendimento/presentation/view-models/conversa/use-conversa.hook";
 
-// A região "Contato do cliente" do painel de ações: o cadastro do número como contato URA.
 export function ContatoUraContainer({
   atendimentoId,
   initialData,

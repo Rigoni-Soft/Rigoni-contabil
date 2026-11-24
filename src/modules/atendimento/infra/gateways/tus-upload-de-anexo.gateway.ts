@@ -7,7 +7,6 @@ import { normalizarMime } from "@/shared/kernel/anexo";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const BUCKET = "anexos-atendimento";
-// Tamanho de cada parte: o do Storage do Supabase (a TUS dele exige 6 MB).
 const PARTE_BYTES = 6 * 1024 * 1024;
 const FALHA = "Não foi possível enviar o arquivo. Confira a conexão e tente de novo.";
 
@@ -15,9 +14,6 @@ function nomeSeguro(nome: string): string {
   return nome.replace(/[^\w.-]+/g, "_").slice(-120) || "arquivo";
 }
 
-// Upload resumível (TUS) do Supabase Storage, do navegador. O token é o do usuário logado: sem
-// policy de INSERT que o autorize (migration 20261014130000_mensagens_anexos_e_entrega.sql), o Storage recusa. Cada parte falha e
-// repete sozinha (o tus-js-client retoma de onde parou) antes de devolver erro.
 export class TusUploadDeAnexoGateway implements UploadDeAnexoPort {
   constructor(
     private readonly supabaseUrl: string,
@@ -37,7 +33,6 @@ export class TusUploadDeAnexoGateway implements UploadDeAnexoPort {
   }): Promise<Result<string, AppError>> {
     const token = await this.tokenDoUsuario();
     if (!token) return err(new ServicoExternoError("Sua sessão expirou. Entre de novo."));
-    // Uma pasta por envio (como no envio pelo servidor): o link com `download` entrega o nome original.
     const caminho = `${atendimentoId}/${crypto.randomUUID()}/${nomeSeguro(nome)}`;
     return new Promise((resolve) => {
       new tus.Upload(conteudo, {
@@ -49,7 +44,6 @@ export class TusUploadDeAnexoGateway implements UploadDeAnexoPort {
         metadata: {
           bucketName: BUCKET,
           objectName: caminho,
-          // Só o tipo, sem parâmetros: o bucket confere contra a lista fechada.
           contentType: normalizarMime(tipoMime),
           cacheControl: "3600",
         },

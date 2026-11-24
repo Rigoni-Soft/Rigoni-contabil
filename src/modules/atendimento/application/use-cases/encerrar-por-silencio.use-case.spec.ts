@@ -5,8 +5,6 @@ import { err, ok } from "@/shared/kernel/result";
 
 import { EncerrarPorSilencio } from "./encerrar-por-silencio.use-case";
 
-// Repositório que guarda a última mensagem do cliente de cada Atendimento e encerra, como o banco,
-// os que ela deixou para trás do corte.
 function montar(agora: Date, ultimasDoCliente: Record<string, Date>) {
   const encerrados: string[] = [];
   const chamadas: { corte: Date; ator: string }[] = [];

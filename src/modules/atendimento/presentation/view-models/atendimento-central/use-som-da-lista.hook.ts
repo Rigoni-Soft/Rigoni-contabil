@@ -5,14 +5,10 @@ import type { AtendimentoEmAndamentoView } from "@/modules/atendimento/presentat
 
 type Conversa = Pick<AtendimentoEmAndamentoView, "id" | "aguardando" | "sinal">;
 
-// O aviso sonoro do Atendimento (na tela dele e, via menu, nas demais): toca quando surge um Atendimento na
-// espera ou o cliente escreve de novo numa conversa que não está aberta. A primeira leitura de cada
-// lista é silenciosa. Dois sons na mesma leitura viram um só.
 export function useSomDaLista(
   idsDaEspera: string[],
   emAtendimento: Conversa[],
   abertoId: string | null,
-  // Falso quando outro som já cobre esta leitura (a tela Atendimento): guarda a base, sem tocar.
   ativo = true,
 ) {
   const esperaAnterior = useRef<Set<string> | null>(null);
@@ -39,7 +35,6 @@ export function useSomDaLista(
       conversasAntes !== null &&
       [...conversas].some(([id, sinal]) => id !== abertoId && conversasAntes.get(id) !== sinal);
     if (ativo && (chegouNaEspera || clienteEscreveu)) tocarNotificacao();
-    // As listas entram pelas chaves: um array novo com o mesmo conteúdo não é leitura nova.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chaveDaEspera, chaveDasConversas, abertoId]);
 }

@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) da Transferência de Atendimento.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { abrirComDono } from "../../../../../test-support/atendimento-com-dono";
@@ -15,7 +11,6 @@ const SERVICE_KEY =
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 const repositorio = new SupabaseAtendimentoRepository(admin);
 
-// Números e CNPJ desta suíte, longe do seed e das outras.
 const TELEFONE = "61955550001";
 const TELEFONE_SEM_CLIENTE = "61955550002";
 const TELEFONE_RESUMO = "61955550005";
@@ -259,7 +254,6 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
     const respContabil = await criarFuncionario("Resp Contabil 165", "contabil");
     const respOutroSetor = await criarFuncionario("Resp Outro Setor 165", "recepcao");
 
-    // Só Funcionário ativo do próprio Setor pode ser Responsável.
     const invalido = await admin
       .from("cliente_responsaveis")
       .insert({ cliente_id: clienteId, setor: "contabil", responsavel_id: respOutroSetor });
@@ -274,7 +268,6 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       ok: true,
       value: { regime: "simples_nacional", responsavelId: respContabil },
     });
-    // Outro Setor e consulta sem Setor não herdam o Responsável do Contábil.
     expect(await repositorio.roteamentoDoCliente(clienteId, "financeiro")).toMatchObject({
       value: { responsavelId: null },
     });
@@ -343,18 +336,15 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       .upsert({ cliente_id: clienteId, setor: "condominios", responsavel_id: resp });
     if (atribuido.error) throw atribuido.error;
 
-    // Com Responsável ativo no Setor: só ele.
     expect(await abrirNaUra(TELEFONES_URA[0], clienteId, "condominios")).toEqual({
       funcionario_id: null,
       fila_funcionario_id: resp,
     });
-    // A Recepção responde por todo cliente: espera comum, sem destinatário.
     expect(await abrirNaUra(TELEFONES_URA[3], clienteId, "recepcao")).toEqual({
       funcionario_id: null,
       fila_funcionario_id: null,
     });
 
-    // Responsável desativado: o Líder do Setor. Cliente não identificado também.
     await comDesativado(resp, async () => {
       expect(await abrirNaUra(TELEFONES_URA[1], clienteId, "condominios")).toEqual({
         funcionario_id: null,
@@ -367,7 +357,6 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
       fila_funcionario_id: liderCondominios,
     });
 
-    // Sem Líder ativo nem Responsável: espera comum do Setor.
     await comDesativado(liderCondominios, async () => {
       expect(await abrirNaUra(TELEFONES_URA[2], null, "condominios")).toEqual({
         funcionario_id: null,
@@ -444,7 +433,6 @@ describe("SupabaseAtendimentoRepository — Transferência", () => {
     expect(data).toEqual({ setor: "recepcao" });
   });
 
-  // Cada teste desativa o perfil, confere e reativa — sem depender da ordem da suíte.
   async function comDesativado(id: string, verificar: () => Promise<void>) {
     await admin.from("perfis").update({ desativado_em: new Date().toISOString() }).eq("id", id);
     try {

@@ -138,7 +138,6 @@ describe("EntregarComunicacaoPorCanais", () => {
       agora,
     });
     expect(resultado.ok && resultado.value.entregues).toBe(2);
-    // Ana está com a janela aberta (formato próprio); Bia, fechada (template).
     expect(envio.enviadas).toHaveLength(1);
     expect(envio.templatesEnviados).toMatchObject([
       { telefone: "5511987654321", variaveis: ["Bia Exemplo", "Cliente Exemplo Ltda"] },

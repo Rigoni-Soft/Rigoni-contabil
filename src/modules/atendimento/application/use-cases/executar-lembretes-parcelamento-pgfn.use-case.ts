@@ -20,7 +20,6 @@ import type { AppError } from "@/shared/errors/app.error";
 import { diaDoMes, mesAtual } from "@/shared/kernel/mes-atual";
 import { ok, type Result } from "@/shared/kernel/result";
 
-// Fixos, também em fim de semana: o lembrete é para a equipe, não depende de dia útil.
 const DIAS_DO_JOB = [1, 10, 15];
 
 const competenciaMesBarraAno = (agora: Date) => mesAtual(agora).split("-").reverse().join("/");
@@ -44,10 +43,6 @@ function mensagem(
   return `${cliente.empresa}: Parcelamento PGFN sem guia confirmada de ${competenciaMesBarraAno(agora)}. ${grupos.filter(Boolean).join(" ")}`;
 }
 
-// Job dos dias 1/10/15 (fuso de São Paulo): alerta o Setor dono do Parcelamento, um por Cliente e
-// Setor, dos Parcelamentos PGFN sem guia confirmada da competência do mês. Competência atrasada
-// não alerta. Não envia nada ao Cliente. O alerta é renovado a cada rodada e resolvido quando o
-// Cliente volta sem pendência.
 export class ExecutarLembretesParcelamentoPgfn implements ExecutarLembretesParcelamentoPgfnPort {
   constructor(
     private readonly clientes: ClientesComParcelamentoPgfnPort,

@@ -5,7 +5,6 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, type Result } from "@/shared/kernel/result";
 
-// A auditoria (`feriado.remover`) nasce no banco, na mesma transação do DELETE.
 export class RemoverFeriado implements RemoverFeriadoPort {
   constructor(
     private readonly sessao: SessaoPort,

@@ -1,8 +1,3 @@
-/**
- * Integração handler de webhook ↔ caso de uso (testes.md, seção 3), com o
- * provedor simulado: a composição (`main`) é trocada por fakes em memória, mas
- * a autenticação usa o HMAC real.
- */
 import { createHmac } from "node:crypto";
 
 import type { AnexosAtendimentoPort } from "@/modules/atendimento/application/ports/out/anexos-atendimento.provider";
@@ -46,7 +41,6 @@ const sessoes: ConstructorParameters<typeof ReceberMensagem>[3] = {
   },
 };
 
-// Mídia: Atendimento em andamento do número e Mensagens registradas, em memória.
 let atendimentoDaMidia: { atendimentoId: string } | null;
 let registradas: { idExterno?: string; autor: string; texto: string; anexo?: { tipo: string } }[];
 let guardados: string[];
@@ -85,11 +79,9 @@ jest.mock("@/main/atendimento.factory", () => ({
         execute: async () => ok({ id: "at-1", funcionarioId: null }),
       },
       { execute: async () => ok({ anexada: false }) },
-      // Quarta-feira, 10h em São Paulo: o expediente fica aberto independente da hora real.
       { agora: () => new Date("2026-10-07T10:00:00-03:00") },
       { listarDatas: async () => ok([]) },
       { buscar: async () => ok({ nomeArquivo: "DAS.pdf", pdfBase64: "JVBERi0=" }) },
-      // DAS pronto: a opção 2 adianta o envio pelo caso de uso real, só com portas em memória.
       new EntregarDasNaUra(
         {
           obterDas: async () =>

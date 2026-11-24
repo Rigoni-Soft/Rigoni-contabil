@@ -24,7 +24,6 @@ const linhasSchema = z.array(
   }),
 );
 
-// Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
 export class SupabaseDestinosDeEnvioGateway implements DestinosDeEnvioPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
