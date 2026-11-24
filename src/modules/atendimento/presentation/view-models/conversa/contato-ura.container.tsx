@@ -26,6 +26,8 @@ export function ContatoUraContainer({
       buscando={contato.buscando}
       cadastrando={contato.cadastrando}
       aviso={contato.aviso}
+      focoNoBotao={contato.focoNoBotao}
+      refDoAviso={contato.refDoAviso}
       onAbrir={contato.aoAbrir}
       onBuscar={contato.aoBuscar}
       onTrocarCliente={contato.aoTrocarCliente}

@@ -18,16 +18,17 @@ type PainelDeContatoUraProps = {
   cliente?: { empresa: string; cnpj: string };
   buscando: boolean;
   cadastrando: boolean;
-  aviso?: { tipo: "erro" | "sucesso"; texto: string };
+  aviso?: { tipo: "erro" | "sucesso"; texto: string; campo?: "email" };
+  // Cancelar devolve o foco ao botão que volta a existir (DESIGN.md, "Foco do teclado depois da ação").
+  focoNoBotao: boolean;
+  // Ao concluir, o foco vai ao aviso: o formulário que tinha o foco sai da tela.
+  refDoAviso?: React.Ref<HTMLParagraphElement>;
   onAbrir: () => void;
   onBuscar: (cnpj: string) => void;
   onTrocarCliente: () => void;
   onCadastrar: (nome: string, email: string) => void;
   onCancelar: () => void;
 };
-
-// Alvo de toque de 44 px em tela de ponteiro grosso (celular, tablet).
-const ALVO_DE_TOQUE = "pointer-coarse:h-11";
 
 // O campo que a Recepção está preenchendo aponta para o erro do aviso (aria-describedby).
 const ID_DO_AVISO = "contato-ura-aviso";
@@ -43,21 +44,25 @@ export function PainelDeContatoUra({
   buscando,
   cadastrando,
   aviso,
+  focoNoBotao,
+  refDoAviso,
   onAbrir,
   onBuscar,
   onTrocarCliente,
   onCadastrar,
   onCancelar,
 }: PainelDeContatoUraProps) {
-  const vinculoDoErro =
-    aviso?.tipo === "erro" ? { "aria-invalid": true, "aria-describedby": ID_DO_AVISO } : {};
+  // O campo só aponta para o erro que é dele: o do CNPJ na busca, o do e-mail no cadastro ("e-mail repetido").
+  const ligacao = { "aria-invalid": true, "aria-describedby": ID_DO_AVISO };
+  const vinculoDoCnpj = aviso?.tipo === "erro" ? ligacao : {};
+  const vinculoDoEmail = aviso?.tipo === "erro" && aviso.campo === "email" ? ligacao : {};
   return (
     <Pilha espaco={2}>
       <TituloDoGrupo>Contato do cliente</TituloDoGrupo>
       {etapa === "fechado" && !concluido && (
         <>
           <Texto variante="nota">Este número não é contato de nenhum Cliente.</Texto>
-          <Button type="button" size="sm" className={ALVO_DE_TOQUE} onClick={onAbrir}>
+          <Button type="button" size="sm" autoFocus={focoNoBotao} onClick={onAbrir}>
             Cadastrar como contato deste Cliente
           </Button>
         </>
@@ -81,26 +86,19 @@ export function PainelDeContatoUra({
             autoFocus
             inputMode="text"
             autoComplete="off"
-            defaultValue={cnpjSugerido}
-            {...vinculoDoErro}
-            ajuda={cnpjSugerido ? "Sugerido pela URA. Confira antes de cadastrar." : undefined}
+            defaultValue={cliente?.cnpj ?? cnpjSugerido}
+            {...vinculoDoCnpj}
+            ajuda={
+              !cliente && cnpjSugerido
+                ? "Sugerido pela URA. Confira antes de cadastrar."
+                : undefined
+            }
           />
           <Linha espaco={2}>
-            <Button
-              type="submit"
-              size="sm"
-              aria-disabled={buscando}
-              className={`${BOTAO_OCUPADO} ${ALVO_DE_TOQUE}`}
-            >
+            <Button type="submit" size="sm" aria-disabled={buscando} className={BOTAO_OCUPADO}>
               {buscando ? "Buscando…" : "Buscar Cliente"}
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="destructive"
-              className={ALVO_DE_TOQUE}
-              onClick={onCancelar}
-            >
+            <Button type="button" size="sm" variant="destructive" onClick={onCancelar}>
               Cancelar
             </Button>
           </Linha>
@@ -124,7 +122,7 @@ export function PainelDeContatoUra({
             type="button"
             size="sm"
             variant="outline"
-            className={`self-start ${ALVO_DE_TOQUE}`}
+            className="self-start"
             onClick={onTrocarCliente}
           >
             Trocar Cliente
@@ -145,31 +143,29 @@ export function PainelDeContatoUra({
             name="email"
             type="email"
             autoComplete="off"
-            {...vinculoDoErro}
+            {...vinculoDoEmail}
             ajuda={`O WhatsApp é o do atendimento: ${telefone}.`}
           />
           <Linha espaco={2}>
-            <Button
-              type="submit"
-              size="sm"
-              aria-disabled={cadastrando}
-              className={`${BOTAO_OCUPADO} ${ALVO_DE_TOQUE}`}
-            >
+            <Button type="submit" size="sm" aria-disabled={cadastrando} className={BOTAO_OCUPADO}>
               {cadastrando ? "Cadastrando…" : "Cadastrar contato"}
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="destructive"
-              className={ALVO_DE_TOQUE}
-              onClick={onCancelar}
-            >
+            <Button type="button" size="sm" variant="destructive" onClick={onCancelar}>
               Cancelar
             </Button>
           </Linha>
         </Pilha>
       )}
-      {aviso && <AvisoDeStatus {...aviso} id={ID_DO_AVISO} />}
+      {aviso && (
+        <AvisoDeStatus
+          tipo={aviso.tipo}
+          texto={aviso.texto}
+          legivel
+          id={ID_DO_AVISO}
+          ref={refDoAviso}
+          tabIndex={-1}
+        />
+      )}
     </Pilha>
   );
 }

@@ -24,6 +24,8 @@ function montar(etapa: "fechado" | "cliente") {
     etapa,
     concluido: false,
     aviso: undefined,
+    focoNoBotao: false,
+    refDoAviso: { current: null },
     cliente: undefined,
     buscando: false,
     cadastrando: false,

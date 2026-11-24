@@ -1,3 +1,4 @@
+import { createRef } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -19,6 +20,7 @@ function montar(props: Partial<React.ComponentProps<typeof PainelDeContatoUra>> 
       cnpjSugerido=""
       buscando={false}
       cadastrando={false}
+      focoNoBotao={false}
       {...acoes}
       {...props}
     />,
@@ -105,5 +107,73 @@ describe("PainelDeContatoUra", () => {
     expect(campo).toHaveAttribute("aria-invalid", "true");
     expect(campo.getAttribute("aria-describedby")).toContain("contato-ura-aviso");
     expect(screen.getByRole("alert")).toHaveAttribute("id", "contato-ura-aviso");
+  });
+
+  it("o aviso do resultado é legível (14 px), porque a Recepção age em cima dele", () => {
+    montar({
+      concluido: true,
+      aviso: { tipo: "sucesso", texto: "Maria cadastrado como contato." },
+    });
+    expect(screen.getByRole("status")).toHaveClass("text-sm");
+  });
+
+  it("erro que não é do e-mail (número de outro Cliente) não marca o campo E-mail como inválido", () => {
+    montar({
+      etapa: "contato",
+      cliente: { empresa: "Padaria Ltda", cnpj: "11.444.777/0001-61" },
+      aviso: { tipo: "erro", texto: "Este número já é contato de outro Cliente." },
+    });
+    const email = screen.getByLabelText(/E-mail/);
+    expect(email).toHaveAttribute("aria-invalid", "false");
+    expect(email).not.toHaveAttribute(
+      "aria-describedby",
+      expect.stringContaining("contato-ura-aviso"),
+    );
+  });
+
+  it("o erro que é do e-mail (e-mail repetido) marca o campo E-mail e aponta para o aviso", () => {
+    montar({
+      etapa: "contato",
+      cliente: { empresa: "Padaria Ltda", cnpj: "11.444.777/0001-61" },
+      aviso: { tipo: "erro", texto: "Este e-mail já é do contato Rita.", campo: "email" },
+    });
+    const email = screen.getByLabelText(/E-mail/);
+    expect(email).toHaveAttribute("aria-invalid", "true");
+    expect(email.getAttribute("aria-describedby")).toContain("contato-ura-aviso");
+  });
+
+  it("cancelar devolve o foco ao botão que volta a existir", () => {
+    montar({ focoNoBotao: true });
+    expect(
+      screen.getByRole("button", { name: "Cadastrar como contato deste Cliente" }),
+    ).toHaveFocus();
+  });
+
+  it("sem pedido de foco, o botão não rouba o foco ao aparecer", () => {
+    montar();
+    expect(
+      screen.getByRole("button", { name: "Cadastrar como contato deste Cliente" }),
+    ).not.toHaveFocus();
+  });
+
+  it("o aviso do resultado aceita o foco por código (ref, tabIndex -1)", () => {
+    const ref = createRef<HTMLParagraphElement>();
+    montar({
+      concluido: true,
+      refDoAviso: ref,
+      aviso: { tipo: "sucesso", texto: "Maria cadastrado como contato." },
+    });
+    expect(ref.current).toBe(screen.getByRole("status"));
+    expect(ref.current).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("trocar o Cliente volta ao CNPJ que acabou de ser confirmado, sem a ajuda da URA", () => {
+    montar({
+      etapa: "cliente",
+      cnpjSugerido: "11.444.777/0001-61",
+      cliente: { empresa: "Mercado Ltda", cnpj: "90.000.002/0001-73" },
+    });
+    expect(screen.getByLabelText(/CNPJ do Cliente/)).toHaveValue("90.000.002/0001-73");
+    expect(screen.queryByText(/Sugerido pela URA/)).not.toBeInTheDocument();
   });
 });

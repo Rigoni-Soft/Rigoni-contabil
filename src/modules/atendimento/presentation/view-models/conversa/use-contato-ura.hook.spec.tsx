@@ -127,4 +127,44 @@ describe("useContatoUra", () => {
     expect(result.current.etapa).toBe("fechado");
     expect(result.current.cliente).toBeUndefined();
   });
+
+  it("cancelar pede o foco no botão que volta; abrir de novo desfaz o pedido", async () => {
+    const { result } = renderizar();
+    expect(result.current.focoNoBotao).toBe(false);
+    await confirmarCliente(result);
+
+    act(() => result.current.aoCancelar());
+    expect(result.current.focoNoBotao).toBe(true);
+
+    act(() => result.current.aoAbrir());
+    expect(result.current.focoNoBotao).toBe(false);
+  });
+
+  it("concluir leva o foco ao aviso, porque o formulário que o tinha saiu da tela", async () => {
+    cadastrar.mockResolvedValue({
+      ok: true,
+      data: { status: "criado", contatoId: "ct-1", nome: "Maria" },
+    });
+    const { result } = renderizar();
+    await confirmarCliente(result);
+    const aviso = { focus: jest.fn() };
+    (result.current.refDoAviso as { current: unknown }).current = aviso;
+
+    act(() => result.current.aoCadastrar("Maria", ""));
+
+    await waitFor(() => expect(aviso.focus).toHaveBeenCalledTimes(1));
+  });
+
+  it("recusa que não conclui (número em outro Cliente) não move o foco", async () => {
+    cadastrar.mockResolvedValue({ ok: true, data: { status: "em_outro_cliente" } });
+    const { result } = renderizar();
+    await confirmarCliente(result);
+    const aviso = { focus: jest.fn() };
+    (result.current.refDoAviso as { current: unknown }).current = aviso;
+
+    act(() => result.current.aoCadastrar("Maria", ""));
+
+    await waitFor(() => expect(result.current.aviso?.tipo).toBe("erro"));
+    expect(aviso.focus).not.toHaveBeenCalled();
+  });
 });

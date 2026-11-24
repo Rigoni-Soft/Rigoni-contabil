@@ -1189,9 +1189,13 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   cadastrar." só aparece com sugestão) e "Buscar Cliente"; (2) a linha "Cliente: empresa · CNPJ" com
   "Trocar Cliente" em contorno, "Nome" obrigatório, "E-mail (opcional)" com a ajuda do WhatsApp do
   atendimento (que não se edita) e "Cadastrar contato". Cada passo traz "Cancelar" em `destructive`. O foco
-  vai ao campo do passo que abre (o botão que o abriu sumiu) e o botão ocupado fica `aria-disabled`. O
-  resultado é um `AvisoDeStatus`: criado e "já é o contato X" em sucesso e concluem (o botão some); número
-  de outro Cliente e e-mail repetido em erro, com o formulário aberto para trocar o Cliente.
+  vai ao campo do passo que abre (o botão que o abriu sumiu), volta ao "Cadastrar como contato deste
+  Cliente" ao cancelar e vai ao aviso ao concluir (`tabIndex` -1, só por código), e o botão ocupado fica
+  `aria-disabled`. "Trocar Cliente" devolve o CNPJ que acabou de ser confirmado, sem a ajuda da URA. O
+  resultado é um `AvisoDeStatus` `legivel` (14 px, a Recepção age em cima dele): criado e "já é o contato X"
+  em sucesso e concluem (o botão some); número de outro Cliente e e-mail repetido em erro, com o formulário
+  aberto para trocar o Cliente. Só o erro que é do campo o marca `aria-invalid`: o do CNPJ na busca e o de
+  e-mail repetido no e-mail; "número de outro Cliente" não é de campo nenhum.
 - **Encerrar atendimento** (no fim do `PainelDeAcoes`, separado por `border-t`):
   botão `outline`; o primeiro clique só abre a confirmação (`role="alertdialog"`
   com o aviso de que o cliente será avisado) com "Confirmar encerramento"

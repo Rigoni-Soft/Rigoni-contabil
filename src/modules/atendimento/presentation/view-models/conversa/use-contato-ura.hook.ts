@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { formatarCnpj } from "@/presentation/lib/cnpj-mask";
 import type {
@@ -27,6 +27,14 @@ export function useContatoUra(atendimentoId: string) {
   const cadastro = useCadastrarContatoUraMutation(atendimentoId);
 
   const concluido = fechaPainel(resultado);
+  // Foco depois da ação (DESIGN.md): concluir tira o formulário da tela e o foco vai ao aviso; cancelar
+  // devolve o foco ao botão que volta a existir.
+  const refDoAviso = useRef<HTMLParagraphElement>(null);
+  const [focoNoBotao, setFocoNoBotao] = useState(false);
+
+  useEffect(() => {
+    if (concluido) refDoAviso.current?.focus();
+  }, [concluido]);
 
   function limparAvisos() {
     busca.reset();
@@ -50,8 +58,11 @@ export function useContatoUra(atendimentoId: string) {
     cliente: cliente ? { empresa: cliente.empresa, cnpj: formatarCnpj(cliente.cnpj) } : undefined,
     buscando: busca.isPending,
     cadastrando: cadastro.isPending,
+    focoNoBotao,
+    refDoAviso,
     aoAbrir: () => {
       limparAvisos();
+      setFocoNoBotao(false);
       setEtapa("cliente");
     },
     aoBuscar: (cnpj: string) => {
@@ -83,6 +94,7 @@ export function useContatoUra(atendimentoId: string) {
     aoCancelar: () => {
       limparAvisos();
       setCliente(undefined);
+      setFocoNoBotao(true);
       setEtapa("fechado");
     },
   };
