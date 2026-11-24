@@ -24,7 +24,6 @@ describe("listarRegistrosAction (integração)", () => {
     expect(executeMock).not.toHaveBeenCalled();
   });
 
-  // Ator não-UUID rejeitado antes de chegar no caso de uso/repositório.
   it("devolve VALIDATION_ERROR sem chamar o caso de uso quando o ator não é UUID", async () => {
     const resultado = await listarRegistrosAction({ ator: "joão" });
 
