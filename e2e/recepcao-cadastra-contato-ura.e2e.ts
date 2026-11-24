@@ -3,11 +3,9 @@ import { abrirConversaEmAtendimento } from "./support/abrir-conversa";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
-// A Recepção guarda como contato o número que a URA não achou: confirma o Cliente (o CNPJ da URA é só
-// sugestão) e informa nome e e-mail. Os Atendimentos nascem direto no banco, já com a Recepção como dona.
 const admin = adminLocal();
 
-const RECEPCAO = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"; // funcionario.recepcao
+const RECEPCAO = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const CLIENTE_A = crypto.randomUUID();
 const CLIENTE_B = crypto.randomUUID();
 const CNPJ_A = "29700003000110";
@@ -47,7 +45,6 @@ async function limpar() {
 test.describe("Recepção cadastra contato URA", () => {
   test.beforeAll(async () => {
     await limpar();
-    // Sobra de Atendimentos da Recepção de outras execuções desloca a lista da aba.
     await admin.from("atendimentos").delete().eq("funcionario_id", RECEPCAO);
     for (const [id, empresa, cnpj] of [
       [CLIENTE_A, "Padaria Contato Ura Ltda", CNPJ_A],
@@ -83,7 +80,6 @@ test.describe("Recepção cadastra contato URA", () => {
     await abrirConversaEmAtendimento(page, /95557-5001/);
 
     await page.getByRole("button", { name: "Cadastrar como contato deste Cliente" }).click();
-    // O CNPJ que o número informou na URA vem como sugestão, e o foco vai ao campo.
     const cnpj = page.getByLabel(/CNPJ do Cliente/);
     await expect(cnpj).toHaveValue("29.700.003/0001-10");
     await expect(cnpj).toBeFocused();
@@ -167,7 +163,6 @@ test.describe("Recepção cadastra contato URA", () => {
     await expect(page.getByText("Nenhum Cliente com este CNPJ.")).toBeVisible();
     await expect(page.getByLabel(/CNPJ do Cliente/)).toBeVisible();
 
-    // CNPJ com dígito errado nem chega à consulta.
     await page.getByLabel(/CNPJ do Cliente/).fill("29700009000100");
     await page.getByRole("button", { name: "Buscar Cliente" }).click();
     await expect(page.getByText("Informe um CNPJ válido.")).toBeVisible();

@@ -1,7 +1,6 @@
 import { expect, test } from "./fixtures";
 import { login } from "./support/criar-cliente";
 
-// PNG de 1×1 pixel: o navegador recorta e reduz para WebP 256×256 antes de enviar.
 const PNG_1X1 = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
   "base64",

@@ -8,9 +8,6 @@ import {
   login,
 } from "./support/criar-cliente";
 
-// Playwright roda o arquivo de teste fora do Next (não carrega .env.local
-// automaticamente como o runner do Jest faz) — fallback pra chave anon
-// pública padrão do Supabase local (supabase/.env.local, não é segredo).
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SUPABASE_ANON_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
@@ -38,8 +35,6 @@ async function buscarClienteIdPorCnpj(cnpjDigits: string): Promise<string> {
   return data.id as string;
 }
 
-// Em todo Setor o Funcionário só enxerga os Clientes de que é Responsável: para o Funcionário
-// do Financeiro ver o cadastro só para leitura, o e2e o atribui como Responsável no Financeiro.
 async function tornarFinanceiroResponsavel(clienteId: string) {
   const { error } = await adminLocal().from("cliente_responsaveis").insert({
     cliente_id: clienteId,
@@ -59,26 +54,19 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await logout(page);
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    // Simples Nacional é a página principal do próprio setor.
     await expect(page).toHaveURL("/simples-nacional");
     await page.goto(`/clientes/${clienteId}`);
 
     await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeVisible();
-    // Espera a hidratação: preencher antes dela deixa o React Hook Form
-    // reaplicar os valores iniciais por cima do que foi digitado (flaky no
-    // dev server frio, o salvar gravava os defaults).
     await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
 
-    // A forma de envio saiu do cadastro: é o canal de cada contato que recebe envios.
     await expect(page.locator("#formaEnvio")).toHaveCount(0);
     await page.getByLabel("Nome").fill("Maria Contato");
     await page.getByLabel("WhatsApp").fill("11999998888");
     await page.getByLabel("E-mail", { exact: true }).fill("maria.contato@exemplo.com");
-    // O contato novo só entra no cadastro com o Salvar da própria linha.
     await page.getByRole("button", { name: "Salvar contato 1" }).click();
     await expect(page.getByRole("button", { name: "Remover contato 1" })).toBeVisible();
     await page.getByLabel("Documento recebido").selectOption("positivo");
-    // "Enviado" e a data de envio são só do sistema.
     await expect(page.locator("#dasStatus").getByRole("option", { name: "Enviado" })).toHaveCount(
       0,
     );
@@ -90,11 +78,8 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await page.getByRole("button", { name: "Salvar", exact: true }).click();
 
-    // Salvar fecha a tela e volta pro destino certo (sem ?voltarPara= nesta navegação, cai em "/",
-    // que redireciona Funcionário SN de volta pra página principal do próprio setor).
     await expect(page).toHaveURL("/simples-nacional");
 
-    // Reabre a tela do cliente pra conferir que a alteração persistiu.
     await page.goto(`/clientes/${clienteId}`);
 
     await expect(page.getByLabel("Nome")).toHaveValue("Maria Contato");
@@ -120,7 +105,6 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await page.goto(`/clientes/${clienteId}`);
     await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
 
-    // Salvar da linha: grava só o contato, que vira "salvo" (lixeira) e anuncia.
     await page.locator("[id='contatos.0.nome']").fill("Ana Linha");
     await page.locator("[id='contatos.0.telefone']").fill("11988887777");
     await page.getByRole("button", { name: "Salvar contato 1" }).click();
@@ -136,20 +120,17 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
       .single();
     expect(gravado.data?.nome).toBe("Ana Linha");
 
-    // O id é o mesmo depois de recarregar a tela.
     await page.reload();
     await expect(page.locator("[id='contatos.0.nome']")).toHaveValue("Ana Linha");
     const depois = await admin.from("cliente_contatos").select("id").eq("cliente_id", clienteId);
     expect(depois.data).toEqual([{ id: gravado.data?.id }]);
 
-    // Cancelar na linha nova a descarta e não mexe no contato salvo.
     await page.getByRole("button", { name: "Adicionar contato" }).click();
     await page.locator("[id='contatos.1.nome']").fill("Rascunho");
     await page.getByRole("button", { name: "Cancelar edição do contato 2" }).click();
     await expect(page.locator("[id='contatos.1.nome']")).toHaveCount(0);
     await expect(page.locator("[id='contatos.0.nome']")).toHaveValue("Ana Linha");
 
-    // Outro Setor (RH) usa o contato: o dono que o exclui não o apaga, ele passa à URA (sem dono).
     const uso = await admin.from("destinos_de_envio").insert({
       cliente_id: clienteId,
       setor: "rh",
@@ -173,7 +154,6 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     const cnpjDigits = await criarClienteComoAdmin(page, "Cadastro DAS Enviado E2E Ltda");
     const clienteId = await buscarClienteIdPorCnpj(cnpjDigits);
     await atribuirResponsavelComoLider(cnpjDigits);
-    // Quem grava "enviado" e a data é o sistema (job, sem sessão): aqui, a chave de serviço.
     const { error } = await adminLocal()
       .from("cliente_cadastro_operacional_sn")
       .update({ das_status: "enviado", data_envio_das: "2026-10-05" })
@@ -189,8 +169,6 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page.locator("#dasStatus")).toBeDisabled();
     await expect(page.getByLabel("Data de envio")).toHaveValue("2026-10-05");
     await expect(page.getByLabel("Data de envio")).toBeDisabled();
-    // Um só jeito de "travado" na tela: esmaecido (opacidade de desabilitado), como a identidade
-    // do Cliente, para o usuário entender que não se altera.
     await expect(page.locator("#dasStatus")).toHaveCSS("opacity", "0.5");
     await expect(page.getByLabel("Data de envio")).toHaveCSS("opacity", "0.5");
     await expect(page.getByLabel("Empresa", { exact: true })).toHaveCSS("opacity", "0.5");
@@ -215,7 +193,6 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await login(page, "admin@rigonicontabil.local", "admin123");
     await expect(page).toHaveURL("/");
 
-    // Sem os scripts da aplicação o React nunca hidrata: o formulário não pode ficar oculto.
     await page.route("**/_next/static/**/*.js", (rota) => rota.abort());
     await page.goto(`/clientes/${clienteId}`);
 
@@ -239,7 +216,6 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     ).toBeVisible();
     await expect(page.getByLabel("Documento recebido")).toBeDisabled();
     await expect(page.getByRole("button", { name: "Salvar" })).not.toBeVisible();
-    // Na visualização os campos ficam esmaecidos (não editáveis); sem botão de adicionar contato.
     await expect(page.getByLabel("Documento recebido")).toHaveCSS("opacity", "0.5");
     await expect(page.getByLabel("Observações gerais")).toHaveCSS("opacity", "0.5");
     await expect(page.getByRole("button", { name: "Adicionar contato" })).toBeHidden();
@@ -256,9 +232,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await logout(page);
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    // Simples Nacional é a página principal do próprio setor.
     await expect(page).toHaveURL("/simples-nacional");
-    // Não é Responsável deste Cliente: nem a tela abre.
     await page.goto(`/clientes/${clienteId}`);
     await expect(page).toHaveURL("/simples-nacional");
     await expect(botao).toBeHidden();
@@ -266,7 +240,6 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await logout(page);
     await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
-    // Responsável em outro Setor vê o cadastro só para leitura, sem acesso ao contrato.
     await page.goto(`/clientes/${clienteId}`);
     await expect(
       page.getByRole("heading", { name: "Visualizar cadastro operacional" }),

@@ -1,9 +1,3 @@
-// Cria o Cliente "Teste Zap" (teste de ponta a ponta com o WhatsApp real) do mesmo jeito que o
-// cadastro do app: PDFs no bucket `documentos-clientes`, caminhos gravados pela RPC `criar_cliente`
-// (contrato social no cliente, alteração na tabela própria) e os contatos. Idempotente.
-// Roda depois do `db reset` da homologação (e2e-preview.yml) ou à mão:
-//   node --env-file=.env.local scripts/seed-teste-zap.mjs
-// Só aceita o Supabase local ou o projeto de homologação (SUPABASE_HOMOLOG_PROJECT_REF).
 import { readFile } from "node:fs/promises";
 
 import { createClient } from "@supabase/supabase-js";
@@ -17,7 +11,7 @@ if (!url || !chave || !(local || (refHomolog && url === `https://${refHomolog}.s
 }
 
 const ID = "5b1f4f4e-6a0c-4c1e-9d0a-1c2d3e4f5a61";
-const CNPJ = "90000010000110"; // fictício, com dígitos verificadores válidos
+const CNPJ = "90000010000110";
 const BUCKET = "documentos-clientes";
 const ARQUIVOS = new URL("../supabase/arquivos-seed/", import.meta.url);
 const CONTRATO = `${ID}/contrato-social/contrato-social.pdf`;
@@ -32,7 +26,6 @@ for (const [caminho, nome] of [
   [CONTRATO, "contrato-social.pdf"],
   [ALTERACAO, "alteracao-contratual.pdf"],
 ]) {
-  // remove + upload (sem `upsert`): é o que o app faz, e o ON CONFLICT do upsert falha no Storage local.
   await supabase.storage.from(BUCKET).remove([caminho]);
   const { error } = await supabase.storage
     .from(BUCKET)

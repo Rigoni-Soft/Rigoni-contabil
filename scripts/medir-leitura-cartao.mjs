@@ -1,7 +1,3 @@
-// Mede o leitor de visão nas fotos de cartão de ponto: roda o gateway e o validador reais e imprime
-// uma linha por foto (leu? validou? nome, dias, batidas, extras, anotações). Chama a API de verdade:
-// custa por foto. Uso: yarn medir:leitura <pasta> [competência AAAA-MM] (padrão 2026-09)
-// A quinzena sai do nome do arquivo (`...quin-1.jpeg`). Imprime só números e o nome lido; nunca grava foto.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { registerHooks } from "node:module";
 import { join, resolve } from "node:path";
@@ -10,7 +6,6 @@ import { pathToFileURL } from "node:url";
 const raiz = resolve(import.meta.dirname, "..");
 const tenta = (base) => [`${base}.ts`, join(base, "index.ts")].find((c) => existsSync(c));
 
-// Node não resolve o alias "@/" nem import sem extensão: mapeia para src/ e acrescenta .ts.
 registerHooks({
   resolve(spec, ctx, next) {
     const base = spec.startsWith("@/")
@@ -39,13 +34,11 @@ if (!pasta) {
 const { LeitorDeCartaoVisaoGateway } =
   await import("@/modules/rh/infra/gateways/leitor-de-cartao-visao.gateway");
 const { validarLeitura } = await import("@/modules/rh/domain/services/leitura-do-cartao.service");
-// Esforço opcional (EFORCO=medium) injetado no corpo; o status HTTP de falha vai para o motivo.
 let ultimoStatus = "";
 let corpoDoErroJaMostrado = false;
 const http = async (url, init) => {
   const corpo = JSON.parse(init.body);
   if (process.env.ESFORCO) corpo.output_config = { effort: process.env.ESFORCO };
-  // Sonnet 5.5 recusa tool_choice forçado: o texto da instrução já pede só a ferramenta.
   if (/sonnet/.test(corpo.model)) corpo.tool_choice = { type: "auto" };
   const r = await fetch(url, { ...init, body: JSON.stringify(corpo) });
   ultimoStatus = r.ok ? "" : `http ${r.status}`;
@@ -111,8 +104,6 @@ for (const f of fotos) {
   ]);
 }
 
-// Atestados e declarações (atestado-*.jpg|png): imprime tipo e datas lidos e se o domínio valida. O nome
-// só aparece com NOMES=1 (dado pessoal); CID e documento nunca são pedidos ao leitor.
 const { validarAtestado } = await import("@/modules/rh/domain/services/atestado.service");
 const atestados = readdirSync(pasta).filter((f) => /^atestado.*.(jpe?g|png)$/i.test(f));
 for (const f of atestados) {

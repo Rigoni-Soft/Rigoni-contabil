@@ -4,7 +4,6 @@ import { expect, test } from "./fixtures";
 import { criarClienteComAlteracao1, empresaUnica, login, pdf } from "./support/criar-cliente";
 
 const SINO = /Avisos de cadastro/;
-// Anel de 4 px + deslocamento de 2 px: o anel padrão do foco (2 px + 2 px) termina em 4 px.
 const ANEL_DE_4PX = /0px 0px 0px 6px/;
 const ABRIR_2 = "Abrir em nova aba: Alteração nº 2 - 01/03/2026";
 const ABRIR_3 = "Abrir em nova aba: Alteração nº 3 - 01/04/2026";
@@ -12,14 +11,11 @@ const ABRIR_3 = "Abrir em nova aba: Alteração nº 3 - 01/04/2026";
 const LIDER = { email: "lider.sn@rigonicontabil.local", senha: "lider123" };
 const RESPONSAVEL = { email: "funcionario.sn@rigonicontabil.local", senha: "func123" };
 
-// Sem selo = zero não vistos.
 async function naoVistos(page: Page): Promise<number> {
   const selo = page.getByTestId("selo-avisos");
   return (await selo.count()) === 0 ? 0 : Number((await selo.textContent()) ?? 0);
 }
 
-// A lista reúne os avisos de todos os Clientes: não vistos primeiro, do mais novo para o mais antigo,
-// então o primeiro não visto com aquele nº é o do Cliente do teste.
 function avisoDaAlteracao(page: Page, numero: number) {
   return page
     .locator('button[data-visto="false"]')
@@ -39,7 +35,6 @@ async function anexar(page: Page, numero: number, data: string) {
   await expect(dialogo).toBeHidden();
 }
 
-// Sessão própria (contexto novo) já logada, na tela inicial do perfil.
 async function entrar(browser: Browser, usuario: { email: string; senha: string }) {
   const page = await (await browser.newContext()).newPage();
   await login(page, usuario.email, usuario.senha);
@@ -48,8 +43,6 @@ async function entrar(browser: Browser, usuario: { email: string; senha: string 
 }
 
 test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#144)", () => {
-  // Um Cliente com as alterações nº 2 e nº 3 para os testes que só leem a tela (os que dependem dos
-  // avisos, S1a e novo Cliente, criam o seu).
   let clienteDasAlteracoes: string;
 
   test.beforeAll(async ({ browser }) => {
@@ -74,7 +67,6 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     );
     const lider = await entrar(browser, LIDER);
     const responsavel = await entrar(browser, RESPONSAVEL);
-    // Teto curto: no preview a rede nunca fica ociosa (ver e2e/fixtures.ts).
     await lider.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
     await responsavel.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
     const baseLider = await naoVistos(lider);
@@ -85,7 +77,6 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     await anexar(page, 3, "2026-04-01");
     await expect(page.getByRole("button", { name: ABRIR_3 })).toBeVisible();
 
-    // O Admin não é destinatário: sem sino.
     await expect(page.getByRole("button", { name: /Avisos de cadastro/ })).toHaveCount(0);
 
     for (const [pessoa, base] of [
@@ -95,7 +86,6 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
       await pessoa.reload();
       await expect.poll(() => naoVistos(pessoa)).toBe(base + 2);
 
-      // Abrir o modal não marca nada como visto; o aviso da nº 3 é o mais novo, o da nº 2 vem depois.
       await pessoa.getByRole("button", { name: SINO }).click();
       const aviso3 = avisoDaAlteracao(pessoa, 3);
       const aviso2 = avisoDaAlteracao(pessoa, 2);
@@ -103,7 +93,6 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
       await expect(aviso2).toHaveAttribute("data-visto", "false");
       expect(await naoVistos(pessoa)).toBe(base + 2);
 
-      // O clique no aviso da nº 2 marca visto, navega e abre a nº 2 (não a mais recente), em destaque.
       await aviso2.click();
       await expect(pessoa).toHaveURL(`/clientes/${clienteId}?alteracao=2`);
       const botao = pessoa.getByRole("button", { name: ABRIR_2 });
@@ -112,10 +101,8 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
         "Esta é a alteração do aviso que você abriu.",
       );
       await expect(botao).toHaveCSS("box-shadow", ANEL_DE_4PX);
-      // O anel acompanha o foco: ao sair do botão ele some.
       await pessoa.getByRole("heading", { level: 1 }).click();
       await expect(botao).toHaveCSS("box-shadow", "none");
-      // A descrição acompanha o destaque, não o foco: continua dizendo de onde se chegou.
       await expect(botao).toHaveAccessibleDescription(
         "Esta é a alteração do aviso que você abriu.",
       );
@@ -129,7 +116,6 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
   }) => {
     const lider = await entrar(browser, LIDER);
 
-    // URL direta, sem aviso: a mais recente, nada em foco.
     await lider.goto(`/clientes/${clienteDasAlteracoes}`);
     const botao = lider.getByRole("button", { name: ABRIR_3 });
     await expect(botao).toBeVisible();
@@ -137,7 +123,6 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     await expect(botao).toHaveCSS("box-shadow", "none");
     await expect(botao).toHaveAccessibleDescription("");
 
-    // Parâmetro forjado: inválido não destaca; nº que não existe cai na mais recente.
     await lider.goto(`/clientes/${clienteDasAlteracoes}?alteracao=abc`);
     await expect(lider.getByRole("button", { name: ABRIR_3 })).not.toBeFocused();
     await lider.goto(`/clientes/${clienteDasAlteracoes}?alteracao=99`);
@@ -199,7 +184,6 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
       rotulo.boundingBox(),
       botao.boundingBox(),
     ]);
-    // Uma linha só (a data inteira cabe), e o botão começa abaixo do rótulo, não ao lado.
     expect(caixaRotulo!.height).toBeLessThan(30);
     expect(caixaBotao!.y).toBeGreaterThanOrEqual(caixaRotulo!.y + caixaRotulo!.height);
   });
@@ -212,7 +196,6 @@ test.describe("Destaque do botão Visualizar alteração ao chegar por aviso (#1
     const botao = lider.getByRole("button", { name: ABRIR_2 });
     await expect(botao).toBeFocused();
 
-    // A requisição ao link assinado mostra que a action terminou; o botão volta a abrir de novo.
     await Promise.all([
       lider
         .context()

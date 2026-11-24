@@ -1,7 +1,3 @@
-// yarn check:specs  →  falha se um Container, molecule ou organism não tem `*.spec.tsx` ao lado.
-// A regra está em docs/testes.md §4.1. Os que já existiam sem spec ficam em
-// scripts/specs-sem-teste.baseline.txt: a lista só encolhe (apague a linha ao criar o spec).
-// `yarn check:specs --gerar-baseline` reescreve a lista com o estado atual.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 

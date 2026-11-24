@@ -2,8 +2,6 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, login } from "./support/criar-cliente";
 
-// Acompanhamento mensal do RH: os serviços são cards no dashboard; o Funcionário marca os serviços dos seus
-// clientes no painel do cliente; o Líder lê (sem caixas habilitadas) e cadastra serviços; a marcação fica auditada.
 const admin = adminLocal();
 const EMPRESA = `Acomp E2E ${`${Date.now()}`.slice(-6)} Ltda`;
 const FUNCIONARIO_RH_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
@@ -58,14 +56,12 @@ test.describe("Acompanhamento mensal do RH", () => {
     await expect(page).toHaveURL("/rh");
     const holerite = page.getByLabel("Holerite", { exact: true });
 
-    // Sem empregados: não há Holerite a cumprir.
     await page.goto(`/clientes/${clienteId}`);
     await expect(holerite).toHaveValue("nao_aplica");
     await expect(
       page.getByText("Sem empregados cadastrados: não há Holerite a cumprir."),
     ).toBeVisible();
 
-    // Um empregado sem nenhum dia salvo: pendente; um dia salvo (mesmo com o mês incompleto) o conclui.
     const mes = new Date().toISOString().slice(0, 7);
     const empregado = await admin
       .from("rh_empregados")
@@ -96,7 +92,6 @@ test.describe("Acompanhamento mensal do RH", () => {
       page.getByText("1 empregado cadastrado · 1 de 1 cartão feito no mês"),
     ).toBeVisible();
 
-    // "Sem movimento no mês" tira o empregado da conta: sem cartão exigido, o Holerite deixa de valer.
     await admin.from("rh_ponto_dias").delete().eq("empregado_id", empregado.data.id);
     await admin
       .from("rh_empregado_sem_movimento")

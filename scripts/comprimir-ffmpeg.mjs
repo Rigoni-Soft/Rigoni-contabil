@@ -1,6 +1,3 @@
-// Antes do build: comprime o binário do ffmpeg-static (dezenas de MB) em brotli, para a função da
-// conversa de áudio levar só o arquivo comprimido (docs/adr/0006). Em runtime, `resolver-ffmpeg`
-// o descomprime em /tmp. Sem o pacote (ou sem o binário), não faz nada e o app usa o do pacote/PATH.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { brotliCompressSync, constants } from "node:zlib";

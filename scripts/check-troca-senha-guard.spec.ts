@@ -1,4 +1,3 @@
-/** Garante que o checker pega página que nem chama carregarSessao e que a checagem original não regride. */
 import { classificarPagina } from "./check-troca-senha-guard.mjs";
 
 describe("classificarPagina", () => {

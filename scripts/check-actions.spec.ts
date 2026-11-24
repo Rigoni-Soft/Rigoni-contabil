@@ -1,4 +1,3 @@
-/** Garante que o checker pega Server Action sem Zod e respeita a lista de isentas. */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

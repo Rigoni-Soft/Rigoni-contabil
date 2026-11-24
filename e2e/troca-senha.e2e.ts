@@ -32,11 +32,9 @@ test.describe("Troca obrigatória de senha no primeiro login", () => {
     await login(page, email, senha);
     await expect(page).toHaveURL("/trocar-senha");
 
-    // Bloqueado em qualquer tela até trocar.
     await page.goto("/");
     await expect(page).toHaveURL("/trocar-senha");
 
-    // Logout disponível na tela de troca obrigatória.
     await expect(page.getByRole("button", { name: "Sair" })).toBeVisible();
   });
 

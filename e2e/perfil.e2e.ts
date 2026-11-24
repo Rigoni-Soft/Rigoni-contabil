@@ -2,8 +2,6 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { login } from "./support/criar-cliente";
 
-// Usa conta nova pra não mexer na senha das contas do seed.
-
 async function criarFuncionarioComSenhaDefinitiva(page: Page) {
   await login(page, "admin@rigonicontabil.local", "admin123");
   await expect(page).toHaveURL("/");
@@ -36,7 +34,6 @@ test.describe("Perfil do usuário", () => {
   }) => {
     const email = await criarFuncionarioComSenhaDefinitiva(page);
 
-    // Sem senha provisória, /trocar-senha (fluxo obrigatório) leva ao perfil.
     await page.goto("/trocar-senha");
     await expect(page).toHaveURL("/perfil");
 
@@ -83,7 +80,6 @@ test.describe("Perfil do usuário", () => {
       await page.getByRole("link", { name: "Meu perfil" }).click();
       await expect(page).toHaveURL("/perfil");
 
-      // Texto exato: "Admin" é substring do e-mail e "Contábil" do nome do Líder.
       for (const valor of [nome, email, papelLabel, setorLabel]) {
         await expect(page.locator("dd").getByText(valor, { exact: true })).toBeVisible();
       }

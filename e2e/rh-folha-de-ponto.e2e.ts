@@ -2,15 +2,12 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, login } from "./support/criar-cliente";
 
-// Folha de ponto do RH: o Responsável cadastra o empregado no quadro do Cliente, digita o cartão e vê a
-// Totalização pela legislação; o Líder lê sem poder alterar; cada gravação fica auditada.
 const admin = adminLocal();
 const EMPRESA = `Folha E2E ${`${Date.now()}`.slice(-6)} Ltda`;
 const FUNCIONARIO_RH_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
 let clienteId = "";
 let cnpj = "";
 
-// Primeira segunda-feira do mês corrente.
 function primeiraSegunda() {
   const mes = new Date().toISOString().slice(0, 7);
   const [ano, m] = mes.split("-").map(Number);
@@ -20,7 +17,6 @@ function primeiraSegunda() {
   return { mes, rotulo: `seg ${dd}/${String(m).padStart(2, "0")}` };
 }
 
-// Uma batida no dia 2 do mês: o cartão passa a ter apontamento (sem ele não há PDF para assinar).
 async function lancarBatida(empregadoId: string, mes: string) {
   const lancou = await admin.from("rh_ponto_dias").insert({
     empregado_id: empregadoId,
@@ -61,18 +57,15 @@ test.describe("Folha de ponto do RH", () => {
 
     await page.getByRole("form", { name: "Novo empregado" }).getByLabel("Nome").fill("Ana E2E");
     await page.getByRole("button", { name: "Cadastrar empregado" }).click();
-    // O cartão tem tela própria: a lista do quadro leva a ele.
     await page.getByRole("link", { name: "Cartão de ponto de Ana E2E" }).click();
     await expect(page.getByRole("heading", { name: "Ana E2E", exact: true })).toBeVisible();
 
-    // Cartão novo: as linhas já abrem editáveis; o ✓ da linha salva.
     await page.getByLabel(`Entrada 1 de ${rotulo}`).fill("08:00");
     await page.getByLabel(`Saída 1 de ${rotulo}`).fill("12:00");
     await page.getByLabel(`Entrada 2 de ${rotulo}`).fill("13:00");
     await page.getByLabel(`Saída 2 de ${rotulo}`).fill("17:45");
     await page.getByRole("button", { name: `Salvar ${rotulo}` }).click();
 
-    // A Totalização se recalcula na recarga: o dia cumprido soma 8h45 de horas normais.
     await expect(
       page.getByText("Horas normais").locator("xpath=following-sibling::*[1]"),
     ).toHaveText(/^8h45$/);
@@ -112,7 +105,6 @@ test.describe("Folha de ponto do RH", () => {
     await expect(page).toHaveURL("/rh");
     await page.goto(`/rh/folha-de-ponto/${clienteId}/cartao/${empregado.data.id}?mes=${mes}`);
 
-    // Cartão novo: nenhum dia é falta ainda.
     await expect(page.getByText("Falta", { exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Salvar", exact: true }).click();
 
@@ -121,7 +113,6 @@ test.describe("Folha de ponto do RH", () => {
     await expect(page.getByRole("button", { name: /^Abonar / }).first()).toBeVisible();
   });
 
-  // Leitor falso (LEITURA_CARTAO_MODO padrão): a foto não é olhada e a leitura é sempre a do "Erick Falso".
   test("Funcionário sobe a foto do cartão e o empregado nasce no quadro com o cartão lido @smoke", async ({
     page,
   }) => {
@@ -233,7 +224,6 @@ test.describe("Folha de ponto do RH", () => {
   }) => {
     const { mes } = primeiraSegunda();
     const jornada = [0, 525, 525, 525, 525, 525, 240];
-    // Com batida lançada; o banco só aceita dia de empregado ativo, então o desligamento vem depois.
     const novo = async (nome: string, desligar = false) => {
       const criado = await admin
         .from("rh_empregados")
@@ -278,8 +268,6 @@ test.describe("Folha de ponto do RH", () => {
     }
   });
 
-  // Leitor falso: a foto do atestado não é olhada e a leitura é sempre a declaração de comparecimento do
-  // "Erick Falso" em 01/09/2026 (ter), que abona só o horário de um dia que já tem batida.
   test("Funcionário lê a declaração e o dia com batida fica abonado @smoke", async ({ page }) => {
     const empregado = await admin
       .from("rh_empregados")
@@ -297,7 +285,6 @@ test.describe("Folha de ponto do RH", () => {
       batidas: [{ entrada: 480, saida: 720 }],
     });
     if (dia.error) throw dia.error;
-    // O atestado só abona em cartão iniciado (o do mês em que o RH já está lançando).
     const iniciado = await admin
       .from("rh_cartoes_iniciados")
       .insert({ empregado_id: empregado.data.id, competencia: "2026-09-01" });
@@ -318,7 +305,6 @@ test.describe("Folha de ponto do RH", () => {
     await expect(
       page.getByText("1 dia abonado pela declaração de comparecimento. Confira o cartão."),
     ).toBeVisible();
-    // O dia já tinha batida (4h de 8h45): a declaração abona só a diferença da carga, na Totalização.
     await expect(page.getByText("Abonos").locator("xpath=following-sibling::*[1]")).toHaveText(
       "0 dias · 4h45",
     );

@@ -1,6 +1,3 @@
-// yarn check:design-doc [base]  →  falha se um componente novo do diff (ui/, atoms/, molecules/,
-// organisms/) não aparece pelo nome no DESIGN.md. Sem `base`: DESIGN_BASE, senão origin/develop, senão develop.
-// Só olha arquivos adicionados (`git diff --diff-filter=A <base>...HEAD`); o que já existia não entra.
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 

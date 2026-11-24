@@ -1,7 +1,6 @@
 import { expect, test } from "./fixtures";
 import { login } from "./support/criar-cliente";
 
-// O avatar do cabeçalho é o caminho de volta à home de qualquer tela autenticada.
 test.describe("Avatar leva ao início", () => {
   test("o Admin entra em /rh pela aba, clica no avatar e chega a / com a busca de clientes à vista @smoke", async ({
     page,

@@ -1,17 +1,15 @@
-// yarn check:naming  →  falha se algum nome sob src/ violar as regras de nomenclatura
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.argv[2] ?? "src";
 const KEBAB = "[a-z0-9]+(?:-[a-z0-9]+)*";
-const DIR = new RegExp(`^(?:${KEBAB}|\\[\\.{0,3}${KEBAB}\\]|\\(${KEBAB}\\)|@${KEBAB})$`); // kebab, [param], (grupo), @slot
-const FILE = new RegExp(`^${KEBAB}(?:\\.${KEBAB})*\\.(?:ts|tsx|css)$`); // nome[.papel][.spec|.test].ext
+const DIR = new RegExp(`^(?:${KEBAB}|\\[\\.{0,3}${KEBAB}\\]|\\(${KEBAB}\\)|@${KEBAB})$`);
+const FILE = new RegExp(`^${KEBAB}(?:\\.${KEBAB})*\\.(?:ts|tsx|css)$`);
 const NEXT =
   /^(layout|page|loading|error|global-error|not-found|template|default|route|globals|robots|sitemap)\.(tsx?|css)$/;
 const NEXT_ROOT = /^(middleware|proxy)\.ts$/;
-const VENDOR = /\/presentation\/(components\/ui|lib|hooks)\//; // gerado pelo shadcn: só kebab-case
+const VENDOR = /\/presentation\/(components\/ui|lib|hooks)\//;
 
-// pasta → papéis permitidos no sufixo (`nome.<papel>.ts`)
 const ROLES = [
   [/\/domain\/entities\//, ["entity"]],
   [/\/domain\/aggregates\//, ["aggregate"]],
@@ -77,7 +75,7 @@ function verificar(caminho, arquivo) {
   const regra = ROLES.find(([re]) => re.test(rel));
   if (!regra) return;
   const partesSemExtensao = arquivo.split(".").slice(0, -1);
-  if (["spec", "test"].includes(partesSemExtensao.at(-1))) partesSemExtensao.pop(); // *.spec = unitário/componente; *.test = integração
+  if (["spec", "test"].includes(partesSemExtensao.at(-1))) partesSemExtensao.pop();
   const papel = partesSemExtensao.length > 1 ? partesSemExtensao.at(-1) : undefined;
   if (!regra[1].includes(papel))
     erros.push(`${caminho}: sufixo deve ser um de .${regra[1].join(", .")}`);
