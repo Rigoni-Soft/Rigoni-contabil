@@ -88,9 +88,6 @@ import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories
 const errosClientes = new ConsoleClientes();
 const errosUsuarios = new ConsoleUsuarios();
 
-// Adapta a sessão do módulo usuarios à porta própria de clientes (arquitetura.md,
-// seção 3.11) — monta o ObterSessao direto (não chama usuarios.factory) pra não
-// criar import circular entre as duas factories, mesmo motivo do auditoria.factory.
 function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   const obterSessao = new ObterSessao(
     new SupabaseSessaoGateway(supabase),
@@ -126,8 +123,6 @@ export async function makeAnexarAlteracaoContratual(): Promise<AnexarAlteracaoCo
   );
 }
 
-// Bucket privado sem política de usuário: o PDF sobe e some pelo service role, depois de o caso de
-// uso checar o papel. As linhas do banco seguem pela sessão do usuário (RLS decide o Responsável).
 export async function makeSalvarParcelamentosCliente(): Promise<SalvarParcelamentosClientePort> {
   const supabase = await createSupabaseServer();
   return new SalvarParcelamentosCliente(
@@ -139,8 +134,6 @@ export async function makeSalvarParcelamentosCliente(): Promise<SalvarParcelamen
   );
 }
 
-// Guia da parcela PGFN: mesmo bucket privado dos acordos, prefixo próprio por Parcelamento e
-// competência. As linhas seguem pela sessão do usuário (RLS); o arquivo, pelo service role.
 export async function makeAnexarGuiaParcelaPgfn(): Promise<AnexarGuiaParcelaPgfnPort> {
   const supabase = await createSupabaseServer();
   return new AnexarGuiaParcelaPgfn(
@@ -189,7 +182,6 @@ export async function makeRemoverGuiaParcelaPgfn(): Promise<RemoverGuiaParcelaPg
   );
 }
 
-// O caminho vem da leitura pela sessão (RLS); o link é assinado pelo service role.
 export async function makeObterLinkGuiaParcelaPgfn(): Promise<ObterLinkGuiaParcelaPgfnPort> {
   const supabase = await createSupabaseServer();
   return new ObterLinkGuiaParcelaPgfn(
@@ -199,7 +191,6 @@ export async function makeObterLinkGuiaParcelaPgfn(): Promise<ObterLinkGuiaParce
   );
 }
 
-// Falso por padrão (dev, CI e Preview); "texto" lê a camada de texto do PDF no servidor.
 function leitorDeGuiaDeParcela(): LeitorDeGuiaDeParcelaPort {
   return LEITURA_PDF_MODO === "texto"
     ? new LeitorDeGuiaDeParcelaTextoGateway()
@@ -319,7 +310,6 @@ export async function makeObterResumoSetorRh(): Promise<ObterResumoSetorRh> {
   );
 }
 
-// Sessão do usuário (RLS), sem service_role e sem o gateway do Atendimento.
 export async function makeListarDocumentosContratuaisCliente(): Promise<ListarDocumentosContratuaisClientePort> {
   const supabase = await createSupabaseServer();
   return new ListarDocumentosContratuaisCliente(
@@ -336,7 +326,6 @@ export async function makeObterLinkDocumentoContratual(): Promise<ObterLinkDocum
   );
 }
 
-// Sessão do usuário (RLS): cada um só enxerga e marca os próprios avisos.
 export async function makeListarAvisosCadastro(): Promise<ListarAvisosCadastroPort> {
   const supabase = await createSupabaseServer();
   return new ListarAvisosCadastro(

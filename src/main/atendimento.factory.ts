@@ -146,17 +146,13 @@ import type { SetorSlug } from "@/shared/kernel/setores";
 const errosAtendimento = new ConsoleAtendimento();
 const errosUsuarios = new ConsoleUsuarios();
 
-// Instância única: o falso guarda em memória o que "enviou".
 const envioFalso = new EnvioMensagemFalsoGateway();
 
-// Modo do ambiente; vale onde não há requisição de usuário (jobs).
 function makeEnvioMensagem(): EnvioMensagemPort {
   if (MENSAGERIA_MODO !== "real") return envioFalso;
-  // env.ts garante as duas credenciais com o modo real.
   return new EnvioMensagemWhatsappGateway(WHATSAPP_TOKEN!, WHATSAPP_PHONE_NUMBER_ID!);
 }
 
-// Uma requisição dos e2e pode pedir o adapter falso (cabeçalho secreto) mesmo com o deploy em modo real.
 async function requisicaoPedeAdapterFalso(): Promise<boolean> {
   if (!E2E_ADAPTER_SECRET) return false;
   return pedeAdapterFalsoDoE2E(
@@ -169,8 +165,6 @@ async function makeEnvioMensagemDaRequisicao(): Promise<EnvioMensagemPort> {
   return (await requisicaoPedeAdapterFalso()) ? envioFalso : makeEnvioMensagem();
 }
 
-// Chamada por makeAutenticarWebhook e makeReceberMensagem: nenhum caminho da rota pública
-// (GET/POST) chega ao client privilegiado nem valida HMAC com segredo de desenvolvimento.
 function exigirSegredosDeProducao(): void {
   exigirSegredosReais(
     {
@@ -266,9 +260,6 @@ export function makeAutenticarWebhook(): AutenticarWebhookPort {
   );
 }
 
-// Adapta a sessão do módulo usuarios à porta própria de atendimento (arquitetura.md, seção 3.11);
-// monta o ObterSessao direto, sem chamar usuarios.factory, pra não criar import circular. O adapter
-// fica no `main` (não em infra) pelo mesmo motivo e padrão do clientes.factory.
 function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   const obterSessao = new ObterSessao(
     new SupabaseSessaoGateway(supabase),
@@ -278,7 +269,6 @@ function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   return {
     usuarioAtual: async (): Promise<AtorSessaoDto | null> => {
       const usuario = await obterSessao.execute();
-      // O módulo usuarios só devolve Papel e Setor já validados (builder); o cast é a única fronteira.
       return usuario
         ? {
             id: usuario.id,
@@ -328,14 +318,10 @@ export async function makeEncerrarAtendimento(): Promise<EncerrarAtendimentoPort
   );
 }
 
-// O job só age com a flag ligada, e em produção só com mensageria real: o adapter falso "envia"
-// sem avisar ninguém (marcaria DAS como enviado sem o cliente saber).
-// Autenticar o job (CRON_SECRET) não autoriza executá-lo.
 function jobAutomaticoAtivo(flag: string): boolean {
   return flag === "ligada" && !(NODE_ENV === "production" && MENSAGERIA_MODO === "falso");
 }
 
-// Não fala com o Cliente: vale a flag, sem a exigência de mensageria real.
 export function encerramentoAutomaticoAtivo(): boolean {
   return ENCERRAMENTO_AUTOMATICO === "ligada";
 }
@@ -344,12 +330,10 @@ export function lembretesAutomaticosAtivos(): boolean {
   return jobAutomaticoAtivo(LEMBRETES_AUTOMATICOS);
 }
 
-// Só alerta o setor, não fala com o Cliente: vale a flag, sem a exigência de mensageria real.
 export function lembretesParcelamentoPgfnAtivos(): boolean {
   return LEMBRETES_PGFN_AUTOMATICOS === "ligada";
 }
 
-// Job (service_role, sem sessão de usuário): o sistema encerra os Atendimentos sem resposta do cliente.
 export function makeEncerrarPorSilencio(): EncerrarPorSilencioPort {
   return new EncerrarPorSilencio(
     new SupabaseAtendimentoRepository(createSupabaseAdmin()),
@@ -357,11 +341,8 @@ export function makeEncerrarPorSilencio(): EncerrarPorSilencioPort {
   );
 }
 
-// Em produção o e-mail falso responderia ok sem enviar nada: sem EMAIL_MODO=real o canal falha de
-// forma explícita.
 function makeEnvioEmail(): EnvioEmailPort {
   if (EMAIL_MODO === "real") {
-    // env.ts garante usuário, senha de app e remetente com o modo real.
     return new EnvioEmailSmtpGateway({
       usuario: EMAIL_SMTP_USUARIO!,
       senha: EMAIL_SMTP_SENHA!,
@@ -373,7 +354,6 @@ function makeEnvioEmail(): EnvioEmailPort {
     : new EnvioEmailFalsoGateway();
 }
 
-// Job (service_role, sem sessão de usuário): lembrete de documento e envio de DAS.
 export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumentoEDasPort {
   const supabaseAdmin = createSupabaseAdmin();
   const publicadas = new SupabaseGuiaPublicadaGateway(supabaseAdmin);
@@ -390,7 +370,6 @@ export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumento
   );
 }
 
-// Job (service_role, sem sessão de usuário): lembrete dos Parcelamentos PGFN sem guia do mês.
 export function makeExecutarLembretesParcelamentoPgfn(): ExecutarLembretesParcelamentoPgfnPort {
   const supabaseAdmin = createSupabaseAdmin();
   return new ExecutarLembretesParcelamentoPgfn(
@@ -400,8 +379,6 @@ export function makeExecutarLembretesParcelamentoPgfn(): ExecutarLembretesParcel
   );
 }
 
-// Job (service_role, sem sessão de usuário): envio da guia de parcelamento. Mesma flag do job de
-// lembrete: os dois são comunicação automática ao Cliente.
 export function makeExecutarEnvioGuiaParcelamento(): ExecutarEnvioGuiaParcelamentoPort {
   const supabaseAdmin = createSupabaseAdmin();
   const envio = makeEnvioMensagem();
@@ -450,8 +427,6 @@ export async function makeListarMeusAtendimentos(): Promise<ListarMeusAtendiment
   );
 }
 
-// O cadastro roda com a sessão do usuário (o banco confere Recepção e dono do Atendimento); só a leitura
-// do Cliente pelo CNPJ usa o service_role.
 export async function makeBuscarClienteParaContatoUra(): Promise<BuscarClienteParaContatoUraPort> {
   const supabase = await createSupabaseServer();
   const admin = createSupabaseAdmin();
@@ -483,15 +458,12 @@ export async function makeObterConversa(): Promise<ObterConversaPort> {
   );
 }
 
-// `FFMPEG_PATH` manda; senão o binário comprimido do build (menor na função); senão o do pacote
-// ffmpeg-static (desenvolvimento) ou o do PATH. Só é chamada quando há áudio webm a converter.
 function caminhoDoFfmpeg(): Promise<string> {
   if (FFMPEG_PATH) return Promise.resolve(FFMPEG_PATH);
   return resolverFfmpeg({
     comprimido: join(process.cwd(), ".ffmpeg", "ffmpeg.br"),
     destino: join(tmpdir(), "rigoni-ffmpeg", "ffmpeg"),
     alternativo: async () => {
-      // Import dinâmico: no deploy o pacote é excluído do trace (só o comprimido segue).
       const pacote = await import("ffmpeg-static").catch(() => null);
       return pacote?.default ?? "ffmpeg";
     },
@@ -542,7 +514,6 @@ export async function makeReagirAMensagem(): Promise<ReagirAMensagemPort> {
   );
 }
 
-// Feriados do Admin: client da sessão dele, para a RLS e a auditoria do banco valerem.
 async function makeFeriados() {
   const supabase = await createSupabaseServer();
   return {

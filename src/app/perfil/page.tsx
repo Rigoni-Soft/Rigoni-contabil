@@ -6,7 +6,6 @@ import { AvatarDaContaContainer } from "@/modules/usuarios/presentation/view-mod
 import { TrocarSenhaContainer } from "@/modules/usuarios/presentation/view-models/trocar-senha/trocar-senha.container";
 
 export default async function Page() {
-  // Senha provisória: o fluxo obrigatório tem prioridade sobre o perfil.
   const sessao = await exigirSessao();
 
   return (

@@ -15,9 +15,7 @@ export async function createSupabaseServer() {
           cookiesParaSetar.forEach(({ name, value, options }) =>
             cookieStore.set(name, value, options),
           );
-        } catch {
-          // chamado de um Server Component (cookies somente leitura); o proxy.ts renova a sessão.
-        }
+        } catch {}
       },
     },
   });

@@ -19,11 +19,8 @@ type Props = {
   searchParams: Promise<{ mes?: string; empregado?: string }>;
 };
 
-// As Server Actions que leem a foto do cartão e do atestado rodam nesta rota e esperam o leitor até 45 s: a
-// função precisa viver mais que isso, ou a plataforma a mata antes de a tela cair na digitação manual.
 export const maxDuration = 60;
 
-// A Folha de ponto de um Cliente: o quadro de funcionários (o cartão de cada empregado tem tela própria).
 export default async function Page({ params, searchParams }: Props) {
   const sessao = await exigirSessao();
   if (!podeVerAcompanhamentoRh(sessao.papel, sessao.setor)) redirect("/");

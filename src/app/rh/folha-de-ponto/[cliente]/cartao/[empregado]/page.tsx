@@ -13,11 +13,8 @@ type Props = {
   searchParams: Promise<{ mes?: string }>;
 };
 
-// A Server Action que lê a foto do atestado roda nesta rota e espera o leitor até 45 s: a função precisa viver
-// mais que isso, ou a plataforma a mata antes de a tela cair no abono à mão. Igual à rota do quadro.
 export const maxDuration = 60;
 
-// O Cartão de ponto de um empregado no mês inteiro, com a Totalização: tela própria, fora do quadro.
 export default async function Page({ params, searchParams }: Props) {
   const sessao = await exigirSessao();
   if (!podeVerAcompanhamentoRh(sessao.papel, sessao.setor)) redirect("/");
@@ -34,13 +31,11 @@ export default async function Page({ params, searchParams }: Props) {
   return (
     <AcompanhamentoMensalPage
       header={<CabecalhoDoShellContainer sessao={sessao} />}
-      // Tabela de muitas colunas, como a planilha: a janela toda, para não rolar na horizontal.
       largura="ampla"
       titulo="Cartão de ponto"
       voltarHref={voltarHref}
       erro={folha.ok ? undefined : folha.error.message}
       tentarNovamenteHref={voltarHref}
-      // A chave recomeça o estado (linhas abertas) a cada mês e empregado.
       conteudo={
         folha.ok && (
           <CartaoDePontoContainer

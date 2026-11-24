@@ -1,36 +1,25 @@
 import { SETOR_RECEPCAO, SETOR_RH, SETOR_SN } from "@/shared/kernel/setores";
 
-// Responsável cujo perfil a RLS esconde de quem lê (leitor de outro Setor).
 const RESPONSAVEL_OUTRO_SETOR_LABEL = "Responsável de outro setor";
 
 export const PAPEIS = ["admin", "lider_setor", "funcionario"] as const;
 export type Papel = (typeof PAPEIS)[number];
 
-// Rótulos de Papel em português, reusados por qualquer tela que precise exibi-los (ShellHeader) ou
-// listá-los como opção de formulário. Ficam em shared/kernel porque presentation/ global não pode
-// importar de dentro do módulo usuarios (arquitetura.md, seção 3.4).
 export const PAPEL_LABEL: Record<string, string> = {
   admin: "Admin",
   lider_setor: "Líder de setor",
   funcionario: "Funcionário",
 };
 
-// Papéis que alguém (Admin ou Líder de setor) pode cadastrar via /admin/usuarios/novo — Admin nunca
-// aparece aqui (ninguém cadastra outro Admin pela UI). Reusado por página global (app/), container e
-// form (presentation/ global), que não podem importar do módulo usuarios (arquitetura.md §3.4).
 export type PapelCadastravel = "lider_setor" | "funcionario";
 
 export const SEM_RESPONSAVEL_LABEL = "Sem responsável";
-// Id da fatia "Sem responsável" no comparativo, também chave de cor na View.
 export const SEM_RESPONSAVEL_ID = "sem_responsavel";
 
 export function rotuloResponsavel(id: string | null, nome: string | null): string {
   return id ? (nome ?? RESPONSAVEL_OUTRO_SETOR_LABEL) : SEM_RESPONSAVEL_LABEL;
 }
 
-// Quem edita o cadastro operacional SN: Admin, ou Líder/Funcionário do Simples
-// Nacional (Funcionário só dos clientes pelos quais é Responsável — isso é RLS).
-// Regra única pro caso de uso e pra tela decidirem modo leitura/edição.
 export function podeEditarCadastroOperacional(papel: string, setor: string): boolean {
   return (
     papel === "admin" ||
@@ -38,8 +27,6 @@ export function podeEditarCadastroOperacional(papel: string, setor: string): boo
   );
 }
 
-// Quem gere os Parcelamentos de um Setor: o Admin, ou o Líder e o Funcionário daquele Setor (o
-// Funcionário só dos Clientes pelos quais é Responsável — isso é RLS). Cada Setor tem os seus.
 export function podeGerirParcelamento(papel: string, setorDoAtor: string, setor: string): boolean {
   return (
     papel === "admin" ||
@@ -47,16 +34,12 @@ export function podeGerirParcelamento(papel: string, setorDoAtor: string, setor:
   );
 }
 
-// Quem lê o PDF do acordo e mexe nas guias de um Parcelamento: o Admin e o Líder/Funcionário de um Setor
-// que tem Parcelamento (SN e RH). De qual Setor é o Parcelamento, quem decide é a RLS (o repositório
-// usa a sessão do usuário).
 export function podeOperarParcelamento(papel: string, setor: string): boolean {
   return (
     podeGerirParcelamento(papel, setor, SETOR_SN) || podeGerirParcelamento(papel, setor, SETOR_RH)
   );
 }
 
-// Quem enxerga o dashboard de um Setor: Admin (suporte) ou qualquer perfil daquele Setor.
 export function podeVerDashboardDoSetor(
   papel: string,
   setorDoAtor: string,
@@ -65,14 +48,10 @@ export function podeVerDashboardDoSetor(
   return papel === "admin" || setorDoAtor === setor;
 }
 
-// O RH tem o cadastro dele (a tela "Editar cadastro operacional" com os dados do RH, sem o que é do SN);
-// o Admin vai à tela completa do Cliente.
 export function usaCadastroDoRh(papel: string, setor: string): boolean {
   return papel !== "admin" && setor === SETOR_RH;
 }
 
-// Quem edita o cadastro do RH (observações do RH e contatos): o RH e o Admin; por Cliente, o banco restringe
-// o Funcionário ao Responsável do RH dele.
 export function podeEditarCadastroRh(papel: string, setor: string): boolean {
   return (
     papel === "admin" ||
@@ -80,36 +59,26 @@ export function podeEditarCadastroRh(papel: string, setor: string): boolean {
   );
 }
 
-// Os dois predicados abaixo nascem da mesma premissa: Líder de um Setor que tem Responsável por Cliente.
 function ehLiderDeSetorComResponsavel(papel: string, setor: string): boolean {
   return papel === "lider_setor" && setor !== SETOR_RECEPCAO;
 }
 
-// O Líder de cada Setor atribui/troca/remove o Responsável do Cliente naquele Setor. A Recepção não
-// tem Responsável: a espera dela é comum.
 export function podeAtribuirResponsavel(papel: string, setor: string): boolean {
   return ehLiderDeSetorComResponsavel(papel, setor);
 }
 
-// Quem enxerga a carteira inteira do Setor (com os Clientes sem Responsável): o Admin e o Líder. O
-// Funcionário só vê os Clientes de que é Responsável; papel desconhecido não vê a carteira.
 export function veCarteiraInteira(papel: string): boolean {
   return papel === "admin" || papel === "lider_setor";
 }
 
-// O comparativo por Responsável do dashboard de um Setor é do Líder: o Funcionário não vê o
-// acompanhamento dos colegas, e o Admin (suporte) fica com a carteira, sem o comparativo.
 export function podeVerComparativoDoSetor(papel: string, setor: string): boolean {
   return ehLiderDeSetorComResponsavel(papel, setor);
 }
 
-// Anexar alteração contratual a um Cliente existente é dado jurídico: só o Admin.
 export function podeAnexarAlteracaoContratual(papel: string): boolean {
   return papel === "admin";
 }
 
-// Acompanhamento mensal do RH: o Admin e o RH inteiro leem; só o Funcionário do RH marca (e só os
-// Clientes pelos quais é Responsável, por RLS); só o Líder do RH mantém a lista de serviços.
 export function podeVerAcompanhamentoRh(papel: string, setor: string): boolean {
   return papel === "admin" || setor === SETOR_RH;
 }
@@ -118,7 +87,6 @@ export function podeMarcarAcompanhamentoRh(papel: string, setor: string): boolea
   return papel === "funcionario" && setor === SETOR_RH;
 }
 
-// Quem escreve no Cliente: o Funcionário do RH que é o Responsável do RH daquele Cliente (a RLS repete a regra).
 export function ehResponsavelRhDoCliente(
   ator: { id: string; papel: string; setor: string },
   responsavelId: string | null | undefined,
@@ -130,13 +98,10 @@ export function podeGerirServicosRh(papel: string, setor: string): boolean {
   return papel === "lider_setor" && setor === SETOR_RH;
 }
 
-// Gráfico de acompanhamento dos funcionários do RH: só o Líder do RH e o Admin; o Funcionário vê só a tabela.
 export function podeVerAcompanhamentoDosFuncionariosRh(papel: string, setor: string): boolean {
   return papel === "admin" || (papel === "lider_setor" && setor === SETOR_RH);
 }
 
-// Convenção coletiva do Cliente (RH): sobe, renova e vê o histórico só o Líder do RH e o Admin; o Responsável do RH
-// do Cliente lê as regras aplicadas (a RLS recorta por Cliente).
 export function podeGerirConvencaoRh(papel: string, setor: string): boolean {
   return papel === "admin" || (papel === "lider_setor" && setor === SETOR_RH);
 }

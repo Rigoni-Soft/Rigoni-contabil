@@ -11,13 +11,10 @@ import { ROTA_SN, SETOR_SN } from "@/shared/kernel/setores";
 
 type Props = { params: Promise<{ bucket: string }> };
 
-// ponytail: esqueleto repetido em app/rh/resumo/[bucket]; extrair um helper por Setor quando houver o 3º
-// Setor com resumo (Contábil).
 export default async function Page({ params }: Props) {
   const { bucket } = await params;
   const sessao = await exigirSessao();
 
-  // Resumo do setor é exclusivo do Simples Nacional — mesmo critério de acesso de app/page.tsx.
   if (!podeVerDashboardDoSetor(sessao.papel, sessao.setor, SETOR_SN)) redirect("/");
 
   const resumo = await carregarResumoSetorSn();

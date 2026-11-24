@@ -14,8 +14,6 @@ type Props = {
   searchParams: Promise<{ mes?: string }>;
 };
 
-// As empresas de um Funcionário que ainda faltam num serviço no mês (a célula da tabela de faltas).
-// ponytail: o "Voltar" da tela do Cliente traz de volta a esta lista no mês atual, sem o ?mes= consultado.
 export default async function Page({ params, searchParams }: Props) {
   const [{ id, servico: servicoId }, { mes }] = await Promise.all([params, searchParams]);
   const sessao = await exigirSessao();

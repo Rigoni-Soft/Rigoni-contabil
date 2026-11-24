@@ -46,7 +46,6 @@ function montarFormulario(
     atribuiNoCadastro: boolean;
     voltarPara?: string;
     alteracao?: string | string[];
-    // Só o cadastro do RH: o Responsável e o acompanhamento entram no mesmo cartão do formulário.
     responsavelRh?: React.ReactNode;
     acompanhamentoRh?: React.ReactNode;
   },
@@ -70,10 +69,8 @@ function montarFormulario(
       dados={operacional.value}
       ator={{ papel: sessao.papel, setor: sessao.setor }}
       readOnly={opcoes.readOnly}
-      // Se a carga do servidor falhar, o botão se lê por action (com aviso e "Tentar novamente").
       documentosContratuais={documentos?.ok ? documentos.value : undefined}
       podeAnexar={podeAnexarAlteracaoContratual(sessao.papel)}
-      // Vindo de aviso de alteração: o botão do documento abre aquela alteração, em destaque.
       alteracaoEmFoco={alteracaoEmFocoDaUrl(opcoes.alteracao)}
       podeAtribuirResponsavel={
         opcoes.atribuiNoCadastro && podeAtribuirResponsavel(sessao.papel, sessao.setor)
@@ -83,15 +80,11 @@ function montarFormulario(
   );
 }
 
-// O acompanhamento do mês do RH, no painel do Cliente (como o DAS no do SN). Some quando o mês é inválido
-// ou o ator não vê o RH; sem Responsável, os serviços vêm bloqueados; o resto da tela não depende dele.
-// ponytail: lê a carteira do RH inteira para achar este Cliente; filtrar por cliente no repositório se pesar.
 async function acompanhamentoRhDoCliente(
   clienteId: string,
   sessao: { papel: string; setor: string },
 ) {
   if (!podeVerAcompanhamentoRh(sessao.papel, sessao.setor)) return undefined;
-  // Sempre o mês corrente, como o DAS e a atividade do SN: a tela não navega entre meses.
   const acompanhamento = await carregarAcompanhamentoMensal(undefined);
   if (!acompanhamento.ok) return undefined;
   const { servicos, aviso } = servicosDoCliente(acompanhamento.value, clienteId);
@@ -114,14 +107,12 @@ export default async function Page({ params, searchParams }: Props) {
   const { id } = await params;
   const { voltarPara, alteracao } = await searchParams;
   const sessao = validarSessao(await carregarSessao());
-  // O Admin vê o SN e o RH: na tela completa, as observações do RH entram à parte (lidas em paralelo).
   const cadastroRhDoAdmin =
     sessao.papel === "admin" ? carregarCadastroRhCliente(id) : Promise.resolve(null);
   const cadastroDoRh = usaCadastroDoRh(sessao.papel, sessao.setor);
   const carga = await carregarClienteParaPagina(id, sessao.papel, sessao.setor);
   const { rh, operacional, documentos } = carga;
   const carregado = rh ?? operacional;
-  // Falha de leitura não é Cliente inexistente: só este segundo volta ao início.
   if (carregado && !carregado.ok) {
     return (
       <EditarCadastroOperacionalPage
@@ -141,9 +132,6 @@ export default async function Page({ params, searchParams }: Props) {
   }
   if (!carregado?.value) redirect("/");
 
-  // Só Admin ou Funcionário do setor Simples Nacional edita — qualquer outro
-  // perfil autenticado só visualiza.
-  // O SN atribui no próprio cadastro; o Líder dos demais Setores, no bloco do Setor dele.
   const { noCadastro: atribuiNoCadastro, noSetor: atribuiNoSetor } = ondeAtribuirResponsavel(
     sessao.papel,
     sessao.setor,
@@ -155,8 +143,6 @@ export default async function Page({ params, searchParams }: Props) {
   const acompanhamentoRh = await acompanhamentoRhDoCliente(id, sessao);
   const observacoesRhDoAdmin = await cadastroRhDoAdmin;
 
-  // No RH o Responsável e o acompanhamento ficam dentro do cartão do formulário, como o Responsável do SN;
-  // o Líder o atribui ali, e quem é o Responsável o vê (só leitura).
   const campoResponsavel =
     atribuiNoSetor && ehSetor(sessao.setor) && responsavelDoSetor?.ok ? (
       <ResponsavelDoSetorContainer

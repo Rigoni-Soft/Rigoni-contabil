@@ -42,8 +42,6 @@ import { err, ok } from "@/shared/kernel/result";
 
 const errosUsuarios = new ConsoleRegistroDeErrosGateway();
 
-// Adapta a porta IN RegistrarAcao (módulo auditoria) à porta própria de usuarios (arquitetura.md,
-// seção 3.11). Devolve o Result de verdade — quem chama (CriarUsuario) decide se trata como fatal.
 function auditoriaViaModuloAuditoria(): AuditoriaPort {
   return {
     registrar: async (input) => {

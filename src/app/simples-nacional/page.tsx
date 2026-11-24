@@ -18,8 +18,6 @@ import { ROTA_SN, SETOR_SN } from "@/shared/kernel/setores";
 export default async function Page() {
   const sessao = await exigirSessao();
 
-  // Admin vê (acesso de suporte a qualquer setor, mesmo raciocínio de
-  // podeEditarCadastroOperacional); qualquer outro setor fora do SN não.
   if (!podeVerDashboardDoSetor(sessao.papel, sessao.setor, SETOR_SN)) redirect("/");
 
   const [setores, resumo] = await Promise.all([

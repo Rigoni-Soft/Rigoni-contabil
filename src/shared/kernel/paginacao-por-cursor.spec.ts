@@ -3,7 +3,6 @@ import { lerTodasAsPaginas, TAMANHO_DA_PAGINA } from "./paginacao-por-cursor";
 const ids = (n: number) =>
   Array.from({ length: n }, (_, i) => ({ cliente_id: `c${String(i).padStart(5, "0")}` }));
 
-// Banco simulado: páginas por cursor sobre uma lista ordenada, como a RPC.
 function banco(todos: { cliente_id: string }[]) {
   const chamadas: (string | null)[] = [];
   const ler = async (apos: string | null) => {
@@ -43,7 +42,6 @@ describe("lerTodasAsPaginas", () => {
         const pagina = todos
           .filter((l) => restantes.has(l.cliente_id) && (apos === null || l.cliente_id > apos))
           .slice(0, TAMANHO_DA_PAGINA);
-        // O que a página trouxe sai do conjunto antes da próxima: um offset pularia metade.
         pagina.forEach((l) => restantes.delete(l.cliente_id));
         return pagina;
       },

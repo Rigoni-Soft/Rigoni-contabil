@@ -13,7 +13,6 @@ import { configuracoesDoRh } from "@/modules/rh/presentation/view-models/resumo-
 import { podeGerirServicosRh } from "@/shared/kernel/papeis";
 import { ROTA_RH, ROTA_RH_SERVICOS } from "@/shared/kernel/setores";
 
-// Os serviços do acompanhamento definem os cards do dashboard do RH; só o Líder os mantém.
 export default async function Page() {
   const sessao = await exigirSessao();
   if (!podeGerirServicosRh(sessao.papel, sessao.setor)) redirect("/");

@@ -13,7 +13,6 @@ export default async function Page() {
   const sessao = await exigirSessao();
   if (sessao.papel !== "admin" && sessao.papel !== "lider_setor") redirect("/");
 
-  // Já escopado por RBAC no caso de uso (Admin vê tudo, Líder só o próprio Setor).
   const setores = await carregarSetoresDaNavegacao();
   const papeisDisponiveis: PapelCadastravel[] =
     sessao.papel === "admin" ? ["lider_setor", "funcionario"] : ["funcionario"];

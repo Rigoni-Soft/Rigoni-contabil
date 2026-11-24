@@ -1,4 +1,3 @@
-// As guardas de Production do env.ts: o módulo valida ao ser importado, então cada caso o carrega do zero.
 const BASE = {
   NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon",

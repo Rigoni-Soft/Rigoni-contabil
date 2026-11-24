@@ -1,7 +1,3 @@
-// Esquema fechado dos parâmetros que a Convenção coletiva pode mudar em relação à legislação padrão. Fora
-// daqui, o modelo de linguagem não cria regra: o que não couber vira "não aplicada" e vale a legislação.
-// Tudo em minutos ou em percentual; datas como "DD/MM".
-
 export const VERSAO_DO_ESQUEMA = 1;
 
 export const CHAVES_NUMERICAS = [
@@ -18,9 +14,6 @@ export const CHAVES_DE_REGRA = [
   "excecoes_de_feriado",
 ] as const;
 
-// As chaves que mudam o cálculo da Totalização (regras-de-calculo.service). As outras são extraídas e mostradas,
-// mas o motor não as usa: jornada e intervalos vêm do empregado e das batidas, e a exceção de feriado não tem data
-// para casar. Um teste do serviço trava esta lista contra o que `regrasDeCalculo` realmente lê.
 export const CHAVES_NO_CALCULO: readonly ChaveDeRegra[] = [
   "extra_sabado",
   "limite_extras_dia",
@@ -32,10 +25,8 @@ export type ChaveDeRegra = (typeof CHAVES_DE_REGRA)[number];
 
 export type DataEspecial = {
   descricao: string;
-  // "DD/MM"; nulo para data móvel (Carnaval), que o RH marca no cartão.
   data: string | null;
   percentual: number;
-  // Percentual do comissionado quando a convenção traz um diferente (75% x 50%); ausente = o mesmo.
   percentualComissionado?: number;
 };
 export type ExcecaoDeFeriado = { descricao: string };
@@ -59,7 +50,6 @@ export type MotivoDeRejeicao = (typeof MOTIVOS_DE_REJEICAO)[number];
 
 export type RegraRejeitada = { chave: string; motivo: MotivoDeRejeicao };
 
-// O conjunto gravado por convenção. `versao` é a do esquema: um esquema novo não reinterpreta o antigo.
 export type RegrasDaConvencao = {
   versao: number;
   aplicadas: RegraAplicada[];
@@ -68,8 +58,6 @@ export type RegrasDaConvencao = {
 
 type Unidade = "minutos" | "percentual" | "lista";
 
-// A legislação padrão que cada parâmetro substitui, para a tela mostrar a diferença. Em minutos ou %.
-// `piso`: percentual abaixo disso é rejeitado (a convenção não pode pagar menos que a lei).
 export const REFERENCIA_DA_LEGISLACAO: Record<
   ChaveDeRegra,
   { rotulo: string; unidade: Unidade; legislacao: number | null; piso?: number }
