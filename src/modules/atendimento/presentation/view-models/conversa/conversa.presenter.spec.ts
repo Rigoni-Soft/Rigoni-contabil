@@ -3,6 +3,7 @@ import type { ConversaVista } from "@/modules/atendimento/application/ports/in/o
 import {
   acrescentarAnteriores,
   aplicarLinksRenovados,
+  avisoDoPainelDeContatoUra,
   conversaParaView,
   documentoDaOpcao,
   formatarCronometro,
@@ -19,6 +20,7 @@ const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
   encerrado: false,
   podeAtender: true,
+  podeCadastrarContato: false,
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   clienteVinculado: true,
@@ -216,6 +218,82 @@ describe("conversaParaView", () => {
     expect(view.semCliente).toBe(true);
     expect(view.mensagens[0].autor).toBe("(61) 98888-7777");
     expect(view.mensagens[0].detalhe).toBe("CNPJ não definido");
+  });
+});
+
+describe("conversaParaView: cadastrar contato", () => {
+  const NAO_VINCULADO: ConversaVista = {
+    ...CONVERSA,
+    podeCadastrarContato: true,
+    clienteVinculado: false,
+    contato: { contatoNome: null, empresa: null, cnpj: null },
+  };
+
+  it("oferece o cadastro com o WhatsApp do atendimento, sem sugestão de CNPJ se a URA não colheu", () => {
+    expect(conversaParaView(NAO_VINCULADO).contatoUra).toEqual({
+      pode: true,
+      telefone: "(61) 98888-7777",
+      cnpjSugerido: "",
+    });
+  });
+
+  it("sugere o CNPJ que o número informou na URA, formatado", () => {
+    const view = conversaParaView({
+      ...NAO_VINCULADO,
+      ura: { resumo: null, cnpjInformado: "11444777000161" },
+    });
+    expect(view.contatoUra.cnpjSugerido).toBe("11.444.777/0001-61");
+  });
+
+  it("sugere o CNPJ do Cliente já ligado ao Atendimento antes do informado", () => {
+    const view = conversaParaView({
+      ...NAO_VINCULADO,
+      contato: { contatoNome: null, empresa: "Padaria Ltda", cnpj: "11222333000181" },
+      ura: { resumo: null, cnpjInformado: "11444777000161" },
+    });
+    expect(view.contatoUra.cnpjSugerido).toBe("11.222.333/0001-81");
+  });
+
+  it("não oferece quando o servidor não liberou", () => {
+    expect(conversaParaView(CONVERSA).contatoUra.pode).toBe(false);
+  });
+});
+
+describe("avisoDoPainelDeContatoUra: resultado do cadastro", () => {
+  it("criado e existente são sucesso e dizem de qual Cliente é o contato", () => {
+    expect(
+      avisoDoPainelDeContatoUra(
+        {},
+        { status: "criado", contatoId: "c", nome: "Maria" },
+        "Padaria Ltda",
+      ),
+    ).toEqual({ tipo: "sucesso", texto: "Maria cadastrado como contato de Padaria Ltda." });
+    expect(
+      avisoDoPainelDeContatoUra(
+        {},
+        { status: "existente", contatoId: "c", nome: "Joana" },
+        "Padaria Ltda",
+      ),
+    ).toEqual({
+      tipo: "sucesso",
+      texto: "Este número já é o contato Joana de Padaria Ltda. Nada foi alterado.",
+    });
+  });
+
+  it("número em outro Cliente e e-mail repetido são erro e dizem que nada foi cadastrado", () => {
+    const outro = avisoDoPainelDeContatoUra({}, { status: "em_outro_cliente" }, "Padaria Ltda");
+    expect(outro?.tipo).toBe("erro");
+    expect(outro?.texto).toContain("outro Cliente");
+    const email = avisoDoPainelDeContatoUra(
+      {},
+      { status: "email_em_uso", contatoId: "c", nome: "Pedro" },
+      "Padaria Ltda",
+    );
+    expect(email).toEqual({
+      tipo: "erro",
+      texto: "Este e-mail já é do contato Pedro de Padaria Ltda. Nada foi cadastrado.",
+      campo: "email",
+    });
   });
 });
 
@@ -544,5 +622,41 @@ describe("intervaloDaConversa", () => {
   it("sem leitura ou sem Mensagens (conversa recém-aberta) começa no ritmo rápido", () => {
     expect(intervaloDaConversa(undefined, agora)).toBe(POLLING_RAPIDO_MS);
     expect(intervaloDaConversa(conversaCom(), agora)).toBe(POLLING_RAPIDO_MS);
+  });
+});
+
+describe("avisoDoPainelDeContatoUra", () => {
+  const criado = { status: "criado" as const, contatoId: "c", nome: "Maria" };
+
+  it("o erro da busca vence o do cadastro e o resultado", () => {
+    expect(
+      avisoDoPainelDeContatoUra(
+        { busca: "Sem Cliente.", cadastro: "Falhou." },
+        criado,
+        "Padaria Ltda",
+      ),
+    ).toEqual({
+      tipo: "erro",
+      texto: "Sem Cliente.",
+    });
+  });
+
+  it("o erro do cadastro vence o resultado", () => {
+    expect(avisoDoPainelDeContatoUra({ cadastro: "Falhou." }, criado, "Padaria Ltda")).toEqual({
+      tipo: "erro",
+      texto: "Falhou.",
+    });
+  });
+
+  it("sem erro, o resultado vira o aviso do contato", () => {
+    expect(avisoDoPainelDeContatoUra({}, criado, "Padaria Ltda")).toEqual({
+      tipo: "sucesso",
+      texto: "Maria cadastrado como contato de Padaria Ltda.",
+    });
+  });
+
+  it("sem erro nem resultado (ou sem Cliente), não há aviso", () => {
+    expect(avisoDoPainelDeContatoUra({}, undefined, "Padaria Ltda")).toBeUndefined();
+    expect(avisoDoPainelDeContatoUra({}, criado, undefined)).toBeUndefined();
   });
 });

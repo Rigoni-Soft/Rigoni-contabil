@@ -1,5 +1,7 @@
 import {
   atendimentoIdSchema,
+  buscarClienteParaContatoSchema,
+  cadastrarContatoUraSchema,
   enviarDocumentoSchema,
   enviarMensagemSchema,
   reagirAMensagemSchema,
@@ -58,6 +60,44 @@ describe("transferirAtendimentoSchema", () => {
     expect(transferirAtendimentoSchema.safeParse({ atendimentoId: ID, ...dados }).success).toBe(
       false,
     );
+  });
+});
+
+describe("buscarClienteParaContatoSchema", () => {
+  it("aceita o CNPJ com ou sem máscara", () => {
+    expect(
+      buscarClienteParaContatoSchema.safeParse({ atendimentoId: ID, cnpj: "11.444.777/0001-61" })
+        .success,
+    ).toBe(true);
+  });
+
+  it.each(["", "   ", "x".repeat(19)])("recusa o CNPJ %p", (cnpj) => {
+    expect(buscarClienteParaContatoSchema.safeParse({ atendimentoId: ID, cnpj }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe("cadastrarContatoUraSchema", () => {
+  const BASE = { atendimentoId: ID, clienteId: ID, nome: "  Maria  ", email: "" };
+
+  it("aceita nome (aparado) e e-mail em branco como sem e-mail", () => {
+    const r = cadastrarContatoUraSchema.safeParse(BASE);
+    expect(r.success && r.data).toEqual({ ...BASE, nome: "Maria", email: null });
+  });
+
+  it("aceita e-mail digitado", () => {
+    const r = cadastrarContatoUraSchema.safeParse({ ...BASE, email: " maria@padaria.teste " });
+    expect(r.success && r.data.email).toBe("maria@padaria.teste");
+  });
+
+  it.each([
+    [{ nome: "   " }],
+    [{ nome: "x".repeat(121) }],
+    [{ email: "sem-arroba" }],
+    [{ clienteId: "nao-e-id" }],
+  ])("recusa %p", (dados) => {
+    expect(cadastrarContatoUraSchema.safeParse({ ...BASE, ...dados }).success).toBe(false);
   });
 });
 

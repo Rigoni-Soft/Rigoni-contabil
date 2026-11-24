@@ -42,6 +42,7 @@ export function useAcoesConversa(
     transferidoPara,
     somenteLeitura: conversa.somenteLeitura,
     semCliente: conversa.semCliente,
+    podeCadastrarContato: conversa.contatoUra.pode,
     servicos: conversa.servicos,
     aoEnviarServico: (valor: string) => envio.mutate(documentoDaOpcao(valor)),
     enviando: envio.isPending,

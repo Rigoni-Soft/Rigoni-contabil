@@ -10,6 +10,8 @@ type PainelDeAcoesProps = {
   transferidoPara?: string;
   // Ausentes na leitura de supervisão: só o encerramento resta.
   servicos?: React.ReactNode;
+  // Só a Recepção, com o número que a URA não achou como contato.
+  contatoUra?: React.ReactNode;
   transferencia?: React.ReactNode;
   encerramento: React.ReactNode;
 };
@@ -18,6 +20,7 @@ type PainelDeAcoesProps = {
 export function PainelDeAcoes({
   transferidoPara,
   servicos,
+  contatoUra,
   transferencia,
   encerramento,
 }: PainelDeAcoesProps) {
@@ -39,9 +42,10 @@ export function PainelDeAcoes({
       ) : (
         <>
           {servicos}
+          {contatoUra && <SecaoComDivisor>{contatoUra}</SecaoComDivisor>}
           {transferencia && <SecaoComDivisor>{transferencia}</SecaoComDivisor>}
           {/* Em leitura não há o que separar: sem divisor solto no topo do painel. */}
-          {servicos || transferencia ? (
+          {servicos || contatoUra || transferencia ? (
             <SecaoComDivisor>{encerramento}</SecaoComDivisor>
           ) : (
             encerramento

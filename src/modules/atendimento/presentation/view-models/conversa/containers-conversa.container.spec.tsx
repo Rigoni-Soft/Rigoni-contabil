@@ -14,6 +14,9 @@ const aoEnviar = jest.fn();
 let acoesVisiveis = true;
 let compositorVisivel = true;
 
+jest.mock("@/modules/atendimento/presentation/view-models/conversa/contato-ura.container", () => ({
+  ContatoUraContainer: () => null,
+}));
 jest.mock(
   "@/modules/atendimento/presentation/view-models/conversa/use-cabecalho-conversa.hook",
   () => ({

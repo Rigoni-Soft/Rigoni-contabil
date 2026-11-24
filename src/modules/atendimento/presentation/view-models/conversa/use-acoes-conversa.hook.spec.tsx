@@ -38,6 +38,7 @@ const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
   encerrado: false,
   podeAtender: true,
+  podeCadastrarContato: false,
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   clienteVinculado: true,
@@ -80,6 +81,13 @@ describe("useAcoesConversa", () => {
     expect(result.current.visivel).toBe(true);
     expect(result.current.servicos.map((s) => s.valor)).toEqual(["contrato", "alteracao:3"]);
     expect(result.current.setoresDestino.map((s) => s.rotulo)).toEqual(["Recepção", "Tributário"]);
+  });
+
+  it("expõe se a Recepção pode cadastrar o número como contato", () => {
+    expect(renderizar().result.current.podeCadastrarContato).toBe(false);
+    expect(
+      renderizar({ ...CONVERSA, podeCadastrarContato: true }).result.current.podeCadastrarContato,
+    ).toBe(true);
   });
 
   it("encerrado não mostra ações", () => {

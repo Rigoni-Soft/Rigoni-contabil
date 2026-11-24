@@ -11,6 +11,9 @@ type AvisoDeStatusProps = {
   className?: string;
   // Para o campo apontar para o aviso (aria-describedby).
   id?: string;
+  // Para levar o foco ao resultado quando o botão que o pediu sai da tela (tabIndex -1: só por código).
+  ref?: React.Ref<HTMLParagraphElement>;
+  tabIndex?: number;
 };
 
 // Erro é anunciado como alerta; sucesso e atenção, como status. Ícone + texto + cor, nunca só cor
@@ -23,11 +26,21 @@ const POR_TIPO = {
   atencao: { Icone: Clock, cor: "text-foreground", role: "status" },
 } as const;
 
-export function AvisoDeStatus({ tipo, texto, legivel, className, id }: AvisoDeStatusProps) {
+export function AvisoDeStatus({
+  tipo,
+  texto,
+  legivel,
+  className,
+  id,
+  ref,
+  tabIndex,
+}: AvisoDeStatusProps) {
   const { Icone, cor, role } = POR_TIPO[tipo];
   return (
     <p
       id={id}
+      ref={ref}
+      tabIndex={tabIndex}
       role={role}
       className={cn("flex items-start gap-1.5", legivel ? "text-sm" : "text-xs", cor, className)}
     >

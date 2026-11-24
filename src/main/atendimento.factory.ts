@@ -41,6 +41,10 @@ import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { AssumirAtendimentoPort } from "@/modules/atendimento/application/ports/in/assumir-atendimento.provider";
 import type { AutenticarWebhookPort } from "@/modules/atendimento/application/ports/in/autenticar-webhook.provider";
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
+import type {
+  BuscarClienteParaContatoUraPort,
+  CadastrarContatoUraPort,
+} from "@/modules/atendimento/application/ports/in/cadastrar-contato-ura.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
 import type { EncerrarPorSilencioPort } from "@/modules/atendimento/application/ports/in/encerrar-por-silencio.provider";
 import type { EnviarAnexoAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-anexo-ao-cliente.provider";
@@ -75,6 +79,8 @@ import { AnexarMensagemAtendimento } from "@/modules/atendimento/application/use
 import { AssumirAtendimento } from "@/modules/atendimento/application/use-cases/assumir-atendimento.use-case";
 import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/autenticar-webhook.use-case";
 import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisar-cliente.use-case";
+import { BuscarClienteParaContatoUra } from "@/modules/atendimento/application/use-cases/buscar-cliente-para-contato-ura.use-case";
+import { CadastrarContatoUra } from "@/modules/atendimento/application/use-cases/cadastrar-contato-ura.use-case";
 import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
 import { EncerrarPorSilencio } from "@/modules/atendimento/application/use-cases/encerrar-por-silencio.use-case";
@@ -120,6 +126,7 @@ import { SupabaseClienteCnpjGateway } from "@/modules/atendimento/infra/gateways
 import { SupabaseClientesComParcelamentoPgfnGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-com-parcelamento-pgfn.gateway";
 import { SupabaseClientesParaLembreteGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-para-lembrete.gateway";
 import { SupabaseClientesParaParcelamentoGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-para-parcelamento.gateway";
+import { SupabaseContatoUraGateway } from "@/modules/atendimento/infra/gateways/supabase-contato-ura.gateway";
 import { SupabaseDestinosDeEnvioGateway } from "@/modules/atendimento/infra/gateways/supabase-destinos-de-envio.gateway";
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
 import { SupabaseGuiaPublicadaGateway } from "@/modules/atendimento/infra/gateways/supabase-guia-publicada.gateway";
@@ -440,6 +447,29 @@ export async function makeListarMeusAtendimentos(): Promise<ListarMeusAtendiment
   return new ListarMeusAtendimentos(
     sessaoViaUsuarios(await createSupabaseServer()),
     new SupabaseAtendimentoRepository(createSupabaseAdmin()),
+  );
+}
+
+// O cadastro roda com a sessão do usuário (o banco confere Recepção e dono do Atendimento); só a leitura
+// do Cliente pelo CNPJ usa o service_role.
+export async function makeBuscarClienteParaContatoUra(): Promise<BuscarClienteParaContatoUraPort> {
+  const supabase = await createSupabaseServer();
+  const admin = createSupabaseAdmin();
+  return new BuscarClienteParaContatoUra(
+    sessaoViaUsuarios(supabase),
+    new SupabaseAtendimentoRepository(admin),
+    new SupabaseContatoUraGateway(supabase, admin),
+    auditoriaBestEffort(errosAtendimento),
+  );
+}
+
+export async function makeCadastrarContatoUra(): Promise<CadastrarContatoUraPort> {
+  const supabase = await createSupabaseServer();
+  const admin = createSupabaseAdmin();
+  return new CadastrarContatoUra(
+    sessaoViaUsuarios(supabase),
+    new SupabaseAtendimentoRepository(admin),
+    new SupabaseContatoUraGateway(supabase, admin),
   );
 }
 

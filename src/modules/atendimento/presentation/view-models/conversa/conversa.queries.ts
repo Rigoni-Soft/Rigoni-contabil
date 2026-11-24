@@ -10,6 +10,8 @@ import type { DocumentoParaEnviar } from "@/modules/atendimento/application/port
 import type { ConversaVista } from "@/modules/atendimento/application/ports/in/obter-conversa.provider";
 import { subirAnexoEmPartes } from "@/modules/atendimento/presentation/view-models/conversa/anexo-em-partes.upload";
 import {
+  buscarClienteParaContatoUraAction,
+  cadastrarContatoUraAction,
   encerrarAtendimentoAction,
   enviarAnexoGuardadoAction,
   enviarDocumentoAction,
@@ -145,6 +147,29 @@ export function useTransferirAtendimentoMutation(atendimentoId: string) {
     },
     // O Atendimento mudou de mãos: a lista precisa refletir.
     onSettled: () => queryClient.invalidateQueries({ queryKey: meusAtendimentosKeys.lista() }),
+  });
+}
+
+// Passo 1 do cadastro: o Cliente do CNPJ que a Recepção vai confirmar. Não grava nada.
+export function useBuscarClienteParaContatoMutation(atendimentoId: string) {
+  return useMutation({
+    mutationFn: async (cnpj: string) => {
+      const resultado = await buscarClienteParaContatoUraAction({ atendimentoId, cnpj });
+      if (!resultado.ok) throw new Error(resultado.error.message);
+      return resultado.data;
+    },
+  });
+}
+
+// Passo 2: grava o contato. Nem a conversa nem as listas mudam (o Atendimento não ganha Cliente), então
+// não há o que invalidar.
+export function useCadastrarContatoUraMutation(atendimentoId: string) {
+  return useMutation({
+    mutationFn: async (dados: { clienteId: string; nome: string; email: string }) => {
+      const resultado = await cadastrarContatoUraAction({ atendimentoId, ...dados });
+      if (!resultado.ok) throw new Error(resultado.error.message);
+      return resultado.data;
+    },
   });
 }
 

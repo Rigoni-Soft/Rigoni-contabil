@@ -56,6 +56,9 @@ export type ConversaVista = {
   // Dono com o Atendimento em andamento: só ele responde e transfere; Líder do Setor e Admin leem
   // em supervisão (e encerram).
   podeAtender: boolean;
+  // Recepção, dono do Atendimento em andamento, com o número que a URA não achou como Contato:
+  // oferece "Cadastrar como contato deste Cliente".
+  podeCadastrarContato: boolean;
   telefone: string;
   contato: DadosDoContato;
   // Sem Cliente vinculado (ex.: número não identificado) não há CNPJ para disparar serviços.

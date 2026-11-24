@@ -248,7 +248,7 @@ describe("aviso do sino: Cliente sem meio de envio", () => {
     const linhas = await ok(
       admin
         .from("avisos_cadastro")
-        .select("destinatario_id, tipo, mensagem, cliente_id")
+        .select("id, destinatario_id, tipo, mensagem, cliente_id")
         .eq("cliente_id", clienteId)
         .eq("tipo", "sem_meio_de_envio"),
     );
@@ -257,6 +257,12 @@ describe("aviso do sino: Cliente sem meio de envio", () => {
 
   const destinatarios = async (clienteId: string) =>
     (await avisos(clienteId)).map((a) => a.destinatario_id).sort();
+
+  // O select não tem ORDER BY: a ordem física não é a de inserção. Os avisos novos saem por id, nunca por posição.
+  const idsDosAvisos = async (clienteId: string) =>
+    new Set((await avisos(clienteId)).map((a) => a.id));
+  const avisosNovos = async (clienteId: string, antes: Set<string>) =>
+    (await avisos(clienteId)).filter((a) => !antes.has(a.id));
 
   async function abrirAlerta(
     clienteId: string,
@@ -340,11 +346,11 @@ describe("aviso do sino: Cliente sem meio de envio", () => {
         .update({ desativado_em: new Date().toISOString() })
         .eq("id", FUNCIONARIO_SN_ID),
     );
-    const antes = (await avisos(clienteSn)).length;
+    const antes = await idsDosAvisos(clienteSn);
 
     await abrirAlerta(clienteSn, "simples_nacional");
 
-    const novos = (await avisos(clienteSn)).slice(antes);
+    const novos = await avisosNovos(clienteSn, antes);
     expect(novos).toHaveLength(1);
     await ok(admin.from("perfis").update({ desativado_em: null }).eq("id", FUNCIONARIO_SN_ID));
   });
@@ -397,7 +403,7 @@ describe("aviso do sino: Cliente sem meio de envio", () => {
   });
 
   it("o aviso dos alertas já abertos (backfill da migration) chega ao Líder e ao Responsável, nunca ao Admin", async () => {
-    const antes = (await avisos(clienteSn)).length;
+    const antes = await idsDosAvisos(clienteSn);
 
     await ok(
       admin.rpc("avisar_sem_meio_de_envio", {
@@ -407,7 +413,7 @@ describe("aviso do sino: Cliente sem meio de envio", () => {
       }),
     );
 
-    const novos = (await avisos(clienteSn)).slice(antes);
+    const novos = await avisosNovos(clienteSn, antes);
     expect(novos.map((a) => a.destinatario_id).sort()).toEqual(
       [FUNCIONARIO_SN_ID, LIDER_SN_ID].sort(),
     );
