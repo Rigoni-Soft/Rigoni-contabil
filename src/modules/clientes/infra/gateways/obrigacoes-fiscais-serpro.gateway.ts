@@ -42,7 +42,7 @@ const RECUSA_POR_MENSAGEM: Record<string, Recusa> = {
   ER_N006: "parcela_indisponivel", // parcela inexistente, já paga ou de mês futuro
 };
 
-export type RespostaHttp = { status: number; corpo: string };
+type RespostaHttp = { status: number; corpo: string };
 export type RequisicaoHttp = {
   url: string;
   headers: Record<string, string>;
