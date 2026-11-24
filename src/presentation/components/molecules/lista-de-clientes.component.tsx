@@ -12,15 +12,13 @@ type Cliente = {
   acao?: string;
 };
 
+const PULA_RENDER_FORA_DA_TELA = "[contain-intrinsic-size:auto_72px] [content-visibility:auto]";
+
 export function ListaDeClientes({ clientes }: { clientes: Cliente[] }) {
   return (
     <ListaComDivisores>
       {clientes.map((c) => (
-        <Caixa
-          como="li"
-          key={c.clienteId}
-          className="[contain-intrinsic-size:auto_72px] [content-visibility:auto]"
-        >
+        <Caixa como="li" key={c.clienteId} className={PULA_RENDER_FORA_DA_TELA}>
           <LinhaDeCliente
             href={c.href}
             empresa={c.empresa}

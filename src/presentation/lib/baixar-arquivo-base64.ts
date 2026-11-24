@@ -1,3 +1,7 @@
+function revogarDepoisDoClique(url: string): void {
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 export function baixarArquivoBase64(nome: string, base64: string, tipo: string): void {
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
   const url = URL.createObjectURL(new Blob([bytes], { type: tipo }));
@@ -7,5 +11,5 @@ export function baixarArquivoBase64(nome: string, base64: string, tipo: string):
   document.body.appendChild(link);
   link.click();
   link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+  revogarDepoisDoClique(url);
 }

@@ -10,6 +10,8 @@ import { cn } from "@/presentation/lib/utils";
 import { ROTA_ATENDIMENTO } from "@/shared/kernel/rotas";
 import { ROTA_POR_SETOR, SETOR_LABEL } from "@/shared/kernel/setores";
 
+const MAXIMO_DE_SETORES_COMO_CHIPS = 2;
+
 type SetorNav = { slug: string };
 type ItemDeConfiguracao = { rotulo: string; href: string };
 
@@ -34,7 +36,7 @@ export function ShellNav({
   configuracoes,
 }: ShellNavProps) {
   const ativa = rotaAtual === ROTA_ATENDIMENTO;
-  const comSeletor = onIrParaSetor !== undefined && setores.length > 2;
+  const comSeletor = onIrParaSetor !== undefined && setores.length > MAXIMO_DE_SETORES_COMO_CHIPS;
   const setorAtual =
     (rotaAtual && setores.find((s) => ROTA_POR_SETOR[s.slug] === rotaAtual)?.slug) || "";
   return (

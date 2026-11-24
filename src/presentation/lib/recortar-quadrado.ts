@@ -1,3 +1,5 @@
+const QUALIDADE_DO_WEBP = 0.85;
+
 export async function recortarQuadrado(arquivo: File, lado: number): Promise<Blob> {
   const imagem = await createImageBitmap(arquivo, { imageOrientation: "from-image" });
   try {
@@ -22,7 +24,7 @@ export async function recortarQuadrado(arquivo: File, lado: number): Promise<Blo
       tela.toBlob(
         (blob) => (blob ? resolver(blob) : rejeitar(new Error("WebP indisponível"))),
         "image/webp",
-        0.85,
+        QUALIDADE_DO_WEBP,
       ),
     );
   } finally {

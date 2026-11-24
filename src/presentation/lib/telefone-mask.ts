@@ -1,3 +1,5 @@
+import { soDigitosNacionais } from "@/shared/kernel/telefone";
+
 export function formatarTelefone(entrada: string): string {
   const digitos = entrada.replace(/\D/g, "").slice(0, 11);
   if (digitos.length === 0) return "";
@@ -7,15 +9,14 @@ export function formatarTelefone(entrada: string): string {
   resultado += `) `;
 
   const restante = digitos.slice(2);
-  const tamanhoDdd = digitos.length > 10 ? 5 : 4;
-  resultado += restante.slice(0, tamanhoDdd);
-  if (restante.length > tamanhoDdd) resultado += `-${restante.slice(tamanhoDdd)}`;
+  const digitosAntesDoHifen = digitos.length > 10 ? 5 : 4;
+  resultado += restante.slice(0, digitosAntesDoHifen);
+  if (restante.length > digitosAntesDoHifen) {
+    resultado += `-${restante.slice(digitosAntesDoHifen)}`;
+  }
   return resultado;
 }
 
 export function telefoneParaExibicao(telefone: string): string {
-  const digitos = telefone.replace(/\D/g, "");
-  return formatarTelefone(
-    digitos.length > 11 && digitos.startsWith("55") ? digitos.slice(2) : digitos,
-  );
+  return formatarTelefone(soDigitosNacionais(telefone));
 }

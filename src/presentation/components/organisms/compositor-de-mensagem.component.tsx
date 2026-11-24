@@ -44,6 +44,14 @@ type CompositorDeMensagemProps = {
   };
 };
 
+const KEY_CODE_DE_COMPOSICAO_NO_SAFARI = 229;
+
+function ehEnterDeEnvio(evento: React.KeyboardEvent<HTMLTextAreaElement>) {
+  const compondoTexto =
+    evento.nativeEvent.isComposing || evento.keyCode === KEY_CODE_DE_COMPOSICAO_NO_SAFARI;
+  return evento.key === "Enter" && !evento.shiftKey && !compondoTexto;
+}
+
 export function CompositorDeMensagem({
   onEnviar,
   enviando,
@@ -137,8 +145,7 @@ export function CompositorDeMensagem({
             }
           }}
           onKeyDown={(evento) => {
-            const compondo = evento.nativeEvent.isComposing || evento.keyCode === 229;
-            if (evento.key === "Enter" && !evento.shiftKey && !compondo) {
+            if (ehEnterDeEnvio(evento)) {
               evento.preventDefault();
               evento.currentTarget.form?.requestSubmit();
             }

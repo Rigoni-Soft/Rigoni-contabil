@@ -59,6 +59,9 @@ const CAMPOS = [
   ["extraSaida", "Extra saída"],
 ] as const;
 
+const CLASSE_DO_HORARIO =
+  "w-[4.5rem] border-foreground/55 px-1.5 [&::-webkit-calendar-picker-indicator]:hidden";
+
 export const idDoFormDoDia = (data: string) => `dia-${data}`;
 
 export function LinhaDoCartaoDePonto({
@@ -80,7 +83,8 @@ export function LinhaDoCartaoDePonto({
   const destravada = editavel && emEdicao;
   const abonado = linha.situacao === "abonado";
   const semBatidaSalva = !linha.entrada1 && !linha.saida1 && !linha.entrada2 && !linha.saida2;
-  const batidasTravadas = abonado || (linha.situacao === "folga" && semBatidaSalva);
+  const folgaSemBatida = linha.situacao === "folga" && semBatidaSalva;
+  const batidasTravadas = abonado || folgaSemBatida;
   const primeiroCampo = batidasTravadas ? "extraEntrada" : "entrada1";
   return (
     <LinhaDeTabela tom={linha.tom}>
@@ -97,7 +101,7 @@ export function LinhaDoCartaoDePonto({
       <CelulaDeTabela>{linha.diaSemana}</CelulaDeTabela>
       {CAMPOS.map(([nome, rotulo]) => {
         const ehExtra = nome.startsWith("extra");
-        const desabilitado = ehExtra ? abonado : batidasTravadas;
+        const campoDesabilitado = ehExtra ? abonado : batidasTravadas;
         return (
           <CelulaDeTabela key={nome} compacta>
             <Input
@@ -108,10 +112,10 @@ export function LinhaDoCartaoDePonto({
               name={nome}
               defaultValue={limpa ? "" : linha[nome]}
               readOnly={!destravada}
-              disabled={desabilitado}
+              disabled={campoDesabilitado}
               aria-label={`${rotulo} de ${linha.rotulo}`}
               aria-describedby={aviso ? idDoAviso : undefined}
-              className="w-[4.5rem] border-foreground/55 px-1.5 [&::-webkit-calendar-picker-indicator]:hidden"
+              className={CLASSE_DO_HORARIO}
             />
           </CelulaDeTabela>
         );

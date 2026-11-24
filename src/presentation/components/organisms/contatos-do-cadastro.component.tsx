@@ -17,6 +17,10 @@ import { formatarTelefone } from "@/presentation/lib/telefone-mask";
 
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
 
+const CARACTERE_INVISIVEL = "\u200B";
+
+const avisoDeVezImpar = (vez: number | undefined) => (vez ?? 0) % 2 === 1;
+
 export type AcoesDasLinhasDeContato = {
   editando: (indice: number) => boolean;
   salvo: (indice: number) => boolean;
@@ -126,7 +130,7 @@ export function ContatosDoCadastro({
       )}
       <Texto variante="nota" aria-live="polite" className="sr-only">
         {linhas.aviso}
-        {(linhas.avisoVez ?? 0) % 2 === 1 && "​"}
+        {avisoDeVezImpar(linhas.avisoVez) && CARACTERE_INVISIVEL}
       </Texto>
       {errors.contatos && typeof errors.contatos.message === "string" && (
         <FieldError>{errors.contatos.message}</FieldError>

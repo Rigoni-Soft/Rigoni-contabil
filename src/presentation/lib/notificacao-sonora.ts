@@ -1,5 +1,7 @@
 let contexto: AudioContext | null = null;
 
+function ignorarFalhaDeAudio(_falha: unknown): void {}
+
 function criarContexto(): AudioContext | null {
   if (typeof window === "undefined") return null;
   const Construtor =
@@ -16,7 +18,9 @@ export function prepararSom(): void {
     try {
       const audio = criarContexto();
       if (audio?.state === "suspended") void audio.resume();
-    } catch {}
+    } catch (falha) {
+      ignorarFalhaDeAudio(falha);
+    }
   };
   window.addEventListener("pointerdown", liberar, { once: true });
   window.addEventListener("keydown", liberar, { once: true });
@@ -25,6 +29,8 @@ export function prepararSom(): void {
 const TONS_HZ = [880, 1174.66];
 const DURACAO_DE_CADA_TOM_S = 0.12;
 const VOLUME = 0.08;
+const VOLUME_QUASE_ZERO = 0.0001;
+const DURACAO_DA_ENTRADA_S = 0.02;
 
 export function tocarNotificacao(): void {
   try {
@@ -37,12 +43,14 @@ export function tocarNotificacao(): void {
       const comeco = inicio + indice * DURACAO_DE_CADA_TOM_S;
       oscilador.type = "sine";
       oscilador.frequency.value = frequencia;
-      volume.gain.setValueAtTime(0.0001, comeco);
-      volume.gain.exponentialRampToValueAtTime(VOLUME, comeco + 0.02);
-      volume.gain.exponentialRampToValueAtTime(0.0001, comeco + DURACAO_DE_CADA_TOM_S);
+      volume.gain.setValueAtTime(VOLUME_QUASE_ZERO, comeco);
+      volume.gain.exponentialRampToValueAtTime(VOLUME, comeco + DURACAO_DA_ENTRADA_S);
+      volume.gain.exponentialRampToValueAtTime(VOLUME_QUASE_ZERO, comeco + DURACAO_DE_CADA_TOM_S);
       oscilador.connect(volume).connect(audio.destination);
       oscilador.start(comeco);
       oscilador.stop(comeco + DURACAO_DE_CADA_TOM_S);
     });
-  } catch {}
+  } catch (falha) {
+    ignorarFalhaDeAudio(falha);
+  }
 }

@@ -112,6 +112,8 @@ export function ParcelamentosDoCadastro({
       </Texto>
       {parcelamentos.map((atual, indice) => {
         const erros = errors.parcelamentos?.[indice];
+        const quitadoOuPgfnCadastrado =
+          atual.quitado || (Boolean(atual.id) && atual.acordo?.origem === "pgfn");
         const leitura = leituras[parcelamentoCampos[indice].id];
         const descricaoDaLeitura = leitura
           ? { "aria-describedby": `parcelamentos-${indice}-leitura` }
@@ -130,11 +132,7 @@ export function ParcelamentosDoCadastro({
             erroCodigo={erros?.codigo?.message}
             erroParcelas={erros?.parcelasRestantes?.message}
             selo={seloDoParcelamento(atual)}
-            desabilitado={
-              atual.quitado ||
-              (Boolean(atual.id) && atual.acordo?.origem === "pgfn") ||
-              leitura?.estado === "lendo"
-            }
+            desabilitado={quitadoOuPgfnCadastrado || leitura?.estado === "lendo"}
             onRemover={readOnly || atual.temEnvio ? undefined : () => onRemover(indice)}
             bloqueadoPorEnvio={!readOnly && atual.temEnvio}
             guias={

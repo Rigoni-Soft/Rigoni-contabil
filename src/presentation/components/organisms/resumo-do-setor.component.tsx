@@ -19,7 +19,10 @@ type Props = {
   busca: React.ReactNode;
 };
 
-const colunasPara = (quantidade: number) => (quantidade % 5 === 0 ? "2>3>5" : "2>3");
+const COLUNAS_DA_TELA_LARGA = 5;
+
+const colunasPara = (quantidade: number) =>
+  quantidade % COLUNAS_DA_TELA_LARGA === 0 ? "2>3>5" : "2>3";
 
 function GrupoDeCards({
   titulo,

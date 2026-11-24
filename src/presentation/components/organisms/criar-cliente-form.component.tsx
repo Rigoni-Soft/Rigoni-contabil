@@ -23,6 +23,9 @@ import { REGIME_LABEL, REGIMES } from "@/shared/kernel/regimes";
 
 const OPCOES_REGIME = REGIMES.map((valor) => ({ valor, rotulo: REGIME_LABEL[valor] }));
 
+const TAMANHO_DO_CNPJ_MASCARADO = 18;
+const TAMANHO_MAXIMO_DE_EMAIL = 254;
+
 export type CriarClienteFormValues = {
   empresa: string;
   cnpj: string;
@@ -115,7 +118,7 @@ export function CriarClienteForm({
               name={name}
               inputMode="numeric"
               placeholder="00.000.000/0000-00"
-              maxLength={18}
+              maxLength={TAMANHO_DO_CNPJ_MASCARADO}
               value={value ?? ""}
               erro={errors.cnpj?.message}
               aviso={avisoCnpj}
@@ -153,7 +156,7 @@ export function CriarClienteForm({
             rotulo="E-mail do Cliente"
             type="email"
             autoComplete="off"
-            maxLength={254}
+            maxLength={TAMANHO_MAXIMO_DE_EMAIL}
             aria-describedby="email-ajuda"
             erro={errors.email?.message}
             {...register("email")}

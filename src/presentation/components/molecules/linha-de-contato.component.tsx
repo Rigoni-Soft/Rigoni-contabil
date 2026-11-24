@@ -63,7 +63,7 @@ function AcoesDaLinha({ children }: { children: React.ReactNode }) {
   );
 }
 
-const ICONE_PEQUENO = "size-8 pointer-coarse:size-11";
+const BOTAO_ICONE_PEQUENO = "size-8 pointer-coarse:size-11";
 const CAMPO_TRAVADO = "[&_input:read-only]:bg-muted [&_input:read-only]:cursor-default";
 
 export function LinhaDeContato({
@@ -93,18 +93,14 @@ export function LinhaDeContato({
 }: LinhaDeContatoProps) {
   const numero = numeroDaTela ?? indice + 1;
   const comAcoes = !somenteLeitura;
-  const travadoPorFora = !editando || camposTravados;
-  const travado = travadoPorFora ? { readOnly: true } : {};
+  const camposSomenteLeitura = !editando || camposTravados;
+  const travado = camposSomenteLeitura ? { readOnly: true } : {};
   const classeDoCampo = `min-w-[10rem] flex-1 gap-1 ${CAMPO_TRAVADO}`;
+  const haContatosDeOutrosSetoresParaEscolher =
+    existentes && existentes.opcoes.length > 0 && !existentes.modoNovo;
+  const podeEscolherContatoExistente = editando && comAcoes && !camposTravados;
   const escolha =
-    existentes &&
-    existentes.opcoes.length > 0 &&
-    !existentes.modoNovo &&
-    editando &&
-    comAcoes &&
-    !camposTravados
-      ? existentes
-      : undefined;
+    haContatosDeOutrosSetoresParaEscolher && podeEscolherContatoExistente ? existentes : undefined;
   const idDoErroDaLinha = `contatos.${indice}.linha-mensagem`;
   const idDoNumeroRepetido = `contatos.${indice}.telefone-repetido`;
   const rotuloEditar = `Editar contato ${numero}`;
@@ -168,7 +164,7 @@ export function LinhaDeContato({
             <Button
               type="button"
               size="icon"
-              className={`${ICONE_PEQUENO} ${BOTAO_OCUPADO}`}
+              className={`${BOTAO_ICONE_PEQUENO} ${BOTAO_OCUPADO}`}
               onClick={() => !salvando && onSalvar()}
               aria-disabled={salvando || undefined}
               aria-busy={salvando}
@@ -185,7 +181,7 @@ export function LinhaDeContato({
               type="button"
               variant="destructive"
               size="icon"
-              className={`${ICONE_PEQUENO} ${BOTAO_OCUPADO}`}
+              className={`${BOTAO_ICONE_PEQUENO} ${BOTAO_OCUPADO}`}
               onClick={() => !salvando && onCancelar()}
               aria-disabled={salvando || undefined}
               aria-label={rotuloCancelar}
@@ -202,7 +198,7 @@ export function LinhaDeContato({
               type="button"
               variant="outline"
               size="icon"
-              className={ICONE_PEQUENO}
+              className={BOTAO_ICONE_PEQUENO}
               onClick={onEditar}
               aria-label={rotuloEditar}
               title={rotuloEditar}
@@ -215,7 +211,7 @@ export function LinhaDeContato({
                 type="button"
                 variant="destructive"
                 size="icon"
-                className={ICONE_PEQUENO}
+                className={BOTAO_ICONE_PEQUENO}
                 onClick={onRemover}
                 aria-label={rotuloRemover}
                 title={rotuloRemover}

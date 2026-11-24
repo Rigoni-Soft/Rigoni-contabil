@@ -19,6 +19,7 @@ export function PainelDeAcoes({
   transferencia,
   encerramento,
 }: PainelDeAcoesProps) {
+  const temOutraAcao = Boolean(servicos || contatoUra || transferencia);
   return (
     <Pilha
       espaco={4}
@@ -39,11 +40,7 @@ export function PainelDeAcoes({
           {servicos}
           {contatoUra && <SecaoComDivisor>{contatoUra}</SecaoComDivisor>}
           {transferencia && <SecaoComDivisor>{transferencia}</SecaoComDivisor>}
-          {servicos || contatoUra || transferencia ? (
-            <SecaoComDivisor>{encerramento}</SecaoComDivisor>
-          ) : (
-            encerramento
-          )}
+          {temOutraAcao ? <SecaoComDivisor>{encerramento}</SecaoComDivisor> : encerramento}
         </>
       )}
     </Pilha>

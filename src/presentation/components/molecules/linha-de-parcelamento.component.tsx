@@ -13,6 +13,7 @@ import { BOTAO_OCUPADO } from "@/presentation/lib/botao-ocupado";
 import { cn } from "@/presentation/lib/utils";
 
 const DICA_INTERNO = "Marcado: a guia vai ao WhatsApp do financeiro, não ao Cliente.";
+const TAMANHO_MAXIMO_DO_CODIGO = 60;
 const MOTIVO_SEM_REMOVER = "Já teve guia enviada: não pode ser removido.";
 
 type LinhaDeParcelamentoProps = {
@@ -59,7 +60,7 @@ export function LinhaDeParcelamento({
           id={`parcelamentos.${indice}.codigo`}
           rotulo="Código"
           placeholder="Gerado pelo sistema"
-          maxLength={60}
+          maxLength={TAMANHO_MAXIMO_DO_CODIGO}
           erro={erroCodigo}
           disabled={desabilitado}
           className="min-w-[10rem] flex-1 gap-1"
