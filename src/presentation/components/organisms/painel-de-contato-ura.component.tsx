@@ -26,6 +26,9 @@ type PainelDeContatoUraProps = {
   onCancelar: () => void;
 };
 
+// O campo que a Recepção está preenchendo aponta para o erro do aviso (aria-describedby).
+const ID_DO_AVISO = "contato-ura-aviso";
+
 // "Cadastrar como contato deste Cliente": a Recepção guarda o número que a URA não achou. Dois passos,
 // porque o CNPJ da URA é só sugestão: primeiro confirma o Cliente, depois informa nome e e-mail.
 export function PainelDeContatoUra({
@@ -43,6 +46,8 @@ export function PainelDeContatoUra({
   onCadastrar,
   onCancelar,
 }: PainelDeContatoUraProps) {
+  const vinculoDoErro =
+    aviso?.tipo === "erro" ? { "aria-invalid": true, "aria-describedby": ID_DO_AVISO } : {};
   return (
     <Pilha espaco={2}>
       <TituloDoGrupo>Contato do cliente</TituloDoGrupo>
@@ -74,6 +79,7 @@ export function PainelDeContatoUra({
             inputMode="text"
             autoComplete="off"
             defaultValue={cnpjSugerido}
+            {...vinculoDoErro}
             ajuda={cnpjSugerido ? "Sugerido pela URA. Confira antes de cadastrar." : undefined}
           />
           <Linha espaco={2}>
@@ -136,6 +142,7 @@ export function PainelDeContatoUra({
             name="email"
             type="email"
             autoComplete="off"
+            {...vinculoDoErro}
             ajuda={`O WhatsApp é o do atendimento: ${telefone}.`}
           />
           <Linha espaco={2}>
@@ -159,7 +166,7 @@ export function PainelDeContatoUra({
           </Linha>
         </Pilha>
       )}
-      {aviso && <AvisoDeStatus {...aviso} />}
+      {aviso && <AvisoDeStatus {...aviso} id={ID_DO_AVISO} />}
     </Pilha>
   );
 }

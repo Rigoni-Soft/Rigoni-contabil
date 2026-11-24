@@ -98,4 +98,12 @@ describe("PainelDeContatoUra", () => {
     montar({ etapa: "cliente", aviso: { tipo: "erro", texto: "Nenhum Cliente com este CNPJ." } });
     expect(screen.getByText("Nenhum Cliente com este CNPJ.")).toBeInTheDocument();
   });
+
+  it("liga o erro ao campo da etapa (aria-invalid e aria-describedby)", () => {
+    montar({ etapa: "cliente", aviso: { tipo: "erro", texto: "Nenhum Cliente com este CNPJ." } });
+    const campo = screen.getByLabelText(/CNPJ do Cliente/);
+    expect(campo).toHaveAttribute("aria-invalid", "true");
+    expect(campo.getAttribute("aria-describedby")).toContain("contato-ura-aviso");
+    expect(screen.getByRole("alert")).toHaveAttribute("id", "contato-ura-aviso");
+  });
 });
