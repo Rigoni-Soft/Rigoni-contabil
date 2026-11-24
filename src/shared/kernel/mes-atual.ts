@@ -13,7 +13,6 @@ export function hojeIso(agora: Date = new Date()): string {
   return FORMATO_DATA.format(agora);
 }
 
-// Dia do mês (1-31) no fuso de negócio.
 export function diaDoMes(agora: Date = new Date()): number {
   return Number(hojeIso(agora).slice(8));
 }
@@ -24,7 +23,6 @@ export function mesAtual(agora: Date = new Date()): string {
   return hojeIso(agora).slice(0, 7);
 }
 
-// Último dia (28-31) do mês corrente no fuso de negócio.
 export function ultimoDiaDoMes(agora: Date = new Date()): number {
   const [ano, mes] = mesAtual(agora).split("-").map(Number);
   return new Date(Date.UTC(ano, mes, 0)).getUTCDate();
