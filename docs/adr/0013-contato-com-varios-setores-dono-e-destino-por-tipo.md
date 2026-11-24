@@ -42,6 +42,12 @@ estável entre Contato e destino.
   exige isso antes da primeira rodada do job.
 - Todo Contato é reconhecido pela URA, qualquer que seja o Setor dono: quem um Setor cadastra passa a
   poder pedir documentos do Cliente na URA.
+- A Recepção cadastra o número do Atendimento como Contato URA do Cliente que ela confirmou pelo CNPJ (o
+  da URA é só sugestão), e só o dono do Atendimento. Atendimento sem Cliente aceita o Cliente confirmado;
+  Atendimento já ligado a um Cliente só cadastra nesse Cliente, e o banco recusa outro (`cadastrar_contato_ura`),
+  para a Recepção não gravar o número em Cliente alheio ao Atendimento chamando a função direto. Quando outra
+  chamada grava o mesmo número ou e-mail entre as checagens da função, os índices únicos seguram e ela devolve
+  o contato que a outra criou.
 - A tabela de Contatos e a lista de Setores são reaproveitáveis pela ficha de Cliente e pela estrutura
   organizacional (próximo deploy).
 - Alternativa descartada: Contato por Setor (um registro por Setor). Duplicaria pessoas e dados e

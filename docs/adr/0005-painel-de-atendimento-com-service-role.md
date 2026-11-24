@@ -33,3 +33,8 @@ transação (RPC `security invoker` chamada com `service_role`).
   leitura e uma nova ADR; o #74 já menciona essa alternativa para o contexto de transferência.
 - Relaciona-se ao ADR 0001 (exceção de `service_role` confinada a fábricas de uso explícito) ampliando a exceção às
   fábricas do painel de Atendimento.
+- A busca de Cliente por CNPJ da Recepção (confirmar o Cliente antes de cadastrar um contato URA) lê `clientes` com
+  `service_role`, porque a Recepção não lê essa tabela. Só o dono do Atendimento da Recepção chega a ela, e **toda
+  busca fica na trilha** (`contato.buscar-cliente-ura`, alvo = CNPJ, sucesso ou falha): consultar a carteira CNPJ a
+  CNPJ deixa rastro. Não há limite de tentativas por usuário; o estado que isso pediria (tabela ou cache) não existe
+  hoje, e a trilha cobre o uso indevido a posteriori.
