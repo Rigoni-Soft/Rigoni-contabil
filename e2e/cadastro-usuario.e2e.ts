@@ -1,6 +1,8 @@
 import { expect, test } from "./fixtures";
 import { login } from "./support/criar-cliente";
 
+const SENHA_PROVISORIA_DE_12_SEM_CARACTERES_AMBIGUOS = /^[A-HJ-NP-Z2-9]{12}$/;
+
 test.describe("Cadastro de Líder/Funcionário (Admin only)", () => {
   test("Admin cadastra um Funcionário e vê a senha provisória @smoke", async ({ page }) => {
     await login(page, "admin@rigonicontabil.local", "admin123");
@@ -16,7 +18,7 @@ test.describe("Cadastro de Líder/Funcionário (Admin only)", () => {
 
     await expect(page.getByText(`Funcionário E2E`)).toBeVisible();
     await expect(page.getByText(email)).toBeVisible();
-    await expect(page.getByText(/^[A-HJ-NP-Z2-9]{12}$/)).toBeVisible();
+    await expect(page.getByText(SENHA_PROVISORIA_DE_12_SEM_CARACTERES_AMBIGUOS)).toBeVisible();
   });
 
   test("'Cadastrar outro' volta pro formulário limpo; 'Finalizar' leva pra home", async ({

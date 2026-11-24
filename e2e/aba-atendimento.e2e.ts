@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import { adminLocal } from "./support/admin-local";
+import { adminLocal, limparEsperaSemDonoDoSetor } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
 const admin = adminLocal();
@@ -11,7 +11,7 @@ const CNPJ = `5${Date.now()}`.slice(0, 14);
 test.describe("Aba Atendimento: Em espera / Em atendimento (#162)", () => {
   test.beforeAll(async () => {
     await admin.from("atendimentos").delete().eq("chave_telefone", TELEFONE);
-    await admin.from("atendimentos").delete().eq("setor", "recepcao").is("funcionario_id", null);
+    await limparEsperaSemDonoDoSetor(admin, "recepcao");
     const cliente = await admin
       .from("clientes")
       .insert({ id: CLIENTE, empresa: "Aba E2E Ltda", cnpj: CNPJ, regime: "lucro_presumido" });

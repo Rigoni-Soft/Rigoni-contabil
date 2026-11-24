@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-import { expect, test } from "./fixtures";
+import { esperarHidratacao, expect, test } from "./fixtures";
 import { criarClienteComoAdmin, empresaUnica, login } from "./support/criar-cliente";
 
 const SINO = /Avisos de cadastro/;
@@ -56,7 +56,7 @@ test.describe("Sino de Avisos de cadastro (#143)", () => {
     await entrarComoLider(page);
     await page.clock.install();
     await page.reload();
-    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+    await esperarHidratacao(page);
     const antes = await naoVistos(page);
 
     const admin = await (await browser.newContext()).newPage();

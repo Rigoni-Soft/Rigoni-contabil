@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const raiz = resolve(import.meta.dirname, "..");
-const tenta = (base) => [`${base}.ts`, join(base, "index.ts")].find((c) => existsSync(c));
+const acharModuloTs = (base) => [`${base}.ts`, join(base, "index.ts")].find((c) => existsSync(c));
 
 registerHooks({
   resolve(spec, ctx, next) {
@@ -13,13 +13,13 @@ registerHooks({
       : spec.startsWith(".") && ctx.parentURL?.startsWith("file:")
         ? resolve(new URL(".", ctx.parentURL).pathname.replace(/^\/(\w:)/, "$1"), spec)
         : null;
-    const achado = base && !/\.(ts|tsx|js|mjs|json)$/.test(base) ? tenta(base) : null;
-    return achado ? { url: pathToFileURL(achado).href, shortCircuit: true } : next(spec, ctx);
+    const modulo = base && !/\.(ts|tsx|js|mjs|json)$/.test(base) ? acharModuloTs(base) : null;
+    return modulo ? { url: pathToFileURL(modulo).href, shortCircuit: true } : next(spec, ctx);
   },
 });
 
-const chave = process.env.ANTHROPIC_API_KEY;
-if (!chave) {
+const chaveDaApi = process.env.ANTHROPIC_API_KEY;
+if (!chaveDaApi) {
   console.error(
     "Defina ANTHROPIC_API_KEY (ex.: node --env-file=.env.local, já feito pelo yarn medir:leitura).",
   );
@@ -34,29 +34,30 @@ if (!pasta) {
 const { LeitorDeCartaoVisaoGateway } =
   await import("@/modules/rh/infra/gateways/leitor-de-cartao-visao.gateway");
 const { validarLeitura } = await import("@/modules/rh/domain/services/leitura-do-cartao.service");
+const TAMANHO_DO_ERRO_MOSTRADO = 300;
 let ultimoStatus = "";
 let corpoDoErroJaMostrado = false;
-const http = async (url, init) => {
+const httpComEsforcoEToolAuto = async (url, init) => {
   const corpo = JSON.parse(init.body);
   if (process.env.ESFORCO) corpo.output_config = { effort: process.env.ESFORCO };
   if (/sonnet/.test(corpo.model)) corpo.tool_choice = { type: "auto" };
-  const r = await fetch(url, { ...init, body: JSON.stringify(corpo) });
-  ultimoStatus = r.ok ? "" : `http ${r.status}`;
-  if (!r.ok && !corpoDoErroJaMostrado) {
+  const resposta = await fetch(url, { ...init, body: JSON.stringify(corpo) });
+  ultimoStatus = resposta.ok ? "" : `http ${resposta.status}`;
+  if (!resposta.ok && !corpoDoErroJaMostrado) {
     corpoDoErroJaMostrado = true;
-    console.error("# erro:", (await r.clone().text()).slice(0, 300));
+    console.error("# erro:", (await resposta.clone().text()).slice(0, TAMANHO_DO_ERRO_MOSTRADO));
   }
-  return r;
+  return resposta;
 };
 const leitor = new LeitorDeCartaoVisaoGateway(
-  chave,
+  chaveDaApi,
   process.env.LEITURA_CARTAO_MODELO || "claude-haiku-5-5",
-  http,
+  httpComEsforcoEToolAuto,
 );
-const hm = (m) =>
-  `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const horaDoMinuto = (minutos) =>
+  `${String(Math.floor(minutos / 60)).padStart(2, "0")}:${String(minutos % 60).padStart(2, "0")}`;
 
-const linhas = [
+const linhasDoCsv = [
   [
     "arquivo",
     "leu",
@@ -70,60 +71,68 @@ const linhas = [
     "faltou",
   ],
 ];
-const fotos = readdirSync(pasta).filter((f) => /quin-?[12]\.(jpe?g|png)$/i.test(f));
-for (const f of fotos) {
-  const quinzena = /quin-?2/i.test(f) ? 2 : 1;
-  const tipo = /\.png$/i.test(f) ? "image/png" : "image/jpeg";
-  const bruta = await leitor.ler({ bytes: readFileSync(join(pasta, f)), tipo });
+const fotos = readdirSync(pasta).filter((arquivo) => /quin-?[12]\.(jpe?g|png)$/i.test(arquivo));
+for (const arquivo of fotos) {
+  const quinzena = /quin-?2/i.test(arquivo) ? 2 : 1;
+  const tipo = /\.png$/i.test(arquivo) ? "image/png" : "image/jpeg";
+  const bruta = await leitor.ler({ bytes: readFileSync(join(pasta, arquivo)), tipo });
   if (!bruta.lido) {
-    linhas.push([f, "não", "", ultimoStatus || "formato/rede", "", "", "", "", "", ""]);
+    linhasDoCsv.push([arquivo, "não", "", ultimoStatus || "formato/rede", "", "", "", "", "", ""]);
     continue;
   }
-  const d = bruta.leitura.dias;
-  if (process.env.DETALHE && new RegExp(process.env.DETALHE).test(f)) {
-    console.log(`# ${f}`);
-    for (const x of d) {
-      const b = x.batidas.map((q) => `${hm(q.entrada)}-${hm(q.saida)}`).join(" ");
+  const dias = bruta.leitura.dias;
+  if (process.env.DETALHE && new RegExp(process.env.DETALHE).test(arquivo)) {
+    console.log(`# ${arquivo}`);
+    for (const dia of dias) {
+      const batidas = dia.batidas
+        .map((batida) => `${horaDoMinuto(batida.entrada)}-${horaDoMinuto(batida.saida)}`)
+        .join(" ");
+      const extra = dia.extra
+        ? ` extra ${horaDoMinuto(dia.extra.entrada)}-${horaDoMinuto(dia.extra.saida)}`
+        : "";
       console.log(
-        `#  ${x.dia}: ${b}${x.extra ? " extra " + hm(x.extra.entrada) + "-" + hm(x.extra.saida) : ""}${x.atestado ? " ATESTADO" : ""}${x.faltou ? " FALTOU" : ""}`,
+        `#  ${dia.dia}: ${batidas}${extra}${dia.atestado ? " ATESTADO" : ""}${dia.faltou ? " FALTOU" : ""}`,
       );
     }
   }
-  const v = validarLeitura(bruta.leitura, { competencia, quinzena });
-  linhas.push([
-    f,
+  const validacao = validarLeitura(bruta.leitura, { competencia, quinzena });
+  linhasDoCsv.push([
+    arquivo,
     "sim",
-    v.ok ? "sim" : "não",
-    v.ok ? "" : v.error.message,
+    validacao.ok ? "sim" : "não",
+    validacao.ok ? "" : validacao.error.message,
     bruta.leitura.nome ?? "",
-    d.length,
-    d.reduce((s, x) => s + x.batidas.length, 0),
-    d.filter((x) => x.extra).length,
-    d.filter((x) => x.atestado).length,
-    d.filter((x) => x.faltou).length,
+    dias.length,
+    dias.reduce((total, dia) => total + dia.batidas.length, 0),
+    dias.filter((dia) => dia.extra).length,
+    dias.filter((dia) => dia.atestado).length,
+    dias.filter((dia) => dia.faltou).length,
   ]);
 }
 
 const { validarAtestado } = await import("@/modules/rh/domain/services/atestado.service");
-const atestados = readdirSync(pasta).filter((f) => /^atestado.*.(jpe?g|png)$/i.test(f));
-for (const f of atestados) {
-  const tipo = /.png$/i.test(f) ? "image/png" : "image/jpeg";
-  const r = await leitor.lerAtestado({ bytes: readFileSync(join(pasta, f)), tipo });
-  if (!r.lido) {
-    console.log(`# ${f}: não leu (${ultimoStatus || "formato/rede"})`);
+const atestados = readdirSync(pasta).filter((arquivo) => /^atestado.*.(jpe?g|png)$/i.test(arquivo));
+for (const arquivo of atestados) {
+  const tipo = /.png$/i.test(arquivo) ? "image/png" : "image/jpeg";
+  const lido = await leitor.lerAtestado({ bytes: readFileSync(join(pasta, arquivo)), tipo });
+  if (!lido.lido) {
+    console.log(`# ${arquivo}: não leu (${ultimoStatus || "formato/rede"})`);
     continue;
   }
-  const { nome, tipo: t, de, ate } = r.atestado;
-  const v = validarAtestado(r.atestado);
-  const quem = process.env.NOMES ? ` nome=${nome}` : ` nome=${nome ? "lido" : "ilegível"}`;
+  const { nome, tipo: tipoDoAtestado, de, ate } = lido.atestado;
+  const validacao = validarAtestado(lido.atestado);
+  const nomeParaExibir = process.env.NOMES
+    ? ` nome=${nome}`
+    : ` nome=${nome ? "lido" : "ilegível"}`;
   console.log(
-    `# ${f}: ${t} de=${de} ate=${ate}${quem} validou=${v.ok ? "sim" : "não: " + v.error.message}`,
+    `# ${arquivo}: ${tipoDoAtestado} de=${de} ate=${ate}${nomeParaExibir} validou=${validacao.ok ? "sim" : "não: " + validacao.error.message}`,
   );
 }
 
-const csv = linhas.map((l) => l.join(";")).join("\n");
+const csv = linhasDoCsv.map((linha) => linha.join(";")).join("\n");
 console.log(csv);
-const ok = linhas.slice(1).filter((l) => l[2] === "sim").length;
+const COLUNA_VALIDOU = 2;
+const ok = linhasDoCsv.slice(1).filter((linha) => linha[COLUNA_VALIDOU] === "sim").length;
 console.log(
   `\nValidaram: ${ok}/${fotos.length} (a conferência dos horários contra a foto é manual).`,
 );

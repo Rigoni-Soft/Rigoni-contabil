@@ -8,12 +8,14 @@ export function exigirSupabaseLocal(...destinos: readonly string[]): void {
   }
 }
 
+const REF_DE_PROJETO_SUPABASE = /^[a-z0-9]{20}$/;
+
 export function exigirDestinoDoE2E(
   supabaseUrl: string,
   opcoes: { baseUrl?: string; refHomolog?: string },
 ): void {
   const { baseUrl, refHomolog } = opcoes;
-  if (baseUrl && refHomolog && /^[a-z0-9]{20}$/.test(refHomolog)) {
+  if (baseUrl && refHomolog && REF_DE_PROJETO_SUPABASE.test(refHomolog)) {
     if (supabaseUrl === `https://${refHomolog}.supabase.co`) return;
   }
   exigirSupabaseLocal(supabaseUrl);

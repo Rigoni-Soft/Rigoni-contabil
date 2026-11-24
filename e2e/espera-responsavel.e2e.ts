@@ -1,11 +1,12 @@
 import { expect, test } from "./fixtures";
-import { adminLocal } from "./support/admin-local";
+import { adminLocal, limparEsperaSemDonoDoSetor } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
+import { FUNCIONARIO_FINANCEIRO_ID, FUNCIONARIO2_FINANCEIRO_ID } from "./support/usuarios-do-seed";
 
 const admin = adminLocal();
 
-const ANA = "33333333-3333-3333-3333-333333333333";
-const BETO = "55555555-5555-5555-5555-555555555555";
+const ANA = FUNCIONARIO_FINANCEIRO_ID;
+const BETO = FUNCIONARIO2_FINANCEIRO_ID;
 const TEL_ALFA = "61955576001";
 const TEL_BETA = "61955576002";
 const TELEFONES = [TEL_ALFA, TEL_BETA];
@@ -47,7 +48,7 @@ async function cliente(nome: string, telefone: string, responsavel: string): Pro
 test.describe("Espera dirigida ao Responsável do Cliente em todo Setor (#165)", () => {
   test.beforeAll(async () => {
     await admin.from("atendimentos").delete().in("chave_telefone", TELEFONES);
-    await admin.from("atendimentos").delete().eq("setor", "financeiro").is("funcionario_id", null);
+    await limparEsperaSemDonoDoSetor(admin, "financeiro");
     clientes.push(await cliente("Dona Alfa Resp", TEL_ALFA, ANA));
     clientes.push(await cliente("Seu Beta Resp", TEL_BETA, BETO));
   });

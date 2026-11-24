@@ -1,4 +1,12 @@
-import { test as base, expect, type BrowserContext } from "@playwright/test";
+import { test as base, expect, type BrowserContext, type Page } from "@playwright/test";
+
+const TETO_DA_ESPERA_DE_REDE_EM_MS = 5_000;
+
+export async function esperarHidratacao(page: Page) {
+  await page
+    .waitForLoadState("networkidle", { timeout: TETO_DA_ESPERA_DE_REDE_EM_MS })
+    .catch(() => undefined);
+}
 
 export const test = base.extend<{ contextosDoTeste: void }>({
   contextosDoTeste: [
@@ -20,7 +28,7 @@ export const test = base.extend<{ contextosDoTeste: void }>({
     const irPara = page.goto.bind(page);
     page.goto = async (url, opcoes) => {
       const resposta = await irPara(url, opcoes);
-      await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+      await esperarHidratacao(page);
       return resposta;
     };
     await usar(page);

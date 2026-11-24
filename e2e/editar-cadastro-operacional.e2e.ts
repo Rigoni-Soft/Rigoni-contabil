@@ -1,12 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 
-import { expect, test } from "./fixtures";
+import { esperarHidratacao, expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import {
   atribuirResponsavelComoLider,
   criarClienteComoAdmin,
   login,
 } from "./support/criar-cliente";
+import { FUNCIONARIO_FINANCEIRO_ID } from "./support/usuarios-do-seed";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SUPABASE_ANON_KEY =
@@ -39,7 +40,7 @@ async function tornarFinanceiroResponsavel(clienteId: string) {
   const { error } = await adminLocal().from("cliente_responsaveis").insert({
     cliente_id: clienteId,
     setor: "financeiro",
-    responsavel_id: "33333333-3333-3333-3333-333333333333",
+    responsavel_id: FUNCIONARIO_FINANCEIRO_ID,
   });
   if (error) throw new Error(`Falha ao atribuir Responsável no Financeiro: ${error.message}`);
 }
@@ -58,7 +59,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await page.goto(`/clientes/${clienteId}`);
 
     await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeVisible();
-    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+    await esperarHidratacao(page);
 
     await expect(page.locator("#formaEnvio")).toHaveCount(0);
     await page.getByLabel("Nome").fill("Maria Contato");
@@ -103,7 +104,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/simples-nacional");
     await page.goto(`/clientes/${clienteId}`);
-    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+    await esperarHidratacao(page);
 
     await page.locator("[id='contatos.0.nome']").fill("Ana Linha");
     await page.locator("[id='contatos.0.telefone']").fill("11988887777");

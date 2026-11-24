@@ -3,12 +3,14 @@ import { join } from "node:path";
 
 const ROOT = process.argv[2] ?? "src";
 const KEBAB = "[a-z0-9]+(?:-[a-z0-9]+)*";
-const DIR = new RegExp(`^(?:${KEBAB}|\\[\\.{0,3}${KEBAB}\\]|\\(${KEBAB}\\)|@${KEBAB})$`);
-const FILE = new RegExp(`^${KEBAB}(?:\\.${KEBAB})*\\.(?:ts|tsx|css)$`);
+const NOME_DE_PASTA_VALIDO = new RegExp(
+  `^(?:${KEBAB}|\\[\\.{0,3}${KEBAB}\\]|\\(${KEBAB}\\)|@${KEBAB})$`,
+);
+const NOME_DE_ARQUIVO_VALIDO = new RegExp(`^${KEBAB}(?:\\.${KEBAB})*\\.(?:ts|tsx|css)$`);
 const NEXT =
   /^(layout|page|loading|error|global-error|not-found|template|default|route|globals|robots|sitemap)\.(tsx?|css)$/;
 const NEXT_ROOT = /^(middleware|proxy)\.ts$/;
-const VENDOR = /\/presentation\/(components\/ui|lib|hooks)\//;
+const PASTA_GERADA_PELO_SHADCN = /\/presentation\/(components\/ui|lib|hooks)\//;
 
 const ROLES = [
   [/\/domain\/entities\//, ["entity"]],
@@ -54,7 +56,8 @@ function percorrer(dir) {
   for (const entrada of readdirSync(dir, { withFileTypes: true })) {
     const caminho = join(dir, entrada.name).replaceAll("\\", "/");
     if (entrada.isDirectory()) {
-      if (!DIR.test(entrada.name)) erros.push(`${caminho}: diretório fora de kebab-case`);
+      if (!NOME_DE_PASTA_VALIDO.test(entrada.name))
+        erros.push(`${caminho}: diretório fora de kebab-case`);
       percorrer(caminho);
     } else if (/\.(ts|tsx|css)$/.test(entrada.name)) {
       verificar(caminho, entrada.name);
@@ -70,8 +73,9 @@ function verificar(caminho, arquivo) {
     return;
   }
   if (/^\/src\/[^/]+$/.test(rel) && NEXT_ROOT.test(arquivo)) return;
-  if (!FILE.test(arquivo)) return void erros.push(`${caminho}: arquivo fora de kebab-case`);
-  if (VENDOR.test(rel)) return;
+  if (!NOME_DE_ARQUIVO_VALIDO.test(arquivo))
+    return void erros.push(`${caminho}: arquivo fora de kebab-case`);
+  if (PASTA_GERADA_PELO_SHADCN.test(rel)) return;
   const regra = ROLES.find(([re]) => re.test(rel));
   if (!regra) return;
   const partesSemExtensao = arquivo.split(".").slice(0, -1);

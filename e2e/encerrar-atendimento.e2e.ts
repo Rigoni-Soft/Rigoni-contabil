@@ -1,11 +1,12 @@
 import { expect, test } from "./fixtures";
 import { abrirConversaEmAtendimento } from "./support/abrir-conversa";
-import { adminLocal } from "./support/admin-local";
+import { adminLocal, limparEsperaSemDonoDoSetor } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
+import { FUNCIONARIO2_FINANCEIRO_ID } from "./support/usuarios-do-seed";
 
 const admin = adminLocal();
 
-const FUNCIONARIO = "55555555-5555-5555-5555-555555555555";
+const FUNCIONARIO = FUNCIONARIO2_FINANCEIRO_ID;
 const EM_ANDAMENTO = "61955574001";
 const NA_FILA = "61955574002";
 
@@ -16,7 +17,7 @@ test.describe("Encerrar Atendimento", () => {
   test.beforeAll(async () => {
     await admin.from("atendimentos").delete().eq("funcionario_id", FUNCIONARIO);
     await admin.from("atendimentos").delete().in("chave_telefone", [EM_ANDAMENTO, NA_FILA]);
-    await admin.from("atendimentos").delete().eq("setor", "financeiro").is("funcionario_id", null);
+    await limparEsperaSemDonoDoSetor(admin, "financeiro");
 
     const dono = await admin
       .from("atendimentos")

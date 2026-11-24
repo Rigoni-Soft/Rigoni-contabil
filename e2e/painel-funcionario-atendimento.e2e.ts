@@ -2,10 +2,11 @@ import { expect, test } from "./fixtures";
 import { abrirConversaEmAtendimento } from "./support/abrir-conversa";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
+import { FUNCIONARIO2_FINANCEIRO_ID } from "./support/usuarios-do-seed";
 
 const admin = adminLocal();
 
-const FUNCIONARIO = "55555555-5555-5555-5555-555555555555";
+const FUNCIONARIO = FUNCIONARIO2_FINANCEIRO_ID;
 const TELEFONE = "61955572001";
 const CLIENTE = crypto.randomUUID();
 const CNPJ = `6${Date.now()}`.slice(0, 14);

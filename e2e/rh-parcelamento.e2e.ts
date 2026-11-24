@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { esperarHidratacao, expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, login } from "./support/criar-cliente";
 
@@ -29,7 +29,7 @@ test.describe("Parcelamento na aba do RH", () => {
     await expect(page).toHaveURL("/rh");
     await page.goto(`/clientes/${clienteId}`);
     await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeVisible();
-    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+    await esperarHidratacao(page);
     await expect(
       page.getByRole("status").filter({ hasText: "Tem parcelamento: Não" }),
     ).toBeVisible();

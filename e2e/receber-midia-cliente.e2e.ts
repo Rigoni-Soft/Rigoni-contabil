@@ -6,11 +6,12 @@ import { expect, test } from "./fixtures";
 import { abrirConversaEmAtendimento } from "./support/abrir-conversa";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
+import { FUNCIONARIO2_SN_ID } from "./support/usuarios-do-seed";
 
 const SEGREDO = process.env.MENSAGERIA_SEGREDO_ASSINATURA ?? "segredo-falso";
 const admin = adminLocal();
 
-const FUNCIONARIO = "99999999-9999-9999-9999-999999999999";
+const FUNCIONARIO = FUNCIONARIO2_SN_ID;
 const TELEFONE = "61955572081";
 const CLIENTE = crypto.randomUUID();
 const CNPJ = `7${Date.now()}`.slice(0, 14);

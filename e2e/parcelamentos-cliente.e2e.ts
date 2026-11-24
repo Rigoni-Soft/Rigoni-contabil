@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-import { expect, test } from "./fixtures";
+import { esperarHidratacao, expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import {
   atribuirResponsavelComoLider,
@@ -31,7 +31,7 @@ async function abrirComoFuncionarioSn(page: Page, empresa: string) {
   await expect(page).toHaveURL("/simples-nacional");
   await page.goto(`/clientes/${clienteId}`);
   await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeVisible();
-  await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+  await esperarHidratacao(page);
   return clienteId;
 }
 
@@ -230,7 +230,7 @@ test.describe("Parcelamento da Receita cadastrado segue editável (#184)", () =>
       });
     expect(error).toBeNull();
     await page.goto(`/clientes/${clienteId}`);
-    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+    await esperarHidratacao(page);
 
     await expect(page.locator("[id='parcelamentos.0.codigo']")).toBeEnabled();
     await page.locator("[id='parcelamentos.0.codigo']").fill("RFB-200");
@@ -260,7 +260,7 @@ test.describe("Guia anexada da parcela PGFN: trocar, visualizar e remover (#184)
     await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page).toHaveURL("/simples-nacional");
     await page.goto(`/clientes/${clienteId}`);
-    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+    await esperarHidratacao(page);
 
     await expect(page.locator("[id='parcelamentos.0.codigo']")).toBeDisabled();
     await expect(page.locator("[id='parcelamentos.0.parcelasRestantes']")).toBeDisabled();
@@ -325,7 +325,7 @@ test.describe("Guia mensal da parcela PGFN: anexar, ver a confirmar e confirmar 
     await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page).toHaveURL("/simples-nacional");
     await page.goto(`/clientes/${clienteId}`);
-    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+    await esperarHidratacao(page);
 
     const regiao = page.getByRole("group", { name: "Guias da parcela" });
     await regiao

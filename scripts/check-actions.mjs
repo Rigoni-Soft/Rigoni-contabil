@@ -3,10 +3,11 @@ import { join } from "node:path";
 
 export const ROOT = "src";
 
-export const SEM_ENTRADA = new Set([
-  "src/presentation/view-models/shell/logout.actions.ts",
-  "src/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.actions.ts",
-]);
+const SO_ENCERRA_A_SESSAO = "src/presentation/view-models/shell/logout.actions.ts";
+const NAO_RECEBE_DADO_DO_CLIENTE =
+  "src/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.actions.ts";
+
+export const SEM_ENTRADA = new Set([SO_ENCERRA_A_SESSAO, NAO_RECEBE_DADO_DO_CLIENTE]);
 
 const ACTIONS = /\.actions\.ts$/;
 const VALIDA = /from "zod"|\.schema"/;

@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { esperarHidratacao, expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, empresaUnica, login } from "./support/criar-cliente";
 
@@ -41,7 +41,7 @@ const destinosDe = async (clienteId: string) => {
 
 async function abrirCadastro(page: import("@playwright/test").Page, clienteId: string) {
   await page.goto(`/clientes/${clienteId}`);
-  await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+  await esperarHidratacao(page);
 }
 
 test.describe("O que cada contato recebe do Setor", () => {

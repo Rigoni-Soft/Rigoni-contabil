@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import { adminLocal } from "./support/admin-local";
+import { adminLocal, limparEsperaSemDonoDoSetor } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
 const admin = adminLocal();
@@ -42,11 +42,7 @@ const clientes: string[] = [];
 test.describe("Supervisão de Líder/Admin e espera dirigida (#165)", () => {
   test.beforeAll(async () => {
     await admin.from("atendimentos").delete().in("chave_telefone", TELEFONES);
-    await admin
-      .from("atendimentos")
-      .delete()
-      .eq("setor", "simples_nacional")
-      .is("funcionario_id", null);
+    await limparEsperaSemDonoDoSetor(admin, "simples_nacional");
 
     clientes.push(await abrir(TEL_DO_DONO, "Dona Do Dono", "Pergunta do cliente do dono"));
     clientes.push(await abrir(TEL_DIRIGIDO, "Dona Dirigida", "Pergunta da espera dirigida"));
