@@ -17,8 +17,10 @@ export const filtroFeedSchema = z
   .superRefine((v, ctx) => {
     const temInicio = !!v.dataInicio;
     const temFim = !!v.dataFim;
+    const periodoComUmaPontaSo = temInicio !== temFim;
+    const inicioDepoisDoFim = temInicio && temFim && v.dataInicio! > v.dataFim!;
 
-    if (temInicio !== temFim) {
+    if (periodoComUmaPontaSo) {
       ctx.addIssue({
         code: "custom",
         message: "Informe as duas datas do período (De e Até).",
@@ -27,7 +29,7 @@ export const filtroFeedSchema = z
       return;
     }
 
-    if (temInicio && temFim && v.dataInicio! > v.dataFim!) {
+    if (inicioDepoisDoFim) {
       ctx.addIssue({
         code: "custom",
         message: "O início do período não pode ser depois do fim.",

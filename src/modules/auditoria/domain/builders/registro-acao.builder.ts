@@ -93,19 +93,19 @@ export class RegistroAcaoBuilder {
       .comDataHora(new Date(dados.dataHora));
   }
 
+  private exigirSeNuncaInformado(campo: string, informado: boolean): void {
+    const jaTemMotivoEspecifico = campo in this.camposInvalidos;
+    if (!informado && !jaTemMotivoEspecifico) this.camposInvalidos[campo] = ["obrigatório"];
+  }
+
   build(): Result<RegistroAcao, ValidationError> {
-    if (!this.id) this.camposInvalidos.id = ["obrigatório"];
-    if (this.ator === undefined && !this.camposInvalidos.ator)
-      this.camposInvalidos.ator = ["obrigatório"];
-    if (this.setor === undefined && !this.camposInvalidos.setor)
-      this.camposInvalidos.setor = ["obrigatório"];
-    if (this.acao === undefined && !this.camposInvalidos.acao)
-      this.camposInvalidos.acao = ["obrigatório"];
-    if (this.alvo === undefined && !this.camposInvalidos.alvo)
-      this.camposInvalidos.alvo = ["obrigatório"];
-    if (this.resultado === undefined && !this.camposInvalidos.resultado)
-      this.camposInvalidos.resultado = ["obrigatório"];
-    if (!this.dataHora) this.camposInvalidos.dataHora = ["obrigatório"];
+    this.exigirSeNuncaInformado("id", Boolean(this.id));
+    this.exigirSeNuncaInformado("ator", this.ator !== undefined);
+    this.exigirSeNuncaInformado("setor", this.setor !== undefined);
+    this.exigirSeNuncaInformado("acao", this.acao !== undefined);
+    this.exigirSeNuncaInformado("alvo", this.alvo !== undefined);
+    this.exigirSeNuncaInformado("resultado", this.resultado !== undefined);
+    this.exigirSeNuncaInformado("dataHora", Boolean(this.dataHora));
 
     if (Object.keys(this.camposInvalidos).length > 0) {
       return err(

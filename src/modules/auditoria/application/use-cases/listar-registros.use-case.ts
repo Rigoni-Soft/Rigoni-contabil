@@ -11,14 +11,14 @@ import { err, type Result } from "@/shared/kernel/result";
 
 const LIMITE_FEED = 50;
 
-const OFFSET_SAO_PAULO = "-03:00";
+const OFFSET_DO_FUSO_DE_NEGOCIO = "-03:00";
 
 function inicioDoDia(data: string): string {
-  return new Date(`${data}T00:00:00.000${OFFSET_SAO_PAULO}`).toISOString();
+  return new Date(`${data}T00:00:00.000${OFFSET_DO_FUSO_DE_NEGOCIO}`).toISOString();
 }
 
 function fimDoDia(data: string): string {
-  return new Date(`${data}T23:59:59.999${OFFSET_SAO_PAULO}`).toISOString();
+  return new Date(`${data}T23:59:59.999${OFFSET_DO_FUSO_DE_NEGOCIO}`).toISOString();
 }
 
 export class ListarRegistros implements ListarRegistrosPort {

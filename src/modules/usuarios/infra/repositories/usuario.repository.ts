@@ -11,6 +11,8 @@ import type { AppError } from "@/shared/errors/app.error";
 import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
+const FILTRO_DESATIVADO_COM_PENDENCIA = "banido_em.is.null,avatar_atualizado_em.not.is.null";
+
 export class SupabaseUsuarioRepository implements UsuarioRepository {
   constructor(
     private readonly supabase: SupabaseClient,
@@ -53,7 +55,7 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
       .from("perfis")
       .select("*")
       .not("desativado_em", "is", null)
-      .or("banido_em.is.null,avatar_atualizado_em.not.is.null")
+      .or(FILTRO_DESATIVADO_COM_PENDENCIA)
       .order("nome");
     if (error) {
       this.erros.registrar(`Falha ao listar desativações pendentes: ${error.message}`);

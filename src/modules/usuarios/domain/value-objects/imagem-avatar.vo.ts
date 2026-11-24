@@ -3,6 +3,10 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 export const LIMITE_AVATAR_BYTES = 256 * 1024;
 
+const TAMANHO_DO_CABECALHO_WEBP = 12;
+const ASSINATURA_DO_CONTAINER_RIFF = "RIFF";
+const ASSINATURA_DO_FORMATO_WEBP = "WEBP";
+
 export class ImagemAvatar {
   private constructor(private readonly props: { bytes: Uint8Array }) {}
 
@@ -23,5 +27,9 @@ export class ImagemAvatar {
 function ehWebp(bytes: Uint8Array): boolean {
   const texto = (inicio: number, fim: number) =>
     String.fromCharCode(...bytes.subarray(inicio, fim));
-  return bytes.byteLength >= 12 && texto(0, 4) === "RIFF" && texto(8, 12) === "WEBP";
+  return (
+    bytes.byteLength >= TAMANHO_DO_CABECALHO_WEBP &&
+    texto(0, 4) === ASSINATURA_DO_CONTAINER_RIFF &&
+    texto(8, 12) === ASSINATURA_DO_FORMATO_WEBP
+  );
 }

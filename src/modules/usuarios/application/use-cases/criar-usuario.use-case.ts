@@ -17,6 +17,8 @@ import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.e
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
+type EtapaDaCriacao = "construir_perfil" | "salvar_perfil" | "registrar_auditoria";
+
 export class CriarUsuario implements CriarUsuarioPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -101,7 +103,7 @@ export class CriarUsuario implements CriarUsuarioPort {
     atorId: string,
     input: CriarUsuarioInput,
     contaId: string,
-    etapa: string,
+    etapa: EtapaDaCriacao,
     resultadoComErro: { ok: false; error: AppError },
   ): Promise<Result<CriarUsuarioOutput, AppError>> {
     const removido = await this.authAdmin.removerConta(contaId);

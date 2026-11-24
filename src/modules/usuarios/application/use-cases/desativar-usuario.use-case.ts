@@ -75,7 +75,8 @@ export class DesativarUsuario implements DesativarUsuarioPort {
 
   private async apagarFoto(alvo: Usuario): Promise<Result<void, AppError>> {
     const apagada = await this.armazenamento.apagar(alvo.id);
-    if (apagada.ok && !alvo.temAvatar()) return apagada;
+    const nadaMaisParaZerar = apagada.ok && !alvo.temAvatar();
+    if (nadaMaisParaZerar) return apagada;
     const zerada = apagada.ok ? await this.marca.definir(alvo.id, null) : apagada;
     if (!zerada.ok) {
       this.erros.registrar(

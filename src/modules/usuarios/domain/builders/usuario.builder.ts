@@ -23,6 +23,10 @@ export type UsuarioRestaurar = {
 };
 
 const HORAS_VALIDADE_SENHA_PROVISORIA = 48;
+const MILISSEGUNDOS_POR_HORA = 60 * 60 * 1000;
+
+const expiracaoPadraoDaSenhaProvisoria = () =>
+  new Date(Date.now() + HORAS_VALIDADE_SENHA_PROVISORIA * MILISSEGUNDOS_POR_HORA);
 
 export class UsuarioBuilder {
   private id?: UsuarioId;
@@ -146,9 +150,7 @@ export class UsuarioBuilder {
         desativadoEm: this.desativadoEm,
         banidoEm: this.banidoEm,
         avatarAtualizadoEm: this.avatarAtualizadoEm,
-        senhaProvisoriaExpiraEm:
-          this.senhaProvisoriaExpiraEm ??
-          new Date(Date.now() + HORAS_VALIDADE_SENHA_PROVISORIA * 60 * 60 * 1000),
+        senhaProvisoriaExpiraEm: this.senhaProvisoriaExpiraEm ?? expiracaoPadraoDaSenhaProvisoria(),
       }),
     );
   }
