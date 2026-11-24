@@ -13,6 +13,10 @@ import {
 
 type Etapa = "fechado" | "cliente" | "contato";
 
+function fechaPainel(resultado: ResultadoCadastroContatoUra | undefined) {
+  return resultado?.status === "criado" || resultado?.status === "existente";
+}
+
 // "Cadastrar como contato deste Cliente": confirma o Cliente (passo 1) e cadastra o número (passo 2).
 // Criado e já existente concluem; número em outro Cliente e e-mail repetido avisam e deixam trocar o Cliente.
 export function useContatoUra(atendimentoId: string) {
@@ -22,7 +26,7 @@ export function useContatoUra(atendimentoId: string) {
   const busca = useBuscarClienteParaContatoMutation(atendimentoId);
   const cadastro = useCadastrarContatoUraMutation(atendimentoId);
 
-  const concluido = resultado?.status === "criado" || resultado?.status === "existente";
+  const concluido = fechaPainel(resultado);
 
   function limparAvisos() {
     busca.reset();
@@ -68,9 +72,9 @@ export function useContatoUra(atendimentoId: string) {
       cadastro.mutate(
         { clienteId: cliente.id, nome, email },
         {
-          onSuccess: (r) => {
-            setResultado(r);
-            if (r.status === "criado" || r.status === "existente") setEtapa("fechado");
+          onSuccess: (resultado) => {
+            setResultado(resultado);
+            if (fechaPainel(resultado)) setEtapa("fechado");
           },
         },
       );

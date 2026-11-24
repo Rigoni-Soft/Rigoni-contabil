@@ -1,4 +1,5 @@
 import type {
+  BuscaClienteContatoUraInput,
   BuscarClienteParaContatoUraPort,
   ClienteParaConfirmar,
 } from "@/modules/atendimento/application/ports/in/cadastrar-contato-ura.provider";
@@ -25,10 +26,7 @@ export class BuscarClienteParaContatoUra implements BuscarClienteParaContatoUraP
   async execute({
     atendimentoId,
     cnpj,
-  }: {
-    atendimentoId: string;
-    cnpj: string;
-  }): Promise<Result<ClienteParaConfirmar, AppError>> {
+  }: BuscaClienteContatoUraInput): Promise<Result<ClienteParaConfirmar, AppError>> {
     const ator = await this.sessao.usuarioAtual();
     if (!ator) return err(new ForbiddenError("Faça login para buscar o Cliente."));
 

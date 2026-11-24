@@ -12,11 +12,10 @@ export type ResultadoCadastroContatoUra =
   | { status: "em_outro_cliente" };
 
 // Passo 1: a Recepção digita o CNPJ (a URA sugere) e confere qual Cliente é antes de cadastrar.
+export type BuscaClienteContatoUraInput = { atendimentoId: string; cnpj: string };
+
 export interface BuscarClienteParaContatoUraPort {
-  execute(input: {
-    atendimentoId: string;
-    cnpj: string;
-  }): Promise<Result<ClienteParaConfirmar, AppError>>;
+  execute(input: BuscaClienteContatoUraInput): Promise<Result<ClienteParaConfirmar, AppError>>;
 }
 
 export type CadastroContatoUraInput = {
