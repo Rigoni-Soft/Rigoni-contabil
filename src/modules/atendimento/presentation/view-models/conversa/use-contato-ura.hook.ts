@@ -5,7 +5,7 @@ import type {
   ClienteParaConfirmar,
   ResultadoCadastroContatoUra,
 } from "@/modules/atendimento/application/ports/in/cadastrar-contato-ura.provider";
-import { avisoDoContatoUra } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
+import { avisoDeContatoUra } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
 import {
   useBuscarClienteParaContatoMutation,
   useCadastrarContatoUraMutation,
@@ -34,13 +34,14 @@ export function useContatoUra(atendimentoId: string) {
     setResultado(undefined);
   }
 
-  const aviso = busca.isError
-    ? { tipo: "erro" as const, texto: busca.error.message }
-    : cadastro.isError
-      ? { tipo: "erro" as const, texto: cadastro.error.message }
-      : resultado && cliente
-        ? avisoDoContatoUra(resultado, cliente.empresa)
-        : undefined;
+  const aviso = avisoDeContatoUra(
+    {
+      busca: busca.isError ? busca.error.message : undefined,
+      cadastro: cadastro.isError ? cadastro.error.message : undefined,
+    },
+    resultado,
+    cliente?.empresa,
+  );
 
   return {
     etapa,

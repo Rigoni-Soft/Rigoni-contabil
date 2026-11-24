@@ -290,6 +290,17 @@ export function intervaloDaConversa(conversa: ConversaVista | undefined, agora: 
 
 // O que a Recepção lê depois de pedir o cadastro: criado e já existente são sucesso (o número tem
 // contato no Cliente); em outro Cliente e e-mail repetido não cadastram nada e pedem atenção.
+export function avisoDeContatoUra(
+  erros: { busca?: string; cadastro?: string },
+  resultado: ResultadoCadastroContatoUra | undefined,
+  empresa: string | undefined,
+): { tipo: "erro" | "sucesso"; texto: string } | undefined {
+  const erro = erros.busca ?? erros.cadastro;
+  if (erro) return { tipo: "erro", texto: erro };
+  if (resultado && empresa) return avisoDoContatoUra(resultado, empresa);
+  return undefined;
+}
+
 export function avisoDoContatoUra(
   resultado: ResultadoCadastroContatoUra,
   empresa: string,

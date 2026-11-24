@@ -26,6 +26,9 @@ type PainelDeContatoUraProps = {
   onCancelar: () => void;
 };
 
+// Alvo de toque de 44 px em tela de ponteiro grosso (celular, tablet).
+const ALVO_DE_TOQUE = "pointer-coarse:h-11";
+
 // O campo que a Recepção está preenchendo aponta para o erro do aviso (aria-describedby).
 const ID_DO_AVISO = "contato-ura-aviso";
 
@@ -54,7 +57,7 @@ export function PainelDeContatoUra({
       {etapa === "fechado" && !concluido && (
         <>
           <Texto variante="nota">Este número não é contato de nenhum Cliente.</Texto>
-          <Button type="button" size="sm" className="pointer-coarse:h-11" onClick={onAbrir}>
+          <Button type="button" size="sm" className={ALVO_DE_TOQUE} onClick={onAbrir}>
             Cadastrar como contato deste Cliente
           </Button>
         </>
@@ -87,7 +90,7 @@ export function PainelDeContatoUra({
               type="submit"
               size="sm"
               aria-disabled={buscando}
-              className={`${BOTAO_OCUPADO} pointer-coarse:h-11`}
+              className={`${BOTAO_OCUPADO} ${ALVO_DE_TOQUE}`}
             >
               {buscando ? "Buscando…" : "Buscar Cliente"}
             </Button>
@@ -95,7 +98,7 @@ export function PainelDeContatoUra({
               type="button"
               size="sm"
               variant="destructive"
-              className="pointer-coarse:h-11"
+              className={ALVO_DE_TOQUE}
               onClick={onCancelar}
             >
               Cancelar
@@ -121,7 +124,7 @@ export function PainelDeContatoUra({
             type="button"
             size="sm"
             variant="outline"
-            className="self-start pointer-coarse:h-11"
+            className={`self-start ${ALVO_DE_TOQUE}`}
             onClick={onTrocarCliente}
           >
             Trocar Cliente
@@ -150,7 +153,7 @@ export function PainelDeContatoUra({
               type="submit"
               size="sm"
               aria-disabled={cadastrando}
-              className={`${BOTAO_OCUPADO} pointer-coarse:h-11`}
+              className={`${BOTAO_OCUPADO} ${ALVO_DE_TOQUE}`}
             >
               {cadastrando ? "Cadastrando…" : "Cadastrar contato"}
             </Button>
@@ -158,7 +161,7 @@ export function PainelDeContatoUra({
               type="button"
               size="sm"
               variant="destructive"
-              className="pointer-coarse:h-11"
+              className={ALVO_DE_TOQUE}
               onClick={onCancelar}
             >
               Cancelar

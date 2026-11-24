@@ -3,6 +3,7 @@ import type { ConversaVista } from "@/modules/atendimento/application/ports/in/o
 import {
   acrescentarAnteriores,
   aplicarLinksRenovados,
+  avisoDeContatoUra,
   avisoDoContatoUra,
   conversaParaView,
   documentoDaOpcao,
@@ -612,5 +613,36 @@ describe("intervaloDaConversa", () => {
   it("sem leitura ou sem Mensagens (conversa recém-aberta) começa no ritmo rápido", () => {
     expect(intervaloDaConversa(undefined, agora)).toBe(POLLING_RAPIDO_MS);
     expect(intervaloDaConversa(conversaCom(), agora)).toBe(POLLING_RAPIDO_MS);
+  });
+});
+
+describe("avisoDeContatoUra", () => {
+  const criado = { status: "criado" as const, contatoId: "c", nome: "Maria" };
+
+  it("o erro da busca vence o do cadastro e o resultado", () => {
+    expect(
+      avisoDeContatoUra({ busca: "Sem Cliente.", cadastro: "Falhou." }, criado, "Padaria Ltda"),
+    ).toEqual({
+      tipo: "erro",
+      texto: "Sem Cliente.",
+    });
+  });
+
+  it("o erro do cadastro vence o resultado", () => {
+    expect(avisoDeContatoUra({ cadastro: "Falhou." }, criado, "Padaria Ltda")).toEqual({
+      tipo: "erro",
+      texto: "Falhou.",
+    });
+  });
+
+  it("sem erro, o resultado vira o aviso do contato", () => {
+    expect(avisoDeContatoUra({}, criado, "Padaria Ltda")).toEqual(
+      avisoDoContatoUra(criado, "Padaria Ltda"),
+    );
+  });
+
+  it("sem erro nem resultado (ou sem Cliente), não há aviso", () => {
+    expect(avisoDeContatoUra({}, undefined, "Padaria Ltda")).toBeUndefined();
+    expect(avisoDeContatoUra({}, criado, undefined)).toBeUndefined();
   });
 });
