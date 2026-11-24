@@ -5,7 +5,7 @@ import type {
   ClienteParaConfirmar,
   ResultadoCadastroContatoUra,
 } from "@/modules/atendimento/application/ports/in/cadastrar-contato-ura.provider";
-import { avisoDeContatoUra } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
+import { avisoDoPainelDeContatoUra } from "@/modules/atendimento/presentation/view-models/conversa/conversa.presenter";
 import {
   useBuscarClienteParaContatoMutation,
   useCadastrarContatoUraMutation,
@@ -34,7 +34,7 @@ export function useContatoUra(atendimentoId: string) {
     setResultado(undefined);
   }
 
-  const aviso = avisoDeContatoUra(
+  const aviso = avisoDoPainelDeContatoUra(
     {
       busca: busca.isError ? busca.error.message : undefined,
       cadastro: cadastro.isError ? cadastro.error.message : undefined,

@@ -3,8 +3,8 @@ import type { ConversaVista } from "@/modules/atendimento/application/ports/in/o
 import {
   acrescentarAnteriores,
   aplicarLinksRenovados,
-  avisoDeContatoUra,
-  avisoDoContatoUra,
+  avisoDoPainelDeContatoUra,
+  avisoDoResultadoDoContatoUra,
   conversaParaView,
   documentoDaOpcao,
   formatarCronometro,
@@ -260,13 +260,19 @@ describe("conversaParaView: cadastrar contato", () => {
   });
 });
 
-describe("avisoDoContatoUra", () => {
+describe("avisoDoResultadoDoContatoUra", () => {
   it("criado e existente são sucesso e dizem de qual Cliente é o contato", () => {
     expect(
-      avisoDoContatoUra({ status: "criado", contatoId: "c", nome: "Maria" }, "Padaria Ltda"),
+      avisoDoResultadoDoContatoUra(
+        { status: "criado", contatoId: "c", nome: "Maria" },
+        "Padaria Ltda",
+      ),
     ).toEqual({ tipo: "sucesso", texto: "Maria cadastrado como contato de Padaria Ltda." });
     expect(
-      avisoDoContatoUra({ status: "existente", contatoId: "c", nome: "Joana" }, "Padaria Ltda"),
+      avisoDoResultadoDoContatoUra(
+        { status: "existente", contatoId: "c", nome: "Joana" },
+        "Padaria Ltda",
+      ),
     ).toEqual({
       tipo: "sucesso",
       texto: "Este número já é o contato Joana de Padaria Ltda. Nada foi alterado.",
@@ -274,16 +280,17 @@ describe("avisoDoContatoUra", () => {
   });
 
   it("número em outro Cliente e e-mail repetido são erro e dizem que nada foi cadastrado", () => {
-    const outro = avisoDoContatoUra({ status: "em_outro_cliente" }, "Padaria Ltda");
+    const outro = avisoDoResultadoDoContatoUra({ status: "em_outro_cliente" }, "Padaria Ltda");
     expect(outro.tipo).toBe("erro");
     expect(outro.texto).toContain("outro Cliente");
-    const email = avisoDoContatoUra(
+    const email = avisoDoResultadoDoContatoUra(
       { status: "email_em_uso", contatoId: "c", nome: "Pedro" },
       "Padaria Ltda",
     );
     expect(email).toEqual({
       tipo: "erro",
       texto: "Este e-mail já é do contato Pedro de Padaria Ltda. Nada foi cadastrado.",
+      campo: "email",
     });
   });
 });
@@ -616,12 +623,16 @@ describe("intervaloDaConversa", () => {
   });
 });
 
-describe("avisoDeContatoUra", () => {
+describe("avisoDoPainelDeContatoUra", () => {
   const criado = { status: "criado" as const, contatoId: "c", nome: "Maria" };
 
   it("o erro da busca vence o do cadastro e o resultado", () => {
     expect(
-      avisoDeContatoUra({ busca: "Sem Cliente.", cadastro: "Falhou." }, criado, "Padaria Ltda"),
+      avisoDoPainelDeContatoUra(
+        { busca: "Sem Cliente.", cadastro: "Falhou." },
+        criado,
+        "Padaria Ltda",
+      ),
     ).toEqual({
       tipo: "erro",
       texto: "Sem Cliente.",
@@ -629,20 +640,20 @@ describe("avisoDeContatoUra", () => {
   });
 
   it("o erro do cadastro vence o resultado", () => {
-    expect(avisoDeContatoUra({ cadastro: "Falhou." }, criado, "Padaria Ltda")).toEqual({
+    expect(avisoDoPainelDeContatoUra({ cadastro: "Falhou." }, criado, "Padaria Ltda")).toEqual({
       tipo: "erro",
       texto: "Falhou.",
     });
   });
 
   it("sem erro, o resultado vira o aviso do contato", () => {
-    expect(avisoDeContatoUra({}, criado, "Padaria Ltda")).toEqual(
-      avisoDoContatoUra(criado, "Padaria Ltda"),
+    expect(avisoDoPainelDeContatoUra({}, criado, "Padaria Ltda")).toEqual(
+      avisoDoResultadoDoContatoUra(criado, "Padaria Ltda"),
     );
   });
 
   it("sem erro nem resultado (ou sem Cliente), não há aviso", () => {
-    expect(avisoDeContatoUra({}, undefined, "Padaria Ltda")).toBeUndefined();
-    expect(avisoDeContatoUra({}, criado, undefined)).toBeUndefined();
+    expect(avisoDoPainelDeContatoUra({}, undefined, "Padaria Ltda")).toBeUndefined();
+    expect(avisoDoPainelDeContatoUra({}, criado, undefined)).toBeUndefined();
   });
 });

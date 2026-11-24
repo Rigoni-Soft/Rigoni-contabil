@@ -290,21 +290,24 @@ export function intervaloDaConversa(conversa: ConversaVista | undefined, agora: 
 
 // O que a Recepção lê depois de pedir o cadastro: criado e já existente são sucesso (o número tem
 // contato no Cliente); em outro Cliente e e-mail repetido não cadastram nada e pedem atenção.
-export function avisoDeContatoUra(
+// `campo`: o campo do formulário a que o erro pertence (o leitor de tela anuncia só esse como inválido).
+export type AvisoDoContatoUra = { tipo: "erro" | "sucesso"; texto: string; campo?: "email" };
+
+export function avisoDoPainelDeContatoUra(
   erros: { busca?: string; cadastro?: string },
   resultado: ResultadoCadastroContatoUra | undefined,
   empresa: string | undefined,
-): { tipo: "erro" | "sucesso"; texto: string } | undefined {
+): AvisoDoContatoUra | undefined {
   const erro = erros.busca ?? erros.cadastro;
   if (erro) return { tipo: "erro", texto: erro };
-  if (resultado && empresa) return avisoDoContatoUra(resultado, empresa);
+  if (resultado && empresa) return avisoDoResultadoDoContatoUra(resultado, empresa);
   return undefined;
 }
 
-export function avisoDoContatoUra(
+export function avisoDoResultadoDoContatoUra(
   resultado: ResultadoCadastroContatoUra,
   empresa: string,
-): { tipo: "erro" | "sucesso"; texto: string } {
+): AvisoDoContatoUra {
   switch (resultado.status) {
     case "criado":
       return { tipo: "sucesso", texto: `${resultado.nome} cadastrado como contato de ${empresa}.` };
@@ -317,6 +320,7 @@ export function avisoDoContatoUra(
       return {
         tipo: "erro",
         texto: `Este e-mail já é do contato ${resultado.nome} de ${empresa}. Nada foi cadastrado.`,
+        campo: "email",
       };
     case "em_outro_cliente":
       return {
