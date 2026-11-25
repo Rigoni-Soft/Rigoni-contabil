@@ -1,5 +1,5 @@
 // Roda o e2e do diff (yarn test:e2e:diff) como o gate pede, depois de conferir o ambiente em segundos.
-// Verde só com o Playwright saindo em 0, sem erro global e sem teste vermelho.
+// Verde só com o Playwright saindo em 0, sem erro global, sem teste vermelho, com ao menos um teste aprovado e nenhum skipped (veredito-e2e.mjs).
 // Storage local quebrado (upload dá 42P10) é falha de ambiente: o script avisa antes da rodada de ~12 min
 // e, se todo vermelho nasce no cadastro de Cliente com contrato, sai com 2 (cobertura parcial), nunca com 0.
 import { spawnSync } from "node:child_process";
@@ -9,9 +9,10 @@ import { join } from "node:path";
 
 import { createClient } from "@supabase/supabase-js";
 
+import { veredito } from "./veredito-e2e.mjs";
+
 const AJUDANTE_QUE_SOBE_CONTRATO = "criar-cliente.ts";
 const SAIDA_FALHA = 1;
-const SAIDA_COBERTURA_PARCIAL = 2;
 
 try {
   process.loadEnvFile(".env.local");
@@ -109,24 +110,17 @@ const vermelhos = relatorio.suites.flatMap((s) => testesVermelhos(s));
 const doStorage = (t) => quebrado && t.erro.includes(AJUDANTE_QUE_SOBE_CONTRATO);
 const reais = vermelhos.filter((t) => !doStorage(t));
 
-if (execucao.status === 0 && errosGlobais.length === 0 && vermelhos.length === 0) {
-  sair(0, `e2e do diff verde (${relatorio.stats.expected} testes passaram).`);
-}
-
 for (const erro of errosGlobais) console.error(`  erro global: ${erro.message ?? erro}`);
 for (const t of vermelhos) {
   const marca = doStorage(t) ? "Storage" : "vermelho";
   console.error(`  [${marca}] ${t.arquivo} › ${t.titulo}`);
 }
 
-const soStorage = errosGlobais.length === 0 && vermelhos.length > 0 && reais.length === 0;
-if (soStorage) {
-  sair(
-    SAIDA_COBERTURA_PARCIAL,
-    `cobertura parcial: ${vermelhos.length} teste(s) bloqueado(s) pelo Storage local não foram verificados (${relatorio.stats.skipped} não rodaram).`,
-  );
-}
-sair(
-  SAIDA_FALHA,
-  `e2e do diff NÃO verde: Playwright saiu com ${execucao.status}, ${reais.length} vermelho(s) fora do Storage, ${errosGlobais.length} erro(s) global(is), ${relatorio.stats.skipped} não rodaram.`,
-);
+const { codigo, motivo } = veredito({
+  statusPlaywright: execucao.status,
+  errosGlobais,
+  stats: relatorio.stats,
+  vermelhos: vermelhos.length,
+  reais: reais.length,
+});
+sair(codigo, motivo);
