@@ -26,13 +26,13 @@ function enderecoRecusado({
 
 export type TransporteEmail = { sendMail(mensagem: object): Promise<unknown> };
 
-export type ConfigSmtp = { usuario: string; senha: string; remetente: string };
+export type ConfigSmtp = { host: string; usuario: string; senha: string; remetente: string };
 
 export class EnvioEmailSmtpGateway implements EnvioEmailPort {
   constructor(
     private readonly config: ConfigSmtp,
     private readonly transporte: TransporteEmail = createTransport({
-      host: "smtp.gmail.com",
+      host: config.host,
       port: 465,
       secure: true,
       auth: { user: config.usuario, pass: config.senha },

@@ -12,6 +12,7 @@ import {
   E2E_ADAPTER_SECRET,
   EMAIL_MODO,
   EMAIL_REMETENTE,
+  EMAIL_SMTP_HOST,
   EMAIL_SMTP_SENHA,
   EMAIL_SMTP_USUARIO,
   ENCERRAMENTO_AUTOMATICO,
@@ -345,6 +346,7 @@ export function makeEncerrarPorSilencio(): EncerrarPorSilencioPort {
 function makeEnvioEmail(): EnvioEmailPort {
   if (EMAIL_MODO === "real") {
     return new EnvioEmailSmtpGateway({
+      host: EMAIL_SMTP_HOST,
       usuario: EMAIL_SMTP_USUARIO!,
       senha: EMAIL_SMTP_SENHA!,
       remetente: EMAIL_REMETENTE!,
