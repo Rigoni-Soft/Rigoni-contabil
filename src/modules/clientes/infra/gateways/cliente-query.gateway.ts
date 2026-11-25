@@ -33,6 +33,7 @@ import { ConsultaError } from "@/shared/errors/consulta.error";
 import { primeiroDiaDoMesAtual } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { SETOR_RH, SETOR_SN, type SetorSlug } from "@/shared/kernel/setores";
+import { porOrdemDosTiposDeEnvio } from "@/shared/kernel/tipo-de-envio";
 
 const cadastroRhSchema = z.object({
   id: z.string(),
@@ -206,7 +207,9 @@ export class SupabaseClienteQueryGateway implements ClienteQueryPort {
         tipo: d.tipo,
         canal: d.canal,
       })),
-      tiposDeEnvio: catalogo.data.map((t) => ({ slug: t.tipo, rotulo: t.tipos_de_envio.rotulo })),
+      tiposDeEnvio: porOrdemDosTiposDeEnvio(
+        catalogo.data.map((t) => ({ slug: t.tipo, rotulo: t.tipos_de_envio.rotulo })),
+      ),
     });
   }
 
