@@ -1,0 +1,48 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import type { SalvarContatoDoClienteInput } from "@/modules/clientes/application/ports/in/salvar-contato-do-cliente.provider";
+import type { ContatoDoClienteRepository } from "@/modules/clientes/application/ports/out/contato-do-cliente.repository";
+import type { RegistroDeErrosPort } from "@/modules/clientes/application/ports/out/registro-de-erros.provider";
+import { ConsoleRegistroDeErrosGateway } from "@/modules/clientes/infra/gateways/console-registro-de-erros.gateway";
+import { contatoParaRpc } from "@/modules/clientes/infra/mappers/contato-row.mapper";
+import type { AppError } from "@/shared/errors/app.error";
+import { ForbiddenError } from "@/shared/errors/forbidden.error";
+import { PersistenciaError } from "@/shared/errors/persistencia.error";
+import { ValidationError } from "@/shared/errors/validation.error";
+import { err, ok, type Result } from "@/shared/kernel/result";
+
+const MENSAGEM_DUPLICADO = "Este Cliente já tem um contato com este WhatsApp ou e-mail.";
+const MENSAGEM_INVALIDO = "Confira o nome e o WhatsApp ou o e-mail do contato.";
+
+const PG_SEM_PERMISSAO = "42501";
+const PG_VIOLACAO_DE_UNICIDADE = "23505";
+const PG_PARAMETRO_INVALIDO = "22023";
+const PG_VIOLACAO_DE_CHECK = "23514";
+
+export class SupabaseContatoDoClienteRepository implements ContatoDoClienteRepository {
+  constructor(
+    private readonly supabase: SupabaseClient,
+    private readonly erros: RegistroDeErrosPort = new ConsoleRegistroDeErrosGateway(),
+  ) {}
+
+  async salvar(
+    clienteId: string,
+    contato: SalvarContatoDoClienteInput["contato"],
+  ): Promise<Result<string, AppError>> {
+    const { data, error } = await this.supabase.rpc("salvar_contato_do_cliente", {
+      p_cliente_id: clienteId,
+      p_contato: contatoParaRpc(contato),
+    });
+    if (error) {
+      if (error.code === PG_SEM_PERMISSAO) return err(new ForbiddenError(error.message));
+      if (error.code === PG_VIOLACAO_DE_UNICIDADE) {
+        return err(new ValidationError(error.hint ? error.message : MENSAGEM_DUPLICADO));
+      }
+      if (error.code === PG_PARAMETRO_INVALIDO) return err(new ValidationError(error.message));
+      if (error.code === PG_VIOLACAO_DE_CHECK) return err(new ValidationError(MENSAGEM_INVALIDO));
+      this.erros.registrar("Falha ao salvar o contato do Cliente:", error.message);
+      return err(new PersistenciaError("Não foi possível salvar o contato. Tente novamente."));
+    }
+    return ok(data as string);
+  }
+}

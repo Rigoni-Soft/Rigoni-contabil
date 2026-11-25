@@ -2,25 +2,24 @@ import { buttonVariants } from "@/presentation/components/ui/button";
 import { cn } from "@/presentation/lib/utils";
 
 type BotaoDeArquivoProps = {
-  // Texto visível do botão.
+  id?: string;
   rotulo: string;
-  // O que o leitor de tela ouve (o campo precisa dizer de qual item se trata).
   rotuloAcessivel: string;
-  // Tipos que o seletor do sistema oferece (`accept`).
   aceitar: string;
-  // Ação em curso: o campo segue focável (aria-disabled, como os botões irmãos); quem decide o que fazer
-  // com a escolha é o chamador (o hook avisa que há uma ação em andamento).
   ocupado?: boolean;
+  descritoPor?: string;
+  invalido?: boolean;
   onEscolher: (arquivo: File) => void;
 };
 
-// Botão discreto que abre o seletor de arquivos: o <label> carrega a aparência do botão e o input
-// fica sr-only (mesmo padrão do BotaoDeAnexo e do FileInput), então há um só controle focável.
 export function BotaoDeArquivo({
+  id,
   rotulo,
   rotuloAcessivel,
   aceitar,
   ocupado,
+  descritoPor,
+  invalido,
   onEscolher,
 }: BotaoDeArquivoProps) {
   return (
@@ -33,14 +32,16 @@ export function BotaoDeArquivo({
     >
       <span aria-hidden="true">{rotulo}</span>
       <input
+        id={id}
         type="file"
         accept={aceitar}
         aria-disabled={ocupado || undefined}
         aria-label={rotuloAcessivel}
+        aria-describedby={descritoPor}
+        aria-invalid={invalido || undefined}
         className="sr-only"
         onChange={(evento) => {
           const arquivo = evento.target.files?.[0];
-          // Esvazia para que escolher o mesmo arquivo de novo (depois de uma recusa) dispare onChange.
           evento.target.value = "";
           if (arquivo) onEscolher(arquivo);
         }}

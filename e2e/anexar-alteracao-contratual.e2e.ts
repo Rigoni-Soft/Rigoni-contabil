@@ -16,7 +16,6 @@ test.describe("Admin anexa alteração contratual a Cliente existente (#141)", (
       empresaUnica("Anexar Alteracao E2E Ltda"),
     );
     await page.goto(`/clientes/${clienteId}`);
-    // O cartão do documento mostra sempre a alteração mais recente.
     const cartao = page.getByRole("button", { name: /^Abrir / });
     await expect(cartao).toHaveAccessibleName("Abrir em nova aba: Alteração nº 1 - 01/02/2026");
 
@@ -30,14 +29,12 @@ test.describe("Admin anexa alteração contratual a Cliente existente (#141)", (
     await expect(cartao).toHaveAccessibleName("Abrir em nova aba: Alteração nº 2 - 01/03/2026");
     await expect(dialogo).toBeHidden();
 
-    // Nº repetido: barrado pela lista já carregada, sem subir o arquivo.
     await page.getByRole("button", { name: "Anexar alteração", exact: true }).click();
     await dialogo.getByLabel(/^Arquivo/).setInputFiles(pdf("2-outra.pdf"));
     await dialogo.getByLabel("Data da alteração").fill("2026-04-01");
     await dialogo.getByRole("button", { name: "Anexar", exact: true }).click();
     await expect(dialogo.getByText("Já existe a alteração nº 2 deste Cliente.")).toBeVisible();
 
-    // Divergência nº × data: só avisa, não bloqueia.
     await dialogo.getByLabel("Nº da alteração").fill("3");
     await dialogo.getByLabel("Data da alteração").fill("2026-01-01");
     await expect(dialogo.getByText("Data anterior à da alteração nº 2, confere?")).toBeVisible();

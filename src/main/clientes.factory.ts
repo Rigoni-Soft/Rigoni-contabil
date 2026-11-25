@@ -15,17 +15,20 @@ import type { AtribuirResponsavelClientePort } from "@/modules/clientes/applicat
 import type { ConfirmarGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/confirmar-guia-parcela-pgfn.provider";
 import type { ContarAvisosNaoVistosPort } from "@/modules/clientes/application/ports/in/contar-avisos-nao-vistos.provider";
 import type { CriarClientePort } from "@/modules/clientes/application/ports/in/criar-cliente.provider";
+import type { DefinirTiposDeEnvioDoContatoPort } from "@/modules/clientes/application/ports/in/definir-tipos-de-envio-do-contato.provider";
 import type {
   ListarDocumentosContratuaisClientePort,
   ObterLinkDocumentoContratualPort,
 } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { EditarCadastroOperacionalClientePort } from "@/modules/clientes/application/ports/in/editar-cadastro-operacional-cliente.provider";
+import type { EditarCadastroRhClientePort } from "@/modules/clientes/application/ports/in/editar-cadastro-rh-cliente.provider";
 import type { LerPdfDeParcelamentoPort } from "@/modules/clientes/application/ports/in/ler-pdf-de-parcelamento.provider";
 import type { ListarAvisosCadastroPort } from "@/modules/clientes/application/ports/in/listar-avisos-cadastro.provider";
 import type { ListarGuiasParcelaPgfnPort } from "@/modules/clientes/application/ports/in/listar-guias-parcela-pgfn.provider";
 import type { MarcarAvisoVistoPort } from "@/modules/clientes/application/ports/in/marcar-aviso-visto.provider";
 import type { ObterLinkGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/obter-link-guia-parcela-pgfn.provider";
 import type { RemoverGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/remover-guia-parcela-pgfn.provider";
+import type { SalvarContatoDoClientePort } from "@/modules/clientes/application/ports/in/salvar-contato-do-cliente.provider";
 import type { SalvarParcelamentosClientePort } from "@/modules/clientes/application/ports/in/salvar-parcelamentos-cliente.provider";
 import type { TrocarGuiaParcelaPgfnPort } from "@/modules/clientes/application/ports/in/trocar-guia-parcela-pgfn.provider";
 import type { LeitorDeGuiaDeParcelaPort } from "@/modules/clientes/application/ports/out/leitor-de-guia-de-parcela.provider";
@@ -40,10 +43,13 @@ import { AtribuirResponsavelCliente } from "@/modules/clientes/application/use-c
 import { BuscarClientes } from "@/modules/clientes/application/use-cases/buscar-clientes.use-case";
 import { ConfirmarGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/confirmar-guia-parcela-pgfn.use-case";
 import { ConsultarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/consultar-cadastro-operacional-cliente.use-case";
+import { ConsultarCadastroRhCliente } from "@/modules/clientes/application/use-cases/consultar-cadastro-rh-cliente.use-case";
 import { ConsultarResponsavelDoSetor } from "@/modules/clientes/application/use-cases/consultar-responsavel-do-setor.use-case";
 import { ContarAvisosNaoVistos } from "@/modules/clientes/application/use-cases/contar-avisos-nao-vistos.use-case";
 import { CriarCliente } from "@/modules/clientes/application/use-cases/criar-cliente.use-case";
+import { DefinirTiposDeEnvioDoContato } from "@/modules/clientes/application/use-cases/definir-tipos-de-envio-do-contato.use-case";
 import { EditarCadastroOperacionalCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-operacional-cliente.use-case";
+import { EditarCadastroRhCliente } from "@/modules/clientes/application/use-cases/editar-cadastro-rh-cliente.use-case";
 import { LerPdfDeParcelamento } from "@/modules/clientes/application/use-cases/ler-pdf-de-parcelamento.use-case";
 import { ListarAvisosCadastro } from "@/modules/clientes/application/use-cases/listar-avisos-cadastro.use-case";
 import { ListarDocumentosContratuaisCliente } from "@/modules/clientes/application/use-cases/listar-documentos-contratuais-cliente.use-case";
@@ -52,11 +58,14 @@ import { ListarResponsaveisElegiveis } from "@/modules/clientes/application/use-
 import { MarcarAvisoVisto } from "@/modules/clientes/application/use-cases/marcar-aviso-visto.use-case";
 import { ObterLinkDocumentoContratual } from "@/modules/clientes/application/use-cases/obter-link-documento-contratual.use-case";
 import { ObterLinkGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/obter-link-guia-parcela-pgfn.use-case";
+import { ObterResumoSetorRh } from "@/modules/clientes/application/use-cases/obter-resumo-setor-rh.use-case";
 import { ObterResumoSetorSn } from "@/modules/clientes/application/use-cases/obter-resumo-setor-sn.use-case";
 import { RemoverGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/remover-guia-parcela-pgfn.use-case";
+import { SalvarContatoDoCliente } from "@/modules/clientes/application/use-cases/salvar-contato-do-cliente.use-case";
 import { SalvarParcelamentosCliente } from "@/modules/clientes/application/use-cases/salvar-parcelamentos-cliente.use-case";
 import { TrocarGuiaParcelaPgfn } from "@/modules/clientes/application/use-cases/trocar-guia-parcela-pgfn.use-case";
 import { SupabaseAvisosCadastroGateway } from "@/modules/clientes/infra/gateways/avisos-cadastro.gateway";
+import { SupabaseCarteiraDoSetorGateway } from "@/modules/clientes/infra/gateways/carteira-do-setor.gateway";
 import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/cliente-query.gateway";
 import { SupabaseDocumentosContratuaisClienteGateway } from "@/modules/clientes/infra/gateways/documentos-contratuais-cliente.gateway";
 import { LeitorDeGuiaDeParcelaFalsoGateway } from "@/modules/clientes/infra/gateways/leitor-de-guia-de-parcela-falso.gateway";
@@ -65,10 +74,13 @@ import { LeitorDeParcelamentoFalsoGateway } from "@/modules/clientes/infra/gatew
 import { LeitorDeParcelamentoTextoGateway } from "@/modules/clientes/infra/gateways/leitor-de-parcelamento-texto.gateway";
 import { RelogioSistemaGateway } from "@/modules/clientes/infra/gateways/relogio-sistema.gateway";
 import { SupabaseArquivoStorageGateway } from "@/modules/clientes/infra/gateways/supabase-arquivo-storage.gateway";
+import { SupabaseCadastroRhRepository } from "@/modules/clientes/infra/repositories/cadastro-rh.repository";
 import { SupabaseClienteParcelamentoRepository } from "@/modules/clientes/infra/repositories/cliente-parcelamento.repository";
 import { SupabaseClienteRepository } from "@/modules/clientes/infra/repositories/cliente.repository";
+import { SupabaseContatoDoClienteRepository } from "@/modules/clientes/infra/repositories/contato-do-cliente.repository";
 import { SupabaseGuiaParcelaPgfnRepository } from "@/modules/clientes/infra/repositories/guia-parcela-pgfn.repository";
 import { SupabaseResponsavelClienteRepository } from "@/modules/clientes/infra/repositories/responsavel-cliente.repository";
+import { SupabaseTiposDeEnvioDoContatoRepository } from "@/modules/clientes/infra/repositories/tipos-de-envio-do-contato.repository";
 import { ObterSessao } from "@/modules/usuarios/application/use-cases/obter-sessao.use-case";
 import { SupabaseSessaoGateway } from "@/modules/usuarios/infra/gateways/supabase-sessao.gateway";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
@@ -76,9 +88,6 @@ import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories
 const errosClientes = new ConsoleClientes();
 const errosUsuarios = new ConsoleUsuarios();
 
-// Adapta a sessão do módulo usuarios à porta própria de clientes (arquitetura.md,
-// seção 3.11) — monta o ObterSessao direto (não chama usuarios.factory) pra não
-// criar import circular entre as duas factories, mesmo motivo do auditoria.factory.
 function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   const obterSessao = new ObterSessao(
     new SupabaseSessaoGateway(supabase),
@@ -114,8 +123,6 @@ export async function makeAnexarAlteracaoContratual(): Promise<AnexarAlteracaoCo
   );
 }
 
-// Bucket privado sem política de usuário: o PDF sobe e some pelo service role, depois de o caso de
-// uso checar o papel. As linhas do banco seguem pela sessão do usuário (RLS decide o Responsável).
 export async function makeSalvarParcelamentosCliente(): Promise<SalvarParcelamentosClientePort> {
   const supabase = await createSupabaseServer();
   return new SalvarParcelamentosCliente(
@@ -127,8 +134,6 @@ export async function makeSalvarParcelamentosCliente(): Promise<SalvarParcelamen
   );
 }
 
-// Guia da parcela PGFN: mesmo bucket privado dos acordos, prefixo próprio por Parcelamento e
-// competência. As linhas seguem pela sessão do usuário (RLS); o arquivo, pelo service role.
 export async function makeAnexarGuiaParcelaPgfn(): Promise<AnexarGuiaParcelaPgfnPort> {
   const supabase = await createSupabaseServer();
   return new AnexarGuiaParcelaPgfn(
@@ -177,7 +182,6 @@ export async function makeRemoverGuiaParcelaPgfn(): Promise<RemoverGuiaParcelaPg
   );
 }
 
-// O caminho vem da leitura pela sessão (RLS); o link é assinado pelo service role.
 export async function makeObterLinkGuiaParcelaPgfn(): Promise<ObterLinkGuiaParcelaPgfnPort> {
   const supabase = await createSupabaseServer();
   return new ObterLinkGuiaParcelaPgfn(
@@ -187,7 +191,6 @@ export async function makeObterLinkGuiaParcelaPgfn(): Promise<ObterLinkGuiaParce
   );
 }
 
-// Falso por padrão (dev, CI e Preview); "texto" lê a camada de texto do PDF no servidor.
 function leitorDeGuiaDeParcela(): LeitorDeGuiaDeParcelaPort {
   return LEITURA_PDF_MODO === "texto"
     ? new LeitorDeGuiaDeParcelaTextoGateway()
@@ -244,6 +247,38 @@ export async function makeConsultarCadastroOperacionalCliente(): Promise<Consult
   );
 }
 
+export async function makeConsultarCadastroRhCliente(): Promise<ConsultarCadastroRhCliente> {
+  const supabase = await createSupabaseServer();
+  return new ConsultarCadastroRhCliente(
+    sessaoViaUsuarios(supabase),
+    new SupabaseClienteQueryGateway(supabase),
+  );
+}
+
+export async function makeEditarCadastroRhCliente(): Promise<EditarCadastroRhClientePort> {
+  const supabase = await createSupabaseServer();
+  return new EditarCadastroRhCliente(
+    sessaoViaUsuarios(supabase),
+    new SupabaseCadastroRhRepository(supabase),
+  );
+}
+
+export async function makeSalvarContatoDoCliente(): Promise<SalvarContatoDoClientePort> {
+  const supabase = await createSupabaseServer();
+  return new SalvarContatoDoCliente(
+    sessaoViaUsuarios(supabase),
+    new SupabaseContatoDoClienteRepository(supabase),
+  );
+}
+
+export async function makeDefinirTiposDeEnvioDoContato(): Promise<DefinirTiposDeEnvioDoContatoPort> {
+  const supabase = await createSupabaseServer();
+  return new DefinirTiposDeEnvioDoContato(
+    sessaoViaUsuarios(supabase),
+    new SupabaseTiposDeEnvioDoContatoRepository(supabase),
+  );
+}
+
 export async function makeBuscarClientes(): Promise<BuscarClientes> {
   const supabase = await createSupabaseServer();
   return new BuscarClientes(sessaoViaUsuarios(supabase), new SupabaseClienteQueryGateway(supabase));
@@ -266,7 +301,15 @@ export async function makeObterResumoSetorSn(): Promise<ObterResumoSetorSn> {
   );
 }
 
-// Sessão do usuário (RLS), sem service_role e sem o gateway do Atendimento.
+export async function makeObterResumoSetorRh(): Promise<ObterResumoSetorRh> {
+  const supabase = await createSupabaseServer();
+  return new ObterResumoSetorRh(
+    sessaoViaUsuarios(supabase),
+    new SupabaseCarteiraDoSetorGateway(supabase),
+    new RelogioSistemaGateway(),
+  );
+}
+
 export async function makeListarDocumentosContratuaisCliente(): Promise<ListarDocumentosContratuaisClientePort> {
   const supabase = await createSupabaseServer();
   return new ListarDocumentosContratuaisCliente(
@@ -283,7 +326,6 @@ export async function makeObterLinkDocumentoContratual(): Promise<ObterLinkDocum
   );
 }
 
-// Sessão do usuário (RLS): cada um só enxerga e marca os próprios avisos.
 export async function makeListarAvisosCadastro(): Promise<ListarAvisosCadastroPort> {
   const supabase = await createSupabaseServer();
   return new ListarAvisosCadastro(

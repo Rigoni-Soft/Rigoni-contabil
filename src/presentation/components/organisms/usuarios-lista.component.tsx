@@ -3,19 +3,17 @@ import { LinhaDeUsuario } from "@/presentation/components/molecules/linha-de-usu
 import { PAPEL_LABEL } from "@/shared/kernel/papeis";
 import { SETOR_LABEL } from "@/shared/kernel/setores";
 
-export type UsuarioListado = {
+type UsuarioListado = {
   id: string;
   nome: string;
   email: string;
   papel: string;
   setor: string;
-  bloqueioPendente?: boolean;
+  desativacaoPendente?: boolean;
 };
 
 type UsuariosListaProps = {
   usuarios: UsuarioListado[];
-  // Ação de cada linha, montada no servidor (arquitetura.md §4.6, regra 5): a
-  // lista não vira código de cliente por causa de um botão.
   acoes: (usuario: UsuarioListado) => React.ReactNode;
 };
 
@@ -27,7 +25,7 @@ export function UsuariosLista({ usuarios, acoes }: UsuariosListaProps) {
           key={usuario.id}
           nome={usuario.nome}
           resumo={`${usuario.email} · ${PAPEL_LABEL[usuario.papel] ?? usuario.papel} · ${SETOR_LABEL[usuario.setor] ?? usuario.setor}`}
-          bloqueioPendente={usuario.bloqueioPendente}
+          desativacaoPendente={usuario.desativacaoPendente}
           acoes={acoes(usuario)}
         />
       ))}

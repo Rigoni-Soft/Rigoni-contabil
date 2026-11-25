@@ -33,7 +33,6 @@ jest.mock("./use-sino-avisos.hook", () => ({
 describe("SinoAvisosContainer", () => {
   it("entrega à View o que o hook devolve e liga as ações do usuário ao hook", async () => {
     render(<SinoAvisosContainer usuarioId="u1" />);
-    // O hook (mockado) é quem abre o <dialog>; o jsdom não tem showModal: ele já nasce aberto.
     document.querySelector("dialog")?.setAttribute("open", "");
 
     expect(screen.getByTestId("selo-avisos")).toHaveTextContent("2");

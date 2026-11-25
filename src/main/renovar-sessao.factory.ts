@@ -20,9 +20,8 @@ export async function renovarSessao(request: NextRequest): Promise<NextResponse>
     },
   });
 
-  // getUser() (não getSession()) força a validação do token contra o servidor,
-  // que é o que efetivamente renova a sessão quando o access token expirou.
-  await supabase.auth.getUser();
+  const renovarTokenExpirado = () => supabase.auth.getUser();
+  await renovarTokenExpirado();
 
   return response;
 }

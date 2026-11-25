@@ -18,8 +18,6 @@ import { emojiValido } from "@/shared/kernel/texto";
 
 const ACAO = "atendimento.reagir_mensagem";
 
-// Mesma regra de quem pode agir que o envio de mensagem. A reação só é registrada depois de
-// entregue ao cliente (o painel mostra o que ele de fato recebeu).
 export class ReagirAMensagem implements ReagirAMensagemPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -72,14 +70,11 @@ export class ReagirAMensagem implements ReagirAMensagemPort {
       return enviada;
     }
 
-    // ponytail: o toggle lê e grava sem trava; dois cliques simultâneos no mesmo balão podem
-    // divergir provedor e banco. Aceito (um Funcionário por Atendimento); trava otimista se pesar.
     const registrada = await this.repositorio.registrarReacao(
       atendimentoId,
       mensagemId,
       remover ? null : escolhido,
     );
-    // Já entregue: o registro falhar não desfaz a reação enviada.
     await this.auditar(ator, atendimentoId, "sucesso");
     if (!registrada.ok) {
       return err(

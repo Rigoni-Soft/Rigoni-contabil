@@ -67,7 +67,7 @@ describe("PainelDeServicos", () => {
     expect(aoEnviar).toHaveBeenCalledWith(valor);
   });
 
-  it("CND fica desabilitada até a liberação (ponytail: religar junto com o menu da URA)", async () => {
+  it("CND fica desabilitada até a liberação", async () => {
     const aoEnviar = jest.fn();
     render(<PainelDeServicos {...BASE} onEnviarServico={aoEnviar} />);
 

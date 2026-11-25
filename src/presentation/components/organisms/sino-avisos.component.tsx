@@ -1,26 +1,23 @@
-import { Bell, X } from "lucide-react";
+import { Bell } from "lucide-react";
 
-import { Caixa, Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
+import { Caixa, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import {
   ItemDeAviso,
   type AvisoDeCadastro,
 } from "@/presentation/components/molecules/item-de-aviso.component";
+import { PainelModal } from "@/presentation/components/molecules/painel-modal.component";
 import { Button } from "@/presentation/components/ui/button";
-import { SUPERFICIE_DE_PAINEL } from "@/presentation/lib/superficie-de-painel";
 import { cn } from "@/presentation/lib/utils";
 
 type SinoAvisosProps = {
-  // Id do modal (e base dos ids internos); único na página.
   painelId: string;
   contador: number;
-  // Texto para leitor de tela quando chegam avisos novos; vazio fora disso.
   anuncio: string;
   avisos: AvisoDeCadastro[];
   estado: "carregando" | "erro" | "pronto";
   temMais: boolean;
   carregandoMais: boolean;
-  // Chamado ao abrir: o Container carrega a lista. Abrir não marca nada como visto.
   aoAbrir: () => void;
   aoFechar: () => void;
   aoSelecionar: (aviso: AvisoDeCadastro) => void;
@@ -30,10 +27,6 @@ type SinoAvisosProps = {
 
 const TETO_DO_SELO = 99;
 
-// Sino fixo do cabeçalho (DESIGN.md → Sino de Avisos de cadastro): maior que o ícone padrão de
-// 44 px, com selo de contador e cor de destaque enquanto houver aviso não visto. Abre direto um
-// <dialog> modal (o Container o abre com showModal: foco preso, fundo inerte, Esc fecha) com a
-// lista; só o clique no aviso o marca como visto.
 export function SinoAvisos({
   painelId,
   contador,
@@ -51,7 +44,6 @@ export function SinoAvisos({
   const destaque = contador > 0;
   return (
     <>
-      {/* O polling muda o contador sem o foco passar pelo sino: a região avisa o leitor de tela. */}
       <Texto variante="somenteLeitor" como="span" role="status">
         {anuncio}
       </Texto>
@@ -77,32 +69,12 @@ export function SinoAvisos({
           </Caixa>
         )}
       </Button>
-      <Caixa
-        como="dialog"
-        id={painelId}
-        aria-labelledby={`${painelId}-titulo`}
-        // Clique no véu fecha, nativo (sem suporte, Esc e o botão Fechar seguem valendo).
-        closedby="any"
-        className={cn(
-          SUPERFICIE_DE_PAINEL,
-          "max-h-[80dvh] w-[min(92vw,32rem)] flex-col overflow-hidden p-0 open:flex",
-        )}
+      <PainelModal
+        painelId={painelId}
+        titulo="Avisos de cadastro"
+        rotuloDoFechar="Fechar avisos"
+        aoFechar={aoFechar}
       >
-        <Linha alinhar="centro" justificar="entre" className="border-b border-border px-4 py-1">
-          <Texto variante="subtitulo" como="h2" id={`${painelId}-titulo`}>
-            Avisos de cadastro
-          </Texto>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={aoFechar}
-            aria-label="Fechar avisos"
-            className="shrink-0 rounded-full"
-          >
-            <X className="size-5" aria-hidden="true" />
-          </Button>
-        </Linha>
         <Pilha espaco={2} className="min-h-0 flex-1 overflow-auto p-3">
           {estado === "erro" && (
             <>
@@ -136,7 +108,7 @@ export function SinoAvisos({
             </Button>
           )}
         </Pilha>
-      </Caixa>
+      </PainelModal>
     </>
   );
 }

@@ -21,7 +21,6 @@ import { EntregarParcelamentoNaUra } from "./entregar-parcelamento-na-ura.use-ca
 const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const TELEFONE = "5511912345678";
-// 20/10/2026 em São Paulo: mês corrente 202610, anterior 202609.
 const AGORA = new Date("2026-10-20T15:00:00Z");
 
 const guia = (parcela: string, valorCentavos = 10_000): GuiaFiscal => ({
@@ -38,6 +37,7 @@ const parcelamento = (
   id,
   codigo: `COD-${id}`,
   interno: false,
+  setor: "simples_nacional",
   valorParcelaCentavos: 10_000,
   parcelasRestantes: 5,
   parcelasEnviadas: [],
@@ -66,7 +66,6 @@ function montar(
   const liberadas: string[] = [];
   const publicadas: ChaveGuia[] = [];
   let buscas = 0;
-  // O envio já registrado de cada parcela guarda o caminho do PDF que foi entregue.
   const entregues: GuiaEntregue[] = emAberto.flatMap((p) =>
     p.parcelasEnviadas.map((parcela) => ({
       parcelamentoId: p.id,
@@ -219,6 +218,18 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
     expect(registrados).toEqual([["1", "202609", "202609:10000", "c1/1/202609-novo.pdf"]]);
   });
 
+  it("entrega num só pedido as guias dos parcelamentos do SN e do RH", async () => {
+    const { executar, documentos } = montar([
+      parcelamento("sn", { parcelasEnviadas: ["202610"] }),
+      parcelamento("rh", { setor: "rh", parcelasEnviadas: ["202610"] }),
+    ]);
+    expect((await executar()).ok).toBe(true);
+    expect(documentos.map((d) => d.nomeArquivo)).toEqual([
+      "parcelamento-COD-sn-202610.pdf",
+      "parcelamento-COD-rh-202610.pdf",
+    ]);
+  });
+
   it("envia a guia do comum e ignora o interno, cuja guia também o comum comporta", async () => {
     const { executar, documentos, registrados, mensagens } = montar(
       [
@@ -297,7 +308,6 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
       { guias: ok([]) },
     );
     expect((await executar()).ok).toBe(true);
-    // O provedor é consultado pela parcela do mês, que ainda não tem registro.
     expect(buscas()).toBe(1);
     expect(reencontradas).toEqual(["c1/1/202609-entregue.pdf"]);
     expect(documentos.map((d) => d.nomeArquivo)).toEqual(["parcelamento-COD-1-202609.pdf"]);
@@ -406,7 +416,6 @@ describe("EntregarParcelamentoNaUra (#128)", () => {
       expect(documentos).toHaveLength(0);
       expect(registrados).toHaveLength(0);
       expect(mensagens[0].texto).toContain("g1");
-      // Quem não adquiriu a reserva não libera a de outra tentativa.
       expect(liberadas).toEqual([]);
     });
 

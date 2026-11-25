@@ -12,7 +12,6 @@ import { ESPERA_MS } from "@/shared/kernel/com-tentativas";
 import { formatarCompetencia, formatarDataIso } from "@/shared/kernel/data-iso";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Busca a guia do DAS no provedor fiscal e a publica.
 export class ObterGuiaDasParaEnvio implements ObterGuiaDasParaEnvioPort {
   constructor(
     private readonly guias: GuiasFiscaisPort,

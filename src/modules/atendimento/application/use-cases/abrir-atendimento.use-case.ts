@@ -7,7 +7,6 @@ import type { AtendimentoRepositoryPort } from "@/modules/atendimento/applicatio
 import type { AppError } from "@/shared/errors/app.error";
 import type { Result } from "@/shared/kernel/result";
 
-// Todo Atendimento novo cai na espera do Setor; quem atende é quem o assume (sem atribuição automática).
 export class AbrirAtendimento implements AbrirAtendimentoPort {
   constructor(private readonly repositorio: AtendimentoRepositoryPort) {}
 

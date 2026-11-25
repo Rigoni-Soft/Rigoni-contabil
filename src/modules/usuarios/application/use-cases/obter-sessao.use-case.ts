@@ -17,20 +17,14 @@ export class ObterSessao implements ObterSessaoPort {
     if (!id) return null;
 
     const perfil = await this.usuarios.buscarPorId(id);
-    // Leitura best-effort da própria sessão: falha técnica também vira "sem sessão"
-    // para quem chama, mas fica registrada no log em vez de sumir dentro do `null`.
     if (!perfil.ok) {
       this.erros.registrar("Falha ao carregar perfil da sessão:", perfil.error.message);
       return null;
     }
     if (!perfil.value) return null;
 
-    // Login já bloqueia senha provisória vencida, mas uma sessão aberta ANTES do vencimento seguia
-    // válida depois dele. Toda página autenticada passa por carregarSessao() → aqui, então tratar
-    // como "sem sessão" fecha esse caminho sem duplicar a checagem em cada rota.
     if (perfil.value.senhaProvisoriaVencida(new Date())) return null;
 
-    // Sessão aberta antes da desativação para de valer na próxima página.
     if (perfil.value.estaDesativado()) return null;
 
     return usuarioParaDto(perfil.value);

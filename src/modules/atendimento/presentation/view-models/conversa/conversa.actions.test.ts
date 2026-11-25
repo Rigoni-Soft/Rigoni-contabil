@@ -1,11 +1,9 @@
-/**
- * Integração presentation ↔ application: o `main` é substituído por uma composição com portas
- * OUT falsas (testes.md, seção 3), sem tocar Supabase real.
- */
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok } from "@/shared/kernel/result";
 
 import {
+  buscarClienteParaContatoUraAction,
+  cadastrarContatoUraAction,
   encerrarAtendimentoAction,
   enviarDocumentoAction,
   enviarMensagemAction,
@@ -18,6 +16,8 @@ const enviarMock = jest.fn();
 const transferirMock = jest.fn();
 const mensagemMock = jest.fn();
 const encerrarMock = jest.fn();
+const buscarClienteMock = jest.fn();
+const cadastrarContatoMock = jest.fn();
 
 jest.mock("@/main/atendimento.factory", () => ({
   makeObterConversa: async () => ({ execute: obterMock }),
@@ -25,6 +25,8 @@ jest.mock("@/main/atendimento.factory", () => ({
   makeTransferirAtendimento: async () => ({ execute: transferirMock }),
   makeEnviarMensagemAoCliente: async () => ({ execute: mensagemMock }),
   makeEncerrarAtendimento: async () => ({ execute: encerrarMock }),
+  makeBuscarClienteParaContatoUra: async () => ({ execute: buscarClienteMock }),
+  makeCadastrarContatoUra: async () => ({ execute: cadastrarContatoMock }),
 }));
 
 const ID = "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d";
@@ -148,5 +150,100 @@ describe("encerrarAtendimentoAction (integração)", () => {
 
     expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
     expect(encerrarMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("buscarClienteParaContatoUraAction (integração)", () => {
+  beforeEach(() => buscarClienteMock.mockReset());
+
+  it("devolve o Cliente do CNPJ para a Recepção confirmar", async () => {
+    const cliente = { id: ID, empresa: "Padaria Ltda", cnpj: "11444777000161" };
+    buscarClienteMock.mockResolvedValue(ok(cliente));
+
+    const r = await buscarClienteParaContatoUraAction({
+      atendimentoId: ID,
+      cnpj: "11.444.777/0001-61",
+    });
+
+    expect(r).toEqual({ ok: true, data: cliente });
+    expect(buscarClienteMock).toHaveBeenCalledWith({
+      atendimentoId: ID,
+      cnpj: "11.444.777/0001-61",
+    });
+  });
+
+  it("repassa a negativa de quem não é o dono do Atendimento", async () => {
+    buscarClienteMock.mockResolvedValue(err(new ForbiddenError("Só o dono busca o Cliente.")));
+
+    const r = await buscarClienteParaContatoUraAction({
+      atendimentoId: ID,
+      cnpj: "11444777000161",
+    });
+
+    expect(!r.ok && r.error.code).toBe("FORBIDDEN");
+  });
+
+  it.each([
+    [{ atendimentoId: "1", cnpj: "11444777000161" }],
+    [{ atendimentoId: ID, cnpj: "" }],
+    [{ atendimentoId: ID, cnpj: "1234567890123456789" }],
+    [undefined],
+  ])("devolve VALIDATION_ERROR sem chamar o caso de uso quando a entrada é %p", async (entrada) => {
+    const r = await buscarClienteParaContatoUraAction(entrada);
+
+    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+    expect(buscarClienteMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("cadastrarContatoUraAction (integração)", () => {
+  beforeEach(() => cadastrarContatoMock.mockReset());
+  const CLIENTE = "5b0b6c58-1c5e-4f0e-9d3c-7a8a1f2f3a4b";
+
+  it("cadastra com o e-mail em branco como null", async () => {
+    cadastrarContatoMock.mockResolvedValue(
+      ok({ status: "criado", contatoId: "ct-1", nome: "Maria" }),
+    );
+
+    const r = await cadastrarContatoUraAction({
+      atendimentoId: ID,
+      clienteId: CLIENTE,
+      nome: " Maria ",
+      email: "",
+    });
+
+    expect(r).toEqual({ ok: true, data: { status: "criado", contatoId: "ct-1", nome: "Maria" } });
+    expect(cadastrarContatoMock).toHaveBeenCalledWith({
+      atendimentoId: ID,
+      clienteId: CLIENTE,
+      nome: "Maria",
+      email: null,
+    });
+  });
+
+  it("repassa a negativa do caso de uso", async () => {
+    cadastrarContatoMock.mockResolvedValue(err(new ForbiddenError("Só o dono cadastra.")));
+
+    const r = await cadastrarContatoUraAction({
+      atendimentoId: ID,
+      clienteId: CLIENTE,
+      nome: "Maria",
+      email: "maria@padaria-ura.teste",
+    });
+
+    expect(!r.ok && r.error.code).toBe("FORBIDDEN");
+  });
+
+  it.each([
+    [{ atendimentoId: ID, clienteId: "nao-e-guid", nome: "Maria", email: "" }],
+    [{ atendimentoId: ID, clienteId: CLIENTE, nome: "   ", email: "" }],
+    [{ atendimentoId: ID, clienteId: CLIENTE, nome: "A".repeat(121), email: "" }],
+    [{ atendimentoId: ID, clienteId: CLIENTE, nome: "Maria", email: "abc" }],
+    [undefined],
+  ])("devolve VALIDATION_ERROR sem chamar o caso de uso quando a entrada é %p", async (entrada) => {
+    const r = await cadastrarContatoUraAction(entrada);
+
+    expect(!r.ok && r.error.code).toBe("VALIDATION_ERROR");
+    expect(cadastrarContatoMock).not.toHaveBeenCalled();
   });
 });

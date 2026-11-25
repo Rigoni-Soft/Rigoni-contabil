@@ -33,9 +33,6 @@ export function CriarUsuarioContainer({
     formState: { errors },
   } = useForm<CriarUsuarioFormValues>({ resolver: zodResolver(criarUsuarioSchema) });
 
-  // Únicos valores possíveis quando só há 1 opção (Líder) — mesma regra do
-  // formulário, pra "Cadastrar outro" devolver os campos travados corretos
-  // em vez de limpá-los.
   const valorInicial: CriarUsuarioFormValues = {
     nome: "",
     email: "",
@@ -66,9 +63,6 @@ export function CriarUsuarioContainer({
         senhaProvisoria: resultado.data.senhaProvisoria,
       });
     } catch {
-      // Sem isso, uma Promise rejeitada (erro de rede/transporte) travava o botão em
-      // "Cadastrando…" pra sempre, porque setPendente(false) só rodava depois do
-      // await. Mesma rede de segurança já usada em login.container.tsx.
       setErroServidor("Falha inesperada. Tente novamente.");
     } finally {
       setPendente(false);

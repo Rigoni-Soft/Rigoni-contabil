@@ -18,7 +18,6 @@ import { ehSetor, SETORES } from "@/shared/kernel/setores";
 export default async function Page() {
   const sessao = await exigirSessao();
 
-  // Admin não pertence a um Setor: começa pelo primeiro e escolhe na tela.
   const ehAdmin = sessao.papel === "admin";
   const setor = ehAdmin ? SETORES[0] : sessao.setor;
   if (!ehSetor(setor)) redirect("/");
@@ -33,8 +32,6 @@ export default async function Page() {
     <AtendimentoTemplate
       header={<CabecalhoDoShellContainer sessao={sessao} />}
       nav={<ShellNavContainer setores={setores} rotaAtual={ROTA_ATENDIMENTO} />}
-      // Falha na carga inicial não expulsa da tela: a lista começa vazia e o polling a recupera
-      // (ou avisa que está indisponível).
       lista={
         <ListaAtendimentoContainer
           usuarioId={sessao.id}

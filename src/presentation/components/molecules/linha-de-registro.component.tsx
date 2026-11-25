@@ -17,14 +17,11 @@ export type RegistroAcaoView = {
   dataHora: string;
 };
 
-// Resultado com ícone + texto + cor, nunca só cor. "falha_compensacao" ganha ícone próprio: ao
-// contrário de uma falha comum, pode ter deixado estado inconsistente que exige reconciliação.
 const ICONE_POR_RESULTADO: Record<string, typeof XCircle> = {
   sucesso: CheckCircle2,
   falha_compensacao: AlertTriangle,
 };
 
-// Uma linha do feed de auditoria: data/hora, ator, setor, ação, alvo e o resultado com ícone.
 export function LinhaDeRegistro({ registro }: { registro: RegistroAcaoView }) {
   const Icone = ICONE_POR_RESULTADO[registro.resultado] ?? XCircle;
   return (

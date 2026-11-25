@@ -1,0 +1,133 @@
+import { render, screen } from "@testing-library/react";
+import { useForm } from "react-hook-form";
+
+import { LINHAS_DE_CONTATO_DE_TESTE } from "../../../../test-support/linhas-de-contato-de-teste";
+import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
+import { EditarCadastroRhForm } from "./editar-cadastro-rh-form.component";
+
+const SEM_PARCELAMENTOS = {
+  parcelamentos: [],
+  parcelamentoCampos: [],
+  onAdicionarParcelamento: jest.fn(),
+  onRemoverParcelamento: jest.fn(),
+  leituras: {},
+  onArquivoEscolhido: jest.fn(),
+};
+
+function Montado({
+  readOnly,
+  extras,
+}: {
+  readOnly: boolean;
+  extras?: {
+    responsavel?: React.ReactNode;
+    acompanhamento?: React.ReactNode;
+  };
+}) {
+  const { register, control, formState } = useForm<EditarCadastroOperacionalFormValues>({
+    defaultValues: { contatos: [], observacoesGerais: "" },
+  });
+  return (
+    <EditarCadastroRhForm
+      cabecalho={{ empresa: "Padaria Sol", cnpj: "11.444.777/0001-61" }}
+      register={register}
+      control={control}
+      errors={formState.errors}
+      onSubmit={(e) => e.preventDefault()}
+      pendente={false}
+      readOnly={readOnly}
+      contatos={[]}
+      onAdicionarContato={jest.fn()}
+      linhasDeContato={LINHAS_DE_CONTATO_DE_TESTE}
+      onLimpar={jest.fn()}
+      {...SEM_PARCELAMENTOS}
+      {...extras}
+    />
+  );
+}
+
+describe("EditarCadastroRhForm", () => {
+  it("mostra empresa e CNPJ, contatos e as observações do RH, sem Regime", () => {
+    render(<Montado readOnly={false} />);
+
+    expect(screen.getByLabelText("Empresa")).toHaveValue("Padaria Sol");
+    expect(screen.getByLabelText("CNPJ")).toHaveValue("11.444.777/0001-61");
+    expect(screen.getByText("Contatos")).toBeInTheDocument();
+    expect(screen.getByLabelText("Observações gerais do RH")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Regime")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Salvar" })).toBeInTheDocument();
+  });
+
+  it("tem a seção de Parcelamentos com o botão de adicionar, que some em somente leitura", () => {
+    const { unmount } = render(<Montado readOnly={false} />);
+    expect(screen.getByText("Parcelamentos")).toBeInTheDocument();
+    expect(screen.getByText(/Tem parcelamento:/)).toHaveTextContent("Não");
+    expect(screen.getByRole("button", { name: /Adicionar parcelamento/ })).toBeInTheDocument();
+    unmount();
+
+    render(<Montado readOnly />);
+    expect(
+      screen.queryByRole("button", { name: /Adicionar parcelamento/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("somente leitura não tem Salvar nem Adicionar contato", () => {
+    render(<Montado readOnly />);
+
+    expect(screen.queryByRole("button", { name: "Salvar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Adicionar contato/ })).not.toBeInTheDocument();
+  });
+
+  it("mostra o erro de campo das observações", () => {
+    function ComErro() {
+      const { register, control } = useForm<EditarCadastroOperacionalFormValues>({
+        defaultValues: { contatos: [], observacoesGerais: "" },
+      });
+      return (
+        <EditarCadastroRhForm
+          cabecalho={{ empresa: "Padaria Sol", cnpj: "11.444.777/0001-61" }}
+          register={register}
+          control={control}
+          errors={{ observacoesGerais: { type: "max", message: "Passou de 2000 caracteres" } }}
+          onSubmit={(e) => e.preventDefault()}
+          pendente={false}
+          readOnly={false}
+          contatos={[]}
+          onAdicionarContato={jest.fn()}
+          linhasDeContato={LINHAS_DE_CONTATO_DE_TESTE}
+          onLimpar={jest.fn()}
+          {...SEM_PARCELAMENTOS}
+        />
+      );
+    }
+    render(<ComErro />);
+
+    expect(screen.getByText("Passou de 2000 caracteres")).toBeInTheDocument();
+  });
+
+  it("o Responsável entra no cabeçalho e o acompanhamento no mesmo cartão, antes dos contatos", () => {
+    render(
+      <Montado
+        readOnly={false}
+        extras={{
+          responsavel: (
+            <label>
+              Responsável
+              <input readOnly value="Ana" />
+            </label>
+          ),
+          acompanhamento: <ul aria-label="Acompanhamento do mês" />,
+        }}
+      />,
+    );
+
+    const cartao = screen.getByLabelText("Empresa").closest("form")!;
+    expect(cartao).toContainElement(screen.getByLabelText("Responsável"));
+    const acompanhamento = screen.getByRole("list", { name: "Acompanhamento do mês" });
+    expect(cartao).toContainElement(acompanhamento);
+    expect(
+      acompanhamento.compareDocumentPosition(screen.getByText("Contatos")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+});

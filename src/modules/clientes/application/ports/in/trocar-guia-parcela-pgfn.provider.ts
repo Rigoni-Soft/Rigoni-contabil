@@ -4,10 +4,8 @@ import type { Result } from "@/shared/kernel/result";
 
 export type TrocarGuiaParcelaPgfnInput = {
   parcelamentoId: string;
-  // A guia que o PDF novo substitui; a chave não muda na troca.
   competencia: string;
   arquivo: File;
-  // Os bytes do mesmo arquivo, para o leitor (a Server Action os lê do File).
   pdf: Uint8Array;
 };
 

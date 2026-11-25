@@ -1,4 +1,4 @@
-import { formatarCompetencia, formatarDataIso, formatarParcela } from "./data-iso";
+import { dataIsoValida, formatarCompetencia, formatarDataIso, formatarParcela } from "./data-iso";
 
 describe("data-iso", () => {
   it("formata a data ISO como DD/MM/AAAA", () => {
@@ -11,5 +11,13 @@ describe("data-iso", () => {
 
   it("formata a parcela AAAAMM como MM/AAAA", () => {
     expect(formatarParcela("202609")).toBe("09/2026");
+  });
+
+  it("só aceita data ISO que existe no calendário", () => {
+    expect(dataIsoValida("2026-02-28")).toBe(true);
+    expect(dataIsoValida("2028-02-29")).toBe(true);
+    expect(dataIsoValida("2026-02-31")).toBe(false);
+    expect(dataIsoValida("2026-13-01")).toBe(false);
+    expect(dataIsoValida("2026-2-3")).toBe(false);
   });
 });

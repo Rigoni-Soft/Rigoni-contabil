@@ -10,8 +10,6 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Mesma regra de quem pode agir sobre o Atendimento que a Transferência (dono, Líder do Setor ou
-// Admin). Encerrar não puxa ninguém da espera.
 export class EncerrarAtendimento implements EncerrarAtendimentoPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -43,7 +41,6 @@ export class EncerrarAtendimento implements EncerrarAtendimentoPort {
       );
     }
 
-    // Já encerrado: falhar no aviso não desfaz nada, e a despedida não vale um erro para quem encerrou.
     const aviso = await this.avisar.execute({
       telefone: atendimento.telefone,
       chave: atendimento.chave,

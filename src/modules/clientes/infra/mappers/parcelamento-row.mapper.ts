@@ -16,14 +16,11 @@ export type ParcelamentoRow = {
   cliente_parcelamento_envios: { parcela: string }[];
 };
 
-// Embed que traz o Parcelamento com as parcelas já enviadas (status do mês, bloqueio de remoção).
 export const SELECT_PARCELAMENTO = "*, cliente_parcelamento_envios(parcela)";
 export const EMBED_PARCELAMENTOS = `cliente_parcelamentos(${SELECT_PARCELAMENTO})`;
 
-// Parcela (AAAAMM) do mês corrente, no fuso de São Paulo: a chave do registro de envio.
 export const parcelaDoMesAtual = () => mesAtual().replace("-", "");
 
-// Quitado: situação gravada pelo sistema ou parcelas restantes em zero.
 export const estaQuitado = (situacao: "em_aberto" | "quitado", parcelasRestantes: number) =>
   situacao === "quitado" || parcelasRestantes === 0;
 

@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) do Funcionário que desconecta (signOut real)
- * mantém o Atendimento atribuído, nada é redistribuído e o histórico segue intacto.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { abrirComDono } from "../../../../../test-support/atendimento-com-dono";
@@ -17,7 +12,6 @@ const SERVICE_KEY =
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 const repositorio = new SupabaseAtendimentoRepository(admin);
 
-// Setor só desta suíte (nenhuma outra suíte cria Atendimentos nele): a Fila é do Setor inteiro.
 const SETOR = "financeiro" as const;
 const TELEFONES = ["61955580001", "61955580002"];
 const SENHA = "senha-de-teste-123";
@@ -62,12 +56,10 @@ describe("SupabaseAtendimentoRepository — desconexão do Funcionário", () => 
       funcionarioId,
     );
 
-    // Conecta e desconecta de verdade.
     const sessao = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false } });
     expect((await sessao.auth.signInWithPassword({ email, password: SENHA })).error).toBeNull();
     expect((await sessao.auth.signOut()).error).toBeNull();
 
-    // Atendimento novo no mesmo Setor: espera sem dono e não herda o dono offline.
     const novo = await repositorio.abrir({
       telefone: TELEFONES[1],
       chave: TELEFONES[1],
@@ -83,13 +75,11 @@ describe("SupabaseAtendimentoRepository — desconexão do Funcionário", () => 
       .single();
     expect(gravado.data?.funcionario_id).toBeNull();
 
-    // Continua atribuído a ele, em andamento.
     expect(await repositorio.buscarEmAndamento(atendimentoId)).toMatchObject({
       ok: true,
       value: { id: atendimentoId, funcionarioId },
     });
 
-    // Ao voltar, retoma a conversa: o histórico está lá e a nova mensagem entra na ordem.
     expect((await sessao.auth.signInWithPassword({ email, password: SENHA })).error).toBeNull();
     const anexada = await repositorio.anexarMensagem(TELEFONES[0], {
       autor: "funcionario",

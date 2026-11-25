@@ -1,0 +1,8 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignore": ["src/**/*.{spec,test,e2e}.{ts,tsx}", "src/test-support/**"],
+  "ignoreDependencies": [".*"],
+  "jest": false,
+  "playwright": false
+}

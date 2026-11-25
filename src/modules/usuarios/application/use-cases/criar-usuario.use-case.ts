@@ -17,6 +17,8 @@ import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.e
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
+type EtapaDaCriacao = "construir_perfil" | "salvar_perfil" | "registrar_auditoria";
+
 export class CriarUsuario implements CriarUsuarioPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -32,11 +34,8 @@ export class CriarUsuario implements CriarUsuarioPort {
     if (!atorId) return err(new ForbiddenError("Sessão inválida."));
 
     const perfilAtor = await this.usuarios.buscarPorId(atorId);
-    // Erro técnico não vira "sem permissão": propaga o AppError original em vez
-    // de mascará-lo como Forbidden.
     if (!perfilAtor.ok) return perfilAtor;
     const ator = perfilAtor.value;
-    // JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
     if (!ator || ator.estaDesativado() || !this.podeCadastrar(ator, input)) {
       return err(
         new ForbiddenError(
@@ -71,8 +70,6 @@ export class CriarUsuario implements CriarUsuarioPort {
     if (!salvo.ok)
       return this.falharComCompensacao(ator.id, input, conta.value.id, "salvar_perfil", salvo);
 
-    // Auditoria de sucesso não é best-effort: se não fica registrada, a operação inteira é
-    // revertida (conta Auth + perfil, via compensação), porque a ação precisa ficar auditada.
     const auditoria = await this.auditoria.registrar({
       ator: ator.id,
       setor: input.setor,
@@ -95,9 +92,6 @@ export class CriarUsuario implements CriarUsuarioPort {
     });
   }
 
-  // "Admin ou mesmo Setor" já é regra do AutorizacaoService (domain service, mesma
-  // instância usada por ListarSetores) — aqui só soma a restrição específica deste
-  // caso de uso: Líder só cadastra Funcionário, nunca outro Líder/Admin.
   private podeCadastrar(ator: Usuario, input: CriarUsuarioInput): boolean {
     if (ator.papel.ehAdmin()) return true;
     if (!ator.papel.ehLiderSetor() || input.papel !== "funcionario") return false;
@@ -105,15 +99,11 @@ export class CriarUsuario implements CriarUsuarioPort {
     return setor.ok && this.autorizacao.podeAcessarSetor(ator, setor.value);
   }
 
-  // Qualquer falha depois da conta Auth criada a compensa removendo-a (`perfis.id` tem `on delete
-  // cascade`, então o perfil sai junto). Falha da própria compensação vira
-  // `EstadoInconsistenteError` (conta pode ter ficado órfã) e auditoria `falha_compensacao`, para
-  // reconciliação manual via Supabase Studio. Senha provisória nunca entra no log.
   private async falharComCompensacao(
     atorId: string,
     input: CriarUsuarioInput,
     contaId: string,
-    etapa: string,
+    etapa: EtapaDaCriacao,
     resultadoComErro: { ok: false; error: AppError },
   ): Promise<Result<CriarUsuarioOutput, AppError>> {
     const removido = await this.authAdmin.removerConta(contaId);
@@ -136,8 +126,6 @@ export class CriarUsuario implements CriarUsuarioPort {
     return resultadoComErro;
   }
 
-  // Auditoria do caminho de FALHA é best-effort de propósito: não vale um segundo
-  // modo de falha em cima da tentativa de registrar que a operação já falhou.
   private async registrarAuditoriaBestEffort(
     atorId: string,
     input: CriarUsuarioInput,

@@ -5,15 +5,10 @@ import { listarFilaAction } from "@/modules/atendimento/presentation/view-models
 import type { SetorSlug } from "@/shared/kernel/setores";
 
 export const filaKeys = {
-  // Prefixo de toda leitura da Fila: invalida todas de uma vez.
   todas: () => ["atendimento", "fila"] as const,
-  // `null` = a Fila do Setor do próprio usuário: a tela, a barra lateral da conversa e o aviso
-  // global leem a mesma chave, então viram uma leitura só.
   setor: (setor: SetorSlug | null) => [...filaKeys.todas(), setor ?? "minha"] as const,
 };
 
-// ponytail: polling a cada 15 s (o mesmo dos Atendimentos do usuário); entrada e saída aparecem em até esse tempo. Realtime
-// (`*.realtime.ts`, arquitetura.md 4.2) quando o atraso incomodar.
 const INTERVALO_MS = 15_000;
 
 export function useFilaQuery(
@@ -32,10 +27,10 @@ export function useFilaQuery(
     },
     initialData,
     enabled: habilitado,
-    // A Fila "minha" desiste só quando é negada (Admin não tem Setor; sessão expirada); erro
-    // passageiro de rede segue tentando no próximo ciclo.
-    refetchInterval: (query) =>
-      setor === null && query.state.error?.cause === "FORBIDDEN" ? false : INTERVALO_MS,
+    refetchInterval: (query) => {
+      const minhaFilaNegada = setor === null && query.state.error?.cause === "FORBIDDEN";
+      return minhaFilaNegada ? false : INTERVALO_MS;
+    },
     staleTime: INTERVALO_MS,
     retry: false,
   });

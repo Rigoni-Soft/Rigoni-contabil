@@ -1,13 +1,9 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) do job de envio da guia de parcelamento:
- * leitura paginada dos pendentes, reserva/conclusão com posse por token e auditoria da URA, e
- * alertas separados por origem e por Cliente avaliado. Destrutiva: só roda no Supabase local e limpa pelos IDs da própria execução. Requer `npx supabase start`.
- */
+import { createClient } from "@supabase/supabase-js";
+
 import { EntregarComunicacaoPorCanais } from "@/modules/atendimento/application/use-cases/entregar-comunicacao-por-canais.use-case";
 import { EnviarComunicacaoProativa } from "@/modules/atendimento/application/use-cases/enviar-comunicacao-proativa.use-case";
 import { EnviarGuiasParcelamento } from "@/modules/atendimento/application/use-cases/enviar-guias-parcelamento.use-case";
 import { ExecutarEnvioGuiaParcelamento } from "@/modules/atendimento/application/use-cases/executar-envio-guia-parcelamento.use-case";
-import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
 import { ok as sucesso } from "@/shared/kernel/result";
 
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
@@ -15,6 +11,7 @@ import { EnvioMensagemFalsoGateway } from "./envio-mensagem-falso.gateway";
 import { SupabaseAlertaSetorGateway } from "./supabase-alerta-setor.gateway";
 import { SupabaseClienteCnpjGateway } from "./supabase-cliente-cnpj.gateway";
 import { SupabaseClientesParaParcelamentoGateway } from "./supabase-clientes-para-parcelamento.gateway";
+import { SupabaseDestinosDeEnvioGateway } from "./supabase-destinos-de-envio.gateway";
 import { SupabaseGuiasPgfnGateway } from "./supabase-guias-pgfn.gateway";
 import { SupabaseParcelamentosDoClienteGateway } from "./supabase-parcelamentos-do-cliente.gateway";
 
@@ -22,7 +19,6 @@ const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
-// O destino é validado antes de o client existir: remoto falha alto, sem tocar em dados alheios.
 const admin = criarAdminLocal(SERVICE_KEY);
 const clientes = new SupabaseClientesParaParcelamentoGateway(admin);
 const alertasParcelamento = new SupabaseAlertaSetorGateway(admin, "parcelamento");
@@ -33,7 +29,6 @@ const HORA_MS = 60 * 60 * 1000;
 
 type Fixture = { id: string; cnpj: string };
 const criados: Fixture[] = [];
-const atendimentos: string[] = [];
 let sequencia = 0;
 
 function cnpjUnico(): string {
@@ -44,7 +39,6 @@ function cnpjUnico(): string {
 async function ok<T>(consulta: PromiseLike<{ data: T; error: { message: string } | null }>) {
   const { data, error } = await consulta;
   if (error) throw new Error(error.message);
-  // Quem lê (select) recebe o dado; insert/update sem retorno não usa o valor.
   return data as NonNullable<T>;
 }
 
@@ -55,6 +49,7 @@ async function criarParcelamento(
   await ok(
     admin.from("cliente_parcelamentos").insert({
       id: crypto.randomUUID(),
+      setor: "simples_nacional",
       cliente_id: clienteId,
       codigo: "TESTE-1",
       parcelas_restantes: 5,
@@ -65,7 +60,6 @@ async function criarParcelamento(
   );
 }
 
-// "Pendente" = nenhum Parcelamento do Cliente tem registro de envio (a parcela do mês corrente).
 async function recolocarPendente(clienteId: string) {
   const ids = await ok(
     admin.from("cliente_parcelamentos").select("id").eq("cliente_id", clienteId),
@@ -102,13 +96,22 @@ async function criarCliente(
   );
   if (opcoes.temParcelamento ?? true) await criarParcelamento(fixture.id);
   if (opcoes.telefone) {
+    const contatoId = crypto.randomUUID();
     await ok(
       admin.from("cliente_contatos").insert({
-        id: crypto.randomUUID(),
+        id: contatoId,
         cliente_id: fixture.id,
         nome: "Ângela",
         telefone: opcoes.telefone,
-        padrao: true,
+      }),
+    );
+    await ok(
+      admin.from("destinos_de_envio").insert({
+        cliente_id: fixture.id,
+        setor: "simples_nacional",
+        tipo: null,
+        contato_id: contatoId,
+        canal: "whatsapp",
       }),
     );
   }
@@ -141,7 +144,6 @@ afterAll(async () => {
   const registrar = (rotulo: string, e: { message: string } | null) => {
     if (e) erros.push(`${rotulo}: ${e.message}`);
   };
-  // O filtro vai na URL: em lotes, para a lista de 1.001 Clientes não estourar o tamanho dela.
   const emLotes = async <T>(
     itens: T[],
     apagar: (lote: T[]) => PromiseLike<{ error: { message: string } | null }>,
@@ -151,12 +153,6 @@ afterAll(async () => {
       registrar(rotulo, (await apagar(itens.slice(i, i + 100))).error);
     }
   };
-  // Alertas e reservas saem em cascata com o Cliente.
-  await emLotes(
-    atendimentos,
-    (l) => admin.from("atendimentos").delete().in("id", l),
-    "atendimentos",
-  );
   await emLotes(
     criados.map((c) => c.cnpj),
     (l) => admin.from("registros_auditoria").delete().in("alvo", l),
@@ -171,7 +167,7 @@ afterAll(async () => {
 });
 
 describe("leitura dos pendentes", () => {
-  it("lista só quem tem parcelamento e Parcelamento pendente, com o telefone de envio", async () => {
+  it("lista só quem tem parcelamento e Parcelamento pendente, só com o Cliente (quem recebe vem dos Destinos)", async () => {
     const lista = await clientes.listarPendentes();
 
     expect(lista.ok).toBe(true);
@@ -179,8 +175,10 @@ describe("leitura dos pendentes", () => {
     const ids = itens.map((c) => c.clienteId);
     expect(ids).toContain(pendente.id);
     expect(ids).not.toContain(semParcelamento.id);
-    const nacional = soDigitosNacionais(`(61) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`);
-    expect(itens.find((c) => c.clienteId === pendente.id)?.contato?.telefone).toBe(`55${nacional}`);
+    expect(itens.find((c) => c.clienteId === pendente.id)).toEqual({
+      clienteId: pendente.id,
+      empresa: "Parcelamento Teste Ltda",
+    });
   });
 
   it("Cliente que só tem parcelamento interno em aberto também é pendente (o destino é decidido no envio)", async () => {
@@ -199,52 +197,6 @@ describe("leitura dos pendentes", () => {
     const lista = await clientes.listarPendentes();
 
     expect(lista.ok && lista.value.map((c) => c.clienteId)).not.toContain(soPgfn.id);
-  });
-
-  it("janela de 24h pela chave nacional: mensagem recente do contato escolhe o texto livre", async () => {
-    const nacional = soDigitosNacionais(`(61) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`);
-    const criado = await ok(
-      admin
-        .from("atendimentos")
-        .insert({
-          telefone: `55${nacional}`,
-          chave_telefone: soDigitosNacionais(`55${nacional}`),
-          cliente_id: pendente.id,
-          setor: "recepcao",
-        })
-        .select("id")
-        .single(),
-    );
-    atendimentos.push(criado.id);
-    await ok(
-      admin.from("mensagens").insert({
-        atendimento_id: criado.id,
-        autor: "contato",
-        texto: "oi",
-        criado_em: new Date(Date.now() - HORA_MS).toISOString(),
-      }),
-    );
-
-    const lista = await clientes.listarPendentes();
-    const c = lista.ok ? lista.value.find((x) => x.clienteId === pendente.id) : undefined;
-
-    expect(c?.ultimaMensagemDoContatoEm).toBeInstanceOf(Date);
-    const envio = new EnvioMensagemFalsoGateway();
-    jest.spyOn(console, "info").mockImplementation(() => undefined);
-    await new EnviarComunicacaoProativa(envio).execute({
-      telefone: c!.contato!.telefone,
-      comunicacao: {
-        tipo: "envio_guia_parcelamento",
-        contato: "Ângela",
-        empresa: "Teste",
-        parcela: "09/2026",
-        guia: { url: "https://x/g.pdf", nomeArquivo: "g.pdf" },
-      },
-      ultimaMensagemDoContatoEm: c!.ultimaMensagemDoContatoEm,
-      agora: new Date(),
-    });
-    expect(envio.templatesEnviados).toHaveLength(0);
-    expect(envio.enviadas).toHaveLength(1);
   });
 
   it("1.001 pendentes além do teto do PostgREST: todos aparecem, uma vez, em ordem de cliente_id", async () => {
@@ -272,6 +224,7 @@ describe("leitura dos pendentes", () => {
         admin.from("cliente_parcelamentos").insert(
           parte.map((c) => ({
             id: crypto.randomUUID(),
+            setor: "simples_nacional",
             cliente_id: c.id,
             codigo: "VOLUME-1",
             parcelas_restantes: 5,
@@ -322,7 +275,6 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
 
     expect(await statusDoParcelamento(pendente.id)).toBe("pendente");
     expect(await clientes.concluir(pendente.id, token)).toEqual({ ok: true, value: false });
-    // Ainda há parcelamento sem registro do mês: a próxima rodada pode reservar de novo.
     const proxima = await clientes.reservar(pendente.id);
     expect(proxima.ok && typeof proxima.value).toBe("string");
     await clientes.liberar(pendente.id, proxima.ok ? proxima.value! : "");
@@ -361,7 +313,6 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
     expect(tokenB).not.toBe(tokenA);
     expect(await clientes.concluir(pendente.id, tokenB)).toEqual({ ok: true, value: true });
 
-    // A volta atrasada (e o cadastro foi recolocado em pendente por alguém): sem posse, nada muda.
     await recolocarPendente(pendente.id);
     expect(await clientes.concluir(pendente.id, tokenA)).toEqual({ ok: true, value: false });
     expect(await statusDoParcelamento(pendente.id)).toBe("pendente");
@@ -381,16 +332,13 @@ describe("reserva e conclusão do envio do Parcelamento", () => {
   });
 });
 
-// A conclusão nunca pode registrar envio num acordo diferente do
-// entregue. Com a regra única, a conclusão só fecha a reserva do Cliente e o registro de envio é
-// gravado pelo ID do acordo entregue (`registrar_envio_parcelamento`), então trocar o acordo durante o
-// envio não desloca o registro para o substituto.
 describe("a conclusão não registra envio em acordo algum (F3 do PR #191, regra única do #126)", () => {
   async function acordo(clienteId: string, origem: "receita_federal" | "pgfn" | null) {
     const id = crypto.randomUUID();
     await ok(
       admin.from("cliente_parcelamentos").insert({
         id,
+        setor: "simples_nacional",
         cliente_id: clienteId,
         codigo: `AC-${id.slice(0, 8)}`,
         parcelas_restantes: 5,
@@ -547,6 +495,152 @@ describe("alertas por origem e por Cliente avaliado", () => {
     },
   );
 
+  describe("ciclo do alerta por Setor", () => {
+    const doSetor = (clienteId: string, setor: "simples_nacional" | "rh", mensagem = "x") =>
+      ({ setor, clienteId, mensagem, tipo: "parcelamento_sem_guia" }) as const;
+
+    const abertosDe = async (clienteId: string) =>
+      (
+        await ok(
+          admin
+            .from("alertas_setor")
+            .select("setor, mensagem")
+            .eq("cliente_id", clienteId)
+            .eq("origem", "parcelamento")
+            .is("resolvido_em", null),
+        )
+      ).sort((a, b) => a.setor.localeCompare(b.setor));
+
+    it("o mesmo tipo no SN e no RH abre um alerta para cada Setor", async () => {
+      const alvo = await criarCliente({ empresa: "Dois Setores Ltda" });
+
+      await alertasParcelamento.alertar(doSetor(alvo.id, "simples_nacional", "sn"));
+      await alertasParcelamento.alertar(doSetor(alvo.id, "rh", "rh"));
+
+      expect(await abertosDe(alvo.id)).toEqual([
+        { setor: "rh", mensagem: "rh" },
+        { setor: "simples_nacional", mensagem: "sn" },
+      ]);
+    });
+
+    it("cada Setor lê só o alerta dele (RLS por sessão)", async () => {
+      const alvo = await criarCliente({ empresa: "Visibilidade Ltda" });
+      await alertasParcelamento.alertar(doSetor(alvo.id, "simples_nacional", "sn"));
+      await alertasParcelamento.alertar(doSetor(alvo.id, "rh", "rh"));
+      const mensagensVistasPor = async (email: string, senha: string) => {
+        const sessao = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321",
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+        );
+        const { error: falha } = await sessao.auth.signInWithPassword({ email, password: senha });
+        if (falha) throw new Error(falha.message);
+        return (
+          await ok(
+            sessao
+              .from("alertas_setor")
+              .select("mensagem")
+              .eq("cliente_id", alvo.id)
+              .eq("origem", "parcelamento"),
+          )
+        ).map((a) => a.mensagem);
+      };
+
+      expect(await mensagensVistasPor("lider.sn@rigonicontabil.local", "lider123")).toEqual(["sn"]);
+      expect(await mensagensVistasPor("lider.rh@rigonicontabil.local", "lider123")).toEqual(["rh"]);
+    });
+
+    it("renovar o alerta de um Setor atualiza só o dele", async () => {
+      const alvo = await criarCliente({ empresa: "Renova Ltda" });
+      await alertasParcelamento.alertar(doSetor(alvo.id, "simples_nacional", "sn"));
+      await alertasParcelamento.alertar(doSetor(alvo.id, "rh", "rh"));
+
+      await alertasParcelamento.alertar(doSetor(alvo.id, "rh", "rh renovado"));
+
+      expect(await abertosDe(alvo.id)).toEqual([
+        { setor: "rh", mensagem: "rh renovado" },
+        { setor: "simples_nacional", mensagem: "sn" },
+      ]);
+    });
+
+    it("a rodada resolve o alerta do Setor que não renovou e mantém o do que renovou", async () => {
+      const alvo = await criarCliente({ empresa: "Resolve Ltda" });
+      await alertasParcelamento.alertar(doSetor(alvo.id, "simples_nacional", "sn"));
+      await alertasParcelamento.alertar(doSetor(alvo.id, "rh", "rh"));
+      const [{ criado_em }] = await ok(
+        admin
+          .from("alertas_setor")
+          .select("criado_em")
+          .eq("cliente_id", alvo.id)
+          .eq("setor", "rh")
+          .eq("origem", "parcelamento"),
+      );
+      const limite = new Date(new Date(criado_em).getTime() + 1);
+      await new Promise((r) => setTimeout(r, 25));
+      await alertasParcelamento.alertar(doSetor(alvo.id, "rh", "rh renovado"));
+
+      await alertasParcelamento.resolverNaoRenovados(limite, [alvo.id]);
+
+      expect(await abertosDe(alvo.id)).toEqual([{ setor: "rh", mensagem: "rh renovado" }]);
+    });
+
+    it("confirmar a guia PGFN do SN resolve o alerta do SN e deixa o do RH aberto", async () => {
+      const alvo = await criarCliente({
+        empresa: "Pgfn Dois Setores Ltda",
+        temParcelamento: false,
+      });
+      const mes = new Date().toISOString().slice(0, 7).replace("-", "");
+      const idSn = crypto.randomUUID();
+      const idRh = crypto.randomUUID();
+      for (const [id, setor] of [
+        [idSn, "simples_nacional"],
+        [idRh, "rh"],
+      ] as const) {
+        await ok(
+          admin.from("cliente_parcelamentos").insert({
+            id,
+            setor,
+            cliente_id: alvo.id,
+            codigo: `PGFN-${setor}`,
+            arquivo_caminho: `${alvo.id}/pgfn-${setor}.pdf`,
+            parcelas_restantes: 3,
+            interno: false,
+            origem: "pgfn",
+            situacao: "em_aberto",
+          }),
+        );
+      }
+      const alertasPgfn = new SupabaseAlertaSetorGateway(admin, "lembrete_pgfn");
+      for (const setor of ["simples_nacional", "rh"] as const) {
+        await alertasPgfn.alertar({
+          setor,
+          clienteId: alvo.id,
+          mensagem: "x",
+          tipo: "guia_pgfn_pendente",
+        });
+      }
+
+      await ok(
+        admin.from("cliente_parcelamento_guias").insert({
+          parcelamento_id: idSn,
+          competencia: mes,
+          conta_negociacao: "123",
+          arquivo_caminho: `${alvo.id}/guias-pgfn/sn.pdf`,
+          estado: "confirmada",
+        }),
+      );
+
+      const abertos = await ok(
+        admin
+          .from("alertas_setor")
+          .select("setor")
+          .eq("cliente_id", alvo.id)
+          .eq("origem", "lembrete_pgfn")
+          .is("resolvido_em", null),
+      );
+      expect(abertos).toEqual([{ setor: "rh" }]);
+    });
+  });
+
   it("o mesmo tipo de alerta do mesmo Cliente abre um alerta por origem", async () => {
     await alertasLembretes.alertar({ ...base(pendente.id), tipo: "falha_envio" });
     await alertasParcelamento.alertar({ ...base(pendente.id), tipo: "falha_envio" });
@@ -569,7 +663,6 @@ describe("rodada real com a reserva ocupada", () => {
       telefone: `(61) 97${sufixo.slice(0, 3)}-${sufixo.slice(3, 7)}`,
       empresa: "Rodada Ocupada Ltda",
     });
-    // Só o Cliente do teste participa da rodada (o banco local pode ter outros pendentes).
     const apenasOAlvo = {
       listarPendentes: async () => {
         const todos = await clientes.listarPendentes();
@@ -604,6 +697,7 @@ describe("rodada real com a reserva ocupada", () => {
         apenasOAlvo,
         new EnviarGuiasParcelamento(
           new SupabaseParcelamentosDoClienteGateway(admin),
+          new SupabaseDestinosDeEnvioGateway(admin),
           {
             buscarGuiasParcelamento: async () => {
               if (quedaNaEntrega) throw new Error("processo caiu");
@@ -639,19 +733,16 @@ describe("rodada real com a reserva ocupada", () => {
       );
     const diaDoJob = new Date("2026-10-22T12:00:00Z");
 
-    // T0: a entrega cai; falha_envio aberto e a reserva fica vigente, o cadastro segue pendente.
     await montar(diaDoJob).execute();
     expect(await abertos()).toEqual([{ tipo: "falha_envio" }]);
     expect(await statusDoParcelamento(alvo.id)).toBe("pendente");
 
-    // T0 + 2 min: a reserva vigente devolve null; nada é entregue nem concluído, e o alerta fica.
     quedaNaEntrega = false;
     await montar(new Date(diaDoJob.getTime() + 2 * 60_000)).execute();
     expect(envio.requisicoes).toHaveLength(0);
     expect(await statusDoParcelamento(alvo.id)).toBe("pendente");
     expect(await abertos()).toEqual([{ tipo: "falha_envio" }]);
 
-    // A reserva vence: a retomada entrega, conclui e só então resolve o alerta.
     await ok(
       admin
         .from("envios_automaticos")

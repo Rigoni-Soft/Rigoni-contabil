@@ -14,7 +14,6 @@ export class AlteracaoContratual {
   ): Result<AlteracaoContratual, ValidationError> {
     const erroNumero = erroDeFormato(numero);
     if (erroNumero) return err(new ValidationError(erroNumero));
-    // Só "AAAA-MM-DD" real: `new Date` aceitaria "01/01/2100" e rolaria "2026-02-30" para março.
     const dataConvertida = new Date(data);
     const valida =
       /^\d{4}-\d{2}-\d{2}$/.test(data) &&

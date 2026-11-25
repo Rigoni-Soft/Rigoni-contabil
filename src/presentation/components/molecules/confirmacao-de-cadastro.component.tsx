@@ -8,13 +8,11 @@ import { cn } from "@/presentation/lib/utils";
 
 type ConfirmacaoDeCadastroProps = {
   mensagem: React.ReactNode;
-  // Conteúdo extra abaixo da mensagem (ex.: a senha provisória).
   children?: React.ReactNode;
   largura: "sm" | "md";
   onCadastrarNovo: () => void;
 };
 
-// Confirmação de cadastro com as duas saídas: continuar ("Cadastrar outro") ou encerrar.
 export function ConfirmacaoDeCadastro({
   mensagem,
   children,
@@ -35,7 +33,6 @@ export function ConfirmacaoDeCadastro({
           <Plus aria-hidden="true" />
           Cadastrar outro
         </Button>
-        {/* Provisório: leva para a home, ainda não existe uma tela própria do Setor para voltar. */}
         <LinkDeAcao href="/" className="sm:flex-1">
           <Check aria-hidden="true" />
           Finalizar

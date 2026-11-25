@@ -1,9 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) do envio da guia PGFN ao Cliente: leitura
- * dos Parcelamentos PGFN com as guias confirmadas, PDF vindo do Storage, regra de "pendente" do job
- * e registro de envio (um só por competência, quitação ao zerar). Destrutiva: só roda no Supabase
- * local e limpa pelos IDs da própria execução. Requer `npx supabase start`.
- */
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
 import { SupabaseGuiasPgfnGateway } from "./supabase-guias-pgfn.gateway";
 import { SupabaseParcelamentosDoClienteGateway } from "./supabase-parcelamentos-do-cliente.gateway";
@@ -12,7 +6,6 @@ const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
-// O destino é validado antes de o client existir: remoto falha alto, sem tocar em dados alheios.
 const admin = criarAdminLocal(SERVICE_KEY);
 const guias = new SupabaseGuiasPgfnGateway(admin);
 const parcelamentos = new SupabaseParcelamentosDoClienteGateway(admin);
@@ -27,7 +20,6 @@ async function ok<T>(consulta: PromiseLike<{ data: T; error: { message: string }
   return data as NonNullable<T>;
 }
 
-// AAAAMM do mês corrente em São Paulo.
 const competenciaDoMes = async () =>
   String(await ok(admin.rpc("mes_corrente_sp")))
     .slice(0, 7)
@@ -38,6 +30,7 @@ async function criarParcelamento(restantes: number, origem: "pgfn" | "receita_fe
   await ok(
     admin.from("cliente_parcelamentos").insert({
       id,
+      setor: "simples_nacional",
       cliente_id: clienteId,
       codigo: `PGFN-${id.slice(0, 6)}`,
       parcelas_restantes: restantes,
@@ -72,7 +65,6 @@ const pendente = async () =>
   )) as unknown as boolean;
 
 beforeEach(async () => {
-  // Cada caso parte do Cliente sem parcelamentos (guias e envios saem em cascata).
   await admin.from("cliente_parcelamentos").delete().eq("cliente_id", clienteId);
 });
 
@@ -155,14 +147,12 @@ describe("SupabaseGuiasPgfnGateway (#186)", () => {
     const token = dono.ok ? (dono.value as string) : "";
     expect(await emEnvio()).not.toBeNull();
 
-    // Posse: a vigente não é adquirida de novo e a tentativa recusada não a libera.
     expect(await guias.reservar(id, "202610", caminho)).toEqual({ ok: true, value: null });
     expect((await guias.liberar(id, "202610", "00000000-0000-0000-0000-000000000000")).ok).toBe(
       true,
     );
     expect(await emEnvio()).not.toBeNull();
 
-    // Reservas simultâneas: só uma ganha (a vigente acima já está liberada abaixo).
     expect((await guias.liberar(id, "202610", token)).ok).toBe(true);
     expect(await emEnvio()).toBeNull();
     const [a, b] = await Promise.all([
@@ -173,7 +163,6 @@ describe("SupabaseGuiasPgfnGateway (#186)", () => {
     const vencedor = [a, b].find((r) => r.ok && r.value !== null);
     const tokenVencedor = vencedor?.ok ? (vencedor.value as string) : "";
 
-    // Dono antigo após expiração e nova aquisição: o token velho não solta a reserva nova.
     await ok(
       admin
         .from("cliente_parcelamento_guias")
@@ -220,7 +209,6 @@ describe("Pendente do job e registro de envio da guia PGFN (#186)", () => {
     await anexarGuia(id, mes);
     await parcelamentos.registrarEnvio(id, "202512", "202512:", "c/a.pdf");
     expect(await pendente()).toBe(true);
-    // A última entrega aceita quita: o acordo sai do job.
     await parcelamentos.registrarEnvio(id, mes, `${mes}:`, "c/b.pdf");
     expect(await pendente()).toBe(false);
   });

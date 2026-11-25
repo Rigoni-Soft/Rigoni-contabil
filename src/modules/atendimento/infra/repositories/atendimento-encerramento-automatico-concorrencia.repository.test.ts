@@ -1,7 +1,3 @@
-/**
- * Concorrência real (duas conexões) do encerramento por silêncio contra a Mensagem do cliente
- * que chega enquanto o job espera o lock do Atendimento. Requer `npx supabase start` local.
- */
 import { createClient } from "@supabase/supabase-js";
 import { Client } from "pg";
 
@@ -16,7 +12,6 @@ const SERVICE_KEY =
 const DATABASE_URL =
   process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
-// Antes de qualquer setup destrutivo: a suíte nunca roda contra base remota.
 exigirSupabaseLocal(SUPABASE_URL, DATABASE_URL);
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
@@ -37,7 +32,6 @@ async function conexao(): Promise<Client> {
 
 const esperar = (ms: number) => new Promise((resolver) => setTimeout(resolver, ms));
 
-// Barreira verificável: só segue quando a sessão `pid` está de fato esperando um lock.
 async function aguardarBloqueio(observador: Client, pid: number): Promise<void> {
   for (let i = 0; i < 100; i += 1) {
     const { rowCount } = await observador.query(
@@ -60,7 +54,6 @@ const TRANSFERIR =
 
 const JOB = "select public.encerrar_atendimentos_por_silencio($1::timestamptz, $2::uuid) as n";
 
-// Atendimento com dono, cujo cliente calou há 30 h (vencido para o corte de 23h50).
 async function atendimentoVencido(nome: string): Promise<string> {
   const { data: u } = await admin.auth.admin.createUser({
     email: `silencio-conc-${nome}-${Date.now()}@teste.local`,
@@ -124,7 +117,6 @@ afterAll(async () => {
 });
 
 describe("Encerramento por silêncio × Mensagem do cliente (duas conexões)", () => {
-  // O recebimento segura a linha; o job é lançado e só se continua depois de provado que ele espera.
   async function jobEsperandoOLock(id: string) {
     const recebimento = await conexao();
     const job = await conexao();

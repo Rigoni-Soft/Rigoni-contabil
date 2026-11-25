@@ -1,7 +1,3 @@
-/**
- * Integração presentation ↔ application: o `main` é substituído por uma
- * composição com portas OUT falsas (testes.md, seção 3), sem tocar Supabase real.
- */
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok } from "@/shared/kernel/result";
 
@@ -18,7 +14,7 @@ const CLIENTE_ID = "123e4567-e89b-42d3-a456-426614174000";
 const INPUT_VALIDO = {
   clienteId: CLIENTE_ID,
   formaEnvio: "whatsapp",
-  contatos: [{ nome: "Maria", telefone: "11999998888", padrao: true }],
+  contatos: [{ nome: "Maria", telefone: "11999998888", email: "" }],
   documentoObrigatorio: "positivo",
   dasStatus: "pronto",
   dataEnvioDas: "2026-02-01",

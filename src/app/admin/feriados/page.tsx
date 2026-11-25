@@ -10,7 +10,6 @@ import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-
 export default async function Page() {
   const sessao = await exigirSessao();
   const feriados = await carregarFeriados();
-  // Só quem não é Admin sai da tela; falha de leitura aparece em vez de mandar o Admin para a home.
   if (!feriados.ok && feriados.error.code === "FORBIDDEN") redirect("/");
 
   return (

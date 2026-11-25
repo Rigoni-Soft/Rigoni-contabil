@@ -7,6 +7,9 @@ import { AcoesConversaContainer } from "./acoes-conversa.container";
 import { useAcoesConversa } from "./use-acoes-conversa.hook";
 
 jest.mock("./use-acoes-conversa.hook", () => ({ useAcoesConversa: jest.fn() }));
+jest.mock("./contato-ura.container", () => ({
+  ContatoUraContainer: () => <p>cadastro de contato</p>,
+}));
 
 const aoEnviarServico = jest.fn();
 const acoes = (visivel: boolean) =>
@@ -27,6 +30,27 @@ describe("AcoesConversaContainer", () => {
     await userEvent.click(screen.getByRole("button", { name: "Contrato social" }));
 
     expect(aoEnviarServico).toHaveBeenCalledWith("contrato");
+  });
+
+  it("mostra o cadastro de contato só quando o hook libera e não é leitura de supervisão", () => {
+    const comContato = (extra: object) =>
+      ({ ...(acoes(true) as object), somenteLeitura: false, ...extra }) as never;
+
+    jest.mocked(useAcoesConversa).mockReturnValue(comContato({ podeCadastrarContato: true }));
+    const { unmount } = render(<AcoesConversaContainer {...props} />);
+    expect(screen.getByText("cadastro de contato")).toBeInTheDocument();
+    unmount();
+
+    jest.mocked(useAcoesConversa).mockReturnValue(comContato({ podeCadastrarContato: false }));
+    const semPermissao = render(<AcoesConversaContainer {...props} />);
+    expect(screen.queryByText("cadastro de contato")).not.toBeInTheDocument();
+    semPermissao.unmount();
+
+    jest
+      .mocked(useAcoesConversa)
+      .mockReturnValue(comContato({ podeCadastrarContato: true, somenteLeitura: true }));
+    render(<AcoesConversaContainer {...props} />);
+    expect(screen.queryByText("cadastro de contato")).not.toBeInTheDocument();
   });
 
   it("não aparece quando o hook diz que não está visível", () => {

@@ -6,13 +6,12 @@ import { expect, test } from "./fixtures";
 import { abrirConversaEmAtendimento } from "./support/abrir-conversa";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
+import { FUNCIONARIO2_SN_ID } from "./support/usuarios-do-seed";
 
-// O Atendimento nasce direto no banco; o webhook é chamado com a assinatura HMAC do segredo de
-// desenvolvimento (adapter falso de download).
 const SEGREDO = process.env.MENSAGERIA_SEGREDO_ASSINATURA ?? "segredo-falso";
 const admin = adminLocal();
 
-const FUNCIONARIO = "99999999-9999-9999-9999-999999999999";
+const FUNCIONARIO = FUNCIONARIO2_SN_ID;
 const TELEFONE = "61955572081";
 const CLIENTE = crypto.randomUUID();
 const CNPJ = `7${Date.now()}`.slice(0, 14);
@@ -50,7 +49,6 @@ test.describe("Mídia recebida do cliente (#81)", () => {
       cliente_id: CLIENTE,
       nome: "Seu Midia",
       telefone: "(61) 95557-2081",
-      padrao: true,
     });
     if (contato.error) throw contato.error;
     const atendimento = await admin
@@ -123,24 +121,20 @@ test.describe("Mídia recebida do cliente (#81)", () => {
     await abrirConversaEmAtendimento(page, /Seu Midia/);
     await expect(page.getByText("segue o balanço")).toBeVisible();
 
-    // PDF: "Visualizar" abre numa aba nova, já no navegador (sem forçar download).
     const visualizar = page.getByRole("link", { name: "Visualizar documento-de-teste.pdf" });
     const href = await visualizar.getAttribute("href");
     const resposta = await request.get(href!);
     expect(resposta.headers()["content-type"]).toContain("application/pdf");
     expect(resposta.headers()["content-disposition"]).toBeUndefined();
     const [aba] = await Promise.all([context.waitForEvent("page"), visualizar.click()]);
-    // O Chromium sem interface não renderiza o visualizador de PDF: basta a aba ter sido aberta.
     await aba.close();
 
-    // "Baixar" entrega o arquivo com o nome original (pasta Downloads).
     const [download] = await Promise.all([
       page.waitForEvent("download"),
       page.getByRole("link", { name: "Baixar documento-de-teste.pdf" }).click(),
     ]);
     expect(download.suggestedFilename()).toBe("documento-de-teste.pdf");
 
-    // Imagem: amplia e também baixa.
     await page.getByRole("button", { name: /^Ampliar / }).click();
     const [downloadImagem] = await Promise.all([
       page.waitForEvent("download"),
@@ -174,7 +168,6 @@ test.describe("Mídia recebida do cliente (#81)", () => {
     await expect(page).toHaveURL(/\/(simples-nacional)?$/);
     await abrirConversaEmAtendimento(page, /Seu Midia/);
 
-    // Word: o conteúdo aparece num painel (iframe isolado) e fecha pelo botão.
     await page.getByRole("button", { name: "Visualizar contrato.docx" }).click();
     const painelWord = page.getByRole("dialog", { name: "Visualização de contrato.docx" });
     await expect(painelWord).toBeVisible();
@@ -184,14 +177,12 @@ test.describe("Mídia recebida do cliente (#81)", () => {
     await painelWord.getByRole("button", { name: "Fechar visualização" }).click();
     await expect(painelWord).toBeHidden();
 
-    // Excel: a primeira planilha vira tabela.
     await page.getByRole("button", { name: "Visualizar balancete.xlsx" }).click();
     const painelExcel = page.getByRole("dialog", { name: "Visualização de balancete.xlsx" });
     await expect(painelExcel.getByRole("cell", { name: "Caixa" })).toBeVisible();
     await expect(painelExcel.getByRole("cell", { name: "1500.5" })).toBeVisible();
     await painelExcel.getByRole("button", { name: "Fechar visualização" }).click();
 
-    // Os dois baixam com o nome original.
     for (const nome of ["contrato.docx", "balancete.xlsx"]) {
       const [download] = await Promise.all([
         page.waitForEvent("download"),
@@ -218,7 +209,6 @@ test.describe("Mídia recebida do cliente (#81)", () => {
     expect(resposta.status()).toBe(200);
 
     await login(page, "funcionario2.sn@rigonicontabil.local", "func123");
-    // O Funcionário do Simples Nacional cai no painel do setor, os demais em "/".
     await expect(page).toHaveURL(/\/(simples-nacional)?$/);
     await abrirConversaEmAtendimento(page, /Seu Midia/);
     await expect(page).toHaveURL("/atendimento");

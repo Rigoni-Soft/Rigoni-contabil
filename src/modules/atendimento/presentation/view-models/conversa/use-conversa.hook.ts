@@ -7,13 +7,9 @@ import {
   useTransferenciaConcluida,
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.queries";
 
-// A leitura da conversa que as regiões da tela compartilham (mesma chave no React Query: uma
-// consulta só, mesmo com vários Containers).
 export function useConversa(atendimentoId: string, initialData: ConversaVista) {
   const transferencia = useTransferenciaConcluida(atendimentoId);
-  // Depois de transferida a conversa não é mais do usuário: para de atualizar.
   const query = useConversaQuery(atendimentoId, initialData, !transferencia);
-  // query.data mantém a referência quando o polling devolve o mesmo conteúdo (structural sharing).
   const conversa = useMemo(() => conversaParaView(query.data), [query.data]);
 
   return {

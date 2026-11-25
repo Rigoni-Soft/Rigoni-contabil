@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase para RLS, RPCs e lista dos Avisos de cadastro.
- * Requer `npx supabase start` local com migrations + seed aplicados. Cada papel entra com a sessão real.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
@@ -149,10 +145,7 @@ type LinhaLista = { id: string; criado_em: string; visto_em: string | null };
 
 describe("listar_avisos_cadastro e contador (#142, S3c)", () => {
   beforeAll(async () => {
-    // A lista é do usuário inteiro: sobras de outras suítes e do seed mudariam a ordem esperada.
-    // Avisos são derivados (gatilho) e só do Supabase local, então o Líder do SN começa vazio aqui.
     await servico.from("avisos_cadastro").delete().eq("destinatario_id", LIDER_SN_ID);
-    // 35 não vistos (um por minuto) e 2 vistos, um deles o mais novo de todos.
     for (let i = 0; i < 35; i++) {
       await inserirAvisoDoLider(`2026-02-01T10:${String(i).padStart(2, "0")}:00Z`);
     }

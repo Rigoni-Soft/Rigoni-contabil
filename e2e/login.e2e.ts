@@ -37,7 +37,6 @@ test.describe("Login e shell autenticado", () => {
     await expect(page.getByText("Admin de Teste")).toBeVisible();
     await expect(page.getByText(/acesso a todos os setores/i)).toBeVisible();
 
-    // De 640 px para cima são chips; o <option> do seletor do celular existe, mas está oculto.
     const nav = page.getByRole("navigation", { name: "Setores" });
     await expect(nav.getByText("Simples Nacional").filter({ visible: true })).toBeVisible();
     await expect(nav.getByText("Financeiro").filter({ visible: true })).toBeVisible();
@@ -54,7 +53,6 @@ test.describe("Login e shell autenticado", () => {
   }) => {
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
 
-    // Simples Nacional é a página principal do próprio setor: o login cai direto lá, não em "/".
     await expect(page).toHaveURL("/simples-nacional");
     await expect(page.getByText(/Setor: Simples Nacional/)).toBeVisible();
 

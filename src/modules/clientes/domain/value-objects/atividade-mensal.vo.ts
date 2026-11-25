@@ -7,9 +7,6 @@ export type AtividadeMensalProps = {
   servico: boolean;
 };
 
-// Registro mensal do Cliente (CONTEXT.md, termo "Atividade do mês"): 3 flags
-// independentes, não mutuamente exclusivas — sem regra de validação além do
-// shape, por isso `criar` nunca falha (Result<_, never>).
 export class AtividadeMensal {
   private constructor(private readonly props: AtividadeMensalProps) {}
 

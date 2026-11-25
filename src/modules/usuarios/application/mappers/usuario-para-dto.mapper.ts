@@ -9,6 +9,7 @@ export function usuarioParaDto(usuario: Usuario): UsuarioDto {
     papel: usuario.papel.valor,
     setor: usuario.setor.slug,
     precisaTrocarSenha: usuario.precisaTrocarSenha(),
-    bloqueioPendente: usuario.bloqueioPendente(),
+    desativacaoPendente: usuario.desativacaoPendente(),
+    avatarAtualizadoEm: usuario.avatarAtualizadoEm?.toISOString() ?? null,
   };
 }

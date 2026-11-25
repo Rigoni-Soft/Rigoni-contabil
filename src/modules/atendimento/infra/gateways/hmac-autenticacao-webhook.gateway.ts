@@ -10,8 +10,6 @@ function iguais(primeiro: string, segundo: string): boolean {
   );
 }
 
-// Assinatura no formato da Meta: cabeçalho `X-Hub-Signature-256: sha256=<hex>`,
-// HMAC-SHA256 do corpo cru com o segredo do app.
 export class HmacAutenticacaoWebhookGateway implements AutenticacaoWebhookPort {
   constructor(
     private readonly segredo: string,

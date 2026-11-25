@@ -1,13 +1,12 @@
 import { expect, test } from "./fixtures";
 import { abrirConversaEmAtendimento } from "./support/abrir-conversa";
-import { adminLocal } from "./support/admin-local";
+import { adminLocal, limparEsperaSemDonoDoSetor } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
+import { FUNCIONARIO2_FINANCEIRO_ID } from "./support/usuarios-do-seed";
 
-// Encerrar libera o Funcionário sem puxar ninguém da espera: o cliente é avisado e o Funcionário
-// volta ao início. Os Atendimentos nascem direto no banco.
 const admin = adminLocal();
 
-const FUNCIONARIO = "55555555-5555-5555-5555-555555555555"; // funcionario2.financeiro
+const FUNCIONARIO = FUNCIONARIO2_FINANCEIRO_ID;
 const EM_ANDAMENTO = "61955574001";
 const NA_FILA = "61955574002";
 
@@ -18,8 +17,7 @@ test.describe("Encerrar Atendimento", () => {
   test.beforeAll(async () => {
     await admin.from("atendimentos").delete().eq("funcionario_id", FUNCIONARIO);
     await admin.from("atendimentos").delete().in("chave_telefone", [EM_ANDAMENTO, NA_FILA]);
-    // A espera é do Setor inteiro: Atendimentos soltos de outras execuções sujariam a verificação.
-    await admin.from("atendimentos").delete().eq("setor", "financeiro").is("funcionario_id", null);
+    await limparEsperaSemDonoDoSetor(admin, "financeiro");
 
     const dono = await admin
       .from("atendimentos")
@@ -60,7 +58,6 @@ test.describe("Encerrar Atendimento", () => {
     await expect(page).toHaveURL("/");
     await abrirConversaEmAtendimento(page, /95557-4001/);
 
-    // Pede confirmação: o primeiro clique não encerra.
     await page.getByRole("button", { name: "Encerrar atendimento" }).click();
     await expect(page.getByRole("alertdialog")).toContainText("cliente será avisado");
     await page.getByRole("button", { name: "Cancelar" }).click();
@@ -69,7 +66,6 @@ test.describe("Encerrar Atendimento", () => {
     await page.getByRole("button", { name: "Encerrar atendimento" }).click();
     await page.getByRole("button", { name: "Confirmar encerramento" }).click();
 
-    // A conversa fecha, sem trocar de rota.
     await expect(page.getByText("Escolha um atendimento para conversar.")).toBeVisible();
     await expect(page).toHaveURL("/atendimento");
 
@@ -79,7 +75,6 @@ test.describe("Encerrar Atendimento", () => {
       .eq("id", atendimentoId)
       .single();
     expect(encerrado.data?.status).toBe("encerrado");
-    // O mais antigo da espera continua sem dono e sem aviso de "sua vez".
     const esperando = await admin
       .from("atendimentos")
       .select("funcionario_id, status")

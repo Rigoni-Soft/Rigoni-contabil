@@ -7,7 +7,6 @@ import { Button } from "@/presentation/components/ui/button";
 import { SEM_RESPONSAVEL_LABEL } from "@/shared/kernel/papeis";
 
 type ResponsavelDoSetorProps = {
-  // Nome do Setor do Líder, no texto de apoio.
   setor: string;
   valor: string;
   opcoes: { id: string; nome: string }[];
@@ -16,14 +15,13 @@ type ResponsavelDoSetorProps = {
   estadoLista: "ok" | "carregando" | "erro";
   onTentarNovamente: () => void;
   onSalvar: () => void;
-  // Só habilita quando a escolha difere do Responsável salvo.
   alterado: boolean;
   pendente: boolean;
   erro?: string;
   salvo?: boolean;
+  embutido?: boolean;
 };
 
-// Responsável do Cliente no Setor do Líder, fora do Simples Nacional (que o tem no cadastro).
 export function ResponsavelDoSetor({
   setor,
   valor,
@@ -37,13 +35,16 @@ export function ResponsavelDoSetor({
   pendente,
   erro,
   salvo,
+  embutido = false,
 }: ResponsavelDoSetorProps) {
   return (
     <Pilha espaco={3}>
-      <Texto variante="apoio">
-        Quem responde por este Cliente no Setor {setor}. Os Atendimentos dele vão a essa pessoa; sem
-        Responsável, vão ao Líder.
-      </Texto>
+      {!embutido && (
+        <Texto variante="apoio">
+          Quem responde por este Cliente no Setor {setor}. Os Atendimentos dele vão a essa pessoa;
+          sem Responsável, vão ao Líder.
+        </Texto>
+      )}
       <CampoResponsavel
         editavel
         nomeAtual=""
@@ -56,7 +57,7 @@ export function ResponsavelDoSetor({
         desabilitado={pendente}
       />
       {erro && <FieldError>{erro}</FieldError>}
-      {salvo && <AvisoDeStatus tipo="sucesso" texto="Responsável atualizado." />}
+      {salvo && <AvisoDeStatus tipo="sucesso" legivel texto="Responsável atualizado." />}
       <Caixa>
         <Button type="button" onClick={onSalvar} disabled={!alterado || pendente}>
           {pendente ? "Salvando…" : "Salvar Responsável"}

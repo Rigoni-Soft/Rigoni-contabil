@@ -116,7 +116,6 @@ describe("useAtendimentoCentral", () => {
       id: "at-9",
       titulo: "Joana",
       detalhe: "Com Caio · Mercado",
-      // O cliente escreveu por último, mas quem supervisiona não responde: sem sinal de urgência.
       aguardando: false,
     });
   });

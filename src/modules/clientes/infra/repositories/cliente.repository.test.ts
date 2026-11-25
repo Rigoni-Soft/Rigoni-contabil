@@ -1,9 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3): requer `npx supabase start`
- * rodando localmente com as migrations e o seed aplicados. Usa os usuários de
- * `supabase/seed.sql`: Admin (administrativo) e Funcionário SN (simples_nacional)
- * — prova a policy `clientes_insert_admin`/`cliente_alteracoes_insert_admin`.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
@@ -44,7 +38,6 @@ function clienteValido(cnpj: string): Cliente {
   return resultado.value;
 }
 
-// CNPJs fixos desta suíte, reservados para teste: removidos antes e depois (nunca um DELETE amplo).
 const CNPJS_DA_SUITE = [
   "00000000E08G12",
   "11222333000181",
@@ -160,7 +153,6 @@ describe("SupabaseClienteRepository (integração)", () => {
     const supabase = await comoAdmin();
     const repositorio = new SupabaseClienteRepository(supabase);
     const cliente = clienteValido("00000000E08G12");
-    // A auditoria é imutável e guarda eventos de execuções anteriores: só conta o desta.
     const inicio = new Date().toISOString();
 
     const resultado = await repositorio.criar(cliente);
@@ -242,7 +234,6 @@ describe("SupabaseClienteRepository (integração)", () => {
       .maybeSingle();
     expect(linha?.email).toBe("financeiro@padaria.com.br");
 
-    // Admin lê pela view como qualquer perfil; o Cliente reconstituído traz o e-mail.
     const lido = await new SupabaseClienteRepository(admin).buscarPorId(construido.value.id);
     expect(lido.ok && lido.value?.email?.valor).toBe("financeiro@padaria.com.br");
   });

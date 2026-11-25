@@ -21,13 +21,19 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { ValidationError } from "@/shared/errors/validation.error";
-import { podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
+import { podeGerirParcelamento } from "@/shared/kernel/papeis";
 import { regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
-// Tamanho e tipo do PDF são barrados pelo schema da Server Action (única entrada da porta); o PDF
-// vai a bucket privado, só pelo servidor, depois da checagem de papel daqui.
 type Upload = { caminho: string; arquivo: File };
+
+type DesfechoDaGravacaoIncerta = "gravacao_confirmada" | "gravacao_falhou";
+
+const semBarras = (nomeDoArquivo: string) => nomeDoArquivo.replace(/[/\\]/g, "_");
+
+const naoEditavelPeloUsuario = (atual: ParcelamentoSalvo): boolean =>
+  atual.quitado || atual.acordo?.origem === "pgfn";
 
 export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePort {
   constructor(
@@ -42,11 +48,9 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
     input: SalvarParcelamentosClienteInput,
   ): Promise<Result<{ ids: string[] }, AppError>> {
     const ator = await this.sessao.usuarioAtual();
-    if (!ator || !podeEditarCadastroOperacional(ator.papel, ator.setor)) {
+    if (!ator || !podeGerirParcelamento(ator.papel, ator.setor, input.setor)) {
       return err(
-        new ForbiddenError(
-          "Só Admin, Líder ou Funcionário do Simples Nacional editam os Parcelamentos.",
-        ),
+        new ForbiddenError("Só Admin, Líder ou Funcionário do Setor editam os Parcelamentos dele."),
       );
     }
 
@@ -57,13 +61,16 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
         new NotFoundError("Não encontramos este cliente. Atualize a página e tente novamente."),
       );
     }
-    if (!regimeTemCadastroOperacionalSn(cliente.value.regime.valor)) {
+    if (
+      input.setor === "simples_nacional" &&
+      !regimeTemCadastroOperacionalSn(cliente.value.regime.valor)
+    ) {
       return err(
         new ValidationError("O Cadastro operacional SN não se aplica ao Regime deste Cliente."),
       );
     }
 
-    const existentes = await this.parcelamentos.listar(input.clienteId);
+    const existentes = await this.parcelamentos.listar(input.clienteId, input.setor);
     if (!existentes.ok) return existentes;
 
     const montados = this.montar(input, existentes.value);
@@ -73,14 +80,18 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
     const enviados = await this.enviarArquivos(input.clienteId, uploads);
     if (!enviados.ok) return enviados;
 
-    const salvo = await this.parcelamentos.salvar(input.clienteId, itens);
+    const salvo = await this.parcelamentos.salvar(input.clienteId, input.setor, itens);
     if (!salvo.ok) {
-      const confirmado = await this.reconciliar(input.clienteId, salvo.error, enviados.value);
-      if (confirmado.ok && !confirmado.value) return salvo;
-      if (!confirmado.ok) return confirmado;
+      const desfecho = await this.reconciliar(
+        input.clienteId,
+        input.setor,
+        salvo.error,
+        enviados.value,
+      );
+      if (!desfecho.ok) return desfecho;
+      if (desfecho.value === "gravacao_falhou") return salvo;
     }
 
-    // Só apaga o PDF de quem saiu do conjunto e cujo caminho nenhum Parcelamento mantido referencia.
     const mantidos = new Set(itens.map((item) => item.id));
     const caminhosEmUso = new Set(itens.map((item) => item.arquivoCaminho));
     await this.apagarAnexos(
@@ -106,23 +117,19 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
         return err(new ValidationError("Parcelamento não encontrado. Atualize a página."));
       }
       const id = atual?.id ?? crypto.randomUUID();
-      // PDF só no Parcelamento novo; o existente mantém o anexo gravado.
       const upload =
         atual || !entrada.arquivo
           ? undefined
           : {
-              caminho: `${input.clienteId}/${id}-${entrada.arquivo.name.replace(/[/\\]/g, "_")}`,
+              caminho: `${input.clienteId}/${id}-${semBarras(entrada.arquivo.name)}`,
               arquivo: entrada.arquivo,
             };
 
-      // Quitado é decidido pelo banco, e o da PGFN só ganha guias (as restantes mudam pelo sistema):
-      // nenhum dos dois se edita, voltam exatamente como estão.
       const item =
-        atual?.quitado || atual?.acordo?.origem === "pgfn"
+        atual && naoEditavelPeloUsuario(atual)
           ? ok(atual)
           : validarParcelamento({
               id,
-              // Código em branco é opcional: mantém o gravado ou o sistema gera um.
               codigo: entrada.codigo.trim() || atual?.codigo || gerarCodigoDeParcelamento(),
               parcelasRestantes: entrada.parcelasRestantes,
               interno: entrada.interno,
@@ -142,25 +149,20 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
     return ok({ itens, uploads });
   }
 
-  // Falha definitiva: apaga os uploads. Resultado incerto: lê o banco; gravado = segue como sucesso;
-  // qualquer outro desfecho mantém os arquivos (nunca apaga sob incerteza).
-  // ok(true) = o banco confirmou a gravação; ok(false) = falha definitiva e uploads apagados.
   private async reconciliar(
     clienteId: string,
+    setor: SetorSlug,
     erro: AppError,
     enviados: string[],
-  ): Promise<Result<boolean, AppError>> {
+  ): Promise<Result<DesfechoDaGravacaoIncerta, AppError>> {
     if (!(erro instanceof ResultadoIncertoError)) {
       await this.apagarAnexos(clienteId, enviados);
-      return ok(false);
+      return ok("gravacao_falhou");
     }
-    const atuais = await this.parcelamentos.listar(clienteId);
-    // Sem upload novo não há caminho que prove o desfecho: fica sem reconciliar.
-    // Ausência na leitura NÃO prova rollback (commit tardio, linha oculta por RLS): só a presença
-    // de todos os caminhos confirma; qualquer outra coisa preserva os PDFs.
+    const atuais = await this.parcelamentos.listar(clienteId, setor);
     if (atuais.ok && enviados.length > 0) {
       const gravados = new Set(atuais.value.map((p) => p.arquivoCaminho));
-      if (enviados.every((c) => gravados.has(c))) return ok(true);
+      if (enviados.every((c) => gravados.has(c))) return ok("gravacao_confirmada");
     }
     return err(
       new EstadoInconsistenteError(
@@ -170,7 +172,6 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
     );
   }
 
-  // Sobe os PDFs novos; se um falhar, apaga os que já subiram.
   private async enviarArquivos(
     clienteId: string,
     uploads: Upload[],
@@ -187,7 +188,6 @@ export class SalvarParcelamentosCliente implements SalvarParcelamentosClientePor
     return ok(enviados);
   }
 
-  // Falha ao apagar deixa PDF órfão em bucket privado: não desfaz o que já foi gravado.
   private async apagarAnexos(clienteId: string, caminhos: string[]): Promise<void> {
     const removido = await this.storage.remover(caminhos);
     if (!removido.ok) {

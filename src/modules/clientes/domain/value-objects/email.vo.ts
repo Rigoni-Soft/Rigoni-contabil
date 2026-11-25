@@ -1,8 +1,6 @@
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Mesmo formato e limite do `check` da coluna `clientes.email`. O domínio é a autoridade final;
-// a UI só dá feedback cedo.
 const FORMATO = /^[^@\s]+@[^@\s]+$/;
 const TAMANHO_MAXIMO = 254;
 

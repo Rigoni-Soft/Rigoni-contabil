@@ -2,8 +2,6 @@ import { LeitorDeGuiaDeParcelaTextoGateway } from "./leitor-de-guia-de-parcela-t
 
 const PDF = new Uint8Array([0x25, 0x50, 0x44, 0x46]);
 
-// Texto sintético no formato que a extração devolve do DAS do SENDA (espaços normalizados, dados
-// inventados): nenhum PDF real vai para o repositório.
 const DAS = (observacoes = "PGFN-SISPAR:150141670") =>
   "Documento de Arrecadação do Simples Nacional CNPJ 10.690.529/0001-38 Razão Social EMPRESA TESTE LTDA " +
   "Período de Apuração 10/2026 Data de Vencimento 30/11/2026 Número do Documento 07.20.26302.1234567-8 " +

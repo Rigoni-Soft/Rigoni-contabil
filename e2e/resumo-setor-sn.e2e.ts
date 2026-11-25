@@ -8,10 +8,6 @@ import {
   login,
 } from "./support/criar-cliente";
 
-// Cliente novo nasce com documento_obrigatorio='negativo' (cadastro automático), então cai no card
-// "Sem documento" sem precisar editar nada. Clicar no card abre uma tela própria
-// (/clientes/resumo/[bucket]), não um painel inline.
-
 test.describe("Resumo do setor (#36)", () => {
   test("o card 'Sem documento' leva a uma tela própria com o cliente recém-cadastrado, que leva ao cadastro dele", async ({
     page,
@@ -35,7 +31,6 @@ test.describe("Resumo do setor (#36)", () => {
 
     await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeVisible();
 
-    // "Voltar" leva pra lista do bucket de onde veio, não pro dashboard.
     await page.getByRole("link", { name: "Voltar" }).click();
     await expect(page.getByRole("heading", { name: "Sem documento" })).toBeVisible();
     await expect(page).toHaveURL(/\/clientes\/resumo\/sem_documento$/);
@@ -44,7 +39,6 @@ test.describe("Resumo do setor (#36)", () => {
     await expect(page.getByRole("heading", { name: "Resumo do setor" })).toBeVisible();
   });
 
-  // Salvar uma edição fecha a tela e o dashboard reflete a mudança na hora, sem recarregar.
   test("salvar uma edição move o cliente pro bucket certo e fecha a tela de volta pra lista", async ({
     page,
   }) => {
@@ -59,13 +53,9 @@ test.describe("Resumo do setor (#36)", () => {
     await page.getByRole("link", { name: /Sem documento/ }).click();
     await page.getByRole("link").filter({ hasText: empresa }).click();
 
-    // Documento recebido vira positivo, DAS continua pendente -> card
-    // "DAS pendente" (urgente), não mais "Sem documento".
     await page.getByLabel("Documento recebido").selectOption("positivo");
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
 
-    // "Voltar" pro bucket de origem, com a lista já sem o cliente (saiu do
-    // bucket "Sem documento" assim que salvou).
     await expect(page).toHaveURL(/\/clientes\/resumo\/sem_documento$/);
     await expect(page.getByText(empresa)).not.toBeVisible();
 
@@ -75,8 +65,6 @@ test.describe("Resumo do setor (#36)", () => {
     await expect(page.getByText(empresa)).toBeVisible();
   });
 
-  // Grupo Parcelamento: 6 cards que contam Clientes e não se excluem; as listas mostram a marca
-  // "interno" e o status do mês por parcelamento.
   test("os cards de parcelamento contam o Cliente em mais de um card e a lista mostra interno e status do mês", async ({
     page,
   }) => {
@@ -90,6 +78,7 @@ test.describe("Resumo do setor (#36)", () => {
     const novo = (id: string, codigo: string, ehInterno: boolean) => ({
       id,
       cliente_id: clienteId,
+      setor: "simples_nacional",
       codigo,
       parcelas_restantes: 5,
       interno: ehInterno,
@@ -99,7 +88,6 @@ test.describe("Resumo do setor (#36)", () => {
     await admin
       .from("cliente_parcelamentos")
       .insert([novo(comum, "PARC-COMUM", false), novo(interno, "PARC-INTERNO", true)]);
-    // Só o comum tem a guia do mês enviada (o sistema grava; aqui, a chave de serviço).
     const parcela = new Date()
       .toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })
       .slice(0, 7)
@@ -118,7 +106,6 @@ test.describe("Resumo do setor (#36)", () => {
       await expect(page.getByRole("link", { name: new RegExp(titulo) }).first()).toBeVisible();
     }
 
-    // Pendente (o interno ainda sem envio) e interno listam o mesmo Cliente, com os dois parcelamentos.
     for (const [card, bucket, definicao] of [
       ["Parcelamento pendente", "parcelamento_pendente", /guia deste mês ainda não foi enviada/],
       ["Parcelamento interno", "parcelamento_interno", /a guia vai ao financeiro/],
@@ -126,8 +113,6 @@ test.describe("Resumo do setor (#36)", () => {
       await page.goto("/simples-nacional");
       await page.getByRole("link", { name: new RegExp(card) }).click();
       await expect(page).toHaveURL(new RegExp(`/clientes/resumo/${bucket}$`));
-      // Os parcelamentos ficam abaixo do link (fora dele): o item da lista os reúne com o Cliente.
-      // A lista diz em uma linha o que ela filtra (o título sozinho, ex. "Em aberto", não basta).
       await expect(page.getByText(definicao)).toBeVisible();
       const linha = page.getByRole("listitem").filter({ hasText: empresa }).first();
       await expect(linha).toContainText("PARC-COMUM");
@@ -137,7 +122,6 @@ test.describe("Resumo do setor (#36)", () => {
       await expect(linha).toContainText("Pendente no mês");
     }
 
-    // Não está "enviado" (falta o interno) nem "em atraso" antes do dia 29, mas o card sempre abre.
     await page.goto("/clientes/resumo/parcelamento_enviado");
     await expect(page.getByText(empresa)).not.toBeVisible();
   });

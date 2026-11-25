@@ -1,6 +1,5 @@
 import { ObrigacoesFiscaisHttpGateway } from "./obrigacoes-fiscais-http.gateway";
 
-// jsdom não tem `Response`: o gateway só usa ok/status/json.
 const json = (corpo: unknown, status = 200) => ({
   ok: status < 300,
   status,

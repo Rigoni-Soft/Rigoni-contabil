@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) da identificação de contato por telefone.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { SupabaseIdentificacaoContatoGateway } from "./supabase-identificacao-contato.gateway";
@@ -15,11 +11,9 @@ const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 const gateway = new SupabaseIdentificacaoContatoGateway(admin);
 
-// Dígitos únicos desta suíte, longe de qualquer número do seed.
 const PADRAO = "(61) 99111-2233";
 const OUTRO = "(61) 3222-4455";
 const clienteId = crypto.randomUUID();
-// Mesmo telefone em dois Clientes, com contratos distintos.
 const COMPARTILHADO = "(61) 98777-6655";
 const clienteA = crypto.randomUUID();
 const clienteB = crypto.randomUUID();
@@ -33,13 +27,12 @@ beforeAll(async () => {
   });
   if (cliente.error) throw cliente.error;
   const contatos = await admin.from("cliente_contatos").insert([
-    { id: crypto.randomUUID(), cliente_id: clienteId, nome: "Bia", telefone: PADRAO, padrao: true },
+    { id: crypto.randomUUID(), cliente_id: clienteId, nome: "Bia", telefone: PADRAO, email: "" },
     {
       id: crypto.randomUUID(),
       cliente_id: clienteId,
       nome: "Caio",
       telefone: OUTRO,
-      padrao: false,
     },
   ]);
   if (contatos.error) throw contatos.error;
@@ -56,7 +49,6 @@ beforeAll(async () => {
       cliente_id: id,
       nome: `Contato ${empresa}`,
       telefone: COMPARTILHADO,
-      padrao: true,
     });
     if (contato.error) throw contato.error;
   }
@@ -67,7 +59,7 @@ afterAll(async () => {
 });
 
 describe("SupabaseIdentificacaoContatoGateway", () => {
-  it("identifica o contato padrão pelos dígitos do telefone", async () => {
+  it("identifica o contato pelos dígitos do telefone", async () => {
     const r = await gateway.identificar("61991112233");
     expect(r).toEqual({
       ok: true,
@@ -75,7 +67,7 @@ describe("SupabaseIdentificacaoContatoGateway", () => {
     });
   });
 
-  it("identifica outro contato (não padrão) do mesmo Cliente", async () => {
+  it("identifica qualquer contato do Cliente, de qualquer Setor dono", async () => {
     const r = await gateway.identificar("6132224455");
     expect(r).toEqual({
       ok: true,
@@ -96,6 +88,44 @@ describe("SupabaseIdentificacaoContatoGateway", () => {
     const cnpj = (data as { cnpj: string }).cnpj;
     expect(await gateway.cnpjCadastrado(cnpj)).toEqual({ ok: true, value: true });
     expect(await gateway.cnpjCadastrado("00000000000191")).toEqual({ ok: true, value: false });
+  });
+
+  it("regimeDoCliente devolve o regime do Cliente e null para quem não existe", async () => {
+    expect(await gateway.regimeDoCliente(clienteId)).toEqual({
+      ok: true,
+      value: "simples_nacional",
+    });
+    expect(await gateway.regimeDoCliente(crypto.randomUUID())).toEqual({ ok: true, value: null });
+  });
+
+  it("falha na consulta do regime vira erro, não 'sem Cliente'", async () => {
+    const consulta = {
+      select: () => consulta,
+      eq: () => consulta,
+      maybeSingle: async () => ({ data: null, error: { message: "boom" } }),
+    };
+    const fake = { from: () => consulta } as unknown as SupabaseClient;
+
+    const resultado = await new SupabaseIdentificacaoContatoGateway(fake).regimeDoCliente(
+      clienteId,
+    );
+
+    expect(resultado.ok).toBe(false);
+  });
+
+  it("regime fora da lista vira erro, não string solta", async () => {
+    const consulta = {
+      select: () => consulta,
+      eq: () => consulta,
+      maybeSingle: async () => ({ data: { regime: "inventado" }, error: null }),
+    };
+    const fake = { from: () => consulta } as unknown as SupabaseClient;
+
+    const resultado = await new SupabaseIdentificacaoContatoGateway(fake).regimeDoCliente(
+      clienteId,
+    );
+
+    expect(resultado.ok).toBe(false);
   });
 
   it("falha na consulta do CNPJ vira erro, não 'não cadastrado'", async () => {

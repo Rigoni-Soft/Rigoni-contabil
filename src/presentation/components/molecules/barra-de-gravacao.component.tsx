@@ -5,16 +5,13 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { Button } from "@/presentation/components/ui/button";
 
 type BarraDeGravacaoProps = {
-  // Já formatado ("01:05").
   tempo: string;
-  // Parada: ainda não enviada (limite atingido ou envio que falhou), pronta para enviar ou descartar.
   parada: boolean;
   enviando: boolean;
   onCancelar: () => void;
   onEnviar: () => void;
 };
 
-// O campo de resposta enquanto grava: indicador, cronômetro e as duas saídas (descartar ou enviar).
 export function BarraDeGravacao({
   tempo,
   parada,
@@ -63,7 +60,6 @@ export function BarraDeGravacao({
         size="icon"
         className="rounded-full"
         aria-label="Enviar áudio"
-        // Como no campo de texto: o Enter envia; o Esc cancela.
         autoFocus
         disabled={enviando}
         onClick={onEnviar}

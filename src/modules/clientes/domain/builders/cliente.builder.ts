@@ -6,7 +6,7 @@ import type {
 import { AlteracaoContratual } from "@/modules/clientes/domain/value-objects/alteracao-contratual.vo";
 import { AtividadeMensal } from "@/modules/clientes/domain/value-objects/atividade-mensal.vo";
 import { Cnpj } from "@/modules/clientes/domain/value-objects/cnpj.vo";
-import { Contato } from "@/modules/clientes/domain/value-objects/contato.vo";
+import { Contato, type ContatoProps } from "@/modules/clientes/domain/value-objects/contato.vo";
 import { DasStatus } from "@/modules/clientes/domain/value-objects/das-status.vo";
 import { DocumentoObrigatorioStatus } from "@/modules/clientes/domain/value-objects/documento-obrigatorio-status.vo";
 import { Email } from "@/modules/clientes/domain/value-objects/email.vo";
@@ -20,7 +20,7 @@ export type AlteracaoContratualRestaurar = {
   data: string;
   arquivoCaminho: string;
 };
-export type ContatoRestaurar = { id?: string; nome: string; telefone: string; padrao: boolean };
+export type ContatoRestaurar = ContatoProps;
 export type AtividadeMensalRestaurar = {
   anoMes: string;
   industria: boolean;
@@ -50,14 +50,9 @@ export class ClienteBuilder {
   private empresa?: string;
   private cnpj?: Cnpj;
   private regime?: Regime;
-  // Opcional — sem sentinela `undefined` pra
-  // distinguir "setter nunca chamado" porque não há mais checagem de presença.
   private contratoSocialCaminho: string | null = null;
   private email: Email | null = null;
   private alteracoesContratuais: AlteracaoContratual[] = [];
-  // Campos operacionais do Simples Nacional — todos opcionais/com default, igual a
-  // contratoSocialCaminho: um Cliente recém-criado ainda não tem nenhum deles preenchido.
-  // formaEnvio só vira VO no build() (default "whatsapp" quando o setter nunca foi chamado).
   private formaEnvio: FormaEnvio | null = null;
   private contatos: Contato[] = [];
   private documentoObrigatorio: DocumentoObrigatorioStatus | null = null;
@@ -105,7 +100,6 @@ export class ClienteBuilder {
     return this;
   }
 
-  // Vazio ou só espaços é "sem e-mail".
   comEmail(entrada: string | null): this {
     const texto = entrada?.trim();
     if (!texto) {
@@ -247,28 +241,12 @@ export class ClienteBuilder {
   }
 
   build(): Result<Cliente, ValidationError> {
-    // Presença checada aqui, não nos setters: um setter nunca chamado não deixa
-    // rastro em camposInvalidos, e os `!` abaixo mascarariam undefined em runtime.
-    // O guard `!this.camposInvalidos.X` evita sobrescrever a mensagem específica
-    // que comCnpj/comRegime já registraram quando FORAM chamados com um valor
-    // inválido — só entra quando o setter nunca rodou.
     if (!this.id) this.camposInvalidos.id = ["obrigatório"];
     if (this.empresa === undefined) this.camposInvalidos.empresa = ["obrigatório"];
     if (this.cnpj === undefined && !this.camposInvalidos.cnpj)
       this.camposInvalidos.cnpj = ["obrigatório"];
     if (this.regime === undefined && !this.camposInvalidos.regime)
       this.camposInvalidos.regime = ["obrigatório"];
-
-    // Invariante do agregado: se há contatos, exatamente 1 é padrão —
-    // checado aqui (não em comContatos) pelo mesmo motivo do resto do build():
-    // é uma regra sobre o conjunto final, não sobre um item isolado.
-    if (
-      !this.camposInvalidos.contatos &&
-      this.contatos.length > 0 &&
-      this.contatos.filter((c) => c.padrao).length !== 1
-    ) {
-      this.camposInvalidos.contatos = ["Deve haver exatamente um contato marcado como padrão"];
-    }
 
     if (Object.keys(this.camposInvalidos).length > 0) {
       return err(new ValidationError("Dados de cliente inválidos", { ...this.camposInvalidos }));

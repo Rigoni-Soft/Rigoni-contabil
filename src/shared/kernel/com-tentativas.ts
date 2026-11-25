@@ -5,8 +5,6 @@ import type { Result } from "@/shared/kernel/result";
 export const TENTATIVAS = 3;
 export const ESPERA_MS = 2000;
 
-// Só falha do serviço externo é transitória; o resto (sem autorização, destinatário inválido)
-// não melhora ao repetir.
 const transitoria = (resultado: Result<unknown, AppError>) =>
   !resultado.ok && resultado.error instanceof ServicoExternoError;
 

@@ -3,6 +3,11 @@ import type {
   LeituraDeGuia,
 } from "@/modules/clientes/application/ports/out/leitor-de-guia-de-parcela.provider";
 
+const MARCADOR_DE_FALHA = "[leitor:falha]";
+const MARCADOR_DE_CNPJ_DE_OUTRA_EMPRESA = "[leitor:cnpj-outro]";
+const CNPJ_DE_OUTRA_EMPRESA = "10.690.529/0001-38";
+const MARCADOR_DE_GUIA = /\[leitor:guia=([^;\]]*);([^;\]]*);([^;\]]*)\]/;
+
 const SEM_DADOS = {
   lido: true as const,
   cnpj: null,
@@ -12,16 +17,14 @@ const SEM_DADOS = {
   valorCentavos: null,
 };
 
-// Adapter falso e determinístico (padrão em dev, CI e Preview; nenhum teste depende do conteúdo do
-// PDF). Os marcadores no texto escolhem o cenário: `[leitor:falha]` não lê, `[leitor:cnpj-outro]`
-// lê o CNPJ de outra empresa, `[leitor:guia=<cnpj>;<conta>;<AAAAMM>]` lê exatamente esses três
-// (para a guia nascer confirmada); sem marcador, lê sem nada conferível e a guia fica a confirmar.
 export class LeitorDeGuiaDeParcelaFalsoGateway implements LeitorDeGuiaDeParcelaPort {
   async ler(pdf: Uint8Array): Promise<LeituraDeGuia> {
     const texto = Buffer.from(pdf).toString("latin1");
-    if (texto.includes("[leitor:falha]")) return { lido: false };
-    if (texto.includes("[leitor:cnpj-outro]")) return { ...SEM_DADOS, cnpj: "10.690.529/0001-38" };
-    const guia = /\[leitor:guia=([^;\]]*);([^;\]]*);([^;\]]*)\]/.exec(texto);
+    if (texto.includes(MARCADOR_DE_FALHA)) return { lido: false };
+    if (texto.includes(MARCADOR_DE_CNPJ_DE_OUTRA_EMPRESA)) {
+      return { ...SEM_DADOS, cnpj: CNPJ_DE_OUTRA_EMPRESA };
+    }
+    const guia = MARCADOR_DE_GUIA.exec(texto);
     if (!guia) return SEM_DADOS;
     return { ...SEM_DADOS, cnpj: guia[1], contaNegociacao: guia[2], competencia: guia[3] };
   }

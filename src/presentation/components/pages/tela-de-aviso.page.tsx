@@ -9,7 +9,6 @@ type TelaDeAvisoPageProps = {
   acoes: React.ReactNode;
 };
 
-// Tela inteira para o que não é um fluxo normal: rota inexistente ou falha inesperada.
 export function TelaDeAvisoPage({ subtitulo, aviso, rodape, acoes }: TelaDeAvisoPageProps) {
   return (
     <EntradaTemplate

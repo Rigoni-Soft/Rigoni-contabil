@@ -1,8 +1,5 @@
 import { ANEXO_MINIATURA_NOME, ANEXO_MINIATURA_QUALIDADE } from "@/shared/kernel/anexo";
 
-// Reduz uma imagem a uma miniatura WebP (lado maior = `lado`, sem ampliar). A conversa mostra esta
-// e só baixa o original, de até 10 MB, quando o Funcionário o amplia. Devolve null se o navegador
-// não decodifica a imagem: quem chama segue sem miniatura.
 export async function gerarMiniatura(arquivo: File, lado: number): Promise<File | null> {
   if (typeof createImageBitmap !== "function") return null;
   try {

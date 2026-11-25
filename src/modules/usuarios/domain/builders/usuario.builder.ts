@@ -19,9 +19,14 @@ export type UsuarioRestaurar = {
   senhaProvisoriaExpiraEm: string;
   desativadoEm?: string | null;
   banidoEm?: string | null;
+  avatarAtualizadoEm?: string | null;
 };
 
 const HORAS_VALIDADE_SENHA_PROVISORIA = 48;
+const MILISSEGUNDOS_POR_HORA = 60 * 60 * 1000;
+
+const expiracaoPadraoDaSenhaProvisoria = () =>
+  new Date(Date.now() + HORAS_VALIDADE_SENHA_PROVISORIA * MILISSEGUNDOS_POR_HORA);
 
 export class UsuarioBuilder {
   private id?: UsuarioId;
@@ -34,6 +39,7 @@ export class UsuarioBuilder {
   private senhaProvisoriaExpiraEm?: Date;
   private desativadoEm: Date | null = null;
   private banidoEm: Date | null = null;
+  private avatarAtualizadoEm: Date | null = null;
   private readonly camposInvalidos: Record<string, string[]> = {};
 
   constructor(private readonly criar: (props: UsuarioProps) => Usuario) {}
@@ -100,6 +106,11 @@ export class UsuarioBuilder {
     return this;
   }
 
+  comAvatarAtualizadoEm(data: string | null): this {
+    this.avatarAtualizadoEm = data ? new Date(data) : null;
+    return this;
+  }
+
   restaurar(dados: UsuarioRestaurar): this {
     return this.comId(dados.id)
       .comNome(dados.nome)
@@ -110,15 +121,11 @@ export class UsuarioBuilder {
       .comSenhaAuthAlteradaEm(dados.senhaAuthAlteradaEm ?? null)
       .comSenhaProvisoriaExpiraEm(dados.senhaProvisoriaExpiraEm)
       .comDesativadoEm(dados.desativadoEm ?? null)
-      .comBanidoEm(dados.banidoEm ?? null);
+      .comBanidoEm(dados.banidoEm ?? null)
+      .comAvatarAtualizadoEm(dados.avatarAtualizadoEm ?? null);
   }
 
   build(): Result<Usuario, ValidationError> {
-    // Presença checada aqui, não nos setters: um setter nunca chamado não deixa
-    // rastro em camposInvalidos, e os `!` abaixo mascarariam undefined em runtime.
-    // O guard `!this.camposInvalidos.X` evita sobrescrever a mensagem específica que
-    // o setter já registrou quando FOI chamado com um valor inválido (ex.:
-    // comPapel("gerente")) — só entra quando o setter nunca rodou.
     if (!this.id) this.camposInvalidos.id = ["obrigatório"];
     if (this.nome === undefined) this.camposInvalidos.nome = ["obrigatório"];
     if (this.email === undefined) this.camposInvalidos.email = ["obrigatório"];
@@ -142,11 +149,8 @@ export class UsuarioBuilder {
         senhaAuthAlteradaEm: this.senhaAuthAlteradaEm,
         desativadoEm: this.desativadoEm,
         banidoEm: this.banidoEm,
-        // Cadastro novo não chama comSenhaProvisoriaExpiraEm: o default aqui espelha o
-        // default da coluna na migration.
-        senhaProvisoriaExpiraEm:
-          this.senhaProvisoriaExpiraEm ??
-          new Date(Date.now() + HORAS_VALIDADE_SENHA_PROVISORIA * 60 * 60 * 1000),
+        avatarAtualizadoEm: this.avatarAtualizadoEm,
+        senhaProvisoriaExpiraEm: this.senhaProvisoriaExpiraEm ?? expiracaoPadraoDaSenhaProvisoria(),
       }),
     );
   }

@@ -33,8 +33,6 @@ export async function buscarClientesAction(
   return toActionResult(await buscar.execute(parsed.data.termo, parsed.data.apenasSnMei));
 }
 
-// Server Action é endpoint público (arquitetura.md §3.13): o clienteId é validado mesmo vindo
-// de um resultado de busca da própria UI.
 export async function carregarCadastroOperacionalAction(
   clienteId: unknown,
 ): Promise<ActionResult<CadastroOperacionalClienteDto | null>> {

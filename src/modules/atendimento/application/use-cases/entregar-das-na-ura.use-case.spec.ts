@@ -19,7 +19,6 @@ const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const CLIENTE = "cliente-1";
 const TELEFONE = "5511912345678";
-// 20/10/2026 em São Paulo.
 const AGORA = new Date("2026-10-20T15:00:00Z");
 
 const GUIA: GuiaDasParaEnvio = {

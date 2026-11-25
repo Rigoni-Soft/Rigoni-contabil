@@ -9,11 +9,8 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const BUCKET = "documentos-clientes";
-// A Meta busca o arquivo logo após o envio; 5 min cobre atraso sem deixar o link vivo.
 const VALIDADE_LINK_SEGUNDOS = 300;
 
-// Usa o client service_role (docs/adr/0001): quem escreve pelo WhatsApp não tem sessão,
-// e as policies de documentos-clientes só abrem para o Admin.
 export class SupabaseDocumentosContratuaisGateway implements DocumentosContratuaisPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 

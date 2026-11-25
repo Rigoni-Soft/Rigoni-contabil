@@ -5,10 +5,6 @@ import { Eye, EyeOff } from "lucide-react";
 
 import { Input } from "@/presentation/components/ui/input";
 
-// Rótulo fixo + aria-pressed (o estado vai no atributo, não no nome) e sem a
-// palavra "senha" de propósito: os e2e localizam os campos por getByLabel("Senha"),
-// que casa por substring e ficaria ambíguo com o botão.
-// `[&::-ms-reveal]:hidden` esconde o olho nativo do Edge, que duplicaria o nosso.
 export function PasswordInput(props: Omit<React.ComponentProps<typeof Input>, "type">) {
   const [visivel, setVisivel] = useState(false);
   const Icone = visivel ? EyeOff : Eye;

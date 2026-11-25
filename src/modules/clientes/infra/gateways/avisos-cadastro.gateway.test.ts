@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase para o gateway dos Avisos de cadastro.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { criarAdminLocal } from "../../../../../test-support/admin-supabase-local";
@@ -47,6 +43,7 @@ describe("SupabaseAvisosCadastroGateway (#142, integração)", () => {
       clienteId,
       alteracaoId: null,
       alteracaoNumero: null,
+      mensagem: null,
       criadoEm: expect.any(String),
       vistoEm: null,
     });
@@ -74,6 +71,7 @@ describe("SupabaseAvisosCadastroGateway (#142, integração)", () => {
       clienteId,
       alteracaoId,
       alteracaoNumero: 4,
+      mensagem: null,
       criadoEm: expect.any(String),
       vistoEm: null,
     });

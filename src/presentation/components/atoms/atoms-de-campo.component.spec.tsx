@@ -38,7 +38,6 @@ describe("átomos de campo", () => {
     expect(screen.queryByRole("button", { name: /remover/i })).not.toBeInTheDocument();
 
     rerender(<FileInput id="contrato" file={arquivo} onChange={aoMudar} />);
-    // O nome diz qual arquivo sai (há vários campos de arquivo na mesma tela).
     fireEvent.click(screen.getByRole("button", { name: "Remover arquivo contrato.pdf" }));
 
     expect(aoMudar).toHaveBeenCalledWith(undefined);
@@ -77,7 +76,6 @@ describe("átomos de campo", () => {
       "aria-hidden",
       "true",
     );
-    // A dica visível fica fora do nome; a cópia só para leitor de tela entra na descrição, não no nome.
     const [dicaVisivel, dicaDoLeitor] = screen.getAllByText("PDF ou DOCX");
     expect(dicaVisivel.closest("[aria-hidden]")).toHaveAttribute("aria-hidden", "true");
     expect(dicaDoLeitor).toHaveClass("sr-only");

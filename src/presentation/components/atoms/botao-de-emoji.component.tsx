@@ -1,6 +1,5 @@
 import { Button } from "@/presentation/components/ui/button";
 
-// Alvo de 44 px (DESIGN.md); o emoji é o conteúdo, o nome acessível é a descrição dele.
 type BotaoDeEmojiProps = {
   emoji: string;
   nome: string;

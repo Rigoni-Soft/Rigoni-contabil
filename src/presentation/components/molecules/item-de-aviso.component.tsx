@@ -15,8 +15,6 @@ type ItemDeAvisoProps = {
   aoSelecionar: (aviso: AvisoDeCadastro) => void;
 };
 
-// Linha da lista de Avisos de cadastro: não visto em destaque (ponto `primary`, "novo" para leitor
-// de tela); visto esmaecido, com o selo "visto" em texto (a cor não é o único sinal).
 export function ItemDeAviso({ aviso, aoSelecionar }: ItemDeAvisoProps) {
   return (
     <Caixa
@@ -44,7 +42,12 @@ export function ItemDeAviso({ aviso, aoSelecionar }: ItemDeAvisoProps) {
             novo:{" "}
           </Texto>
         )}
-        <Texto como="span" variante="corpo" className="block text-inherit">
+        <Texto
+          como="span"
+          variante="corpo"
+          title={aviso.titulo}
+          className="line-clamp-3 block text-inherit"
+        >
           {aviso.titulo}
         </Texto>
         <Texto como="span" variante="nota" className="block">

@@ -45,6 +45,49 @@ describe("ShellHeader", () => {
     expect(screen.getByText(/Funcionário/)).toBeInTheDocument();
   });
 
+  it("o avatar mostra a logo do Setor com logo e a do escritório para o Admin e Setor sem logo", () => {
+    const props = { nome: "N", avisos: <button>Avisos</button>, sair: <button>Sair</button> };
+    const logoDoAvatar = () =>
+      screen
+        .getByRole("link", { name: "Ir para o início" })
+        .querySelector("img")
+        ?.getAttribute("src");
+    const { rerender } = render(<ShellHeader {...props} papel="funcionario" setor="contabil" />);
+    expect(logoDoAvatar()).toBe("/logos/logo-contabil.jpeg");
+
+    rerender(<ShellHeader {...props} papel="lider_setor" setor="simples_nacional" />);
+    expect(logoDoAvatar()).toBe("/logos/logo-simples-nacional.jpeg");
+
+    rerender(<ShellHeader {...props} papel="admin" setor="contabil" />);
+    expect(logoDoAvatar()).toBe("/logos/logo-rigoni.jpeg");
+
+    rerender(<ShellHeader {...props} papel="funcionario" setor="recepcao" />);
+    expect(logoDoAvatar()).toBe("/logos/logo-rigoni.jpeg");
+  });
+
+  it("com foto, o avatar aponta para a rota autenticada versionada; sem foto, volta à logo", () => {
+    const props = { nome: "N", avisos: <button>Avisos</button>, sair: <button>Sair</button> };
+    const srcDoAvatar = () =>
+      screen
+        .getByRole("link", { name: "Ir para o início" })
+        .querySelector("img")
+        ?.getAttribute("src");
+    const { rerender } = render(
+      <ShellHeader
+        {...props}
+        papel="funcionario"
+        setor="contabil"
+        avatarAtualizadoEm="2026-11-18T10:00:00.000Z"
+      />,
+    );
+    expect(srcDoAvatar()).toBe("/api/avatar?v=2026-11-18T10%3A00%3A00.000Z");
+
+    rerender(
+      <ShellHeader {...props} papel="funcionario" setor="contabil" avatarAtualizadoEm={null} />,
+    );
+    expect(srcDoAvatar()).toBe("/logos/logo-contabil.jpeg");
+  });
+
   it("renderiza o slot de sair recebido por prop", () => {
     render(
       <ShellHeader
@@ -244,6 +287,38 @@ describe("ShellHeader", () => {
 
       rerender(<ShellHeader {...base} papel="funcionario" />);
       expect(screen.queryByRole("link", { name: /Cadastrar/ })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("avatar", () => {
+    const props = {
+      nome: "Jéssica",
+      papel: "funcionario",
+      setor: "simples_nacional",
+      avisos: null,
+      sair: <button>Sair</button>,
+    };
+
+    it("é um link para o início, com nome acessível e title, visível em toda largura e sem abrir menu", () => {
+      render(<ShellHeader {...props} />);
+
+      const avatar = screen.getByRole("link", { name: "Ir para o início" });
+      expect(avatar).toHaveAttribute("href", "/");
+      expect(avatar).toHaveAttribute("title", "Ir para o início");
+      expect(avatar.className).not.toMatch(/(^|\s)(max-sm:)?hidden(\s|$)/);
+      expect(avatar).not.toHaveAttribute("popovertarget");
+      expect(avatar.classList).toContain("outline-hidden");
+      expect(avatar.classList).toContain("focus-visible:ring-2");
+      expect(avatar.classList).toContain("hover:opacity-90");
+      expect(avatar.classList).toContain("active:opacity-80");
+      expect(avatar.classList).toContain("size-9");
+      expect(avatar.classList).toContain("pointer-coarse:size-11");
+    });
+
+    it("com a troca de senha pendente o cabeçalho sai sem avatar", () => {
+      render(<ShellHeader {...props} comAvatar={false} />);
+
+      expect(screen.queryByRole("link", { name: "Ir para o início" })).not.toBeInTheDocument();
     });
   });
 });

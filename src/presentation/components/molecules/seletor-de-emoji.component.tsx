@@ -9,20 +9,16 @@ import { cn } from "@/presentation/lib/utils";
 
 type SeletorDeEmojiProps = {
   aberto: boolean;
-  // Últimos escolhidos, do mais novo ao mais antigo.
   recentes: string[];
-  // Com recentes, o seletor mostra só a linha deles até `completo` (via "ver todos").
   completo: boolean;
   onExpandir: () => void;
   onAlternar: (evento: React.MouseEvent<HTMLButtonElement>) => void;
-  // Posição `fixed` do painel (reação em balão, fora do corte do rolador); sem ela, acima do botão.
   estilo?: React.CSSProperties;
   onEscolher: (emoji: string) => void;
   painelId: string;
   raizRef: React.Ref<HTMLDivElement>;
   botaoRef: React.Ref<HTMLButtonElement>;
   disabled?: boolean;
-  // Reação em balão: botão pequeno e rótulo próprio.
   rotulo?: string;
   compacto?: boolean;
 };
@@ -49,7 +45,6 @@ export function SeletorDeEmoji({
         type="button"
         variant="ghost"
         size="icon"
-        // Compacto: glifo de 28px no balão, com a área de toque ampliada a 44px.
         className={cn(
           "rounded-full",
           compacto && "relative size-7 before:absolute before:-inset-2",

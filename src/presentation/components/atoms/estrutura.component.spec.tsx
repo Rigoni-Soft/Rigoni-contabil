@@ -26,7 +26,6 @@ describe("átomos estruturais", () => {
     expect(screen.getByRole("listitem")).toHaveTextContent("item");
   });
 
-  // Safari/VoiceOver deixa de anunciar lista quando o marcador some (o reset do Tailwind remove).
   it("ul e ol ganham role=list explícito, em Caixa e nos átomos que delegam a ele", () => {
     render(
       <>

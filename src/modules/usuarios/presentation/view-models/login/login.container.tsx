@@ -35,8 +35,6 @@ export function LoginContainer() {
       router.push("/");
       router.refresh();
     } catch {
-      // A Server Action deveria sempre devolver ActionResult; isso é rede de
-      // segurança contra falha inesperada, pra não travar o botão em "Entrando…".
       setErroServidor("Falha inesperada. Tente novamente.");
     } finally {
       setPendente(false);

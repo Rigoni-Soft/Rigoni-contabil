@@ -11,7 +11,6 @@ import { formatarEspera } from "@/shared/kernel/espera";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
-// O Setor vê a própria Fila (Admin vê a de qualquer Setor).
 export class ListarFila implements ListarFilaPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -33,9 +32,6 @@ export class ListarFila implements ListarFilaPort {
     const fila = await this.repositorio.filaDoSetor(setor);
     if (!fila.ok) return fila;
     const agora = this.relogio.agora().getTime();
-    // Só o destinatário vê o Atendimento (Líder e Admin leem em supervisão). A espera comum, sem
-    // destinatário, existe só na Recepção: onde ela não é a Recepção, o Atendimento sem Responsável
-    // nem Líder fica só para a supervisão. Os outros usuários nem recebem o Atendimento.
     const supervisiona = ator.papel === "admin" || ator.papel === "lider_setor";
     const esperaComum = setor === "recepcao";
     const visiveis = fila.value.filter((item) =>

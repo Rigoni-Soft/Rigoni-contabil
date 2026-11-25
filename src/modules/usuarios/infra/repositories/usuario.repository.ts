@@ -11,6 +11,8 @@ import type { AppError } from "@/shared/errors/app.error";
 import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
+const FILTRO_DESATIVADO_COM_PENDENCIA = "banido_em.is.null,avatar_atualizado_em.not.is.null";
+
 export class SupabaseUsuarioRepository implements UsuarioRepository {
   constructor(
     private readonly supabase: SupabaseClient,
@@ -24,9 +26,6 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
       .eq("id", id)
       .maybeSingle();
 
-    // Erro do Postgres (rede, indisponibilidade, id malformado) é falha técnica, distinta de
-    // ausência: devolvê-lo como `null` colidiria com "perfil inexistente" ou "oculto pela RLS".
-    // Detalhe fica só no log do servidor; quem chama decide como apresentar o erro sem expô-lo.
     if (error) {
       const mensagem = `Falha ao buscar perfil (id=${id}): ${error.message}`;
       this.erros.registrar(mensagem);
@@ -51,15 +50,15 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
     return this.paraUsuarios(data);
   }
 
-  async listarComBloqueioPendente(): Promise<Result<Usuario[], AppError>> {
+  async listarComDesativacaoPendente(): Promise<Result<Usuario[], AppError>> {
     const { data, error } = await this.supabase
       .from("perfis")
       .select("*")
       .not("desativado_em", "is", null)
-      .is("banido_em", null)
+      .or(FILTRO_DESATIVADO_COM_PENDENCIA)
       .order("nome");
     if (error) {
-      this.erros.registrar(`Falha ao listar bloqueios pendentes: ${error.message}`);
+      this.erros.registrar(`Falha ao listar desativações pendentes: ${error.message}`);
       return err(new PersistenciaError("Falha ao listar usuários."));
     }
     return this.paraUsuarios(data);
@@ -90,10 +89,6 @@ export class SupabaseUsuarioRepository implements UsuarioRepository {
     return data ? this.paraUsuario(data) : ok(null);
   }
 
-  // Row DTO: formato exato da tabela, validado por Zod — falha alto se o banco divergir do schema
-  // esperado (arquitetura.md §3.7, bug/estado impossível). Já a reconstrução de domínio
-  // (nome/e-mail válidos) é regra de negócio: dado sujo é falha esperada, não bug (§3.8), e devolve
-  // Result pra quem chama poder limpar a sessão sem try/catch.
   private paraUsuario(data: unknown): Result<Usuario, AppError> {
     const row = perfilRowSchema.parse(data);
     const resultado = perfilParaUsuario(row);

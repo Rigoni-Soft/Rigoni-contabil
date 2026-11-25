@@ -10,7 +10,6 @@ import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Usa o client service_role (docs/adr/0001): quem escreve pelo WhatsApp não tem sessão.
 export class SupabaseClienteCnpjGateway implements ClienteCnpjPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 

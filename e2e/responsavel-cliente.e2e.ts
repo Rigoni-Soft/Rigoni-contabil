@@ -29,18 +29,16 @@ test.describe("Responsável por Cliente (#65)", () => {
     await page.getByLabel(/empresa ou cnpj/i).fill(empresa);
     await page.getByText(empresa).click();
     await expect(page.getByLabel("Responsável", { exact: true })).toHaveValue("");
-    // A lista de Funcionários só é buscada quando o Select recebe foco (lazy).
     const responsavel = page.getByLabel("Responsável", { exact: true });
     await responsavel.focus();
     await responsavel.selectOption({ label: "Funcionário Simples Nacional" });
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeHidden();
     await sair(page);
 
     await entrarEm(page, "funcionario.sn@rigonicontabil.local", "func123");
     await page.getByLabel(/empresa ou cnpj/i).fill(empresa);
     await page.getByText(empresa).click();
-    // Funcionário vê o Responsável, mas não edita.
     await expect(page.getByLabel("Responsável", { exact: true })).toBeDisabled();
     await expect(page.getByLabel("Responsável", { exact: true })).toHaveValue(
       "Funcionário Simples Nacional",
@@ -60,7 +58,6 @@ test.describe("Responsável por Cliente (#65)", () => {
     await entrarEm(page, "funcionario2.sn@rigonicontabil.local", "func123");
     await page.goto(`/clientes/${clienteId}`);
 
-    // Sem acesso: cai de volta no dashboard, nunca no formulário.
     await expect(page).toHaveURL("/simples-nacional");
     await expect(page.getByRole("heading", { name: /cadastro operacional/i })).toBeHidden();
   });

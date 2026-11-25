@@ -70,6 +70,8 @@ function montar(
     emAndamento?: boolean;
     cnpjsCadastrados?: string[];
     cnpjFalha?: boolean;
+    regime?: string | null;
+    regimeFalha?: boolean;
     agora?: Date;
     feriados?: string[];
     feriadosFalha?: boolean;
@@ -107,7 +109,10 @@ function montar(
       buscados.push(telefone);
       return ok(opcoes.contato === undefined ? ana : opcoes.contato);
     },
-    // Por padrão o CNPJ de teste existe em um Cliente (o número é que não é Contato).
+    regimeDoCliente: async () =>
+      opcoes.regimeFalha
+        ? err(new ServicoExternoError("banco"))
+        : ok(opcoes.regime === undefined ? "simples_nacional" : opcoes.regime),
     cnpjCadastrado: async (cnpj) =>
       opcoes.cnpjFalha
         ? err(new ServicoExternoError("banco"))
@@ -158,7 +163,6 @@ function montar(
       return ok({ id: "at-1" });
     },
   };
-  // Por padrão: quarta-feira, 10h em São Paulo (expediente aberto).
   const relogio: RelogioPort = {
     agora: () => opcoes.agora ?? new Date("2026-10-07T10:00:00-03:00"),
   };
@@ -241,7 +245,7 @@ describe("ReceberMensagem", () => {
     for (const opcao of ["Contrato social", "imposto", "parcelamento", "atendente"]) {
       expect(enviadas[0].texto).toContain(opcao);
     }
-    expect(enviadas[0].texto).not.toContain("CND"); // ponytail: CND fora do menu até a liberação
+    expect(enviadas[0].texto).not.toContain("CND");
   });
 
   it("opção 3 (parcelamento) segue o processo do job: delega ao caso do parcelamento, sem buscar a guia direto", async () => {
@@ -278,7 +282,6 @@ describe("ReceberMensagem", () => {
     const { caso, enviadas, documentosEnviados, guiasBuscadas } = montar();
     const r = await caso.execute({ telefone: "5511912345678", texto: "4" });
     expect(r.ok).toBe(true);
-    // O CNPJ nunca é perguntado: a busca usa o Cliente ligado ao contato.
     expect(guiasBuscadas).toEqual([{ clienteId: ana.clienteId, tipo: "cnd" }]);
     expect(documentosEnviados).toEqual([
       { telefone: "5511912345678", nomeArquivo: "cnd.pdf", pdfBase64: "pdf-cnd" },
@@ -325,7 +328,7 @@ describe("ReceberMensagem", () => {
     expect(r.ok).toBe(true);
     expect(documentosEnviados).toHaveLength(0);
     expect(enviadas[0].texto).toContain("autorização");
-    expect(enviadas[0].texto).toContain("*5*");
+    expect(enviadas[0].texto).toContain("*4*");
   });
 
   it.skip.each([
@@ -341,7 +344,7 @@ describe("ReceberMensagem", () => {
       expect(r.ok).toBe(true);
       expect(documentosEnviados).toHaveLength(0);
       expect(enviadas[0].texto).toContain("agora");
-      expect(enviadas[0].texto).toContain("*5*");
+      expect(enviadas[0].texto).toContain("*4*");
       expect(log).toHaveBeenCalledTimes(1);
     },
   );
@@ -378,6 +381,7 @@ describe("ReceberMensagem", () => {
       {
         identificar: async () => err(new ServicoExternoError("banco")),
         cnpjCadastrado: async () => err(new ServicoExternoError("banco")),
+        regimeDoCliente: async () => err(new ServicoExternoError("banco")),
       },
       {
         enviar: async (m) => {
@@ -478,7 +482,8 @@ describe("ReceberMensagem — fora do expediente (#72)", () => {
     ]);
 
     const abertura = montar();
-    await abertura.caso.execute({ telefone: FONE, texto: "4", id: "wamid.ABERTURA" });
+    await abertura.caso.execute({ telefone: FONE, texto: "4" });
+    await abertura.caso.execute({ telefone: FONE, texto: "0", id: "wamid.ABERTURA" });
     expect(abertura.abertos[0].mensagens[0]).toMatchObject({
       autor: "contato",
       idExterno: "wamid.ABERTURA",
@@ -520,8 +525,6 @@ describe("ReceberMensagem — fora do expediente (#72)", () => {
 });
 
 function alteracoes(quantidade: number): DocumentoContratual[] {
-  // Como o gateway entrega: nº decrescente. As datas correm ao contrário, para provar que a
-  // ordem é pelo nº.
   return Array.from({ length: quantidade }, (_, i) => ({
     tipo: "alteracao" as const,
     numero: i + 1,
@@ -632,6 +635,15 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     expect(enviadas[3].texto).toContain("Alteração nº 3");
   });
 
+  it.each(["01", "007"])("número com zero à esquerda (%p) não escolhe alteração", async (texto) => {
+    const { caso, documentosEnviados, enviadas } = montar({ documentos: alteracoes(3) });
+    await caso.execute({ telefone: FONE, texto: "1" });
+    await caso.execute({ telefone: FONE, texto: "2" });
+    await caso.execute({ telefone: FONE, texto });
+    expect(documentosEnviados).toHaveLength(0);
+    expect(enviadas.at(-1)?.texto).toContain("Alteração nº 3");
+  });
+
   it("ambos com várias alterações: após escolher, envia o contrato e a alteração", async () => {
     const { caso, documentosEnviados, gravadas } = montar({
       documentos: [CONTRATO, ...alteracoes(3)],
@@ -681,7 +693,6 @@ describe("ReceberMensagem — contrato social e alterações (opção 1)", () =>
     expect(enviadas[1].texto).toContain("página 1 de 2");
     await caso.execute({ telefone: FONE, texto: "mais" });
     expect(enviadas[2].texto).toContain("página 2 de 2");
-    // Valor fixo: o hash vem só dos caminhos, na ordem exibida (alt-12 … alt-1).
     expect(gravadas[0]).toEqual({ etapa: "tipo_documento" });
     expect(gravadas[1]).toMatchObject({ pagina: 1, lista: "1m5itzn0pj2" });
   });
@@ -930,7 +941,6 @@ describe("ReceberMensagem — lista de alterações mudou com a sessão aberta",
       expect(enviadas.at(-1)?.texto).toContain(documentos.length === 4 ? "4 - " : "2 - ");
       expect(sessoes.get(CHAVE)).not.toEqual(antes);
 
-      // Com a lista nova já exibida, a mesma escolha passa a valer.
       await caso.execute({ telefone: FONE, texto: "1" });
       expect(documentosEnviados).toHaveLength(1);
     },
@@ -1068,85 +1078,275 @@ describe("ReceberMensagem — fallback para a recepção (#50)", () => {
   });
 });
 
-describe("ReceberMensagem — opção falar com atendente (#46)", () => {
+describe("ReceberMensagem — opção falar com atendente: lista de setores", () => {
   const TEL = "5511912345678";
-  const pedir = (caso: ReturnType<typeof montar>["caso"]) =>
-    caso.execute({ telefone: TEL, texto: " 4 " });
+  const CHAVE = "11912345678";
+  type Caso = ReturnType<typeof montar>["caso"];
+  const dizerAna = (caso: Caso, texto: string) => caso.execute({ telefone: TEL, texto });
+  const pedir = (caso: Caso) => dizerAna(caso, " 4 ");
 
-  it("abre Atendimento na recepção já vinculado ao Cliente, com as Mensagens da conversa", async () => {
-    const { caso, abertos } = montar();
+  it("a opção abre a lista de setores paginada, sem abrir Atendimento", async () => {
+    const { caso, abertos, enviadas, sessoes } = montar();
+
     expect((await pedir(caso)).ok).toBe(true);
-    expect(abertos).toHaveLength(1);
-    expect(abertos[0]).toMatchObject({
-      telefone: TEL,
-      chave: "11912345678",
-      clienteId: "cliente-1",
-      setor: "recepcao",
-    });
-    expect(abertos[0].mensagens.map((m) => m.autor)).toEqual(["contato", "ura"]);
+
+    expect(abertos).toHaveLength(0);
+    expect(sessoes.get(CHAVE)).toEqual({ etapa: "setor", pagina: 1, invalidos: 0 });
+    expect(enviadas).toHaveLength(1);
+    expect(enviadas[0].texto).toContain("Com qual setor você quer falar? (página 1 de 2)");
+    expect(enviadas[0].texto).toContain("1 - RH\n2 - Tributário\n3 - Simples Nacional");
+    expect(enviadas[0].texto).toContain("Digite *mais*");
+    expect(enviadas[0].texto).toContain("Digite *0* se não souber o setor");
   });
 
-  it("registra o rótulo da opção como Mensagem do contato, não o dígito digitado", async () => {
-    const { caso, abertos } = montar();
-    await pedir(caso);
-    expect(abertos[0].mensagens[0]).toEqual({ autor: "contato", texto: "Falar com atendente" });
-  });
+  it.each(["ajuda", "tenho uma dúvida", "suporte"])(
+    "texto de dúvida de uso no menu ('%s') reexibe o menu, sem ir à recepção",
+    async (frase) => {
+      const { caso, abertos, enviadas } = montar();
 
-  it("avisa que vai à recepção, sem o stub 'em construção'", async () => {
-    const { caso, enviadas } = montar();
-    await pedir(caso);
-    expect(enviadas).toHaveLength(2);
-    expect(enviadas[0].texto).toContain("recepção");
-    expect(enviadas[0].texto).not.toContain("em construção");
-  });
+      await dizerAna(caso, frase);
 
-  it("manda o aviso para aguardar depois do aviso da recepção", async () => {
-    const { caso, enviadas } = montar();
-    await pedir(caso);
-    expect(enviadas.map((e) => e.texto)).toEqual([
-      expect.stringContaining("recepção"),
-      "Aguarde, já vamos atendê-lo.",
-    ]);
-  });
-
-  it.each(["04", "4.0", "0x4", "4e0"])(
-    "formato numérico %p não abre Atendimento",
-    async (texto) => {
-      const { caso, abertos } = montar();
-      await caso.execute({ telefone: TEL, texto });
       expect(abertos).toHaveLength(0);
+      expect(enviadas[0].texto).toContain("Como podemos ajudar?");
     },
   );
 
-  it("limpa a sessão que sobrou ao abrir o Atendimento", async () => {
-    const { caso, sessoes } = montar();
-    sessoes.set("11912345678", { etapa: "ja_cliente", invalidos: 1 });
-    await pedir(caso);
-    expect(sessoes.size).toBe(0);
+  it.each(["Quero falar com atendente", "falar com uma pessoa"])(
+    "texto pedindo uma pessoa no menu ('%s') vai direto à recepção, sem lista de setores",
+    async (frase) => {
+      const { caso, abertos, enviadas, sessoes } = montar();
+
+      await dizerAna(caso, frase);
+
+      expect(abertos).toHaveLength(1);
+      expect(abertos[0]).toMatchObject({ clienteId: "cliente-1", setor: "recepcao" });
+      expect(abertos[0].mensagens[0]).toEqual({ autor: "contato", texto: frase });
+      expect(abertos[0].resumo).toContain("pediu um atendente por texto no menu");
+      expect(enviadas[0].texto).toMatch(/^Sem problema! .*recepção/);
+      expect(enviadas.some((e) => e.texto.includes("Com qual setor"))).toBe(false);
+      expect(sessoes.size).toBe(0);
+    },
+  );
+
+  it("conversa comum no menu ('oi', 'bom dia') segue só reenviando o menu", async () => {
+    const { caso, abertos, enviadas } = montar();
+
+    await dizerAna(caso, "bom dia");
+
+    expect(abertos).toHaveLength(0);
+    expect(enviadas[0].texto).toContain("Olá, Ana");
   });
 
   it("a opção de atendente é a última do menu enviado", async () => {
     const { caso, enviadas } = montar();
-    await caso.execute({ telefone: TEL, texto: "oi" });
+    await dizerAna(caso, "oi");
     const linhas = enviadas[0].texto.split("\n");
     expect(linhas[linhas.length - 1]).toBe("4 - Falar com atendente");
   });
 
-  it("o aviso da opção não repete o dos outros caminhos para a recepção", async () => {
-    const { caso, enviadas } = montar();
+  it("Cliente fora do Simples Nacional/MEI não vê o Simples Nacional na lista", async () => {
+    const { caso, enviadas } = montar({ regime: "lucro_real" });
+
     await pedir(caso);
-    expect(enviadas[0].texto).toMatch(/^Certo!/);
-    expect(enviadas[0].texto).not.toContain("Não encontramos");
+
+    expect(enviadas[0].texto).not.toContain("Simples Nacional");
+    expect(enviadas[0].texto).toContain("3 - Contábil");
+  });
+
+  it("'mais' mostra a página seguinte e guarda a posição", async () => {
+    const { caso, enviadas, sessoes } = montar();
+    await pedir(caso);
+
+    await dizerAna(caso, "mais");
+
+    expect(sessoes.get(CHAVE)).toEqual({ etapa: "setor", pagina: 2, invalidos: 0 });
+    expect(enviadas[1].texto).toContain("(página 2 de 2)\n1 - Condomínios\n2 - Financeiro");
+    expect(enviadas[1].texto).not.toContain("*mais*");
+  });
+
+  it("o número escolhido abre o Atendimento no setor, vinculado ao Cliente", async () => {
+    const { caso, abertos } = montar();
+    await pedir(caso);
+
+    expect((await dizerAna(caso, "2")).ok).toBe(true);
+
+    expect(abertos).toHaveLength(1);
+    expect(abertos[0]).toMatchObject({
+      telefone: TEL,
+      chave: CHAVE,
+      clienteId: "cliente-1",
+      setor: "tributario",
+      resumo: "Cliente pediu o setor Tributário pelo menu da URA.",
+    });
+    expect(abertos[0].mensagens.map((m) => m.autor)).toEqual(["contato", "ura"]);
+  });
+
+  it("registra o nome do setor como Mensagem do contato, não o dígito digitado", async () => {
+    const { caso, abertos } = montar();
+    await pedir(caso);
+    await dizerAna(caso, "2");
+
+    expect(abertos[0].mensagens[0]).toEqual({ autor: "contato", texto: "Tributário" });
+  });
+
+  it("avisa o setor e manda o aviso de aguardar; a sessão é limpa", async () => {
+    const { caso, enviadas, sessoes } = montar();
+    await pedir(caso);
+    await dizerAna(caso, "2");
+
+    expect(enviadas.slice(1).map((e) => e.texto)).toEqual([
+      "Certo! Vamos te encaminhar para o setor Tributário, que já vai te atender. Aguarde um instante, por favor.",
+      "Aguarde, já vamos atendê-lo.",
+    ]);
+    expect(sessoes.size).toBe(0);
+  });
+
+  it("a numeração vale para a página exibida: na 2ª, '1' é o primeiro da página", async () => {
+    const { caso, abertos } = montar();
+    await pedir(caso);
+    await dizerAna(caso, "mais");
+
+    await dizerAna(caso, "1");
+
+    expect(abertos[0].setor).toBe("condominios");
+  });
+
+  it("o Simples Nacional é oferecido ao Cliente MEI", async () => {
+    const { caso, abertos } = montar({ regime: "mei" });
+    await pedir(caso);
+
+    await dizerAna(caso, "3");
+
+    expect(abertos[0].setor).toBe("simples_nacional");
+  });
+
+  it("'0' (não sei o setor) vai à recepção", async () => {
+    const { caso, abertos, enviadas, sessoes } = montar();
+    await pedir(caso);
+
+    await dizerAna(caso, "0");
+
+    expect(abertos).toHaveLength(1);
+    expect(abertos[0]).toMatchObject({ clienteId: "cliente-1", setor: "recepcao" });
+    expect(abertos[0].resumo).toContain("não escolheu um setor");
+    expect(abertos[0].mensagens[0]).toEqual({ autor: "contato", texto: "Não sei o setor" });
+    expect(enviadas[1].texto).toMatch(/^Sem problema! .*recepção/);
+    expect(sessoes.size).toBe(0);
+  });
+
+  it.each(["Quero falar com uma pessoa", "atendente", "recepção"])(
+    "texto pedindo uma pessoa ('%s') vai à recepção, com o texto original como Mensagem",
+    async (frase) => {
+      const { caso, abertos } = montar();
+      await pedir(caso);
+
+      await dizerAna(caso, frase);
+
+      expect(abertos).toHaveLength(1);
+      expect(abertos[0].setor).toBe("recepcao");
+      expect(abertos[0].mensagens[0]).toEqual({ autor: "contato", texto: frase });
+    },
+  );
+
+  it("resposta inválida repete a página e conta; a terceira seguida vai à recepção", async () => {
+    const { caso, abertos, enviadas, sessoes } = montar();
+    await pedir(caso);
+
+    await dizerAna(caso, "9");
+    expect(sessoes.get(CHAVE)).toEqual({ etapa: "setor", pagina: 1, invalidos: 1 });
+    expect(enviadas[1].texto).toContain("Com qual setor você quer falar?");
+    await dizerAna(caso, "banana");
+    expect(sessoes.get(CHAVE)).toEqual({ etapa: "setor", pagina: 1, invalidos: 2 });
+    expect(abertos).toHaveLength(0);
+
+    await dizerAna(caso, "xyz");
+
+    expect(abertos).toHaveLength(1);
+    expect(abertos[0].setor).toBe("recepcao");
+    expect(abertos[0].resumo).toContain("respostas inválidas seguidas na lista de setores");
+  });
+
+  it("'ajuda' na lista é resposta inválida, não saída para a recepção", async () => {
+    const { caso, abertos, sessoes } = montar();
+    await pedir(caso);
+
+    await dizerAna(caso, "preciso de ajuda");
+
+    expect(abertos).toHaveLength(0);
+    expect(sessoes.get(CHAVE)).toEqual({ etapa: "setor", pagina: 1, invalidos: 1 });
+  });
+
+  it("'mais' na última página é resposta inválida", async () => {
+    const { caso, sessoes } = montar();
+    await pedir(caso);
+    await dizerAna(caso, "mais");
+
+    await dizerAna(caso, "mais");
+
+    expect(sessoes.get(CHAVE)).toEqual({ etapa: "setor", pagina: 2, invalidos: 1 });
+  });
+
+  it("número acima dos itens da página não escolhe setor da outra página", async () => {
+    const { caso, abertos } = montar();
+    await pedir(caso);
+    await dizerAna(caso, "mais");
+
+    await dizerAna(caso, "4");
+
+    expect(abertos).toHaveLength(0);
+  });
+
+  it.each(["2.0", "0x2", "2e0", "01", "007", "00"])(
+    "formato numérico %p não escolhe setor",
+    async (texto) => {
+      const { caso, abertos } = montar();
+      await pedir(caso);
+
+      await dizerAna(caso, texto);
+
+      expect(abertos).toHaveLength(0);
+    },
+  );
+
+  it("'menu' sai da lista e limpa a sessão", async () => {
+    const { caso, enviadas, sessoes } = montar();
+    await pedir(caso);
+
+    await dizerAna(caso, "menu");
+
+    expect(sessoes.size).toBe(0);
+    expect(enviadas[1].texto).toContain("Olá, Ana");
+  });
+
+  it("sem sessão (expirada), o dígito volta a ser opção do menu", async () => {
+    const { caso, abertos, dasPedidos } = montar();
+
+    await dizerAna(caso, "2");
+
+    expect(abertos).toHaveLength(0);
+    expect(dasPedidos).toEqual([{ clienteId: "cliente-1", telefone: TEL }]);
+  });
+
+  it("falha ao consultar o regime devolve o erro, sem sessão nem Atendimento", async () => {
+    const { caso, abertos, sessoes } = montar({ regimeFalha: true });
+
+    expect((await pedir(caso)).ok).toBe(false);
+
+    expect(abertos).toHaveLength(0);
+    expect(sessoes.size).toBe(0);
   });
 
   it("falha ao abrir o Atendimento devolve o erro", async () => {
     const { caso } = montar({ aberturaFalha: true });
-    expect((await pedir(caso)).ok).toBe(false);
+    await pedir(caso);
+    expect((await dizerAna(caso, "2")).ok).toBe(false);
   });
 
   it("falha do envio do aviso não abre Atendimento (a reentrega não duplica)", async () => {
-    const { caso, abertos } = montar({ envioFalha: true });
-    expect((await pedir(caso)).ok).toBe(false);
+    const { caso, abertos, sessoes } = montar({ envioFalha: true });
+    sessoes.set(CHAVE, { etapa: "setor", pagina: 1, invalidos: 0 });
+
+    expect((await dizerAna(caso, "2")).ok).toBe(false);
     expect(abertos).toHaveLength(0);
   });
 });
@@ -1156,10 +1356,11 @@ describe("ReceberMensagem — resumo e CNPJ do Atendimento aberto pela URA (#46)
   const dizerNovo = (caso: ReturnType<typeof montar>["caso"], texto: string) =>
     caso.execute({ telefone: TEL_NOVO, texto });
 
-  it("opção do menu: resumo do pedido, sem CNPJ informado", async () => {
+  it("setor escolhido na lista: resumo do pedido, sem CNPJ informado", async () => {
     const { caso, abertos } = montar();
     await caso.execute({ telefone: "5511912345678", texto: "4" });
-    expect(abertos[0].resumo).toBe("Cliente pediu a recepção pelo menu da URA.");
+    await caso.execute({ telefone: "5511912345678", texto: "2" });
+    expect(abertos[0].resumo).toBe("Cliente pediu o setor Tributário pelo menu da URA.");
     expect(abertos[0].cnpjInformado).toBeUndefined();
   });
 

@@ -8,7 +8,6 @@ export type ListarRegistrosInput = {
   acao?: string;
   alvo?: string;
   resultado?: string;
-  // yyyy-mm-dd (input type="date"); o caso de uso resolve o dia inteiro, início e fim.
   dataInicio?: string;
   dataFim?: string;
 };

@@ -9,8 +9,6 @@ import { useAnexarAlteracaoContratual } from "./use-anexar-alteracao-contratual.
 
 type Props = { clienteId: string; documentosIniciais?: DocumentoContratualVisivelDto[] };
 
-// Só o Admin recebe este container (a página decide). A lista é a mesma do botão "Visualizar
-// alteração": anexar a atualiza pela invalidação da query.
 export function AnexarAlteracaoContratualContainer({ clienteId, documentosIniciais }: Props) {
   const { data: documentos = [] } = useDocumentosContratuais(clienteId, documentosIniciais);
   const painelId = idPainelAnexar(clienteId);

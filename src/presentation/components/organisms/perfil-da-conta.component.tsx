@@ -2,32 +2,41 @@ import { Fragment } from "react";
 
 import { Caixa, Grade } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { escopoDoUsuario } from "@/shared/kernel/escopo-do-usuario";
 import { PAPEL_LABEL } from "@/shared/kernel/papeis";
-import { SETOR_LABEL } from "@/shared/kernel/setores";
 
 type PerfilDaContaProps = {
   nome: string;
   email: string;
   papel: string;
   setor: string;
-  // Formulário de troca de senha (slot: é um Container).
+  avatar?: React.ReactNode;
   formulario: React.ReactNode;
 };
 
-export function PerfilDaConta({ nome, email, papel, setor, formulario }: PerfilDaContaProps) {
+export function PerfilDaConta({
+  nome,
+  email,
+  papel,
+  setor,
+  avatar,
+  formulario,
+}: PerfilDaContaProps) {
   const dados = [
     { rotulo: "Nome", valor: nome },
     { rotulo: "E-mail", valor: email },
     { rotulo: "Papel", valor: PAPEL_LABEL[papel] ?? papel },
-    {
-      rotulo: "Setor",
-      valor: papel === "admin" ? "Todos os setores" : (SETOR_LABEL[setor] ?? setor),
-    },
+    { rotulo: "Setor", valor: escopoDoUsuario({ papel, setor }).rotulo },
   ];
 
   return (
     <>
-      <Grade colunas="rotuloValor" como="dl" className="mb-8 gap-x-4 gap-y-2 text-sm">
+      {avatar}
+      <Grade
+        colunas="rotuloValor"
+        como="dl"
+        className="mb-8 gap-x-4 gap-y-2 border-t border-border pt-8 text-sm"
+      >
         {dados.map(({ rotulo, valor }) => (
           <Fragment key={rotulo}>
             <Caixa como="dt" className="text-muted-foreground">

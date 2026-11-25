@@ -1,6 +1,6 @@
 ---
 name: graphify-integration
-description: Instala, inicializa e atualiza o Graphify (github.com/Graphify-Labs/graphify) — grafo de conhecimento do código que o Claude Code consulta antes de ler arquivos brutos — num projeto que seja um repositório git. Use quando o usuário pedir para inicializar/instalar o Graphify, ou depois de um git pull num projeto que já usa Graphify (o grafo não atualiza sozinho nesse caso).
+description: Instala, inicializa e atualiza o Graphify (github.com/Graphify-Labs/graphify) — grafo de conhecimento do código que o Claude Code consulta antes de ler arquivos brutos — num projeto que seja um repositório git. É obrigatório em todo projeto deste time, iniciado no bootstrap e atualizado a cada commit, checkout e push. Use no bootstrap, quando o usuário pedir para inicializar/atualizar o Graphify, ou depois de um git pull (o grafo não atualiza sozinho nesse caso).
 ---
 
 # Graphify: instalação, inicialização e atualização
@@ -49,7 +49,12 @@ graphify extract . --code-only
 # 3. instala os hooks de git que mantêm o grafo atualizado sozinho
 #    + um merge driver, para graph.json nunca mostrar conflito de merge
 graphify hook install
+
+# 4. hook de push (política do time: o grafo também é atualizado a cada push)
+cp .claude/skills/graphify-integration/pre-push .git/hooks/pre-push
 ```
+
+`graphify-out/` fica no `.gitignore` (grafo é local). O `pre-push` roda `graphify update .` (só AST, sem custo) e nunca bloqueia o push, mesmo se o Graphify faltar.
 
 `graphify install --project` escreve a própria skill em `.claude/skills/graphify/SKILL.md` (mais um `references/` que ela carrega sob demanda) e configura o hook `PreToolUse` do Claude Code — **não precisa (e não deve) escrever nada manualmente em `CLAUDE.md`**; isso é coisa de outras plataformas (Codex, Cursor etc.), não do Claude Code.
 
@@ -70,7 +75,7 @@ Se o projeto já tiver rodado `graphify install --project` sem `--strict` antes,
 | `git commit` | reconstrói sozinho — só AST, sem custo de API |
 | `git checkout` / `git switch` (troca de branch) | reconstrói sozinho (um `git checkout -- <arquivo>` isolado não conta) |
 | `git pull` / `git merge` | **não atualiza sozinho** — rode `graphify update .` logo depois |
-| `git push` | nada a fazer |
+| `git push` | reconstrói sozinho, pelo hook `pre-push` do passo 4 |
 
 ```bash
 graphify update .

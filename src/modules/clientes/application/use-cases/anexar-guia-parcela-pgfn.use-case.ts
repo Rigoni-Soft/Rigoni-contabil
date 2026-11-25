@@ -26,12 +26,9 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { ValidationError } from "@/shared/errors/validation.error";
-import { podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
+import { podeOperarParcelamento } from "@/shared/kernel/papeis";
 import { err, type Result } from "@/shared/kernel/result";
 
-// O PDF é lido e conferido antes de subir (CNPJ de outra empresa recusa sem tocar no Storage); tudo
-// conferindo, a guia é confirmada na hora, senão nasce "a confirmar" com o motivo. O banco recusa
-// segundo anexo, competência já enviada e Parcelamento que não é da PGFN; recusa depois do upload o apaga.
 export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -43,10 +40,10 @@ export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
 
   async execute(input: AnexarGuiaParcelaPgfnInput): Promise<Result<GuiaDaParcela, AppError>> {
     const ator = await this.sessao.usuarioAtual();
-    if (!ator || !podeEditarCadastroOperacional(ator.papel, ator.setor)) {
+    if (!ator || !podeOperarParcelamento(ator.papel, ator.setor)) {
       return err(
         new ForbiddenError(
-          "Só Admin, Líder ou Funcionário do Simples Nacional anexam a guia da parcela.",
+          "Só Admin, Líder ou Funcionário do Simples Nacional ou do RH anexam a guia da parcela.",
         ),
       );
     }
@@ -68,8 +65,6 @@ export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
     if (!conferencia.ok) return conferencia;
     const { competencia, motivo } = conferencia.value;
 
-    // O nome do arquivo não entra no caminho: dois anexos da mesma competência nunca colidem no
-    // Storage, e quem decide a duplicidade é o banco.
     const caminho = `${parcelamento.value.clienteId}/guias-pgfn/${input.parcelamentoId}/${competencia}-${crypto.randomUUID()}.pdf`;
     const guia = validarGuiaParcelaPgfn({
       competencia,
@@ -93,8 +88,6 @@ export class AnexarGuiaParcelaPgfn implements AnexarGuiaParcelaPgfnPort {
     return desfazerUpload(this.storage, this.erros, input.parcelamentoId, caminho, salvo.error);
   }
 
-  // Resposta perdida não prova rollback: só a leitura confirmando a linha vira sucesso; senão o
-  // arquivo fica (apagar quebraria uma guia que ainda pode ter sido gravada) e pede conferência.
   private async reconciliar(
     parcelamentoId: string,
     guia: GuiaParcelaPgfnProps,

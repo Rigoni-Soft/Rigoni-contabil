@@ -23,12 +23,12 @@ describe("EnvioMensagemFalsoGateway (Cloud API simulada)", () => {
   });
 
   it.each([
-    [133010, ValidationError], // 400: número não registrado no WhatsApp
-    [131047, ValidationError], // 400: fora da janela de 24h
-    [131026, ValidationError], // 400: entrega falhou
-    [130429, ServicoExternoError], // 429: throughput
-    [190, ServicoExternoError], // 401: token expirado
-    [131000, ServicoExternoError], // 500: erro desconhecido
+    [133010, ValidationError],
+    [131047, ValidationError],
+    [131026, ValidationError],
+    [130429, ServicoExternoError],
+    [190, ServicoExternoError],
+    [131000, ServicoExternoError],
   ])(
     "erro %i da Cloud API vira o erro de domínio certo e não registra envio",
     async (code, tipo) => {

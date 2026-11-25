@@ -15,8 +15,8 @@ export type UsuarioProps = {
   senhaAuthAlteradaEm: Date | null;
   senhaProvisoriaExpiraEm: Date;
   desativadoEm: Date | null;
-  // Quando o Auth confirmou o ban da conta desativada; null + desativadoEm = bloqueio pendente.
   banidoEm: Date | null;
+  avatarAtualizadoEm: Date | null;
 };
 
 export class Usuario {
@@ -46,25 +46,32 @@ export class Usuario {
     return this.props.setor;
   }
 
-  // Só a troca (não o cadastro) zera isso.
   precisaTrocarSenha(): boolean {
     return this.props.senhaTrocadaEm === null;
   }
 
-  // Auth já tem a nova senha (prova gravada só DEPOIS de updateUser() ter sucesso);
-  // falta apenas perfil + auditoria.
   authJaAlterado(): boolean {
     return this.precisaTrocarSenha() && this.props.senhaAuthAlteradaEm !== null;
   }
 
-  // Soft delete: o perfil continua no banco pra preservar o histórico de auditoria.
   estaDesativado(): boolean {
     return this.props.desativadoEm !== null;
   }
 
-  // Desativada no banco (RLS já nega), mas o ban no Auth ainda não foi confirmado.
-  bloqueioPendente(): boolean {
-    return this.estaDesativado() && this.props.banidoEm === null;
+  bloqueioConfirmado(): boolean {
+    return this.props.banidoEm !== null;
+  }
+
+  desativacaoPendente(): boolean {
+    return this.estaDesativado() && (!this.bloqueioConfirmado() || this.temAvatar());
+  }
+
+  get avatarAtualizadoEm(): Date | null {
+    return this.props.avatarAtualizadoEm;
+  }
+
+  temAvatar(): boolean {
+    return this.props.avatarAtualizadoEm !== null;
   }
 
   senhaProvisoriaVencida(agora: Date): boolean {

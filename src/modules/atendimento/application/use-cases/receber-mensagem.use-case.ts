@@ -42,25 +42,27 @@ import {
   avisoDeFechado,
   estaAbertoEm,
 } from "@/modules/atendimento/domain/services/expediente.service";
-import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
+import { linhasNumeradas, paginar } from "@/modules/atendimento/domain/services/paginacao.service";
+import {
+  listaDeSetores,
+  SETORES_POR_PAGINA,
+  setoresDaUra,
+} from "@/modules/atendimento/domain/services/setores-da-ura.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { cnpjValido, normalizarCnpj } from "@/shared/kernel/cnpj";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import { SETOR_LABEL, SETOR_RECEPCAO, type SetorSlug } from "@/shared/kernel/setores";
+import { soDigitosNacionais } from "@/shared/kernel/telefone";
 
-// Uma só lista define o menu: a posição é o número digitado, e `guia` marca as opções cujo PDF vem
-// do provedor fiscal. "Falar com atendente" é sempre a última.
 const OPCOES_MENU: { rotulo: string; guia?: TipoGuia }[] = [
   { rotulo: "Contrato social e alterações" },
   { rotulo: ROTULO_GUIA.das, guia: "das" },
   { rotulo: ROTULO_GUIA.parcelamento, guia: "parcelamento" },
-  // ponytail: CND fora do menu até o escritório liberar o produto; religar = voltar esta linha
-  // { rotulo: ROTULO_GUIA.cnd, guia: "cnd" },
   { rotulo: "Falar com atendente" },
 ];
-// "Falar com atendente" é sempre a última opção do menu; a constante acompanha o array.
 const OPCAO_ATENDENTE = OPCOES_MENU.length;
 const GUIAS_DO_MENU = new Map(
   OPCOES_MENU.flatMap(({ guia }, i) => (guia ? [[String(i + 1), guia] as const] : [])),
@@ -82,14 +84,28 @@ const CNPJ_NAO_ENCONTRADO = `${SEM_CNPJ} Confira e envie novamente (ou digite *m
 const ENCAMINHANDO_PARA_RECEPCAO =
   "Vamos te encaminhar para a nossa recepção, que já vai te atender. Aguarde um instante, por favor.";
 const AVISO_RECEPCAO_CNPJ_NAO_ENCONTRADO = `${SEM_CNPJ} ${ENCAMINHANDO_PARA_RECEPCAO}`;
-// Palavras que, num número não reconhecido, pedem uma pessoa em vez de seguir o fluxo.
-const PEDIDO_DE_ATENDENTE =
-  /\b(atendente|humano|recepcao|recepcionista|suporte|ajuda|funcionario|duvida|(falar|conversar) com (alguem|uma pessoa|gente|o contador|a contadora))\b/;
-const AVISO_RECEPCAO_SEM_CADASTRO = `Não encontramos você entre os contatos cadastrados. ${ENCAMINHANDO_PARA_RECEPCAO}`;
-const AVISO_RECEPCAO_PEDIDO_NO_MENU = `Certo! ${ENCAMINHANDO_PARA_RECEPCAO}`;
+const PALAVRAS_DE_PESSOA =
+  "atendente|humano|recepcao|recepcionista|funcionario|(falar|conversar) com (alguem|uma pessoa|gente|o contador|a contadora)";
+const PEDIDO_DE_PESSOA = new RegExp(`\\b(${PALAVRAS_DE_PESSOA})\\b`);
+const PEDIDO_DE_ATENDENTE = new RegExp(`\\b(${PALAVRAS_DE_PESSOA}|suporte|ajuda|duvida)\\b`);
+function tirarAcentos(texto: string): string {
+  return texto.normalize("NFD").replace(/\p{M}/gu, "");
+}
 
-// O que a recepção lê ao assumir (`atendimentos.resumo_ura`): a origem é sempre a URA.
-const RESUMO_PEDIDO_NO_MENU = "Cliente pediu a recepção pelo menu da URA.";
+function pedeUmaPessoa(texto: string): boolean {
+  return PEDIDO_DE_PESSOA.test(tirarAcentos(texto));
+}
+
+const AVISO_RECEPCAO_SEM_CADASTRO = `Não encontramos você entre os contatos cadastrados. ${ENCAMINHANDO_PARA_RECEPCAO}`;
+
+const RESUMO_NAO_ESCOLHEU_SETOR =
+  "Cliente pediu um atendente e não escolheu um setor na lista da URA (não soube qual, não quis escolher ou pediu uma pessoa).";
+const RESUMO_SETOR_INVALIDO =
+  "Cliente pediu um atendente: respostas inválidas seguidas na lista de setores.";
+const RESUMO_PEDIU_ATENDENTE_NO_MENU =
+  "Cliente pediu um atendente por texto no menu da URA, sem escolher um setor.";
+const ROTULO_NAO_SEI_O_SETOR = "Não sei o setor";
+const AVISO_RECEPCAO_SEM_SETOR = `Sem problema! ${ENCAMINHANDO_PARA_RECEPCAO}`;
 const RESUMO_NUMERO_AMBIGUO =
   "Número cadastrado como Contato de mais de uma empresa: confirmar com o contato qual deseja.";
 const RESUMO_PEDIU_ATENDENTE = "Contato não encontrado: o número pediu um atendente.";
@@ -111,34 +127,35 @@ const LISTA_MUDOU =
 
 const ALTERACOES_POR_PAGINA = 10;
 
+const COMANDO_MENU = "menu";
+const COMANDO_MAIS = "mais";
+const ESCOLHA_CONTRATO_E_ALTERACOES = "1";
+const ESCOLHA_NAO_SEI_O_SETOR = "0";
+
 type Modo = "contrato" | "alteracoes" | "ambos";
 const MODOS: Record<string, Modo> = { "1": "contrato", "2": "alteracoes", "3": "ambos" };
 
-// `telefone` com DDI, como a mensagem chegou (resposta); `chave` só dígitos nacionais (sessão).
-// `idExterno`: id da Mensagem que o contato mandou, guardado ao abrir o Atendimento.
 type Remetente = { telefone: string; chave: string; idExterno?: string };
-type Conversa = Remetente & { contato: ContatoIdentificado };
-// O que o remetente disse, para abrir o Atendimento na recepção; `clienteId` null = número sem Contato.
+type Conversa = Remetente & { contato: ContatoIdentificado; texto: string };
 type Origem = Remetente & { textoDoContato: string; clienteId: string | null };
-// Por que vai à recepção: `cnpj` é o CNPJ (normalizado) que o número informou, quando informou; o
-// banco o liga ao Cliente se existir, e sem Cliente a recepção vê um provável cliente novo.
-type Encaminhamento = { resumo: string; aviso?: string; cnpj?: string };
+type Encaminhamento = { resumo: string; aviso?: string; cnpj?: string; setor?: SetorSlug };
 type Documentos = { contrato: DocumentoContratual | null; alteracoes: DocumentoContratual[] };
 
 function origemDe(
-  { contato, telefone, chave, idExterno }: Conversa,
-  textoDoContato: string,
+  { contato, telefone, chave, idExterno, texto }: Conversa,
+  textoDoContato = texto,
 ): Origem {
   return { telefone, chave, idExterno, textoDoContato, clienteId: contato.clienteId };
 }
 
-// Impressão digital da lista inteira (a numeração das páginas depende de todos os itens). Hash
-// não criptográfico (cyrb53, 53 bits): só detecta mudança, não protege nada, e a camada de
-// aplicação não importa `crypto` (infra). Colisão exigiria uma lista diferente com o mesmo hash.
 function impressaoDaLista(alteracoes: DocumentoContratual[]): string {
+  return cyrb53(alteracoes.map((a) => a.caminho).join("\n"));
+}
+
+function cyrb53(texto: string): string {
   let h1 = 0xdeadbeef;
   let h2 = 0x41c6ce57;
-  for (const ch of alteracoes.map((a) => a.caminho).join("\n")) {
+  for (const ch of texto) {
     const codigo = ch.codePointAt(0) as number;
     h1 = Math.imul(h1 ^ codigo, 2654435761);
     h2 = Math.imul(h2 ^ codigo, 1597334677);
@@ -148,24 +165,12 @@ function impressaoDaLista(alteracoes: DocumentoContratual[]): string {
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
 }
 
-function paginaDe(alteracoes: DocumentoContratual[], pagina: number): DocumentoContratual[] {
-  return alteracoes.slice((pagina - 1) * ALTERACOES_POR_PAGINA, pagina * ALTERACOES_POR_PAGINA);
+function listaDaPagina(alteracoes: DocumentoContratual[], numero: number): string {
+  const exibida = paginar(alteracoes, numero, ALTERACOES_POR_PAGINA);
+  const linhas = linhasNumeradas(exibida, descreverDocumento);
+  return `Qual alteração você deseja? (página ${exibida.pagina} de ${exibida.total})\n${linhas}\nDigite *menu* para voltar.`;
 }
 
-function listaDaPagina(alteracoes: DocumentoContratual[], pagina: number): string {
-  const total = Math.ceil(alteracoes.length / ALTERACOES_POR_PAGINA);
-  const itens = paginaDe(alteracoes, pagina)
-    .map((a, i) => `${i + 1} - ${descreverDocumento(a)}`)
-    .join("\n");
-  const mais = pagina < total ? "\nDigite *mais* para ver as próximas." : "";
-  return `Qual alteração você deseja? (página ${pagina} de ${total})\n${itens}${mais}\nDigite *menu* para voltar.`;
-}
-
-// Passos do menu de documentos ficam numa sessão que guarda só a posição (etapa/modo/página):
-// nada do Cliente é persistido, os documentos são relidos a cada mensagem. "1".."5" é escolha
-// de menu; qualquer outro texto reabre a saudação com o menu.
-// A sessão guarda também um hash da lista de alterações exibida: se ela mudar antes da escolha,
-// nada é entregue e a lista nova é mostrada.
 export class ReceberMensagem implements ReceberMensagemPort {
   constructor(
     private readonly contatos: IdentificacaoContatoPort,
@@ -186,8 +191,6 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const chave = soDigitosNacionais(mensagem.telefone);
     if (!chave) return err(new ValidationError("Telefone da mensagem é obrigatório"));
 
-    // Quem já tem Atendimento em andamento continua nele; a URA não recomeça.
-    // ponytail: sem resposta automática, quem responde é o Funcionário (tela de atendimento do Funcionário ainda não existe).
     const anexada = await this.mensagens.execute({
       chave,
       mensagem: { autor: "contato", texto: mensagem.texto, idExterno: mensagem.id },
@@ -205,8 +208,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const sessao = await this.sessoes.obter(chave);
     if (!sessao.ok) return sessao;
     if (contato.value === "ambiguo") {
-      // Nenhum documento é oferecido: sem confirmar a empresa, a recepção decide.
-      return this.encaminharRecepcao(
+      return this.encaminhar(
         {
           telefone: mensagem.telefone,
           chave,
@@ -225,8 +227,9 @@ export class ReceberMensagem implements ReceberMensagemPort {
       telefone: mensagem.telefone,
       chave,
       idExterno: mensagem.id,
+      texto: mensagem.texto,
     };
-    if (texto === "menu") {
+    if (texto === COMANDO_MENU) {
       const limpa = await this.sessoes.limpar(chave);
       if (!limpa.ok) return limpa;
       return this.responderMenu(conversa, texto);
@@ -235,12 +238,10 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (sessao.value?.etapa === "alteracao") {
       return this.escolherAlteracao(conversa, sessao.value, texto);
     }
+    if (sessao.value?.etapa === "setor") return this.escolherSetor(conversa, sessao.value, texto);
     return this.responderMenu(conversa, texto);
   }
 
-  // Fora do expediente a URA só avisa o horário: nada de menu, documento, sessão ou Atendimento.
-  // Devolve o resultado do aviso, ou `null` com o escritório aberto. Sem a lista de feriados não
-  // dá para afirmar nem se está aberto nem a data da volta: o erro faz a Meta reenviar.
   private async avisarSeFechado(telefone: string): Promise<Result<void, AppError> | null> {
     const agora = this.relogio.agora();
     const extras = await this.feriados.listarDatas();
@@ -250,10 +251,6 @@ export class ReceberMensagem implements ReceberMensagemPort {
     return this.enviar(telefone, avisoDeFechado(agora, feriados));
   }
 
-  // Número sem Contato: "já é cliente?" → CNPJ → recepção. Mesmo com o CNPJ o número não é um
-  // Contato (já foi buscado em todos os Clientes), então o fim é sempre a recepção; CNPJ que não
-  // existe em nenhum cadastro tem 1 nova tentativa antes. Pedido de atendente em qualquer etapa
-  // vai direto à recepção; sessão ausente/expirada/de outro fluxo ou "menu" recomeça pela pergunta.
   private async identificarNovo(
     { telefone, texto: textoDoContato, id: idExterno }: MensagemRecebida,
     chave: string,
@@ -261,16 +258,16 @@ export class ReceberMensagem implements ReceberMensagemPort {
     sessao: SessaoAtendimento | null,
   ): Promise<Result<void, AppError>> {
     const origem: Origem = { telefone, chave, idExterno, textoDoContato, clienteId: null };
-    const etapa = texto === "menu" ? null : sessao?.etapa;
-    const semAcento = texto.normalize("NFD").replace(/\p{M}/gu, "");
+    const etapa = texto === COMANDO_MENU ? null : sessao?.etapa;
+    const semAcento = tirarAcentos(texto);
 
-    if (texto !== "menu" && PEDIDO_DE_ATENDENTE.test(semAcento)) {
-      return this.encaminharRecepcao(origem, { resumo: RESUMO_PEDIU_ATENDENTE });
+    if (texto !== COMANDO_MENU && PEDIDO_DE_ATENDENTE.test(semAcento)) {
+      return this.encaminhar(origem, { resumo: RESUMO_PEDIU_ATENDENTE });
     }
     if (etapa === "ja_cliente") {
       if (["sim", "s"].includes(semAcento)) return this.avancar(origem, "cnpj", PEDIR_CNPJ);
       if (["nao", "n"].includes(semAcento)) {
-        return this.encaminharRecepcao(origem, { resumo: RESUMO_NAO_E_CLIENTE });
+        return this.encaminhar(origem, { resumo: RESUMO_NAO_E_CLIENTE });
       }
       return this.tratarInvalido(origem, etapa, sessao, SIM_OU_NAO);
     }
@@ -280,12 +277,12 @@ export class ReceberMensagem implements ReceberMensagemPort {
       const cadastrado = await this.contatos.cnpjCadastrado(cnpj);
       if (!cadastrado.ok) return cadastrado;
       if (cadastrado.value) {
-        return this.encaminharRecepcao(origem, { resumo: RESUMO_CNPJ_CADASTRADO, cnpj });
+        return this.encaminhar(origem, { resumo: RESUMO_CNPJ_CADASTRADO, cnpj });
       }
       const primeiraTentativa = etapa === "cnpj";
       if (primeiraTentativa)
         return this.avancar(origem, "cnpj_nova_tentativa", CNPJ_NAO_ENCONTRADO);
-      return this.encaminharRecepcao(origem, {
+      return this.encaminhar(origem, {
         resumo: RESUMO_CNPJ_NOVO,
         aviso: AVISO_RECEPCAO_CNPJ_NAO_ENCONTRADO,
         cnpj,
@@ -294,8 +291,6 @@ export class ReceberMensagem implements ReceberMensagemPort {
     return this.avancar(origem, "ja_cliente", PERGUNTA_CLIENTE);
   }
 
-  // Sem contador o cliente ficaria preso em resposta inválida (sim/não ou CNPJ): ao passar do
-  // limite vai à recepção.
   private async tratarInvalido(
     origem: Origem,
     etapa: EtapaIdentificacao,
@@ -304,13 +299,12 @@ export class ReceberMensagem implements ReceberMensagemPort {
   ): Promise<Result<void, AppError>> {
     const invalidos = invalidosDe(sessao) + 1;
     if (invalidos >= MAX_INVALIDOS) {
-      return this.encaminharRecepcao(origem, { resumo: RESUMO_RESPOSTAS_INVALIDAS });
+      return this.encaminhar(origem, { resumo: RESUMO_RESPOSTAS_INVALIDAS });
     }
     const salva = await this.sessoes.salvar(origem.chave, { etapa, invalidos });
     return salva.ok ? this.enviar(origem.telefone, aviso) : salva;
   }
 
-  // Trocar de etapa zera o contador de respostas inválidas (cada etapa tem o seu).
   private async avancar(
     { telefone, chave }: Origem,
     etapa: EtapaIdentificacao,
@@ -320,11 +314,15 @@ export class ReceberMensagem implements ReceberMensagemPort {
     return salva.ok ? this.enviar(telefone, texto) : salva;
   }
 
-  private async encaminharRecepcao(
+  private async encaminhar(
     { telefone, chave, idExterno, textoDoContato, clienteId }: Origem,
-    { resumo, aviso: textoAviso = AVISO_RECEPCAO_SEM_CADASTRO, cnpj }: Encaminhamento,
+    {
+      resumo,
+      aviso: textoAviso = AVISO_RECEPCAO_SEM_CADASTRO,
+      cnpj,
+      setor = SETOR_RECEPCAO,
+    }: Encaminhamento,
   ): Promise<Result<void, AppError>> {
-    // Aviso antes de abrir: se o envio falhar e a Meta reenviar, não nasce Atendimento duplicado.
     const aviso = await this.enviar(telefone, textoAviso);
     if (!aviso.ok) return aviso;
     const aberto = await this.atendimentos.execute({
@@ -333,7 +331,7 @@ export class ReceberMensagem implements ReceberMensagemPort {
       clienteId,
       cnpjInformado: cnpj,
       resumo,
-      setor: "recepcao",
+      setor,
       mensagens: [
         { autor: "contato", texto: textoDoContato, idExterno },
         { autor: "ura", texto: textoAviso },
@@ -342,7 +340,6 @@ export class ReceberMensagem implements ReceberMensagemPort {
     if (!aberto.ok) return aberto;
     const limpa = await this.sessoes.limpar(chave);
     if (!limpa.ok) return limpa;
-    // O Atendimento espera no Setor: o cliente só é avisado de que vão atendê-lo, sem posição.
     const enviado = await this.enviar(telefone, AVISO_AGUARDE);
     if (!enviado.ok) return enviado;
     const registrada = await this.mensagens.execute({
@@ -354,18 +351,17 @@ export class ReceberMensagem implements ReceberMensagemPort {
 
   private async responderMenu(conversa: Conversa, texto: string): Promise<Result<void, AppError>> {
     const { contato, telefone, chave } = conversa;
-    if (texto === "1") {
+    if (texto === ESCOLHA_CONTRATO_E_ALTERACOES) {
       const salva = await this.sessoes.salvar(chave, { etapa: "tipo_documento" });
       return salva.ok ? this.enviar(telefone, PERGUNTA_TIPO) : salva;
     }
     if (texto === String(OPCAO_ATENDENTE)) {
-      // A Mensagem registrada é o rótulo da opção, não o dígito: o Funcionário lê o pedido do
-      // contato em vez de um "5" solto.
-      return this.encaminharRecepcao(origemDe(conversa, OPCOES_MENU[OPCAO_ATENDENTE - 1].rotulo), {
-        resumo: RESUMO_PEDIDO_NO_MENU,
-        aviso: AVISO_RECEPCAO_PEDIDO_NO_MENU,
-      });
+      const setores = await this.setoresDoContato(contato);
+      if (!setores.ok) return setores;
+      return this.mostrarSetores(conversa, setores.value, { pagina: 1, invalidos: 0 });
     }
+    if (pedeUmaPessoa(texto))
+      return this.paraRecepcaoSemSetor(conversa, RESUMO_PEDIU_ATENDENTE_NO_MENU);
     const guia = GUIAS_DO_MENU.get(texto);
     if (guia === "das") return this.entregarPelaUra(conversa, guia, this.dasNaUra);
     if (guia === "parcelamento")
@@ -378,9 +374,67 @@ export class ReceberMensagem implements ReceberMensagemPort {
     );
   }
 
-  // O provedor fiscal é falha esperada por Cliente (sem autorização, fora do ar): o contato é
-  // avisado e a mensagem fica resolvida, em vez de a Meta reenviar para sempre. Só falhar o envio
-  // do PDF/aviso devolve erro.
+  private async setoresDoContato(
+    contato: ContatoIdentificado,
+  ): Promise<Result<SetorSlug[], AppError>> {
+    const regime = await this.contatos.regimeDoCliente(contato.clienteId);
+    return regime.ok ? ok(setoresDaUra(regime.value)) : regime;
+  }
+
+  private async mostrarSetores(
+    { telefone, chave }: Conversa,
+    setores: SetorSlug[],
+    posicao: { pagina: number; invalidos: number },
+  ): Promise<Result<void, AppError>> {
+    const salva = await this.sessoes.salvar(chave, { etapa: "setor", ...posicao });
+    return salva.ok ? this.enviar(telefone, listaDeSetores(setores, posicao.pagina)) : salva;
+  }
+
+  private async escolherSetor(
+    conversa: Conversa,
+    sessao: Extract<SessaoAtendimento, { etapa: "setor" }>,
+    texto: string,
+  ): Promise<Result<void, AppError>> {
+    if (texto === ESCOLHA_NAO_SEI_O_SETOR || pedeUmaPessoa(texto)) {
+      return this.paraRecepcaoSemSetor(
+        conversa,
+        RESUMO_NAO_ESCOLHEU_SETOR,
+        texto === ESCOLHA_NAO_SEI_O_SETOR ? ROTULO_NAO_SEI_O_SETOR : undefined,
+      );
+    }
+
+    const lista = await this.setoresDoContato(conversa.contato);
+    if (!lista.ok) return lista;
+    const setores = lista.value;
+    const exibida = paginar(setores, sessao.pagina, SETORES_POR_PAGINA);
+    if (texto === COMANDO_MAIS && exibida.temMais) {
+      return this.mostrarSetores(conversa, setores, { pagina: exibida.pagina + 1, invalidos: 0 });
+    }
+
+    const escolhido = exibida.escolher(texto);
+    if (escolhido) {
+      const nome = SETOR_LABEL[escolhido];
+      return this.encaminhar(origemDe(conversa, nome), {
+        setor: escolhido,
+        resumo: `Cliente pediu o setor ${nome} pelo menu da URA.`,
+        aviso: `Certo! Vamos te encaminhar para o setor ${nome}, que já vai te atender. Aguarde um instante, por favor.`,
+      });
+    }
+
+    const invalidos = sessao.invalidos + 1;
+    if (invalidos >= MAX_INVALIDOS)
+      return this.paraRecepcaoSemSetor(conversa, RESUMO_SETOR_INVALIDO);
+    return this.mostrarSetores(conversa, setores, { pagina: exibida.pagina, invalidos });
+  }
+
+  private paraRecepcaoSemSetor(
+    conversa: Conversa,
+    resumo: string,
+    rotulo?: string,
+  ): Promise<Result<void, AppError>> {
+    return this.encaminhar(origemDe(conversa, rotulo), { resumo, aviso: AVISO_RECEPCAO_SEM_SETOR });
+  }
+
   private async entregarGuia(
     { telefone, contato }: Conversa,
     tipo: TipoGuia,
@@ -395,8 +449,6 @@ export class ReceberMensagem implements ReceberMensagemPort {
     return this.despacharDocumento({ telefone, ...guia.value });
   }
 
-  // DAS e parcelamento seguem o processo do job: o caso de uso confere o banco, responde ao contato
-  // e só chama o provedor quando há o que entregar. A falha da guia é tratada como a das demais.
   private async entregarPelaUra(
     { telefone, contato }: Conversa,
     tipo: TipoGuia,
@@ -410,7 +462,6 @@ export class ReceberMensagem implements ReceberMensagemPort {
     }
   }
 
-  // Só a mensagem: o objeto de erro inteiro poderia levar o CNPJ ao log.
   private falhaInesperadaDaGuia(telefone: string, tipo: TipoGuia, erro: unknown) {
     this.erros.registrar(
       `Falha inesperada ao buscar a guia ${tipo}:`,
@@ -419,8 +470,6 @@ export class ReceberMensagem implements ReceberMensagemPort {
     return this.enviar(telefone, GUIA_INDISPONIVEL);
   }
 
-  // Sem autorização é esperado por Cliente; o resto (Cliente sumido, CNPJ inválido, provedor
-  // fora do ar) é problema do sistema e precisa de rastro. Sem CNPJ no log.
   private falhaDaGuia(telefone: string, tipo: TipoGuia, erro: AppError) {
     if (erro instanceof ForbiddenError) return this.enviar(telefone, SEM_AUTORIZACAO_FISCAL);
     this.erros.registrar(`Falha ao buscar a guia ${tipo}:`, erro.message);
@@ -440,7 +489,6 @@ export class ReceberMensagem implements ReceberMensagemPort {
       return this.entregar(conversa, [contrato]);
     }
     if (alteracoes.length === 0) {
-      // "Ambos" sem alterações ainda entrega o contrato.
       if (modo === "ambos" && contrato) return this.entregar(conversa, [contrato]);
       return this.enviar(conversa.telefone, SEM_ALTERACOES);
     }
@@ -464,8 +512,6 @@ export class ReceberMensagem implements ReceberMensagemPort {
     const { contrato, alteracoes } = existentes.value;
     if (alteracoes.length === 0) return this.enviar(conversa.telefone, SEM_ALTERACOES);
 
-    // Lista mudou desde que foi exibida: o número digitado pode apontar para outro documento
-    // jurídico, então nada é entregue e a lista atualizada é mostrada de novo.
     if (sessao.lista !== impressaoDaLista(alteracoes)) {
       return this.mostrarPagina(
         conversa,
@@ -475,16 +521,15 @@ export class ReceberMensagem implements ReceberMensagemPort {
       );
     }
 
-    const ultimaPagina = Math.ceil(alteracoes.length / ALTERACOES_POR_PAGINA);
-    const pagina = Math.min(sessao.pagina, ultimaPagina);
-    if (texto === "mais" && pagina < ultimaPagina) {
-      return this.mostrarPagina(conversa, { ...sessao, pagina: pagina + 1 }, alteracoes);
+    const exibida = paginar(alteracoes, sessao.pagina, ALTERACOES_POR_PAGINA);
+    if (texto === COMANDO_MAIS && exibida.temMais) {
+      return this.mostrarPagina(conversa, { ...sessao, pagina: exibida.pagina + 1 }, alteracoes);
     }
 
-    const escolhida = /^\d+$/.test(texto)
-      ? paginaDe(alteracoes, pagina)[Number(texto) - 1]
-      : undefined;
-    if (!escolhida) return this.enviar(conversa.telefone, listaDaPagina(alteracoes, pagina));
+    const escolhida = exibida.escolher(texto);
+    if (!escolhida) {
+      return this.enviar(conversa.telefone, listaDaPagina(alteracoes, exibida.pagina));
+    }
     return this.entregar(conversa, sessao.modo === "ambos" ? [contrato, escolhida] : [escolhida]);
   }
 
@@ -500,7 +545,6 @@ export class ReceberMensagem implements ReceberMensagemPort {
       : salva;
   }
 
-  // Contrato à parte; alterações já vêm do gateway por nº decrescente.
   private async carregar(contato: ContatoIdentificado): Promise<Result<Documentos, AppError>> {
     const lista = await this.documentos.listar(contato.clienteId);
     if (!lista.ok) return lista;
@@ -510,8 +554,6 @@ export class ReceberMensagem implements ReceberMensagemPort {
     });
   }
 
-  // Encerra a sessão só depois de entregar: se o envio falhar, a Meta reenvia a mensagem e o
-  // cliente continua do mesmo ponto. `null` = contrato pedido ("ambos") mas não cadastrado.
   private async entregar(
     { telefone, chave }: Conversa,
     documentos: (DocumentoContratual | null)[],
@@ -522,10 +564,12 @@ export class ReceberMensagem implements ReceberMensagemPort {
         : await this.enviar(telefone, SEM_CONTRATO);
       if (!enviado.ok) return enviado;
     }
-    // Já entregou: falhar aqui faria a Meta reenviar a mensagem e duplicar o documento. A
-    // sessão que sobrar expira sozinha (10 min) ou some com "menu".
-    await this.sessoes.limpar(chave);
+    await this.limparSessaoIgnorandoFalha(chave);
     return ok(undefined);
+  }
+
+  private async limparSessaoIgnorandoFalha(chave: string): Promise<void> {
+    await this.sessoes.limpar(chave);
   }
 
   private async enviarDocumento(

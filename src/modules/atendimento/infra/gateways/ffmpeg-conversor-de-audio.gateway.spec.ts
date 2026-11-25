@@ -15,7 +15,6 @@ describe("FfmpegConversorDeAudioGateway", () => {
   });
 
   it("binário que sai com erro (entrada que não é áudio) devolve falha de conversão", async () => {
-    // `node -e` sai com 1: faz o papel de um ffmpeg que recusa a entrada.
     const gateway = new FfmpegConversorDeAudioGateway(process.execPath);
 
     const r = await gateway.paraOggOpus(new Uint8Array([1, 2, 3]));

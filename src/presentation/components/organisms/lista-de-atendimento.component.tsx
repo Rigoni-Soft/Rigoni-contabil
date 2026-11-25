@@ -15,23 +15,17 @@ type ListaDeAtendimentoProps = {
   contadores: Record<AbaDoAtendimento, number>;
   aviso?: string;
   indisponivel?: boolean;
-  // Só o Admin escolhe o Setor; para os demais a espera é a do próprio Setor.
   escolhaDeSetor?: {
     setor: string;
     opcoes: { valor: string; rotulo: string }[];
     onChange: (setor: string) => void;
   };
-  // Em tela estreita o chat aberto ocupa o lugar da lista.
   escondidaNoCelular?: boolean;
-  // Avisa o leitor de tela de cliente novo na espera (o som é o único outro sinal).
   anuncio?: string;
-  // Destino do foco quando a conversa fecha.
   ref?: React.Ref<HTMLElement>;
-  // O painel da aba ativa (`PainelDeEspera` ou `PainelDeEmAtendimento`).
   children: React.ReactNode;
 };
 
-// A coluna da lista: o Setor (Admin), as duas abas e o painel da aba ativa.
 export function ListaDeAtendimento({
   aba,
   onEscolherAba,

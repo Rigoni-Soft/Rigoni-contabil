@@ -8,7 +8,6 @@ type CampoSelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
   rotulo: string;
 };
 
-// Rótulo + seletor compactos, para painéis laterais.
 export function CampoSelect({ id, rotulo, className, children, ...props }: CampoSelectProps) {
   return (
     <Pilha espaco={1} className="min-w-0 flex-1">

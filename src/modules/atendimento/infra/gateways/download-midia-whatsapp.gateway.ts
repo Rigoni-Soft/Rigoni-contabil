@@ -9,11 +9,8 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const VERSAO_API = "v23.0";
 const TIMEOUT_MS = 15_000;
+const STATUS_DE_MIDIA_QUE_NAO_VOLTA = [400, 404];
 
-// Adapter real da porta DownloadMidiaPort, pela WhatsApp Cloud API: GET /{id} devolve o
-// endereço temporário e o mime; o arquivo sai de lá com o mesmo bearer. 404 (mídia expirada) e 400
-// (id inválido) não melhoram ao repetir: ValidationError. O resto (401/403, 429, 5xx, rede) é
-// falha do serviço: ServicoExternoError, e a Meta reenvia o evento.
 export class DownloadMidiaWhatsappGateway implements DownloadMidiaPort {
   constructor(
     private readonly token: string,
@@ -49,7 +46,7 @@ export class DownloadMidiaWhatsappGateway implements DownloadMidiaPort {
     if (resposta.ok) return ok(resposta);
     const texto = `Download recusado (${resposta.status}).`;
     return err(
-      resposta.status === 400 || resposta.status === 404
+      STATUS_DE_MIDIA_QUE_NAO_VOLTA.includes(resposta.status)
         ? new ValidationError(texto)
         : new ServicoExternoError(texto),
     );

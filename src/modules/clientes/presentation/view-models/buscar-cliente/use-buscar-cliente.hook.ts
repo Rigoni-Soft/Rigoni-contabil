@@ -13,9 +13,6 @@ export function useBuscarCliente(papel: string, setor: string, apenasSnMei: bool
   const [clienteSelecionado, setClienteSelecionado] =
     useState<CadastroOperacionalClienteDto | null>(null);
 
-  // Debounce simples (stdlib) — evita disparar a query a cada tecla digitada.
-  // A busca em si (cache, dedupe, estado de carregando/erro) fica por conta
-  // do React Query em buscar-cliente.queries.ts (arquitetura.md, seção 4.9).
   useEffect(() => {
     const timer = setTimeout(() => setTermoDebounced(termo.trim()), DEBOUNCE_MS);
     return () => clearTimeout(timer);
@@ -30,9 +27,6 @@ export function useBuscarCliente(papel: string, setor: string, apenasSnMei: bool
     setTermoDebounced("");
   };
 
-  // Mesma ação por trás de "Nova busca" (topo) e "Cancelar" (dentro do form,
-  // onde um <Link href="/"> não faria nada, já que a busca já está em "/") —
-  // fecha o painel e volta pro campo de busca.
   const fecharPainel = () => setClienteSelecionado(null);
 
   return {

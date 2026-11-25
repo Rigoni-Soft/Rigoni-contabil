@@ -3,12 +3,9 @@ import { z } from "zod";
 import { REGIMES } from "@/shared/kernel/regimes";
 import { SETORES } from "@/shared/kernel/setores";
 
-// `abrir_atendimento`: o Atendimento aberto na espera do Setor.
 export const aberturaRowSchema = z.object({ id: z.string() });
-// `anexar_mensagem_atendimento`: true se havia Atendimento em andamento.
 export const anexoRowSchema = z.boolean();
 
-// `transferir_atendimento`: `status` e, quando transferido, os nomes/dados do destino.
 export const transferenciaRowSchema = z.discriminatedUnion("status", [
   z.object({
     status: z.literal("transferido"),
@@ -22,7 +19,6 @@ export const transferenciaRowSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("inexistente") }),
 ]);
 
-// Linha de `atendimentos` lida para decidir a Transferência.
 export const atendimentoEmAndamentoRowSchema = z.object({
   id: z.string(),
   cliente_id: z.string().nullable(),
@@ -32,23 +28,18 @@ export const atendimentoEmAndamentoRowSchema = z.object({
   chave_telefone: z.string(),
 });
 
-// `clientes` com o cadastro operacional embutido (1:1; só MEI/Simples Nacional têm linha).
 export const roteamentoDoClienteRowSchema = z.object({
   regime: z.enum(REGIMES),
-  cliente_cadastro_operacional_sn: z.object({ responsavel_id: z.string().nullable() }).nullable(),
-  // Responsável dos Setores fora do Simples Nacional (um por Setor).
   cliente_responsaveis: z.array(z.object({ setor: z.enum(SETORES), responsavel_id: z.string() })),
 });
 
 export const liderRowSchema = z.object({ id: z.string() });
 
-// `encerrar_atendimento`: `inexistente` se não estava em andamento com o dono informado.
 export const encerramentoRowSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("encerrado") }),
   z.object({ status: z.literal("inexistente") }),
 ]);
 
-// `assumir_atendimento`.
 export const assuncaoRowSchema = z.object({
   status: z.enum(["assumido", "inelegivel", "ja_assumido", "inexistente"]),
 });
@@ -66,31 +57,17 @@ export const filaRowSchema = z.object({
   origem_nome: z.string().nullable(),
 });
 
-// `clientes` embutido num Atendimento, com os Contatos para achar quem escreve pelo telefone.
-const clienteComContatosRowSchema = z
-  .object({
-    empresa: z.string(),
-    cnpj: z.string(),
-    cliente_contatos: z.array(
-      z.object({
-        nome: z.string(),
-        telefone: z.string(),
-        padrao: z.boolean(),
-        criado_em: z.string(),
-      }),
-    ),
-  })
-  .nullable();
+const clienteComContatosRowSchema = z.object({ empresa: z.string(), cnpj: z.string() }).nullable();
 
 export const atendimentoDoFuncionarioRowSchema = z.object({
   id: z.string(),
   funcionario_id: z.string().nullable(),
+  cliente_id: z.string().nullable(),
   dono: z.object({ nome: z.string() }).nullable(),
   telefone: z.string(),
   chave_telefone: z.string(),
   criado_em: z.string(),
   clientes: clienteComContatosRowSchema,
-  // Só a mais recente (a consulta pede uma, da mais nova para a mais antiga).
   mensagens: z.array(
     z.object({
       autor: z.enum(["contato", "ura", "funcionario"]),
@@ -101,7 +78,6 @@ export const atendimentoDoFuncionarioRowSchema = z.object({
   ),
 });
 
-// Mensagem da conversa, com quem a escreveu (`perfis`).
 export const mensagemDaConversaRowSchema = z.object({
   id: z.string(),
   autor: z.enum(["contato", "ura", "funcionario"]),
@@ -144,20 +120,16 @@ export const mensagemParaReacaoRowSchema = z.object({
   reacao: z.string().nullable(),
 });
 
-// `registrar_mensagem_recebida`: o veredito do lock.
 export const registroRecebidoRowSchema = z.enum(["registrada", "duplicada", "encerrada"]);
 
-// `registrar_mensagem_do_funcionario`.
 export const registroDoFuncionarioRowSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("registrada"), id: z.string() }),
   z.object({ status: z.literal("encerrada") }),
   z.object({ status: z.literal("sem_autoridade") }),
 ]);
 
-// `atendimentos.id` lido sozinho (a mídia só precisa saber qual é o Atendimento em andamento).
 export const atendimentoIdRowSchema = z.object({ id: z.string() });
 
-// Uma página do histórico: o Atendimento só com o que decide quem pode vê-la, e as Mensagens.
 export const mensagensAnterioresRowSchema = z.object({
   setor: z.enum(SETORES),
   funcionario_id: z.string().nullable(),

@@ -9,8 +9,6 @@ import { podeAtribuirResponsavel } from "@/shared/kernel/papeis";
 import { err, type Result } from "@/shared/kernel/result";
 import { ehSetor } from "@/shared/kernel/setores";
 
-// O Responsável atual do Cliente no Setor do Líder, para a tela onde ele o troca. O SN o mostra no
-// cadastro operacional; aqui é só o dos demais Setores.
 export class ConsultarResponsavelDoSetor {
   constructor(
     private readonly sessao: SessaoPort,

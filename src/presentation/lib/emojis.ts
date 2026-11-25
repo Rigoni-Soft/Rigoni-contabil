@@ -1,4 +1,3 @@
-// Emojis oferecidos ao Funcionário, por categoria: [emoji, nome acessível].
 export const CATEGORIAS_DE_EMOJI: { nome: string; emojis: [emoji: string, nome: string][] }[] = [
   {
     nome: "Rostos",

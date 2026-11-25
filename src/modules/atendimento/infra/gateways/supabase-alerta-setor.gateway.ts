@@ -10,8 +10,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 type OrigemAlertaSetor = "lembretes" | "parcelamento" | "lembrete_pgfn";
 
-// Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário. Cada job grava e
-// resolve só os alertas da própria origem.
 export class SupabaseAlertaSetorGateway implements AlertaSetorPort {
   constructor(
     private readonly supabaseAdmin: SupabaseClient,

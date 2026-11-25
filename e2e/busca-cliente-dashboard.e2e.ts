@@ -19,8 +19,6 @@ test.describe("Busca geral (sem restrição de Regime)", () => {
   });
 });
 
-// Funcionário SN cai direto em /simples-nacional ao logar: é a página principal do setor dele.
-
 test.describe("Busca de cliente no dashboard (#35)", () => {
   test("Funcionário SN encontra um cliente pela busca e edita o cadastro operacional inline @smoke", async ({
     page,

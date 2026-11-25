@@ -8,16 +8,12 @@ export type TransferirAtendimentoInput = {
   resumo: string;
 };
 
-// Campos null quando o número ainda não foi identificado (ex.: Atendimento aberto na recepção
-// sem Cliente).
 export type DadosDoContato = {
   contatoNome: string | null;
   empresa: string | null;
   cnpj: string | null;
 };
 
-// O que o destino recebe.
-// `destinatarioNome` null = espera do Setor; senão o Atendimento espera dirigido a essa pessoa.
 export type TransferenciaConcluida = {
   destinatarioNome: string | null;
   contato: DadosDoContato;

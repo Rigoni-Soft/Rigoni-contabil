@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3): requer `npx supabase start`
- * rodando localmente com as migrations e o seed aplicados.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { RegistroAcao } from "@/modules/auditoria/domain/entities/registro-acao.entity";
@@ -37,8 +33,6 @@ async function clienteAutenticadoComoFuncionarioSeed(): Promise<SupabaseClient> 
   return supabase;
 }
 
-// registrar_acao_auditoria só aceita service_role (migration 20260924190000_usuarios_e_auditoria.sql) —
-// mesmo client que `main/auditoria.factory.ts` usa de verdade em produção.
 function clienteServiceRole(): SupabaseClient {
   return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -74,8 +68,6 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
     expect(data?.ator).toBe(ADMIN_ID);
   });
 
-  // Só `service_role` tem EXECUTE na RPC: um usuário comum (mesmo o Admin, autenticado pela sessão
-  // normal e não pelo client privilegiado) não consegue fabricar um evento chamando-a direto.
   it("rejeita a chamada da RPC por um usuário autenticado comum (EXECUTE revogado, só service_role chama)", async () => {
     const supabase = await clienteAutenticadoComoFuncionarioSeed();
     const repositorio = new SupabaseRegistroAcaoRepository(supabase);
@@ -85,8 +77,6 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
     expect(resultado.ok).toBe(false);
   });
 
-  // Sem policy de INSERT na tabela, um usuário autenticado não consegue fabricar
-  // um evento chamando a Data API diretamente (bypassando a RPC/a aplicação).
   it("rejeita insert direto na tabela via Data API, bypassando a RPC", async () => {
     const supabase = await clienteAutenticadoComoFuncionarioSeed();
 
@@ -134,8 +124,6 @@ describe("SupabaseRegistroAcaoRepository (integração)", () => {
   });
 
   it("filtra por setor, ação (busca parcial) e resultado", async () => {
-    // salvar() precisa de service_role; listar() continua no client da sessão do
-    // Admin (RLS de leitura não mudou).
     await new SupabaseRegistroAcaoRepository(clienteServiceRole()).salvar(
       registroValido(crypto.randomUUID(), ADMIN_ID, {
         setor: "financeiro",

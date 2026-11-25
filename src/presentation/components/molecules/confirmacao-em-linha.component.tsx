@@ -2,29 +2,30 @@ import { BotaoDaGuia } from "@/presentation/components/atoms/botao-da-guia.compo
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
 type ConfirmacaoEmLinhaProps = {
-  // O que vai acontecer, dito antes (anunciado como alerta ao abrir).
   texto: React.ReactNode;
+  idDoTexto?: string;
   rotuloDoConfirmar: string;
   rotuloEmCurso: string;
   nomeDoConfirmar: string;
   nomeDoCancelar: string;
+  rotuloDoCancelar?: string;
+  focoInicial?: "cancelar" | "confirmar";
   destrutiva?: boolean;
-  // A pessoa já confirmou e o servidor ainda responde.
   emCurso: boolean;
-  // Outra ação em curso: o botão segue focável, mas avisa em vez de agir.
   ocupado: boolean;
   onConfirmar: () => void;
   onCancelar: () => void;
 };
 
-// Pergunta de risco dentro da linha: o texto, "confirmar" e "Cancelar". O foco abre no Cancelar, o
-// gesto seguro para quem abriu sem querer.
 export function ConfirmacaoEmLinha({
   texto,
+  idDoTexto,
   rotuloDoConfirmar,
   rotuloEmCurso,
   nomeDoConfirmar,
   nomeDoCancelar,
+  rotuloDoCancelar = "Cancelar",
+  focoInicial = "cancelar",
   destrutiva,
   emCurso,
   ocupado,
@@ -33,19 +34,27 @@ export function ConfirmacaoEmLinha({
 }: ConfirmacaoEmLinhaProps) {
   return (
     <>
-      <Texto variante="corpo" role="alert" className="basis-full">
+      <Texto variante="corpo" role="alert" id={idDoTexto} className="basis-full">
         {texto}
       </Texto>
       <BotaoDaGuia
         variant={destrutiva ? "destructive" : "default"}
         ocupado={ocupado}
+        autoFocus={focoInicial === "confirmar"}
         onClick={onConfirmar}
         aria-label={nomeDoConfirmar}
+        aria-describedby={idDoTexto}
       >
         {emCurso ? rotuloEmCurso : rotuloDoConfirmar}
       </BotaoDaGuia>
-      <BotaoDaGuia variant="outline" autoFocus onClick={onCancelar} aria-label={nomeDoCancelar}>
-        Cancelar
+      <BotaoDaGuia
+        variant="outline"
+        autoFocus={focoInicial === "cancelar"}
+        onClick={onCancelar}
+        aria-label={nomeDoCancelar}
+        aria-describedby={idDoTexto}
+      >
+        {rotuloDoCancelar}
       </BotaoDaGuia>
     </>
   );

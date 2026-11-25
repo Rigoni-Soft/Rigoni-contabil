@@ -22,7 +22,6 @@ test.describe("Cadastro de Cliente (Admin only)", () => {
     await page.getByRole("button", { name: "Adicionar" }).click();
     await page.getByLabel("Data da alteração 1").fill("2026-02-01");
     await page.getByLabel("Arquivo da alteração 1").setInputFiles(pdf("alteracao-1.pdf"));
-    // Sem prefixo no nome do arquivo: sugere o maior nº + 1 (1, sem outras alterações).
     await expect(page.getByLabel("Nº da alteração 1")).toHaveValue("1");
 
     await page.getByRole("button", { name: "Cadastrar" }).click();
@@ -93,7 +92,6 @@ test.describe("Cadastro de Cliente (Admin only)", () => {
 
   test("Funcionário é redirecionado pra fora do cadastro de Cliente", async ({ page }) => {
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    // Simples Nacional é a página principal do próprio setor.
     await expect(page).toHaveURL("/simples-nacional");
 
     await page.goto("/admin/clientes/novo");

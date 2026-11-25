@@ -45,7 +45,7 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
   async buscarPorId(): Promise<Result<Usuario | null, AppError>> {
     return this.erroTecnico ? err(this.erroTecnico) : ok(this.usuario);
   }
-  async listarComBloqueioPendente(): Promise<Result<Usuario[], AppError>> {
+  async listarComDesativacaoPendente(): Promise<Result<Usuario[], AppError>> {
     return ok([]);
   }
   async buscarLiderAtivoDoSetor(): Promise<Result<Usuario | null, AppError>> {
@@ -63,7 +63,6 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
 }
 
 describe("ListarSetores", () => {
-  // JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
   it("devolve lista vazia quando o usuário foi desativado, mesmo com sessão ativa", async () => {
     const sessao = new SessaoFalsa();
     const usuarios = new UsuarioRepositoryFalso();

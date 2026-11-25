@@ -1,0 +1,150 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+
+import { AvatarDaConta } from "./avatar-da-conta.component";
+
+function montar(props: Partial<React.ComponentProps<typeof AvatarDaConta>> = {}) {
+  const acoes = {
+    aoEscolher: jest.fn(),
+    aoSalvar: jest.fn(),
+    aoCancelar: jest.fn(),
+    aoRemover: jest.fn(),
+  };
+  render(
+    <AvatarDaConta
+      srcAtual="/logos/logo-contabil.jpeg"
+      temFoto={false}
+      idDoEscolher="escolher"
+      aceitar="image/jpeg,image/png,image/webp"
+      {...acoes}
+      {...props}
+    />,
+  );
+  return acoes;
+}
+
+describe("AvatarDaConta", () => {
+  it("diz o que acontece com a foto, sem checkbox de consentimento", () => {
+    montar();
+
+    expect(
+      screen.getByText("Sua foto fica guardada no sistema e só você a vê. Remova quando quiser."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.getByText("JPEG, PNG ou WebP, até 5 MB.")).toBeInTheDocument();
+  });
+
+  it("sem foto oferece Escolher foto e não mostra Remover foto", () => {
+    montar();
+
+    expect(screen.getByLabelText("Escolher foto")).toHaveAttribute("type", "file");
+    expect(screen.queryByRole("button", { name: "Remover foto" })).not.toBeInTheDocument();
+  });
+
+  it("com foto oferece Trocar foto e Remover foto, que chama a ação", async () => {
+    const { aoRemover } = montar({ temFoto: true, srcAtual: "/api/avatar?v=1" });
+
+    expect(screen.getByLabelText("Trocar foto")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Remover foto" }));
+
+    expect(aoRemover).toHaveBeenCalled();
+  });
+
+  it("mostra a imagem atual redonda", () => {
+    montar({ temFoto: true, srcAtual: "/api/avatar?v=1" });
+
+    const imagem = document.querySelector("img");
+    expect(imagem).toHaveAttribute("src", "/api/avatar?v=1");
+    expect(imagem?.className).toMatch(/rounded-full/);
+  });
+
+  it("com prévia mostra a imagem recortada e Salvar foto/Cancelar no lugar do seletor", async () => {
+    const { aoSalvar, aoCancelar } = montar({ previaSrc: "blob:previa", temFoto: true });
+
+    expect(document.querySelector("img")).toHaveAttribute("src", "blob:previa");
+    expect(screen.queryByLabelText("Trocar foto")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remover foto" })).not.toBeInTheDocument();
+
+    const salvar = screen.getByRole("button", { name: "Salvar foto" });
+    expect(salvar).toHaveFocus();
+    await userEvent.click(salvar);
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(aoSalvar).toHaveBeenCalled();
+    expect(aoCancelar).toHaveBeenCalled();
+  });
+
+  it("com prévia, anuncia que a foto está pronta para salvar", () => {
+    montar({ previaSrc: "blob:previa" });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Foto pronta. Salve para trocar.");
+  });
+
+  it("sem prévia, não anuncia foto pronta", () => {
+    montar();
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("em andamento, os botões ficam focáveis com aria-disabled e não disparam a ação", async () => {
+    const { aoSalvar } = montar({ previaSrc: "blob:previa", acao: "salvando" });
+
+    const salvar = screen.getByRole("button", { name: "Salvando…" });
+    expect(salvar).toHaveAttribute("aria-disabled", "true");
+    expect(salvar).not.toBeDisabled();
+    await userEvent.click(salvar);
+
+    expect(aoSalvar).not.toHaveBeenCalled();
+  });
+
+  it("com foto, remover em andamento mostra o progresso e o botão segue focável", async () => {
+    const { aoRemover } = montar({ temFoto: true, acao: "removendo" });
+
+    const remover = screen.getByRole("button", { name: "Removendo…" });
+    expect(remover).toHaveAttribute("aria-disabled", "true");
+    await userEvent.click(remover);
+
+    expect(aoRemover).not.toHaveBeenCalled();
+  });
+
+  it("ao preparar a foto escolhida, o seletor diz 'Preparando…' e fica com aria-disabled", () => {
+    montar({ acao: "preparando" });
+    const campo = screen.getByLabelText("Preparando a foto");
+
+    expect(screen.getByText("Preparando…")).toBeInTheDocument();
+    expect(campo).toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("o erro e a dica ficam ligados ao campo (aria-describedby e aria-invalid)", () => {
+    montar({ erro: "A foto passa de 5 MB. Escolha uma menor." });
+    const campo = screen.getByLabelText("Escolher foto");
+
+    expect(campo).toHaveAttribute("aria-invalid", "true");
+    expect(campo).toHaveAccessibleDescription(
+      /JPEG, PNG ou WebP, até 5 MB\..*A foto passa de 5 MB/,
+    );
+  });
+
+  it("sem erro, só a dica descreve o campo e ele não é inválido", () => {
+    montar();
+    const campo = screen.getByLabelText("Escolher foto");
+
+    expect(campo).not.toHaveAttribute("aria-invalid");
+    expect(campo).toHaveAccessibleDescription("JPEG, PNG ou WebP, até 5 MB.");
+  });
+
+  it("mostra o aviso de formato ou tamanho como alerta", () => {
+    montar({ erro: "A foto passa de 5 MB. Escolha uma menor." });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("A foto passa de 5 MB");
+  });
+
+  it("entrega o arquivo escolhido", async () => {
+    const { aoEscolher } = montar();
+    const arquivo = new File(["x"], "foto.png", { type: "image/png" });
+
+    await userEvent.upload(screen.getByLabelText("Escolher foto"), arquivo);
+
+    expect(aoEscolher).toHaveBeenCalledWith(arquivo);
+  });
+});

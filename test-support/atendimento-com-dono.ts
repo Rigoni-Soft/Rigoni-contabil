@@ -3,9 +3,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AberturaAtendimento } from "@/modules/atendimento/application/ports/in/abrir-atendimento.provider";
 import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 
-// A assunção ainda não tem caso de uso (vem com a aba Atendimento): as suítes de integração que
-// precisam de um Atendimento com Funcionário abrem na espera e põem o dono direto na tabela, como
-// o evento de assunção grava.
 export async function abrirComDono(
   admin: SupabaseClient,
   repositorio: AtendimentoRepositoryPort,

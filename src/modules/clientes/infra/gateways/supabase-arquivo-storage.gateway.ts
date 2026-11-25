@@ -28,7 +28,6 @@ export class SupabaseArquivoStorageGateway implements ArquivoInspecionavelPort, 
     caminho: string,
   ): Promise<Result<{ tipoMime: string; tamanho: number } | null, AppError>> {
     const { data, error } = await this.supabase.storage.from(this.bucket).info(caminho);
-    // O Storage não distingue objeto inexistente de falha de rede: os dois viram "não está lá".
     if (error || !data) return ok(null);
     return ok({ tipoMime: data.contentType ?? "", tamanho: data.size ?? 0 });
   }
@@ -36,8 +35,6 @@ export class SupabaseArquivoStorageGateway implements ArquivoInspecionavelPort, 
   async remover(caminhos: string[]): Promise<Result<void, AppError>> {
     if (caminhos.length === 0) return ok(undefined);
     const { data, error } = await this.supabase.storage.from(this.bucket).remove(caminhos);
-    // Sem policy de DELETE o Storage não erra: devolve lista vazia. Conferir a
-    // contagem evita tratar "nada removido" como sucesso.
     if (error || data?.length !== caminhos.length) {
       return err(
         new ArmazenamentoError(

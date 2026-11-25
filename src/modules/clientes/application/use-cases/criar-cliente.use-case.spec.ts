@@ -37,7 +37,6 @@ class SessaoFalsa implements SessaoPort {
 class ClienteRepositoryFalso implements ClienteRepository {
   criado: Cliente | null = null;
   erroAoCriar = false;
-  // Transação confirmada, resposta perdida: grava e devolve ResultadoIncertoError.
   respostaPerdida = false;
   reconciliacao: Result<Cliente | null, AppError> = ok(null);
   async criar(cliente: Cliente): Promise<Result<void, AppError>> {
@@ -128,7 +127,6 @@ describe("CriarCliente", () => {
         expect.stringContaining("alteracoes-contratuais"),
       ]),
     );
-    // A auditoria de sucesso é do banco (trigger), não do caso de uso.
     expect(auditoria.registros).toEqual([]);
     expect(storage.removidos).toEqual([]);
   });

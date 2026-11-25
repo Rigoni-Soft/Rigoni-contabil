@@ -19,8 +19,6 @@ const erros: RegistroDeErrosPort = { registrar: jest.fn() };
 
 const ID = "11111111-1111-1111-1111-111111111111";
 
-// Mesmo code que SupabaseSessaoGateway devolve pro "same_password" do Auth — sem importar infra no
-// teste da application (regra "so-main-importa-infra" do dependency-cruiser).
 class SenhaJaDefinidaFalsa extends AppError {
   readonly code = "SENHA_JA_DEFINIDA";
 }
@@ -73,7 +71,7 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
   async buscarPorId(): Promise<Result<Usuario | null, AppError>> {
     return this.erroTecnico ? err(this.erroTecnico) : ok(this.usuario);
   }
-  async listarComBloqueioPendente(): Promise<Result<Usuario[], AppError>> {
+  async listarComDesativacaoPendente(): Promise<Result<Usuario[], AppError>> {
     return ok([]);
   }
   async buscarLiderAtivoDoSetor(): Promise<Result<Usuario | null, AppError>> {
@@ -87,8 +85,6 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
   }
 }
 
-// Simula a RPC real: finalizar() é atômica (perfil + 1 auditoria) e idempotente;
-// `falhasRestantes` faz as N próximas chamadas falharem sem efeito algum.
 class FinalizarTrocaSenhaFalsa implements FinalizarTrocaSenhaPort {
   provaGravada = false;
   marcada = false;
@@ -134,7 +130,6 @@ function montar() {
 }
 
 describe("TrocarSenha", () => {
-  // JWT de quem foi desativado vale até expirar; o perfil é a fonte da verdade.
   it("nega usuário desativado com sessão ainda válida, sem tocar no Auth", async () => {
     const { usuarios, sessao, useCase } = montar();
     const desativado = Usuario.builder()
@@ -225,8 +220,6 @@ describe("TrocarSenha", () => {
     expect(finalizar.auditoriasGravadas).toHaveLength(1);
   });
 
-  // A senha já mudou no Auth nesse ponto (ADR 0002, não existe "desfazer") — a falha não pode virar
-  // sucesso silencioso nem erro indistinguível de "nada aconteceu".
   it("devolve EstadoInconsistenteError (não sucesso) quando a finalização falha depois da senha já trocada", async () => {
     const { sessao, usuarios, finalizar, useCase } = montar();
     usuarios.usuario = usuarioFalso(null);
@@ -240,8 +233,6 @@ describe("TrocarSenha", () => {
     expect(finalizar.auditoriasGravadas).toEqual([]);
   });
 
-  // Auth alterado com sucesso → finalização falha → retry → updateUser NÃO é
-  // chamado de novo → perfil + auditoria concluídos exatamente uma vez.
   it("retry após falha na finalização não chama updateUser de novo e grava exatamente 1 auditoria", async () => {
     const { sessao, usuarios, finalizar, auditoria, useCase } = montar();
     usuarios.usuario = usuarioFalso(null);
@@ -252,7 +243,6 @@ describe("TrocarSenha", () => {
     expect(sessao.chamadasTrocar).toBe(1);
     expect(finalizar.provaGravada).toBe(true);
 
-    // Perfil relido no retry: ainda em primeiro acesso, mas com a prova gravada.
     usuarios.usuario = usuarioFalso(null, new Date().toISOString());
 
     const retry = await useCase.execute({ novaSenha: "nova-senha-123" });
@@ -309,8 +299,6 @@ describe("TrocarSenha", () => {
     ]);
   });
 
-  // same_password sem prova de Auth alterado não pode virar sucesso — senão o usuário "troca" a
-  // senha para a mesma (a provisória) e o sistema marca a troca como concluída sem nada mudar.
   it("rejeita quando a nova senha é igual à provisória (primeiro acesso, sem prova de Auth alterado)", async () => {
     const { sessao, usuarios, finalizar, auditoria, useCase } = montar();
     sessao.erroAoTrocar = new SenhaJaDefinidaFalsa("A nova senha é igual à senha atual.");

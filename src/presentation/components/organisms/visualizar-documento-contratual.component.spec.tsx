@@ -116,7 +116,6 @@ describe("VisualizarDocumentoContratual: contexto do aviso para leitor de tela (
     expect(screen.getByRole("button", { name: /^Abrir / })).toHaveAccessibleDescription(
       "Esta é a alteração do aviso que você abriu.",
     );
-    // Só para leitor de tela: sem ocupar lugar na tela.
     expect(screen.getByText("Esta é a alteração do aviso que você abriu.")).toHaveClass("sr-only");
   });
 

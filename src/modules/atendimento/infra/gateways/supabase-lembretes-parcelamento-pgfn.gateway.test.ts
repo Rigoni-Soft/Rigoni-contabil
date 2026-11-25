@@ -1,9 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) do job de lembretes PGFN: leitura dos Clientes
- * com Parcelamento PGFN e do que falta da guia do mês, e o ciclo do alerta de origem própria
- * (abre, renova, resolve sem tocar nos alertas de outra origem). Destrutiva: só roda no Supabase
- * local e limpa pelos IDs da própria execução. Requer `npx supabase start`.
- */
 import { ExecutarLembretesParcelamentoPgfn } from "@/modules/atendimento/application/use-cases/executar-lembretes-parcelamento-pgfn.use-case";
 import { mesAtual } from "@/shared/kernel/mes-atual";
 
@@ -15,7 +9,6 @@ const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
-// O destino é validado antes de o client existir: remoto falha alto, sem tocar em dados alheios.
 const admin = criarAdminLocal(SERVICE_KEY);
 const clientes = new SupabaseClientesComParcelamentoPgfnGateway(admin);
 const alertas = new SupabaseAlertaSetorGateway(admin, "lembrete_pgfn");
@@ -62,6 +55,7 @@ async function criarParcelamento(
   await ok(
     admin.from("cliente_parcelamentos").insert({
       id,
+      setor: "simples_nacional",
       cliente_id: clienteId,
       codigo,
       parcelas_restantes: 5,
@@ -99,7 +93,6 @@ async function pendenciasDe(cliente: Fixture) {
 afterAll(async () => {
   const ids = criados.map((c) => c.id);
   if (ids.length === 0) return;
-  // Parcelamentos, guias e alertas saem em cascata com o Cliente.
   const { error } = await admin.from("clientes").delete().in("id", ids);
   expect(error).toBeNull();
 });
@@ -114,8 +107,8 @@ describe("leitura dos Clientes com Parcelamento PGFN", () => {
     await anexarGuia(confirmada, competenciaAtual, "confirmada");
 
     expect(await pendenciasDe(cliente)).toEqual([
-      { codigo: "A-SEM", estado: "sem_guia" },
-      { codigo: "B-CONF", estado: "a_confirmar" },
+      { codigo: "A-SEM", setor: "simples_nacional", estado: "sem_guia" },
+      { codigo: "B-CONF", setor: "simples_nacional", estado: "a_confirmar" },
     ]);
   });
 
@@ -124,7 +117,9 @@ describe("leitura dos Clientes com Parcelamento PGFN", () => {
     const id = await criarParcelamento(cliente.id, "ATRASO");
     await anexarGuia(id, competenciaAnterior, "confirmada");
 
-    expect(await pendenciasDe(cliente)).toEqual([{ codigo: "ATRASO", estado: "sem_guia" }]);
+    expect(await pendenciasDe(cliente)).toEqual([
+      { codigo: "ATRASO", setor: "simples_nacional", estado: "sem_guia" },
+    ]);
   });
 
   it("inclui o Parcelamento interno e ignora os que não são PGFN ou não estão em aberto", async () => {
@@ -134,22 +129,28 @@ describe("leitura dos Clientes com Parcelamento PGFN", () => {
     const encerrado = await criarCliente("PGFN Encerrado Ltda");
     await criarParcelamento(encerrado.id, "FIM", { situacao: "quitado" });
 
-    expect(await pendenciasDe(cliente)).toEqual([{ codigo: "INTERNO", estado: "sem_guia" }]);
+    expect(await pendenciasDe(cliente)).toEqual([
+      { codigo: "INTERNO", setor: "simples_nacional", estado: "sem_guia" },
+    ]);
     expect(await pendenciasDe(encerrado)).toBeUndefined();
   });
 });
 
 describe("ciclo do alerta", () => {
-  // O relógio injetado precisa cair num dia do job (1, 10 ou 15), no mês corrente e NÃO no futuro do
-  // banco: o alerta nasce com a hora real e a rodada resolve o que foi criado antes de `agora`.
-  // Por isso o dia de job mais recente que já passou (03:30 UTC = 00:30 em São Paulo).
-  const diaDoJob = new Date();
-  diaDoJob.setUTCDate([15, 10, 1].find((dia) => dia <= diaDoJob.getUTCDate()) ?? 1);
-  diaDoJob.setUTCHours(3, 30);
+  const diaDoJob = (() => {
+    const agora = new Date();
+    for (const mesesAtras of [0, 1]) {
+      for (const dia of [15, 10, 1]) {
+        const candidato = new Date(
+          Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth() - mesesAtras, dia, 12),
+        );
+        if (candidato.getTime() < agora.getTime() - 60 * 60 * 1000) return candidato;
+      }
+    }
+    throw new Error("sem dia de job anterior");
+  })();
   const relogio = { agora: () => diaDoJob };
 
-  // O banco grava `criado_em` com o relógio real; o do job é injetado. Envelhece o alerta para ele
-  // contar como "não renovado" na rodada seguinte (a renovação regrava `criado_em` com o agora real).
   const envelhecer = (clienteId: string) =>
     ok(
       admin

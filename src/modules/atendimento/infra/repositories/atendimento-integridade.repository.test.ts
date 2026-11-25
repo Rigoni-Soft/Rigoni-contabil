@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) das garantias de integridade: só atendente
- * ativo e do Setor recebe uma Transferência dirigida, e nada é atribuído sem assunção. Requer
- * `npx supabase start` local com migrations + seed.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { abrirComDono } from "../../../../../test-support/atendimento-com-dono";
@@ -16,7 +11,6 @@ const SERVICE_KEY =
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 const repositorio = new SupabaseAtendimentoRepository(admin);
 
-// Setor só desta suíte (nenhuma outra o usa para Atendimento) e números longe das outras.
 const SETOR = "administrativo" as const;
 const OUTRO_SETOR = "tributario" as const;
 const telefone = (n: number) => `619555730${String(n).padStart(2, "0")}`;

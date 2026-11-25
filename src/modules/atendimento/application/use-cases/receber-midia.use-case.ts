@@ -6,7 +6,6 @@ import type { AnexosAtendimentoPort } from "@/modules/atendimento/application/po
 import type { AtendimentoRepositoryPort } from "@/modules/atendimento/application/ports/out/atendimento.repository";
 import type { DownloadMidiaPort } from "@/modules/atendimento/application/ports/out/download-midia.provider";
 import type { EnvioMensagemPort } from "@/modules/atendimento/application/ports/out/envio-mensagem.provider";
-import { soDigitosNacionais } from "@/modules/atendimento/domain/services/telefone.service";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
@@ -16,6 +15,7 @@ import {
   type TipoAnexoMensagem,
 } from "@/shared/kernel/anexo";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import { soDigitosNacionais } from "@/shared/kernel/telefone";
 
 const SO_TEXTO =
   "No momento só entendemos mensagens de texto. Para ser atendido, digite *menu* e escolha uma opção.";
@@ -37,10 +37,6 @@ function nomeDoArquivo(tipo: TipoAnexoMensagem, mime: string, nome: string | und
   return extensao ? `${base}.${extensao}` : base;
 }
 
-// Mídia do cliente (áudio, imagem, arquivo). Só entra num Atendimento em andamento; sem ele nada é
-// baixado e a URA pede texto. O que o provedor não entrega mais, ou que passa do limite/tipo, vira
-// um aviso do sistema na conversa em vez de sumir; falha transitória devolve erro para o provedor
-// reenviar. Idempotente pelo id da mensagem no provedor.
 export class ReceberMidia implements ReceberMidiaPort {
   constructor(
     private readonly repositorio: AtendimentoRepositoryPort,
@@ -92,11 +88,8 @@ export class ReceberMidia implements ReceberMidiaPort {
       idExterno: idDaMensagem,
       anexo: { tipo, nome: nomeFinal, tamanho: bytes.byteLength, caminho, miniaturaCaminho: null },
     });
-    // Só "registrada" deixa o arquivo na conversa. Falhou, já havia a Mensagem (reentrega em
-    // paralelo) ou o Atendimento fechou no meio: o arquivo guardado não serve a ninguém.
     if (!registrada.ok || registrada.value !== "registrada") await this.anexos.remover(caminho);
     if (!registrada.ok) return registrada;
-    // O fechamento venceu a corrida: do ponto de vista do cliente não há Atendimento aberto.
     if (registrada.value === "encerrada") return this.envio.enviar({ telefone, texto: SO_TEXTO });
     return ok(undefined);
   }

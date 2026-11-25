@@ -12,6 +12,7 @@ export function perfilParaUsuario(row: PerfilRowDto): Result<Usuario, Validation
       senhaProvisoriaExpiraEm: row.senha_provisoria_expira_em,
       desativadoEm: row.desativado_em,
       banidoEm: row.banido_em,
+      avatarAtualizadoEm: row.avatar_atualizado_em,
     })
     .build();
 }

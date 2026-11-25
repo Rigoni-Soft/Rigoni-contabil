@@ -12,7 +12,6 @@ type CartaoDeResumoProps = {
   totalClientes: number;
 };
 
-// Um status do resumo do setor: anel proporcional + título; leva à lista de Clientes do status.
 export function CartaoDeResumo({
   href,
   titulo,

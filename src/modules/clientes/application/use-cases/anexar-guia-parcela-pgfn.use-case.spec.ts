@@ -185,7 +185,6 @@ describe("AnexarGuiaParcelaPgfn", () => {
       expect(ler).toHaveBeenCalledWith(expect.any(Uint8Array));
       expect(anexar).toHaveBeenCalledTimes(1);
       expect(anexar).toHaveBeenCalledWith(PARCELAMENTO_ID, expect.anything(), null);
-      // A confirmação vale só para a versão lida: o caminho do PDF gravado vai junto.
       expect(confirmar).toHaveBeenCalledWith(PARCELAMENTO_ID, "202610", storage.enviados[0]);
     });
 

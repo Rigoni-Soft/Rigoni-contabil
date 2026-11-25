@@ -1,6 +1,5 @@
 import { create } from "zustand";
 
-// `miniatura`: versão reduzida da imagem, gerada em segundo plano; vai junto no envio.
 export type AnexoPendente = {
   arquivo: File | null;
   miniaturaUrl: string | null;
@@ -19,12 +18,8 @@ function revogar(estado: AnexoPendente | undefined) {
 }
 
 type ConversaStore = {
-  // Arquivo escolhido e ainda não enviado, por Atendimento. É estado do cliente (um `File`, não vem
-  // do servidor): o campo de resposta, que o envia, e a conversa, onde também se solta um arquivo,
-  // são regiões diferentes da tela e o compartilham aqui (arquitetura.md, 4.7: Zustand).
   anexosPendentes: Record<string, AnexoPendente>;
   trocarAnexoPendente: (atendimentoId: string, novo: AnexoPendente) => void;
-  // O arquivo pode ter sido trocado ou removido enquanto a miniatura saía.
   completarMiniatura: (atendimentoId: string, arquivo: File, miniatura: File) => void;
   limparAnexoPendente: (atendimentoId: string) => void;
 };
@@ -47,7 +42,8 @@ export const useConversaStore = create<ConversaStore>((set) => ({
   limparAnexoPendente: (atendimentoId) =>
     set((estado) => {
       revogar(estado.anexosPendentes[atendimentoId]);
-      const { [atendimentoId]: _removido, ...resto } = estado.anexosPendentes;
+      const resto = { ...estado.anexosPendentes };
+      delete resto[atendimentoId];
       return { anexosPendentes: resto };
     }),
 }));

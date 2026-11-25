@@ -1,6 +1,7 @@
 import { SEM_ANDAMENTO } from "@/modules/atendimento/application/jobs/alertas-da-rodada";
 import type { AlertaSetor } from "@/modules/atendimento/application/ports/out/alerta-setor.provider";
 import type { ClienteParaParcelamento } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
+import type { DestinoDeEnvio } from "@/modules/atendimento/application/ports/out/destinos-de-envio.provider";
 import type { EmailParaEnvio } from "@/modules/atendimento/application/ports/out/envio-email.provider";
 import type { GuiaFiscal } from "@/modules/atendimento/application/ports/out/guias-fiscais.provider";
 import { EnvioMensagemFalsoGateway } from "@/modules/atendimento/infra/gateways/envio-mensagem-falso.gateway";
@@ -14,21 +15,22 @@ import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-cas
 import { EnviarGuiasParcelamento } from "./enviar-guias-parcelamento.use-case";
 import { ExecutarEnvioGuiaParcelamento } from "./executar-envio-guia-parcelamento.use-case";
 
-// 22/10/2026 09:00 em São Paulo.
 const diaDoJob = new Date("2026-10-22T12:00:00Z");
 const telefone = "5511912345678";
 
 function cliente(extra: Partial<ClienteParaParcelamento> = {}): ClienteParaParcelamento {
-  return {
-    clienteId: "c1",
-    empresa: "3A Construções",
-    formaEnvio: "whatsapp",
-    contato: { nome: "Ângela", telefone },
-    email: null,
-    ultimaMensagemDoContatoEm: null,
-    ...extra,
-  };
+  return { clienteId: "c1", empresa: "3A Construções", ...extra };
 }
+
+const destino = (extra: Partial<DestinoDeEnvio> = {}): DestinoDeEnvio => ({
+  contatoNome: "Ângela",
+  telefone,
+  email: null,
+  canal: "whatsapp",
+  ultimaMensagemDoContatoEm: null,
+  motivoInvalido: null,
+  ...extra,
+});
 
 const guiaOk: GuiaFiscal = {
   nomeArquivo: "parcelamento.pdf",
@@ -39,6 +41,7 @@ const emAberto = {
   id: "p1",
   codigo: "PARC-1",
   interno: false,
+  setor: "simples_nacional" as const,
   valorParcelaCentavos: 10_000,
   parcelasRestantes: 5,
 };
@@ -50,12 +53,12 @@ function montar(
     buscar?: () => Promise<Result<GuiaFiscal[], AppError>>;
     falhas?: Record<string, number>;
     reservar?: Result<string | null, AppError>;
-    // Por Cliente: sobrepõe `reservar` (um Cliente com a reserva ocupada ao lado de outro livre).
     reservarPor?: Record<string, Result<string | null, AppError>>;
     concluir?: Result<boolean, AppError>;
     liberar?: Result<void, AppError>;
     gravacao?: Result<void, AppError>;
     resolver?: Result<void, AppError>;
+    destinos?: Record<string, DestinoDeEnvio[]>;
   } = {},
 ) {
   const envio = new EnvioMensagemFalsoGateway(opcoes.falhas);
@@ -64,7 +67,6 @@ function montar(
   const reservados: string[] = [];
   const concluidos: [string, string][] = [];
   const liberados: [string, string][] = [];
-  // Quantos templates já tinham saído quando cada conclusão foi pedida: concluir é depois do envio.
   const entregasAoConcluir: number[] = [];
   const resolvidos: { desde: Date; ids: string[] }[] = [];
   const buscar = jest.fn(opcoes.buscar ?? (async () => ok([guiaOk])));
@@ -92,6 +94,7 @@ function montar(
         guiasEntregues: async () => ok([]),
         registrarEnvio: async () => ok("registrado"),
       },
+      { resolver: async (clienteId) => ok(opcoes.destinos?.[clienteId] ?? [destino()]) },
       { buscarGuiasParcelamento: buscar },
       {
         publicar: async () =>
@@ -200,10 +203,12 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
     expect(liberados).toHaveLength(0);
   });
 
-  it("forma de envio e-mail: manda e-mail com a guia e não usa WhatsApp", async () => {
-    const { job, envio, emails } = montar([
-      cliente({ formaEnvio: "email", email: "ana@3a.com.br" }),
-    ]);
+  it("Destino por e-mail: manda e-mail com a guia e não usa WhatsApp", async () => {
+    const { job, envio, emails } = montar([cliente()], {
+      destinos: {
+        c1: [destino({ canal: "email", telefone: null, email: "ana@3a.com.br" })],
+      },
+    });
     await job.execute();
     expect(envio.requisicoes).toHaveLength(0);
     expect(emails).toMatchObject([
@@ -215,14 +220,23 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
     ]);
   });
 
-  it("sem destinatário: alerta uma vez, sem buscar a guia nem concluir, e libera a reserva", async () => {
-    const { job, alertas, liberados, concluidos, buscar } = montar([cliente({ contato: null })]);
+  it("sem Destino: alerta uma vez, sem buscar a guia nem concluir, e libera a reserva", async () => {
+    const { job, alertas, liberados, concluidos, buscar } = montar(
+      [cliente({ empresa: "Cliente Exemplo Ltda" })],
+      { destinos: { c1: [] } },
+    );
     await job.execute();
     expect(liberados).toEqual([["c1", "tok-1"]]);
     expect(concluidos).toHaveLength(0);
     expect(buscar).not.toHaveBeenCalled();
-    expect(alertas).toMatchObject([
-      { setor: "simples_nacional", tipo: "contato_ausente", clienteId: "c1" },
+    expect(alertas).toEqual([
+      {
+        setor: "simples_nacional",
+        tipo: "contato_ausente",
+        clienteId: "c1",
+        mensagem:
+          "Cliente Exemplo Ltda: sem meio de envio para a guia de parcelamento (Simples Nacional)",
+      },
     ]);
   });
 
@@ -282,11 +296,11 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
 
   it("um Cliente que falha não impede os demais", async () => {
     const { job, liberados, envio } = montar(
-      [
-        cliente({ clienteId: "ruim", contato: { nome: "X", telefone: "5500" } }),
-        cliente({ clienteId: "bom" }),
-      ],
-      { falhas: { "5500": 131026 } },
+      [cliente({ clienteId: "ruim" }), cliente({ clienteId: "bom" })],
+      {
+        destinos: { ruim: [destino({ contatoNome: "X", telefone: "5500" })] },
+        falhas: { "5500": 131026 },
+      },
     );
     const resultado = await job.execute();
     expect(liberados).toEqual([["ruim", "tok-1"]]);
@@ -324,10 +338,10 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
   });
 
   it("entrega por um canal só: envia, conta e alerta a entrega parcial e conclui sem liberar", async () => {
-    const { job, alertas, liberados } = montar(
-      [cliente({ formaEnvio: "whatsapp_e_email", email: "ana@3a.com.br" })],
-      { falhas: { [telefone]: 131026 } },
-    );
+    const { job, alertas, liberados } = montar([cliente()], {
+      destinos: { c1: [destino({ canal: "whatsapp_e_email", email: "ana@3a.com.br" })] },
+      falhas: { [telefone]: 131026 },
+    });
     const resultado = await job.execute();
     expect(resultado.ok && resultado.value.enviados).toBe(1);
     expect(liberados).toHaveLength(0);
@@ -341,7 +355,8 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
   });
 
   it("alerta que não pôde ser gravado conta como falha e a rodada não resolve nada", async () => {
-    const { job, resolvidos } = montar([cliente({ contato: null })], {
+    const { job, resolvidos } = montar([cliente()], {
+      destinos: { c1: [] },
       gravacao: err(new ServicoExternoError("banco")),
     });
     const resultado = await job.execute();
@@ -369,7 +384,6 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
       { agora: () => diaDoJob },
     );
     expect((await job.execute()).ok).toBe(false);
-    // Leitura incompleta não vira "rodada concluída": nenhum alerta é resolvido.
     expect(resolvidos).toHaveLength(0);
   });
 
@@ -386,7 +400,6 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
       },
     );
     const resultado = await job.execute();
-    // Sem conclusão e sem liberação: o cadastro segue pendente e a reserva expira sozinha.
     expect(concluidos).toEqual([["bom", "tok-1"]]);
     expect(liberados).toHaveLength(0);
     expect(alertas).toMatchObject([{ tipo: "falha_envio", clienteId: "cai" }]);
@@ -431,7 +444,6 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
       { reservarPor: { ocupado: ok(null) } },
     );
     const resultado = await job.execute();
-    // Só o Cliente efetivamente reavaliado participa; o ocupado mantém o alerta anterior.
     expect(resolvidos.map((r) => r.ids)).toEqual([["livre"]]);
     expect(alertas).toHaveLength(0);
     expect(envio.templatesEnviados).toHaveLength(1);
