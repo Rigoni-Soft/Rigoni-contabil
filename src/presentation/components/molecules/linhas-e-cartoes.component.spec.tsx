@@ -8,20 +8,20 @@ import { LinhaDeRegistro } from "./linha-de-registro.component";
 import { LinhaDeUsuario } from "./linha-de-usuario.component";
 
 describe("moléculas de lista e de tela", () => {
-  it("LinhaDeUsuario mostra o resumo e o aviso de bloqueio pendente", () => {
+  it("LinhaDeUsuario mostra o resumo e o aviso de desativação pendente", () => {
     render(
       <ul>
         <LinhaDeUsuario
           nome="Ana"
           resumo="ana@x.com · Funcionário · Simples Nacional"
-          bloqueioPendente
+          desativacaoPendente
           acoes={<button type="button">Desativar</button>}
         />
       </ul>,
     );
 
     expect(screen.getByText("ana@x.com · Funcionário · Simples Nacional")).toBeInTheDocument();
-    expect(screen.getByText(/bloqueio da conta ainda não foi concluído/)).toBeInTheDocument();
+    expect(screen.getByText(/conclusão pendente/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Desativar" })).toBeInTheDocument();
   });
 

@@ -73,7 +73,6 @@ const COM_ANEXO: ConversaLida = {
 };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
 
-// Fake parcial de uma porta: só os métodos que o caso de uso chama neste teste.
 const fake = <T>(parcial: Partial<T>) => parcial as T;
 
 function montar(
@@ -143,7 +142,6 @@ function montar(
   };
 }
 
-// O mesmo caso de uso, com o Storage trocável para o teste de falha dos links.
 function montarComFalhaDeLinks() {
   const anexos = fake<AnexosAtendimentoPort>({ linksTemporarios: async () => ok({}) });
   const repo = fake<AtendimentoRepositoryPort>({
@@ -245,10 +243,10 @@ describe("ObterConversa", () => {
         atendimentoId: "at-1",
         encerrado: false,
         podeAtender: true,
+        podeCadastrarContato: false,
         telefone: "5561988887777",
         contato: CONTATO,
         clienteVinculado: true,
-        // O id do provedor não vai à tela: só se a Mensagem do cliente aceita reação.
         mensagens: [
           expect.objectContaining({ reagivel: true }),
           expect.objectContaining({ reagivel: false }),
@@ -276,6 +274,33 @@ describe("ObterConversa", () => {
     expect(r.ok && r.value.setoresDestino).not.toContain("contabil");
     expect(r.ok && r.value.setoresDestino).not.toContain("simples_nacional");
     expect(listados).toEqual(["cli-1"]);
+  });
+
+  it("oferece cadastrar contato só ao dono da Recepção com o número sem contato", async () => {
+    const recepcao: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "recepcao" };
+    const naoVinculado = {
+      ...CONVERSA,
+      setor: "recepcao" as const,
+      contato: { contatoNome: null, empresa: null, cnpj: null },
+    };
+    const dono = await montar(recepcao, naoVinculado).caso.execute({ atendimentoId: "at-1" });
+    expect(dono.ok && dono.value.podeCadastrarContato).toBe(true);
+
+    const jaContato = await montar(recepcao, { ...naoVinculado, contato: CONTATO }).caso.execute({
+      atendimentoId: "at-1",
+    });
+    expect(jaContato.ok && jaContato.value.podeCadastrarContato).toBe(false);
+
+    const encerrado = await montar(recepcao, { ...naoVinculado, status: "encerrado" }).caso.execute(
+      { atendimentoId: "at-1" },
+    );
+    expect(encerrado.ok && encerrado.value.podeCadastrarContato).toBe(false);
+
+    const lider = await montar(
+      { id: "l", papel: "lider_setor", setor: "recepcao" },
+      naoVinculado,
+    ).caso.execute({ atendimentoId: "at-1" });
+    expect(lider.ok && lider.value.podeCadastrarContato).toBe(false);
   });
 
   it("sem Cliente vinculado ou encerrado não oferece serviços e nem consulta os documentos", async () => {

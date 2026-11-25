@@ -10,8 +10,6 @@ import {
   type FiltroFeedValues,
 } from "@/modules/auditoria/presentation/view-models/feed/feed.schema";
 
-// reset({}) não limpa inputs não controlados sem defaultValues no useForm — precisa
-// do valor "" explícito por campo (o vazio real de input/select nativos).
 const FILTRO_VAZIO: FiltroFeedValues = {
   setor: "",
   ator: "",
@@ -21,6 +19,12 @@ const FILTRO_VAZIO: FiltroFeedValues = {
   dataInicio: "",
   dataFim: "",
 };
+
+function removerCamposVazios(valores: FiltroFeedValues): FiltroFeedValues {
+  return Object.fromEntries(
+    Object.entries(valores).filter(([, v]) => v !== "" && v !== undefined),
+  ) as FiltroFeedValues;
+}
 
 export function useFeed(initialData: RegistroAcaoDto[]) {
   const [filtroAplicado, setFiltroAplicado] = useState<FiltroFeedValues>({});
@@ -35,11 +39,7 @@ export function useFeed(initialData: RegistroAcaoDto[]) {
   const query = useFeedAuditoria(filtroAplicado, initialData);
 
   const aoSubmeter = handleSubmit((valores) => {
-    // Campos vazios não viram filtro (string vazia != "sem filtro" pro caso de uso).
-    const filtro = Object.fromEntries(
-      Object.entries(valores).filter(([, v]) => v !== "" && v !== undefined),
-    ) as FiltroFeedValues;
-    setFiltroAplicado(filtro);
+    setFiltroAplicado(removerCamposVazios(valores));
   });
 
   const aoLimpar = () => {

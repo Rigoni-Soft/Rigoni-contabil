@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) da leitura e da escrita do painel do
- * Funcionário. Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { abrirComDono } from "../../../../../test-support/atendimento-com-dono";
@@ -70,21 +66,18 @@ beforeAll(async () => {
     .from("clientes")
     .insert({ id: clienteId, empresa: "Painel Ltda", cnpj: CNPJ, regime: "lucro_presumido" });
   if (cliente.error) throw cliente.error;
-  // Dois Contatos: o padrão (outro número) e quem de fato escreve, pelo número do Atendimento.
   const contatos = await admin.from("cliente_contatos").insert([
     {
       id: crypto.randomUUID(),
       cliente_id: clienteId,
       nome: "Dona Padrão",
       telefone: "(61) 95557-9999",
-      padrao: true,
     },
     {
       id: crypto.randomUUID(),
       cliente_id: clienteId,
       nome: "Seu Painel",
       telefone: "(61) 95557-1001",
-      padrao: false,
     },
   ]);
   if (contatos.error) throw contatos.error;
@@ -114,7 +107,6 @@ describe("SupabaseAtendimentoRepository — painel do Funcionário", () => {
           telefone: TELEFONES[0],
           criadoEm: expect.any(String),
           contato: { contatoNome: "Seu Painel", empresa: "Painel Ltda", cnpj: CNPJ },
-          // A mais recente das duas mensagens da abertura (a da URA).
           ultimaMensagem: {
             autor: "ura",
             texto: "Já vamos te atender",

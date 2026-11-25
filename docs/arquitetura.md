@@ -108,7 +108,7 @@ Fora dessas exceções, prefira sempre `kebab-case`.
 
 | Área | Tecnologia |
 |---|---|
-| Framework | Next.js 16 (fixar `next@^16`; a documentação consultada é da 16.3.5) com App Router e `cacheComponents: true` (Cache Components). Em v15 a seção 6 precisaria ser reescrita. |
+| Framework | Next.js 16 (fixar `next@^16`; a documentação consultada é da 16.3.5) com App Router. `cacheComponents` ainda não está habilitado no `next.config.ts`: a seção 6 descreve o desenho para quando entrar. |
 | Linguagem | TypeScript em modo `strict` |
 | Banco e serviços | Supabase: Postgres, Auth, Realtime, Storage, RBAC + RLS |
 | Estilo | Tailwind CSS, shadcn/ui, `class-variance-authority` (cva), `cn()` (clsx + tailwind-merge) |
@@ -118,7 +118,7 @@ Fora dessas exceções, prefira sempre `kebab-case`.
 
 Premissas:
 
-1. **Sem API Routes.** Não existe `route.ts` em `src/app`, exceto webhooks de terceiros em `src/app/api/webhooks/**` e jobs agendados em `src/app/api/jobs/**` (seção 3.13). Toda comunicação cliente→servidor é Server Action; a carga inicial vem de Server Components. **[lint]**
+1. **Sem API Routes.** Não existe `route.ts` em `src/app`, exceto webhooks de terceiros em `src/app/api/webhooks/**`, jobs agendados em `src/app/api/jobs/**` e a leitura autenticada da foto do avatar em `src/app/api/avatar/route.ts` (seção 3.13; ADR 0012). Toda comunicação cliente→servidor é Server Action; a carga inicial vem de Server Components. **[lint]**
 2. **Monólito modular por domínio.** Um deploy, módulos isolados entre si.
 3. **Clean Architecture clássica** dentro de cada módulo: `domain`, `application`, `infra`, `presentation`, mais `shared` e `main` globais.
 4. **Server Components são o padrão absoluto.** Cliente só onde é exigido (seção 4.6).
@@ -129,21 +129,22 @@ Premissas:
 
 Valem para todo o projeto. Os detalhes de cada um ficam na `constitution.md`; aqui está o que muda na prática da arquitetura.
 
-- **Clean Code:** nomes que revelam intenção, funções pequenas, sem comentário que explique código confuso (reescreva o código).
+- **Clean Code:** nomes que revelam intenção, funções pequenas. **O código não pode precisar de comentário para ser entendido**: renomeie, extraia função, constante ou tipo, até ele se explicar. Comentário só em dois casos: (a) exigido por ferramenta externa (`eslint-disable`, `@ts-expect-error`, `@jest-environment`, `istanbul ignore`, `prettier-ignore`, cabeçalho de licença); (b) o código realmente não consegue se autoexplicar, o que é raro e excepcional e se justifica na revisão.
 - **Referências a ticket, PR e revisão:**
-  - Comentário de código só registra o porquê não óbvio. Nada de `#NN`, PR, devolutiva, revisão, "feedback de teste" ou data de revisão: quem quiser a história usa o git e o issue tracker. Única exceção: `TODO(#NN)`, em que o número é a rastreabilidade da pendência.
+  - O comentário excepcional do item acima não leva `#NN`, PR, devolutiva, revisão, "feedback de teste" ou data de revisão (quem quiser a história usa o git e o issue tracker). Única exceção: `TODO(#NN)`, em que o número é a rastreabilidade da pendência.
   - Docs vivos (`arquitetura.md`, `testes.md`, `DESIGN.md`, `CONTEXT.md`, `PRODUCT.md`, `docs/deploy/`) escrevem a regra e o porquê, não o histórico de revisão. `#NN` curto de issue é aceito como ponteiro para a spec; `PR #NN`, "devolutiva" e códigos de achado (B1, R85-01) não.
   - ADRs (`docs/adr/`) e migrations já aplicadas são registro histórico: podem citar a PR e a devolutiva de onde a decisão saiu, e não se reescrevem só por isso.
   - Títulos de `describe`/`it` podem carregar `#NN`; o grep de limpeza ignora strings.
+  - `yarn check:refs` (CI) reprova `#NN` em comentário de código fora de `TODO(#NN)`.
 - **SOLID:** uma responsabilidade por classe; dependa de abstrações (portas), nunca de implementações; extensão por novas implementações de porta, não por `if` em código existente.
 - **DRY, KISS, YAGNI:** sem abstração antes da segunda repetição real; sem camada vazia. Uma feature de leitura trivial não ganha entidade nem builder só para "cumprir o padrão" (ver read models na seção 3.6).
 - **Object Calisthenics** (rigor em `domain` e `application`; na `presentation` valem as regras 1, 2, 5, 6 e 7):
-  1. um nível de indentação por método;
+  1. um nível de indentação por método (o `yarn lint` reprova com `max-depth: 1` em `domain` e `application`; a lista de arquivos com dívida anterior fica em `eslint.config.mjs` e só encolhe);
   2. sem `else`;
   3. encapsular primitivos e strings (value objects);
   4. coleções de primeira classe;
   5. um ponto por linha (lei de Demeter);
-  6. sem abreviações;
+  6. sem abreviações (nome de função, variável e tipo é por extenso; o parâmetro de um callback de uma linha, como `.map((c) => …)`, pode ser a inicial do que ele itera);
   7. entidades pequenas;
   8. poucas variáveis de instância por classe (o objeto de props conta como uma);
   9. sem setters e sem expor estado mutável (*Tell, Don't Ask*). **Decisão:** entidades podem expor **getters somente leitura** (os mappers precisam ler o estado); todo comportamento continua em métodos da própria entidade, nunca em código externo que decide por ela.
@@ -164,11 +165,12 @@ src/
 ├─ app/                          convenções do Next.js apenas (layout, page, loading, error, globals.css)
 │  └─ api/webhooks/<provedor>/route.ts   exceção: webhooks de terceiros (seção 3.13)
 │  └─ api/jobs/<job>/route.ts            exceção: jobs chamados por agendador, ex.: Vercel Cron (seção 3.13)
+│  └─ api/avatar/route.ts                exceção: GET da foto do próprio usuário, sessão por cookie (seção 3.13, ADR 0012)
 ├─ middleware.ts                 (proxy.ts no Next 16) somente refresh de sessão do Supabase
 ├─ shared/                       TypeScript puro, sem framework e sem biblioteca
 │  ├─ kernel/    result.ts · preconditions.ts · id.types.ts (Brand, Id) · setores.ts (SETORES,
 │  │             fonte única do organograma — domain e Views importam daqui, seção 3.4)
-│  ├─ errors/    app.error.ts · domain.error.ts · validation.error.ts · forbidden.error.ts · not-found.error.ts · estado-inconsistente.error.ts · servico-externo.error.ts
+│  ├─ errors/    app.error.ts · domain.error.ts · validation.error.ts · forbidden.error.ts · not-found.error.ts · estado-inconsistente.error.ts · servico-externo.error.ts · geracao-de-documento.error.ts
 │  └─ dtos/      action-result.dto.ts · error.dto.ts · paginated.dto.ts
 ├─ modules/
 │  └─ <modulo>/
@@ -334,7 +336,7 @@ DTOs são objetos simples (sem classes): a serialização do React Server Compon
 ### 3.8 Erros e `Result`
 
 - `Result<T, E>` (em `shared`) representa falha esperada: validação, não encontrado, conflito, proibido.
-- Hierarquia base em `shared/errors`: `AppError` → `DomainError`, `ValidationError`, `ForbiddenError`, `NotFoundError`, `EstadoInconsistenteError`, `ServicoExternoError` (falha esperada de serviço de terceiros, como o Serpro).
+- Hierarquia base em `shared/errors`: `AppError` → `DomainError`, `ValidationError`, `ForbiddenError`, `NotFoundError`, `EstadoInconsistenteError`, `ServicoExternoError` (falha esperada de serviço de terceiros, como o Serpro), `ConsultaError` (falha ao ler do banco numa consulta, nos gateways de leitura), `GeracaoDeDocumentoError` (falha ao montar um documento, como o PDF do cartão de ponto, no servidor).
 - A Server Action converte `Result`/`AppError` em `ActionResult` serializável; erros nunca atravessam a fronteira como exceção.
 - **Exceção inesperada e falha de transporte ainda rejeitam a Server Action** (bug no caso de uso, corpo acima de `bodySizeLimit`, arquivo que o navegador não lê, rede). A regra acima vale para o que é esperado; o Container que chama a action trata a rejeição com `try/catch/finally` (solta o botão pendente) e **diz a causa em vez de culpar sempre a conexão**: `TypeError` (o `fetch` não saiu) = sem conexão; qualquer outra = erro inesperado, com o erro completo em `console.error`. Exemplo: o `catch` de `criar-cliente.container.tsx`. O que o usuário pode corrigir antes do envio (ex.: soma de arquivos acima de 10 MB) é validado no schema, para nunca chegar ao transporte.
 
@@ -350,6 +352,7 @@ export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: ErrorD
 - Toda linha lida é validada por Zod e convertida em entidade pelo mapper (que chama `Builder.restaurar`).
 - **Exceções registradas (#50):** `SupabaseSessaoAtendimentoGateway.obter()` devolve o resultado do parse Zod direto, sem mapper (a sessão é um tipo simples já no formato do domínio, não uma entidade); `SupabaseIdentificacaoContatoGateway.cnpjCadastrado()` lê só a existência de uma linha, sem Row DTO. `application/dtos/sessao-identificacao.dto.ts` exporta `ETAPAS_IDENTIFICACAO` e `invalidosDe()` (valor e função, ao contrário do que um DTO costuma ter) para o use case, o gateway e o Row DTO compartilharem a lista de etapas e a leitura do contador; o módulo não tem outra pasta para isso. Não repetir para entidades.
 - Erros do Postgres/Supabase são traduzidos para `AppError` dentro do adapter.
+- **`UPDATE`/`DELETE` filtrado pela RLS não dá erro: afeta 0 linhas e o supabase-js devolve sucesso.** O repositório de escrita pede as linhas de volta (`.select("id")`) e trata 0 como recusa (`ForbiddenError`); o teste de integração cobre o ator sem permissão.
 - Tipos do banco vêm de `supabase gen types`.
 - **Toda comunicação com o Supabase passa pela `infra`**, com uma única exceção: a autenticação no navegador (abaixo).
 - Storage e sessão são portas OUT (`ArquivoStoragePort`, `SessaoPort`), como qualquer outra dependência.
@@ -419,13 +422,14 @@ Decisão tomada a partir da arquitetura e da documentação do Next.js e do Supa
 
 Regras:
 
-1. `route.ts` só é permitido em `src/app/api/webhooks/<provedor>/route.ts` e `src/app/api/jobs/<job>/route.ts`. Qualquer outro `route.ts` falha o CI.
+1. `route.ts` só é permitido em `src/app/api/webhooks/<provedor>/route.ts`, `src/app/api/jobs/<job>/route.ts` e `src/app/api/avatar/route.ts`. Qualquer outro `route.ts` falha o CI.
 2. Esse `route.ts` só reexporta o `POST` (o de job também o `GET`, que é o método do Vercel Cron) de `modules/<d>/presentation/webhooks/<nome>.webhook.ts`. **[lint]**
+   - **Avatar (`/api/avatar`, ADR 0012):** a única rota de leitura de arquivo. Um `<img>` não chama Server Action, então a foto do próprio usuário sai por um `GET` que só reexporta `servir-avatar.webhook.ts` (mesma pasta e sufixo dos handlers, embora não seja webhook). Sem parâmetro de id: o caso de uso `ObterAvatar` lê a foto de quem está na sessão (cookie), responde `Cache-Control: private` e nunca serve a de outro usuário.
    - **Job agendado:** o handler confere o segredo do agendador (`Authorization: Bearer`) por uma porta OUT (`AutenticacaoJobPort`), chama a porta IN pelo `main` e devolve o resumo; sem o segredo configurado, recusa tudo. O cron fica em `vercel.json`.
 3. O handler `*.webhook.ts` lê o corpo cru, extrai a assinatura, chama uma porta IN pelo `main` e converte o resultado em status HTTP. Sem regra de negócio.
 4. **O que puder passar pela `infra` passa.** A verificação de assinatura e a idempotência (guardar o id do evento já processado) acontecem dentro do caso de uso, por portas OUT (`AutenticacaoWebhookPort`, `EventoProcessadoRepository`) implementadas na `infra`. Quando a assinatura cobre o corpo cru no formato do provedor e o caso de uso de recepção tem contrato neutro (sem jargão do provedor), a verificação fica num caso de uso próprio (`AutenticarWebhook`, porta IN com um método por prova: assinatura e token de handshake), chamado pelo handler antes de qualquer efeito; o handler nunca obtém a porta OUT direto do `main`.
 5. Resposta: 2xx quando processou ou já tinha visto o evento; 4xx para assinatura inválida; 5xx para falha transitória (o provedor tenta de novo).
-6. O middleware/proxy de sessão exclui `/api/webhooks/**`. Em `/api/jobs/**` ele só renova sessão (não redireciona), o que é inofensivo.
+6. O middleware/proxy de sessão exclui `/api/webhooks/**`. Em `/api/jobs/**` ele só renova sessão (não redireciona), o que é inofensivo. Em `/api/avatar` ele também renova a sessão, e é o que se quer: o caso de uso lê o cookie para saber de quem é a foto.
 
 ### 3.14 Regras de segurança impostas pela arquitetura
 
@@ -441,6 +445,7 @@ As decisões de acesso estão aqui e nos ADRs 0001, 0002 e 0005. As que a estrut
 - RLS ativa em toda tabela exposta, **e o `anon` sem privilégio nenhum no schema `public`**: o sistema não tem acesso anônimo (o login usa a API de Auth, que não toca nas tabelas). As policies são `to authenticated`; `authenticated` não tem `TRUNCATE`, `REFERENCES` nem `TRIGGER` (o RLS não cobre `TRUNCATE`); RPCs e helpers não são executáveis por `anon`/`PUBLIC`. Objetos novos herdam isso por `alter default privileges`. A suíte `privilegios-anon.repository.test.ts` falha se alguma tabela ou RPC voltar a responder ao `anon`.
 - **View de leitura exposta a `authenticated`**: `grant select` não remove os INSERT/UPDATE/DELETE que o Supabase concede por default privileges, e uma view simples é atualizável com os privilégios do dono. Sempre `revoke all ... from public, anon, authenticated` antes do `grant select`, e teste negativo pela Data API.
 - **Tabela nova sem grant**: o Supabase não concede mais privilégios por default em tabelas novas do `public`. Toda migration que faz `create table` traz, junto do `enable row level security`, os `grant` explícitos: `authenticated` só as operações que as policies usam (o RLS filtra as linhas), `service_role` `all`, e nada para `anon` (3.12). Sem o grant a Data API responde 42501 mesmo com policy correta.
+- **`NEW`/`OLD` num gatilho compartilhado**: o `plpgsql` não faz curto-circuito em `A and B`, e `new.campo` (ou `old.campo`) de uma tabela que não o tem, ou de uma operação que não o define, quebra o `INSERT` mesmo com `tg_op` na guarda. Separe em `if` aninhados por `tg_table_name` e `tg_op`; o teste de integração do repositório é quem pega.
 - **Toda escrita autorizada numa tabela de negócio auditada gera o evento no próprio banco**, na mesma transação (gatilho `AFTER`), seja pela RPC ou por DML direto da Data API; uma transação grava um só evento por agregado (variável local `app.cliente_auditado`). Regras de domínio que a RPC aplica (mês corrente, Regime) também valem em gatilho `BEFORE`, senão a Data API as contorna.
 - **Campo que só o sistema grava** (ex.: DAS `enviado` e a data de envio, #108) é travado por gatilho `BEFORE` na tabela, não só na tela nem só na RPC: "sistema" é a escrita sem sessão de usuário (`auth.uid()` nulo), e qualquer pessoa com sessão, Admin inclusive, é edição manual. A tela só exibe (somente leitura). Ver ADR 0008.
 - Tabela de log/trilha imutável (ex.: auditoria): sem policy de INSERT liberada ao cliente, mesmo restrita ao próprio `auth.uid()` — a única escrita é por função `SECURITY DEFINER` que decide ator e timestamp no próprio banco, nunca a partir do que o chamador envia.
@@ -522,7 +527,7 @@ src/
 
 | Nível | Onde | Regra |
 |---|---|---|
-| **ui/** | `presentation/components/ui/` | Gerado pelo CLI do shadcn. É a biblioteca de átomos e moléculas básicas. **Não é duplicado nem envolvido por wrappers.** É código de terceiro: pode ter hooks e `'use client'` internos. |
+| **ui/** | `presentation/components/ui/` | Primitivas no estilo shadcn (cva + tokens), escritas à mão: não há CLI do shadcn nem `components.json` no projeto. É a biblioteca de átomos e moléculas básicas. **Não é duplicado nem envolvido por wrappers.** É código de terceiro: pode ter hooks e `'use client'` internos. |
 | **atoms/** | `.../atoms/` | Só o que o shadcn **não** oferece. Antes de criar, confira o registry. |
 | **molecules/** | `.../molecules/` | Composição de atoms e `ui/`. |
 | **organisms/** | `.../organisms/` | Composição de molecules/atoms, com layout real. |
@@ -536,7 +541,7 @@ src/
 - Aliases do `components.json` (Anexo C) apontam o shadcn para `presentation/`.
 - Edição de arquivos do `ui/` é permitida para adicionar variantes (cva) ou ajustar tokens; toda edição é deliberada e registrada no PR, para não ser perdida em um `shadcn add` posterior.
 - **Exceções registradas:**
-  1. `ui/password-input.tsx` e `ui/theme-toggle.tsx` não vêm do shadcn: são átomos de cliente cuja única interação é estado visual local (mostrar senha, tema), sem dado nem módulo. Moram em `ui/` porque `'use client'` só é permitido ali, em Containers e providers; o `PasswordInput` envolve o `Input` por isso. Não crie outros: componente com estado que não seja só isso é Container (seção 4.6).
+  1. `ui/password-input.tsx`, `ui/theme-toggle.tsx` e `ui/menu-suspenso.tsx` não vêm do shadcn: são átomos de cliente cuja única interação é estado visual local (mostrar senha, tema, abrir e fechar o menu), sem dado nem módulo. Moram em `ui/` porque `'use client'` só é permitido ali, em Containers e providers; o `PasswordInput` envolve o `Input` por isso. Não crie outros: componente com estado que não seja só isso é Container (seção 4.6).
   2. As Views de formulário (organismos `*-form`) recebem `register`, `errors` e `control` do React Hook Form do ViewModel e usam `Controller` para campos controlados. Elas continuam sem hook e sem conhecer módulo; o acoplamento é com a biblioteca de formulário, não com o domínio. Para trocar a biblioteca, o contrato seria o ViewModel entregar `campo(nome)` já resolvido.
 
 ### 4.5 `layout.tsx` e `page.tsx` × Atomic Design
@@ -601,7 +606,7 @@ export default async function Page() {
 
 **Regras:**
 
-1. `'use client'` só é permitido em `*.container.tsx`, `presentation/providers/**`, `presentation/components/ui/**` (shadcn), `error.tsx` e `global-error.tsx`. **[lint]**
+1. `'use client'` só é permitido em `*.container.tsx`, `presentation/providers/**`, `presentation/components/ui/**` (shadcn), `error.tsx` e `global-error.tsx`. **[lint]** Um átomo que precisa de estado ou de evento (ex.: fechar um menu com Esc) vai para `ui/`, não para `atoms/`.
 2. **Templates e pages são sempre Server.** Um container não importa template nem page. **[lint]**
 3. O Container renderiza **só a região interativa**. O conteúdo estático ao redor é montado no servidor e entra como slot (`children` ou prop `ReactNode`).
 4. Tudo que um Container importa entra no bundle do cliente. Por isso o Container importa a menor View que resolve o caso, e as partes estáticas são extraídas para o servidor por slots.
@@ -759,7 +764,7 @@ Modelo do **Next.js 16 com Cache Components**. Neste modelo tudo é dinâmico po
 - `'use cache'` só aparece em `*.server.ts` (loaders) da `presentation`. **[lint]**
 - Nunca em `domain`, `application`, `infra` ou `*.actions.ts`. Cachear ali violaria a Dependency Rule.
 - Argumentos e retornos de escopos cacheados são serializáveis: **DTOs simples, nunca entidades**.
-- `next.config.ts` habilita `cacheComponents: true`.
+- `next.config.ts` habilita `cacheComponents: true` (ainda não habilitado no projeto; ver seção 1).
 
 ### 6.5 Duração: `cacheLife`
 
@@ -851,7 +856,7 @@ Todas as regras de teste (TDD, pirâmide, o que testar em cada camada, cobertura
 **Decisões tomadas**
 
 1. **Supabase só pela `infra`**, com uma exceção: **autenticação** no navegador, restrita a `presentation/auth/` (seção 3.9). **Realtime passa pela `infra`** (porta OUT + `infra/realtime/` + `main/client/`).
-2. **Webhooks** são a única exceção à regra "sem Route Handlers", em `src/app/api/webhooks/**` (e os jobs agendados, em `src/app/api/jobs/**`), com o handler fino e o processamento por portas da `infra` (seção 3.13).
+2. **Webhooks** são a única exceção à regra "sem Route Handlers", em `src/app/api/webhooks/**` (e os jobs agendados, em `src/app/api/jobs/**`, e a leitura da foto do avatar, em `src/app/api/avatar/route.ts`), com o handler fino e o processamento por portas da `infra` (seção 3.13).
 3. **Views podem importar `next/link` e `next/image`.** O resto de `next/*` continua proibido (seção 4.11).
 4. **Entidades expõem getters somente leitura**, sem setters (seções 2 e 3.5).
 5. **Leituras reativas por Server Action + React Query**, com carga inicial sempre no servidor, uma action por interação e consultas relacionadas agrupadas em um caso de leitura (seções 3.6 e 4.9). Filtro por URL descartado para manter um só mecanismo.
@@ -952,10 +957,10 @@ module.exports = {
 
 Verificação feita: em uma árvore de teste com 55 módulos, 22 arquivos com violações plantadas geraram 30 ocorrências, todas detectadas, sem falso positivo em arquivo válido (inclusive `next/link`, `next/image`, cliente Supabase em `infra/` e em `presentation/auth/`, `*.realtime.ts` usando `main/client` e a rota de webhook reexportando o handler). As regras `ad-molecule`, `ad-organism` e `infra-so-dentro-do-modulo` não foram exercitadas nesse teste.
 
-**Falha de CI adicional** (premissa 1): nenhum `route.ts` fora de `src/app/api/webhooks/` e `src/app/api/jobs/`. O comando deve imprimir **nada**; qualquer linha é violação.
+**Falha de CI adicional** (premissa 1): nenhum `route.ts` fora de `src/app/api/webhooks/`, `src/app/api/jobs/` e `src/app/api/avatar/`. O comando deve imprimir **nada**; qualquer linha é violação.
 
 ```bash
-find src/app -name "route.ts*" -not -path "src/app/api/webhooks/*" -not -path "src/app/api/jobs/*"
+find src/app -name "route.ts*" -not -path "src/app/api/webhooks/*" -not -path "src/app/api/jobs/*" -not -path "src/app/api/avatar/*"
 ```
 
 ## Anexo B — Diretivas e hooks (`eslint.config.mjs`) **[testado]**
@@ -986,7 +991,7 @@ Em um projeto real, combine este bloco com o parser do `typescript-eslint`. O te
 
 ## Anexo C — Configuração e scaffolding
 
-**`components.json` (shadcn)** — ajuste antes do primeiro `shadcn add`:
+**`components.json` (shadcn)** — só se o CLI do shadcn for adotado (hoje não existe); ajuste antes do primeiro `shadcn add`:
 
 ```json
 "aliases": {
@@ -1022,7 +1027,7 @@ console.log(`módulo "${nome}" criado em ${base} + src/main/${nome}.factory.ts`)
 
 ## Anexo D — Checklist de revisão de PR
 
-- [ ] `npx depcruise`, o lint e `npm run check:naming` passam.
+- [ ] `npx depcruise`, o lint, `npm run check:naming` e `npm run check:refs` passam.
 - [ ] Nenhuma entidade sai da `application`; Output DTO é objeto simples.
 - [ ] Toda criação de entidade passa por Builder; nenhum `new` de entidade fora dela.
 - [ ] Caso de uso só depende de portas; adaptadores só são criados em `main`.
@@ -1119,3 +1124,5 @@ console.log("nomenclatura ok");
 ```
 
 Verificação feita: em uma árvore com 54 nomes válidos e 11 inválidos, o script acusou os 11 (arquivo em PascalCase, arquivo em snake_case, diretório em camelCase, sufixo fora do papel da pasta, sufixo ausente, os sufixos antigos `.port.ts`, `.view-model.ts` e `.int.spec.ts`, arquivo estranho em `app/` e componente sem `.component`) e nenhum dos válidos, inclusive `[id]`, `(auth)`, arquivos do shadcn e testes `.spec` e `.test`.
+
+- No Postgres, o gatilho `BEFORE` roda antes da checagem de RLS (`WITH CHECK`): a mensagem de erro que o usuário recebe vem do gatilho, quando ele barra, e só depois da política. Teste de integração que espera uma mensagem específica depende dessa ordem.

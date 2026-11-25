@@ -12,18 +12,17 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Adapter do produto avulso "Consulta CND" (PGFN/RFB) do Serpro: contrato e token próprios, sem
-// certificado digital (docs/pesquisa/serpro-api.md, seção 1).
 const PESSOA_JURIDICA = 1;
 const STATUS_EM_PROCESSAMENTO = 7;
-const STATUS_COM_CERTIDAO = [1, 2]; // encontrada | emitida
+const STATUS_COM_CERTIDAO = [1, 2];
+const STATUS_HTTP_COM_CORPO_DE_CONSULTA = [200, 201, 202, 404];
+const MARGEM_DE_RENOVACAO_DO_TOKEN_EM_SEGUNDOS = 60;
 const TENTATIVAS = 4;
 const ESPERA_MS = 3000;
 
 export type CredenciaisCnd = {
   urlToken: string;
   urlCertidao: string;
-  // "Código de identificação do sistema" informado na contratação.
   codigoIdentificacao: string;
   acesso:
     | { tipo: "trial"; token: string }
@@ -67,7 +66,6 @@ export class CertidaoCndSerproGateway implements CertidaoCndPort {
     }
   }
 
-  // Status 7: a consulta passou de 5 s; repete com a `Chave` devolvida até sair o resultado.
   private async emitir(cnpj: string): Promise<CndDto> {
     let chave: string | undefined;
     for (let i = 0; i < TENTATIVAS; i++) {
@@ -112,8 +110,7 @@ export class CertidaoCndSerproGateway implements CertidaoCndPort {
       this.token = null;
       return this.consultar(cnpj, chave, false);
     }
-    // O Serpro responde 200/201/202/404 com o `Status` e a `Mensagem` no corpo.
-    if (![200, 201, 202, 404].includes(r.status)) {
+    if (!STATUS_HTTP_COM_CORPO_DE_CONSULTA.includes(r.status)) {
       throw new ErroCnd(`Serviço de CND respondeu ${r.status}.`);
     }
     return respostaSchema.parse(JSON.parse(r.corpo));
@@ -135,7 +132,10 @@ export class CertidaoCndSerproGateway implements CertidaoCndPort {
     if (r.status !== 200)
       throw new ErroCnd(`Autenticação do serviço de CND respondeu ${r.status}.`);
     const t = tokenSchema.parse(JSON.parse(r.corpo));
-    this.token = { valor: t.access_token, expiraEm: Date.now() + (t.expires_in - 60) * 1000 };
+    this.token = {
+      valor: t.access_token,
+      expiraEm: Date.now() + (t.expires_in - MARGEM_DE_RENOVACAO_DO_TOKEN_EM_SEGUNDOS) * 1000,
+    };
     return this.token.valor;
   }
 }

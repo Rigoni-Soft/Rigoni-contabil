@@ -18,6 +18,27 @@ describe("PainelDeAcoes", () => {
     expect(painel).toHaveTextContent("encerramento aqui");
   });
 
+  it("mostra o cadastro de contato entre os serviços e a transferência quando é oferecido", () => {
+    render(
+      <PainelDeAcoes
+        servicos={<p>serviços aqui</p>}
+        contatoUra={<p>contato aqui</p>}
+        transferencia={<p>transferência aqui</p>}
+        encerramento={<p>encerramento aqui</p>}
+      />,
+    );
+
+    const texto = screen.getByRole("complementary").textContent ?? "";
+    expect(texto.indexOf("serviços aqui")).toBeLessThan(texto.indexOf("contato aqui"));
+    expect(texto.indexOf("contato aqui")).toBeLessThan(texto.indexOf("transferência aqui"));
+  });
+
+  it("em leitura de supervisão o cadastro de contato não aparece", () => {
+    render(<PainelDeAcoes encerramento={<p>encerramento aqui</p>} />);
+
+    expect(screen.queryByText("contato aqui")).not.toBeInTheDocument();
+  });
+
   it("depois de transferido troca as ações pelo aviso de para onde foi", () => {
     render(
       <PainelDeAcoes

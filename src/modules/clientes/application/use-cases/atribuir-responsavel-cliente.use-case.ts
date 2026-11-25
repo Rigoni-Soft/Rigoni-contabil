@@ -14,13 +14,10 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { podeAtribuirResponsavel } from "@/shared/kernel/papeis";
+import { regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { ehSetor, type SetorSlug } from "@/shared/kernel/setores";
 
-// Só o Líder do Setor atribui/troca/remove o Responsável do Cliente naquele Setor. O banco repete a regra
-// (trigger + RLS) — aqui é a primeira barreira e o ponto que registra a auditoria de falha (a ação
-// distingue atribuir, trocar e remover). A de sucesso nasce no banco, na mesma transação da escrita
-// (trigger `auditar_responsavel_cliente`), inclusive quando o Líder grava pela Data API.
 export class AtribuirResponsavelCliente implements AtribuirResponsavelClientePort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -43,16 +40,21 @@ export class AtribuirResponsavelCliente implements AtribuirResponsavelClientePor
       );
     }
 
-    const atual = await this.responsavelAtual(
-      ator.setor,
-      cliente.value.responsavelId,
-      input.clienteId,
-    );
-    if (!atual.ok) return atual;
-    // Sem mudança: nada a gravar nem a auditar.
-    if (atual.value === input.responsavelId) return ok(undefined);
+    if (
+      ator.setor === "simples_nacional" &&
+      !regimeTemCadastroOperacionalSn(cliente.value.regime)
+    ) {
+      return err(
+        new NotFoundError("Este cliente não tem cadastro operacional do Simples Nacional."),
+      );
+    }
 
-    const acao = this.nomeDaAcao(atual.value, input.responsavelId);
+    const atual = await this.query.buscarResponsavelDoSetor(input.clienteId, ator.setor);
+    if (!atual.ok) return atual;
+    const atualId = atual.value?.id ?? null;
+    if (atualId === input.responsavelId) return ok(undefined);
+
+    const acao = this.nomeDaAcao(atualId, input.responsavelId);
     const elegivel = await this.validarElegivel(ator.setor, input.responsavelId);
     if (!elegivel.ok) {
       await this.registrarAuditoria(ator, acao, cliente.value.cnpj);
@@ -71,17 +73,6 @@ export class AtribuirResponsavelCliente implements AtribuirResponsavelClientePor
   private nomeDaAcao(atual: string | null, novo: string | null): string {
     if (novo === null) return "cliente.remover-responsavel";
     return atual === null ? "cliente.atribuir-responsavel" : "cliente.trocar-responsavel";
-  }
-
-  // O SN lê do cadastro operacional; os demais Setores, de `cliente_responsaveis`.
-  private async responsavelAtual(
-    setor: SetorSlug,
-    doCadastroSn: string | null,
-    clienteId: string,
-  ): Promise<Result<string | null, AppError>> {
-    if (setor === "simples_nacional") return ok(doCadastroSn);
-    const atual = await this.query.buscarResponsavelDoSetor(clienteId, setor);
-    return atual.ok ? ok(atual.value?.id ?? null) : atual;
   }
 
   private async validarElegivel(

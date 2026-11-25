@@ -3,10 +3,8 @@ import { z } from "zod";
 import { SETORES } from "@/shared/kernel/setores";
 import { contarCaracteres, emojiValido } from "@/shared/kernel/texto";
 
-// z.guid(), não z.uuid(): mesmo critério do feed de auditoria (a coluna aceita qualquer 8-4-4-4-12).
 export const atendimentoIdSchema = z.guid("Atendimento inválido.");
 
-// Contrato social, guias e CND não têm nº; alteração contratual tem (único por Cliente).
 export const enviarDocumentoSchema = z
   .object({
     atendimentoId: atendimentoIdSchema,
@@ -25,7 +23,12 @@ export const enviarDocumentoSchema = z
     }
   });
 
-export const RESUMO_TAMANHO_MAXIMO = 1000; // o mesmo limite do caso de uso e da tabela `transferencias`
+const RESUMO_TAMANHO_MAXIMO = 1000;
+const CNPJ_COM_MASCARA_TAMANHO = 18;
+const NOME_DO_CONTATO_TAMANHO_MAXIMO = 120;
+const EMAIL_TAMANHO_MAXIMO = 254;
+const LINKS_POR_RENOVACAO_MAXIMO = 50;
+const CAMINHO_DE_ANEXO_ENVIADO = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[\w.-]{1,120}$/i;
 
 export const transferirAtendimentoSchema = z.object({
   atendimentoId: atendimentoIdSchema,
@@ -37,7 +40,33 @@ export const transferirAtendimentoSchema = z.object({
     .max(RESUMO_TAMANHO_MAXIMO, `O resumo aceita até ${RESUMO_TAMANHO_MAXIMO} caracteres.`),
 });
 
-const MENSAGEM_TAMANHO_MAXIMO = 4096; // o mesmo limite do caso de uso (texto do WhatsApp)
+export const buscarClienteParaContatoSchema = z.object({
+  atendimentoId: atendimentoIdSchema,
+  cnpj: z.string().trim().min(1, "Informe o CNPJ.").max(CNPJ_COM_MASCARA_TAMANHO, "CNPJ inválido."),
+});
+
+export const cadastrarContatoUraSchema = z.object({
+  atendimentoId: atendimentoIdSchema,
+  clienteId: z.guid("Cliente inválido."),
+  nome: z
+    .string()
+    .trim()
+    .min(1, "Informe o nome do contato.")
+    .max(
+      NOME_DO_CONTATO_TAMANHO_MAXIMO,
+      `O nome aceita até ${NOME_DO_CONTATO_TAMANHO_MAXIMO} caracteres.`,
+    ),
+  email: z
+    .string()
+    .trim()
+    .max(EMAIL_TAMANHO_MAXIMO, "E-mail inválido.")
+    .refine((valor) => valor === "" || z.email().safeParse(valor).success, {
+      message: "Informe um e-mail válido.",
+    })
+    .transform((valor) => (valor === "" ? null : valor)),
+});
+
+const MENSAGEM_TAMANHO_MAXIMO = 4096;
 
 export const enviarMensagemSchema = z.object({
   atendimentoId: atendimentoIdSchema,
@@ -50,7 +79,6 @@ export const enviarMensagemSchema = z.object({
     }),
 });
 
-// Cursor do histórico: a Mensagem mais antiga que a tela já tem (data com fuso e id).
 export const mensagensAnterioresSchema = z.object({
   atendimentoId: atendimentoIdSchema,
   antes: z.object({
@@ -59,10 +87,9 @@ export const mensagensAnterioresSchema = z.object({
   }),
 });
 
-// Mensagens carregadas cujo link de anexo está vencendo (o servidor corta no limite do caso de uso).
 export const renovarLinksSchema = z.object({
   atendimentoId: atendimentoIdSchema,
-  mensagemIds: z.array(z.guid("Mensagem inválida.")).min(1).max(50),
+  mensagemIds: z.array(z.guid("Mensagem inválida.")).min(1).max(LINKS_POR_RENOVACAO_MAXIMO),
 });
 
 export const reagirAMensagemSchema = z.object({
@@ -71,11 +98,9 @@ export const reagirAMensagemSchema = z.object({
   emoji: z.string().trim().refine(emojiValido, "Escolha um emoji."),
 });
 
-// Objeto que o navegador já subiu em partes: `{atendimento}/{uuid}/{nome}`. O caso de uso confere a
-// pasta, o tipo e o tamanho no Storage. Chega em FormData porque a miniatura (pequena) vai junto.
 export const enviarAnexoGuardadoSchema = z.object({
   atendimentoId: atendimentoIdSchema,
-  caminho: z.string().regex(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[\w.-]{1,120}$/i, "Arquivo inválido."),
+  caminho: z.string().regex(CAMINHO_DE_ANEXO_ENVIADO, "Arquivo inválido."),
   nome: z.string().trim().min(1).max(255),
   legenda: z.string().optional(),
 });

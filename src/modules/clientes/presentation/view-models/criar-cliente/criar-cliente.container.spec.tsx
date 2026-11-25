@@ -21,7 +21,6 @@ function arquivo(nome: string): File {
   return new File(["conteúdo"], nome, { type: "application/pdf" });
 }
 
-// Regex: os labels obrigatórios ganharam um "*" visual, então o texto exato não bate.
 async function preencherCamposObrigatorios(usuario: ReturnType<typeof userEvent.setup>) {
   await usuario.type(screen.getByLabelText(/^CNPJ/), "11.444.777/0001-61");
   await usuario.type(screen.getByLabelText(/^Empresa/), "Padaria Pão Quente Ltda");
@@ -82,7 +81,6 @@ describe("CriarClienteContainer", () => {
     expect(screen.getByLabelText(/^Empresa/)).not.toBeDisabled();
     expect(screen.getByLabelText(/^Regime/)).not.toBeDisabled();
 
-    // segue preenchível à mão depois do aviso
     await usuario.type(screen.getByLabelText(/^Empresa/), "Padaria Pão Quente Ltda");
     expect(screen.getByLabelText(/^Empresa/)).toHaveValue("Padaria Pão Quente Ltda");
   });
@@ -156,20 +154,20 @@ describe("CriarClienteContainer", () => {
     let responderA: (dados: unknown) => void = () => undefined;
     consultarMock
       .mockImplementationOnce(() => new Promise((resolver) => (responderA = resolver)))
-      .mockResolvedValueOnce({}); // B não traz Empresa nem Regime: ficam vazios
+      .mockResolvedValueOnce({});
     const usuario = userEvent.setup();
     render(<CriarClienteContainer />);
     const campo = screen.getByLabelText(/^CNPJ/);
 
     await usuario.type(campo, "11.444.777/0001-61");
-    await usuario.tab(); // consulta A fica pendente
+    await usuario.tab();
     await usuario.clear(campo);
     await usuario.type(campo, "00.000.000/E08G-12");
-    await usuario.tab(); // consulta B responde antes
+    await usuario.tab();
     expect(await screen.findByText(/Não foi possível confirmar o Regime/)).toBeInTheDocument();
 
     await act(async () => responderA({ empresa: "Empresa A", regime: "simples_nacional" }));
-    await new Promise((resolver) => setTimeout(resolver, 10)); // folga pro setTimeout(0) interno
+    await new Promise((resolver) => setTimeout(resolver, 10));
 
     expect(screen.getByLabelText(/^Empresa/)).toHaveValue("");
     expect(screen.getByLabelText(/^Regime/)).toHaveValue("");
@@ -196,13 +194,13 @@ describe("CriarClienteContainer", () => {
     const usuario = userEvent.setup();
     render(<CriarClienteContainer />);
 
-    await preencherCamposObrigatorios(usuario); // blur do CNPJ deixa a consulta A pendente
+    await preencherCamposObrigatorios(usuario);
     await usuario.click(screen.getByRole("button", { name: "Cadastrar" }));
     await screen.findByText(/cadastrado/);
     await usuario.click(screen.getByRole("button", { name: "Cadastrar outro" }));
 
     await act(async () => responderA({ empresa: "Empresa A", regime: "simples_nacional" }));
-    await new Promise((resolver) => setTimeout(resolver, 10)); // folga pro setTimeout(0) interno
+    await new Promise((resolver) => setTimeout(resolver, 10));
     process.off("unhandledRejection", aoRejeitar);
 
     expect(rejeicoes).toEqual([]);
@@ -292,8 +290,6 @@ describe("CriarClienteContainer", () => {
 
     await preencherCamposObrigatorios(usuario);
     await usuario.click(screen.getByRole("button", { name: "Adicionar" }));
-    // input type=date: userEvent.type digita por segmento (ano/mês/dia) e é
-    // instável em jsdom — fireEvent.change atribui o valor ISO direto.
     fireEvent.change(screen.getByLabelText("Data da alteração 1"), {
       target: { value: "2026-02-01" },
     });

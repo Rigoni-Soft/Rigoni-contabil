@@ -6,6 +6,10 @@
 
 Issues e specs vivem como GitHub issues neste repositório (Rigoni-Soft/Rigoni-contabil). Ver `docs/agents/issue-tracker.md`.
 
+### Triage labels
+
+Rótulos padrão do `triage` (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`; categorias `bug` e `enhancement`). Ver `docs/agents/triage-labels.md`.
+
 ### Domain docs
 
 Single-context: `CONTEXT.md` na raiz + `docs/adr/`. Ver `docs/agents/domain.md`.

@@ -9,8 +9,6 @@ import { podeAtribuirResponsavel } from "@/shared/kernel/papeis";
 import { err, type Result } from "@/shared/kernel/result";
 import { ehSetor } from "@/shared/kernel/setores";
 
-// A lista serve ao campo Responsável, que é só do Líder do Setor (os Funcionários do próprio
-// Setor); a RLS de `perfis` (mesmo Setor) fica como segunda camada.
 export class ListarResponsaveisElegiveis {
   constructor(
     private readonly sessao: SessaoPort,

@@ -10,8 +10,6 @@ import {
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.queries";
 import { useConversa } from "@/modules/atendimento/presentation/view-models/conversa/use-conversa.hook";
 
-// `aoSair`: onde a tela vai quando a conversa deixa de ser do usuário; sem ele, volta ao início
-// (a conversa em rota própria). O chat central da aba Atendimento passa o seu: fecha o painel.
 export function useAcoesConversa(
   atendimentoId: string,
   initialData: ConversaVista,
@@ -37,25 +35,22 @@ export function useAcoesConversa(
         : undefined;
 
   return {
-    // Encerrado não tem ações; transferido mostra só o aviso de para onde foi.
     visivel: !conversa.encerrado || transferido,
     transferidoPara,
     somenteLeitura: conversa.somenteLeitura,
     semCliente: conversa.semCliente,
+    podeCadastrarContato: conversa.contatoUra.pode,
     servicos: conversa.servicos,
     aoEnviarServico: (valor: string) => envio.mutate(documentoDaOpcao(valor)),
     enviando: envio.isPending,
     aviso,
     setoresDestino: conversa.setoresDestino,
-    // Transferido, o Funcionário perde o controle e a visão da conversa: a tela volta ao início.
     aoTransferir: (setorDestino: string, resumo: string) =>
       transferencia.mutate({ setorDestino, resumo }, { onSuccess: sairDaConversa }),
     transferindo: transferencia.isPending,
     avisoTransferencia: transferencia.isError
       ? { tipo: "erro" as const, texto: transferencia.error.message }
       : undefined,
-    // Encerrar não tem volta: pede confirmação. Encerrado, o Funcionário sai da conversa como na
-    // transferência.
     confirmandoEncerramento,
     aoPedirEncerramento: () => setConfirmandoEncerramento(true),
     aoCancelarEncerramento: () => setConfirmandoEncerramento(false),

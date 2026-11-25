@@ -5,9 +5,8 @@ import type {
 
 const JANELA_MS = 24 * 60 * 60 * 1000;
 
-type Guia = { url: string; nomeArquivo: string };
+export type Guia = { url: string; nomeArquivo: string };
 
-// Comunicações proativas do sistema (seção 9 da spec); variáveis em docs/pesquisa/templates-whatsapp.md.
 export type ComunicacaoProativa =
   | { tipo: "lembrete_documento_obrigatorio"; contato: string; empresa: string }
   | {
@@ -26,7 +25,12 @@ export type ComunicacaoProativa =
       guia: Guia;
     };
 
-// A janela de 24h conta da última mensagem recebida do contato.
+export type ComunicacaoSemContato = ComunicacaoProativa extends infer C
+  ? C extends ComunicacaoProativa
+    ? Omit<C, "contato">
+    : never
+  : never;
+
 export function janelaAberta(ultimaMensagemDoContatoEm: Date | null, agora: Date): boolean {
   return (
     ultimaMensagemDoContatoEm !== null &&
@@ -70,12 +74,9 @@ const ASSUNTO_EMAIL: Record<ComunicacaoProativa["tipo"], string> = {
 
 export const montarAssuntoEmail = (c: ComunicacaoProativa): string => ASSUNTO_EMAIL[c.tipo];
 
-// A guia anexada à comunicação, quando é uma comunicação com guia.
-export const guiaDe = (c: ComunicacaoProativa): Guia | undefined =>
+export const guiaDe = (c: ComunicacaoSemContato): Guia | undefined =>
   "guia" in c ? c.guia : undefined;
 
-// Texto no formato próprio do sistema, usado com a janela aberta (sem custo de template) e no
-// e-mail.
 export function montarTextoLivre(comunicacao: ComunicacaoProativa): string {
   switch (comunicacao.tipo) {
     case "lembrete_documento_obrigatorio":

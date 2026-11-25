@@ -1,17 +1,16 @@
+import { AlertTriangle } from "lucide-react";
+
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
 type LinhaDeUsuarioProps = {
   nome: string;
-  // E-mail, Papel e Setor, já formatados para exibição.
   resumo: string;
-  // Desativado, mas o bloqueio da conta ainda não foi concluído.
-  bloqueioPendente?: boolean;
-  // Ações da linha (slot montado no servidor).
+  desativacaoPendente?: boolean;
   acoes?: React.ReactNode;
 };
 
-export function LinhaDeUsuario({ nome, resumo, bloqueioPendente, acoes }: LinhaDeUsuarioProps) {
+export function LinhaDeUsuario({ nome, resumo, desativacaoPendente, acoes }: LinhaDeUsuarioProps) {
   return (
     <Linha
       como="li"
@@ -27,9 +26,10 @@ export function LinhaDeUsuario({ nome, resumo, bloqueioPendente, acoes }: LinhaD
         <Texto variante="apoio" className="[overflow-wrap:anywhere] sm:truncate">
           {resumo}
         </Texto>
-        {bloqueioPendente && (
-          <Texto variante="alerta">
-            Desativado, mas o bloqueio da conta ainda não foi concluído.
+        {desativacaoPendente && (
+          <Texto variante="alerta" className="flex items-start gap-1">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            Desativado: conclusão pendente (bloqueio da conta ou foto ainda guardada).
           </Texto>
         )}
       </Caixa>

@@ -17,13 +17,9 @@ export type ClienteProps = {
   empresa: string;
   cnpj: Cnpj;
   regime: Regime;
-  // Opcional: nem todo Cliente tem o contrato social anexado no momento do cadastro.
   contratoSocialCaminho: string | null;
-  // Opcional: destino do envio por e-mail do job de lembrete/DAS.
   email: Email | null;
   alteracoesContratuais: readonly AlteracaoContratual[];
-  // Campos operacionais do Simples Nacional — editados pelo Funcionário
-  // do setor, em tela separada do cadastro jurídico.
   formaEnvio: FormaEnvio;
   contatos: readonly Contato[];
   documentoObrigatorio: DocumentoObrigatorioStatus | null;

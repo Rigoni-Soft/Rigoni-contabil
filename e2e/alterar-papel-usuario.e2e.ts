@@ -46,7 +46,6 @@ test("Admin promove Funcionário a Líder, é barrado num segundo no mesmo Setor
     page.getByRole("button", { name: `Rebaixar ${segundo} a Funcionário` }),
   ).toBeVisible();
 
-  // Limpa: deixa o Setor sem Líder pra próxima execução.
   await page.getByRole("button", { name: `Rebaixar ${segundo} a Funcionário` }).click();
   await expect(
     page.getByRole("button", { name: `Promover ${segundo} a Líder de setor` }),

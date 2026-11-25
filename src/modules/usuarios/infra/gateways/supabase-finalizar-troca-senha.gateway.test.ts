@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3): requer `npx supabase start`
- * rodando localmente. Usa service_role (docs/adr/0001) — nunca o client
- * autenticado do usuário.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
@@ -65,7 +60,6 @@ describe("SupabaseFinalizarTrocaSenhaGateway (integração)", () => {
     const prova = await gateway.registrarAuthAlterado(id as UsuarioId);
     expect(prova.ok).toBe(true);
     const resultado = await gateway.finalizar(id as UsuarioId);
-    // Idempotente: segunda chamada não duplica auditoria nem falha.
     expect((await gateway.finalizar(id as UsuarioId)).ok).toBe(true);
 
     expect(resultado.ok).toBe(true);
@@ -75,9 +69,6 @@ describe("SupabaseFinalizarTrocaSenhaGateway (integração)", () => {
     expect(auditorias.data).toEqual([{ acao: "usuario.trocar_senha_primeiro_acesso" }]);
   });
 
-  // Antes, `grant execute ... to authenticated` deixava qualquer sessão (inclusive com senha ainda
-  // provisória) chamar a RPC direto via supabase-js, sem trocar a senha de verdade no Auth. Agora
-  // só service_role executa — prova negativa de que o bypass fechou.
   it("um usuário autenticado comum não consegue chamar a RPC diretamente", async () => {
     const { id, email } = await criarContaAuthDeTeste();
 

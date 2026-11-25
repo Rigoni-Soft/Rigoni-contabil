@@ -9,8 +9,6 @@ export const feedAuditoriaKeys = {
 };
 
 export function useFeedAuditoria(filtro: FiltroFeedValues, initialData: RegistroAcaoDto[]) {
-  // initialData só vale pro filtro vazio (o que o loader do servidor já buscou);
-  // outro filtro precisa buscar de verdade, nunca herdar a carga inicial (arquitetura.md, seção 4.9).
   const semFiltro = Object.keys(filtro).length === 0;
 
   return useQuery({

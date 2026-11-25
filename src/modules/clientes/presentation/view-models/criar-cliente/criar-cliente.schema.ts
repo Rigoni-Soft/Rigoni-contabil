@@ -10,8 +10,6 @@ import {
 } from "@/shared/kernel/numero-alteracao";
 import { REGIMES } from "@/shared/kernel/regimes";
 
-// PDF ou DOCX — restringe tanto no `accept` do input (dica do navegador) quanto aqui (não confia
-// só no client).
 const TIPOS_DOCUMENTO_ACEITOS = [
   "application/pdf",
   "application/msword",
@@ -28,14 +26,11 @@ export const arquivoDocumento = (mensagem: string) =>
 
 const ERRO_DATA_FUTURA = "A data da alteração não pode ser futura.";
 
-// Data canônica "AAAA-MM-DD" válida e não futura no fuso de negócio (São Paulo).
 export const dataNaoFutura = z.iso
   .date({ error: (i) => (i.input === "" ? "Data obrigatória" : "Data inválida") })
   .refine((data) => data <= hojeIso(), ERRO_DATA_FUTURA);
 
-// Os arquivos vão todos no corpo de uma só Server Action, que o Next corta em 11 MB (next.config.ts).
-// Acima disso a requisição falha antes do caso de uso e a tela só diria "verifique a conexão".
-const LIMITE_TOTAL_BYTES = 10 * 1024 * 1024;
+const LIMITE_DOS_ARQUIVOS_DO_CADASTRO_EM_BYTES = 10 * 1024 * 1024;
 
 export const criarClienteSchema = z
   .object({
@@ -45,7 +40,6 @@ export const criarClienteSchema = z
       .min(1, "CNPJ obrigatório")
       .refine(cnpjValido, "CNPJ inválido"),
     regime: z.enum(REGIMES, "Regime obrigatório"),
-    // Opcional: vazio vale como "sem e-mail" (campo de texto não preenchido chega como "").
     email: z
       .union([
         z.literal(""),
@@ -56,7 +50,6 @@ export const criarClienteSchema = z
           .email("Informe um e-mail válido, como nome@empresa.com.br"),
       ])
       .optional(),
-    // Opcional.
     contratoSocial: arquivoDocumento("Arquivo inválido").optional(),
     alteracoesContratuais: z
       .array(
@@ -68,7 +61,6 @@ export const criarClienteSchema = z
           arquivo: arquivoDocumento("Arquivo obrigatório"),
         }),
       )
-      // Nº repetido dentro do formulário: barra antes do envio dos arquivos.
       .superRefine((alteracoes, ctx) => {
         alteracoes.forEach(({ numero }, indice) => {
           if (erroDeFormato(numero)) return;
@@ -77,13 +69,12 @@ export const criarClienteSchema = z
         });
       }),
   })
-  // Erro do conjunto (`root`), não do Contrato social: o excesso pode vir de qualquer arquivo.
   .superRefine(({ contratoSocial, alteracoesContratuais }, ctx) => {
     const total = [contratoSocial, ...alteracoesContratuais.map((a) => a.arquivo)].reduce(
       (soma, arquivo) => soma + (arquivo?.size ?? 0),
       0,
     );
-    if (total <= LIMITE_TOTAL_BYTES) return;
+    if (total <= LIMITE_DOS_ARQUIVOS_DO_CADASTRO_EM_BYTES) return;
     const mb = (total / (1024 * 1024)).toFixed(1).replace(".", ",");
     ctx.addIssue({
       code: "custom",

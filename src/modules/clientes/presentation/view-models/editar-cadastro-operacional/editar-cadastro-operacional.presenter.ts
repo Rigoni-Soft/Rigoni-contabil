@@ -6,13 +6,12 @@ import {
   DOCUMENTO_OBRIGATORIO_STATUS_LABEL,
   DOCUMENTO_OBRIGATORIO_STATUSES,
 } from "@/shared/kernel/documento-obrigatorio-status";
-import { FORMA_ENVIO_LABEL, FORMAS_ENVIO } from "@/shared/kernel/forma-envio";
 import { opcoesDe } from "@/shared/kernel/opcoes";
 import { rotuloResponsavel } from "@/shared/kernel/papeis";
+import { soDigitos } from "@/shared/kernel/telefone";
 
 type Opcao = { id: string; nome: string };
 
-// Antes de abrir o Select só o Responsável atual é conhecido; depois soma a lista carregada.
 export function opcoesResponsavel(
   dados: Pick<CadastroOperacionalClienteDto, "responsavelId" | "responsavelNome">,
   carregadas: Opcao[],
@@ -27,13 +26,11 @@ export function opcoesResponsavel(
 export const nomeResponsavelAtual = (dados: CadastroOperacionalClienteDto) =>
   rotuloResponsavel(dados.responsavelId, dados.responsavelNome);
 
-// Estado da leitura do PDF numa linha nova, como o hook o guarda.
 export type EstadoDaLeitura =
   | { estado: "lendo" }
   | { estado: "sugerido"; codigoGerado: boolean; cnpjConfere: boolean | null }
   | { estado: "falhou" };
 
-// O que a linha exibe do estado: o texto já pronto (a View não formata) e se o CNPJ do PDF divergiu.
 export function leituraDaLinha(leitura: EstadoDaLeitura): LeituraDaLinha {
   switch (leitura.estado) {
     case "lendo":
@@ -59,8 +56,6 @@ const ORIGEM_ROTULO: Record<
   pgfn: "PGFN",
 };
 
-// Uma linha com o que o PDF trouxe do acordo ("PGFN · 5 parcelas · R$ 262,89 · adesão 27/01/2026");
-// vazia quando não há nada a mostrar (Parcelamento digitado à mão).
 export function resumoDoAcordo(acordo: ParcelamentoFormValues["acordo"]): string {
   if (!acordo) return "";
   const [ano, mes, dia] = acordo.dataDeAdesao?.split("-") ?? [];
@@ -79,8 +74,35 @@ export function resumoDoAcordo(acordo: ParcelamentoFormValues["acordo"]): string
     .join(" · ");
 }
 
-// Só o que o Funcionário digita conta como mudança (selo e nome do PDF são da tela). Parcelamento
-// novo ou removido é mudança; quitado não se edita, então nunca é.
+export function semChaves<T extends object, K extends keyof T>(
+  objeto: T,
+  ...chaves: K[]
+): Omit<T, K> {
+  return Object.fromEntries(
+    Object.entries(objeto).filter(([chave]) => !(chaves as string[]).includes(chave)),
+  ) as Omit<T, K>;
+}
+
+export class FalhaDeEtapa extends Error {
+  constructor(readonly etapa: string | null) {
+    super("falha de transporte");
+  }
+}
+
+export async function naEtapa<T>(etapa: string | null, passo: () => Promise<T>): Promise<T> {
+  try {
+    return await passo();
+  } catch {
+    throw new FalhaDeEtapa(etapa);
+  }
+}
+
+export function mensagemDeFalhaDeEtapa(erro: unknown, padrao: string) {
+  return erro instanceof FalhaDeEtapa && erro.etapa
+    ? `Os dados foram salvos, mas não foi possível ${erro.etapa}. Verifique a conexão e tente novamente.`
+    : padrao;
+}
+
 export function mudouParcelamentos(
   atuais: ParcelamentoFormValues[],
   salvos: CadastroOperacionalClienteDto["parcelamentos"],
@@ -97,13 +119,13 @@ export function mudouParcelamentos(
   });
 }
 
-// Linhas abertas de nascença (Contatos e Parcelamentos sem registros abrem com uma em branco, para a
-// seção não ficar vazia): a linha que ninguém tocou não conta e sai antes da validação e do envio.
-export const contatoNovo = (padrao: boolean) => ({ nome: "", telefone: "", padrao });
+export const contatoNovo = () => ({ nome: "", telefone: "", email: "" });
+
+const PARCELAS_RESTANTES_DO_PARCELAMENTO_NOVO = 1;
 
 export const parcelamentoNovo = (): ParcelamentoFormValues => ({
   codigo: "",
-  parcelasRestantes: 1,
+  parcelasRestantes: PARCELAS_RESTANTES_DO_PARCELAMENTO_NOVO,
   interno: false,
   quitado: false,
   temEnvio: false,
@@ -112,16 +134,14 @@ export const parcelamentoNovo = (): ParcelamentoFormValues => ({
 });
 
 type ContatoDaLinha = { id?: string; nome: string; telefone: string };
-const contatoEmBranco = (c: ContatoDaLinha) =>
-  !c.id && !c.nome.trim() && !c.telefone.replace(/\D/g, "");
+const contatoEmBranco = (c: ContatoDaLinha) => !c.id && !c.nome.trim() && !soDigitos(c.telefone);
 const parcelamentoEmBranco = (p: ParcelamentoFormValues) =>
   !p.id &&
   !p.arquivo &&
   !p.codigo.trim() &&
-  (Number.isNaN(p.parcelasRestantes) || p.parcelasRestantes === 1);
+  (Number.isNaN(p.parcelasRestantes) ||
+    p.parcelasRestantes === PARCELAS_RESTANTES_DO_PARCELAMENTO_NOVO);
 
-// Devolve os valores sem as linhas em branco e, por lista, o índice original de cada linha mantida
-// (para devolver cada erro à linha certa da tela).
 export function descartarLinhasEmBranco<
   T extends { contatos: ContatoDaLinha[]; parcelamentos: ParcelamentoFormValues[] },
 >(valores: T) {
@@ -140,13 +160,13 @@ export function descartarLinhasEmBranco<
   };
 }
 
-// Erro da lista filtrada volta ao índice da linha na tela; as chaves não numéricas (mensagem da
-// lista toda) seguem como vieram.
+const ehIndiceDeLista = (chave: string) => !Number.isNaN(Number(chave));
+
 export function reposicionarErros(erros: unknown, indicesOriginais: number[]): unknown {
   if (!Array.isArray(erros)) return erros;
   const reposicionados: Record<string, unknown> & unknown[] = Object.assign(
     [],
-    Object.fromEntries(Object.entries(erros).filter(([chave]) => Number.isNaN(Number(chave)))),
+    Object.fromEntries(Object.entries(erros).filter(([chave]) => !ehIndiceDeLista(chave))),
   );
   erros.forEach((erro, indice) => {
     if (erro !== undefined) reposicionados[indicesOriginais[indice]] = erro;
@@ -154,13 +174,10 @@ export function reposicionarErros(erros: unknown, indicesOriginais: number[]): u
   return reposicionados;
 }
 
-// Opções dos selects de status (valor/rótulo).
-export const OPCOES_FORMA_ENVIO = opcoesDe(FORMAS_ENVIO, FORMA_ENVIO_LABEL);
 export const OPCOES_DOCUMENTO = opcoesDe(
   DOCUMENTO_OBRIGATORIO_STATUSES,
   DOCUMENTO_OBRIGATORIO_STATUS_LABEL,
 );
-// "Enviado" é gravado só pelo sistema: fora das opções escolhíveis, e só aparece (travado) quando já é o valor atual.
 const OPCOES_DAS = opcoesDe(
   DAS_STATUSES.filter((status) => status !== "enviado"),
   DAS_STATUS_LABEL,

@@ -1,44 +1,96 @@
 import { cn } from "@/presentation/lib/utils";
 
 type CelulaDeTabelaProps = {
-  // Data/hora e números ficam em uma linha só e alinhados (tabular-nums).
+  compacta?: boolean;
   numerica?: boolean;
+  fixa?: boolean;
   children: React.ReactNode;
 };
 
-export function CelulaDeTabela({ numerica = false, children }: CelulaDeTabelaProps) {
+export function CelulaDeTabela({
+  numerica = false,
+  fixa = false,
+  compacta = false,
+  children,
+}: CelulaDeTabelaProps) {
+  const Elemento = fixa ? "th" : "td";
   return (
-    <td
+    <Elemento
+      scope={fixa ? "row" : undefined}
       className={cn(
-        "px-3 py-2",
-        numerica && "whitespace-nowrap text-muted-foreground tabular-nums",
+        "px-3",
+        compacta ? "py-1" : "py-2",
+        fixa && "sticky left-0 border-r border-border bg-inherit text-left font-normal",
+        numerica && "text-right whitespace-nowrap text-muted-foreground tabular-nums",
       )}
     >
       {children}
-    </td>
+    </Elemento>
   );
 }
 
-export function CabecalhoDeColuna({ children }: { children: React.ReactNode }) {
+export function CabecalhoDeColuna({
+  fixa = false,
+  numerica = false,
+  centro = false,
+  colSpan,
+  children,
+}: {
+  centro?: boolean;
+  colSpan?: number;
+  fixa?: boolean;
+  numerica?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <th scope="col" className="px-3 py-2 font-medium">
+    <th
+      scope={colSpan ? "colgroup" : "col"}
+      colSpan={colSpan}
+      className={cn(
+        "px-3 py-2 font-medium",
+        centro && "text-center",
+        fixa && "sticky left-0 border-r border-border bg-muted",
+        numerica && "text-right",
+      )}
+    >
       {children}
     </th>
   );
 }
 
-// Tabela com rolagem horizontal própria (a moldura não estoura a tela estreita).
 export function Tabela({
   colunas,
+  legenda,
+  semMoldura = false,
+  grade = false,
+  agrupamento,
   children,
 }: {
   colunas: React.ReactNode;
+  grade?: boolean;
+  agrupamento?: React.ReactNode;
+  legenda?: string;
+  semMoldura?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="w-full text-left text-sm">
-        <thead className="border-b border-border bg-muted/50 text-muted-foreground">
+    <div
+      {...(legenda && { role: "region", "aria-label": legenda, tabIndex: 0 })}
+      className={cn(
+        "overflow-x-auto bg-card focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+        !semMoldura && "rounded-lg border border-border",
+      )}
+    >
+      <table
+        className={cn(
+          "w-full text-left text-sm",
+          grade &&
+            "border-collapse [&_td]:border [&_td]:border-border [&_td]:px-1.5 [&_th]:border [&_th]:border-border [&_th]:px-1.5",
+        )}
+      >
+        {legenda && <caption className="sr-only">{legenda}</caption>}
+        <thead className="border-b border-border bg-muted text-muted-foreground">
+          {agrupamento && <tr>{agrupamento}</tr>}
           <tr>{colunas}</tr>
         </thead>
         <tbody>{children}</tbody>
@@ -47,6 +99,22 @@ export function Tabela({
   );
 }
 
-export function LinhaDeTabela({ children }: { children: React.ReactNode }) {
-  return <tr className="border-b border-border last:border-0">{children}</tr>;
+const TOM = {
+  alerta: "bg-[color-mix(in_oklab,var(--destructive)_9%,var(--card))]",
+  atencao: "bg-[color-mix(in_oklab,var(--warning)_16%,var(--card))]",
+  info: "bg-[color-mix(in_oklab,var(--info)_11%,var(--card))]",
+} as const;
+
+export function LinhaDeTabela({
+  tom,
+  children,
+}: {
+  tom?: keyof typeof TOM;
+  children: React.ReactNode;
+}) {
+  return (
+    <tr className={cn("border-b border-border bg-card last:border-0", tom && TOM[tom])}>
+      {children}
+    </tr>
+  );
 }

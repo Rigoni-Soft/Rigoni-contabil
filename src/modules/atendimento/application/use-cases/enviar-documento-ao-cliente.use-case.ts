@@ -32,7 +32,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const ACAO = "atendimento.enviar_documento";
 
-// O que o Funcionário escolheu, já resolvido: como o cliente o vê e como entregá-lo.
 type Preparado = {
   descricao: string;
   entregar: (telefone: string, chaveIdempotencia: string) => Promise<Result<void, AppError>>;
@@ -40,8 +39,10 @@ type Preparado = {
 
 const ehGuia = (tipo: DocumentoParaEnviar["tipo"]): tipo is TipoGuia => tipo in ROTULO_GUIA;
 
-// Funcionário dispara o mesmo serviço do menu da URA usando o Cliente já vinculado ao Atendimento
-// (sem perguntar o CNPJ de novo). Mesma regra de quem pode agir que a Transferência.
+function extensaoDoCaminho(caminho: string): string {
+  return /\.[A-Za-z0-9]+$/.exec(caminho)?.[0] ?? "";
+}
+
 export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -74,8 +75,6 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
       return err(new ValidationError("O Atendimento não tem Cliente vinculado."));
     }
 
-    // Antes de registrar: documento ausente, guia sem autorização fiscal ou provedor fora do ar
-    // devolvem o erro sem deixar Mensagem no Atendimento, mas a tentativa fica auditada.
     const preparado = await this.preparar(atendimento.clienteId, documento);
     if (!preparado.ok) {
       await this.auditar(ator, atendimentoId, "falha");
@@ -83,7 +82,6 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
     }
     const { descricao, entregar } = preparado.value;
 
-    // Registro antes da entrega, sob o lock do Atendimento (ver EnviarMensagemAoCliente).
     const registrada = await this.repositorio.registrarMensagemDoFuncionario(
       atendimentoId,
       ator,
@@ -127,19 +125,15 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
     });
   }
 
-  // O CNPJ vem do cadastro do Cliente, como na URA. Sem autorização fiscal vigente o provedor
-  // devolve `ForbiddenError`, que o painel mostra ao Funcionário.
   private async prepararGuia(
     clienteId: string,
     tipo: TipoGuia,
   ): Promise<Result<Preparado, AppError>> {
-    // ponytail: CND bloqueada no servidor até o escritório liberar o produto (tirar este guard).
     if (tipo === "cnd") return err(new ValidationError("A CND ainda não está liberada."));
     let guia;
     try {
       guia = await this.guias.buscar(clienteId, tipo);
     } catch (erro) {
-      // Só a mensagem: o objeto de erro inteiro poderia levar o CNPJ ao log.
       this.erros.registrar(
         `Falha inesperada ao buscar a guia ${tipo}:`,
         erro instanceof Error ? erro.message : "erro desconhecido",
@@ -163,7 +157,7 @@ export class EnviarDocumentoAoCliente implements EnviarDocumentoAoClientePort {
   ): Promise<Result<void, AppError>> {
     const link = await this.documentos.linkTemporario(caminho);
     if (!link.ok) return link;
-    const extensao = /\.[A-Za-z0-9]+$/.exec(caminho)?.[0] ?? "";
+    const extensao = extensaoDoCaminho(caminho);
     return this.despachar({
       telefone,
       url: link.value,

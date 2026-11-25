@@ -1,10 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3): Funcionário do
- * Simples Nacional edita cadastro operacional de Cliente. Requer
- * `npx supabase start` rodando localmente com migrations + seed aplicados.
- * Usa Admin, Funcionário SN e Funcionário Financeiro (outro Setor) de
- * `supabase/seed.sql` pra provar a matriz de RLS.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
@@ -42,7 +35,6 @@ const LIDER_SN_ID = "88888888-8888-8888-8888-888888888888";
 const FUNCIONARIO_2_SN_ID = "99999999-9999-9999-9999-999999999999";
 const FUNCIONARIO_FINANCEIRO_ID = "33333333-3333-3333-3333-333333333333";
 
-// Funcionário SN só edita Cliente do qual é Responsável — quem atribui é o Líder.
 async function atribuirComoLider(clienteId: string, responsavelId: string | null) {
   const lider = await comoLiderSN();
   const resultado = await new SupabaseResponsavelClienteRepository(lider).atribuir(
@@ -81,7 +73,7 @@ function comCadastroOperacional(
     .comContratoSocialCaminho(clienteBase.contratoSocialCaminho)
     .comAlteracoesContratuais([])
     .comFormaEnvio("email")
-    .comContatos([{ nome: "Maria", telefone: "11999990000", padrao: true }])
+    .comContatos([{ nome: "Maria", telefone: "11999990000", email: "" }])
     .comDocumentoObrigatorio("positivo")
     .comDasStatus(das.status as "pronto")
     .comDataEnvioDas(das.data ? new Date(das.data) : null)
@@ -97,7 +89,6 @@ function comCadastroOperacional(
   return reconstruido.value;
 }
 
-// CNPJs fixos desta suíte, reservados para teste: removidos antes e depois (nunca um DELETE amplo).
 const CNPJS_DA_SUITE = [
   "11444777000242",
   "11444777000323",
@@ -121,6 +112,7 @@ const CNPJS_DA_SUITE = [
   "62785037000715",
   "62785037000804",
   "62785037000987",
+  "62785037001010",
   "62785037001363",
   "62785037001444",
 ] as const;
@@ -150,7 +142,7 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       .select("*")
       .eq("cliente_id", clienteBase.id);
     expect(contatos).toHaveLength(1);
-    expect(contatos?.[0].padrao).toBe(true);
+    expect(contatos?.[0].dono_setor).toBe("simples_nacional");
   });
 
   it("Funcionário de outro Setor NÃO pode editar o cadastro operacional (RLS)", async () => {
@@ -174,11 +166,9 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
     );
     const repositorio = new SupabaseClienteRepository(await comoFuncionarioFinanceiro());
 
-    // Sem ser Responsável no Financeiro, o Cliente não existe para ele.
     const semAtribuicao = await repositorio.buscarPorId(clienteBase.id);
     expect(semAtribuicao.ok && semAtribuicao.value).toBeNull();
 
-    // Responsável no Financeiro: passa a ver (o cadastro operacional é do SN, mas a leitura é dele).
     const servico = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
     });
@@ -219,7 +209,6 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       const repositorio = new SupabaseClienteRepository(await comoFuncionarioSN());
       return { admin, clienteBase, repositorio };
     }
-    // O sistema (job de envio) grava `enviado` sem sessão de usuário: service_role.
     const comoSistema = () =>
       createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
     const sistemaMarcaEnviado = (clienteId: string, data: string) =>
@@ -294,7 +283,6 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       const repositorio = new SupabaseClienteRepository(await comoFuncionarioSN());
       await repositorio.atualizarOperacional(comCadastroOperacional(clienteBase));
       await sistemaMarcaEnviado(clienteBase.id, "2026-10-05");
-      // B por INSERT direto: a RPC de cadastro é que cria o cadastro operacional.
       const clienteBId = crypto.randomUUID();
       const inserirB = await admin.from("clientes").insert({
         id: clienteBId,
@@ -334,7 +322,6 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
             .single()
         ).data?.caminho_guia_das;
 
-      // Injeção por update direto antes de haver entrega: ignorada.
       await funcionarioSN
         .from("cliente_cadastro_operacional_sn")
         .update({ caminho_guia_das: "outro/acordo/x.pdf" })
@@ -368,7 +355,6 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
         .upsert({ cliente_id: clienteBase.id, caminho_guia_das: "outro/das/y.pdf" });
       expect(await lerCaminho()).toBe("c/das/ok.pdf");
 
-      // Edição comum pela application preserva a referência.
       await repositorio.atualizarOperacional(
         comCadastroOperacional(clienteBase, { status: "enviado", data: "2026-10-05" }),
       );
@@ -415,18 +401,24 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
       const funcionarioSN = await comoFuncionarioSN();
 
-      const direto = await funcionarioSN
-        .from("cliente_cadastro_operacional_sn")
-        .update({ responsavel_id: null })
-        .eq("cliente_id", clienteBase.id);
-      const viaGateway = await new SupabaseResponsavelClienteRepository(funcionarioSN).atribuir(
+      await funcionarioSN
+        .from("cliente_responsaveis")
+        .delete()
+        .eq("cliente_id", clienteBase.id)
+        .eq("setor", "simples_nacional");
+      await new SupabaseResponsavelClienteRepository(funcionarioSN).atribuir(
         clienteBase.id,
         "simples_nacional",
         null,
       );
 
-      expect(direto.error).not.toBeNull();
-      expect(viaGateway.ok).toBe(false);
+      const { data } = await admin
+        .from("cliente_responsaveis")
+        .select("responsavel_id")
+        .eq("cliente_id", clienteBase.id)
+        .eq("setor", "simples_nacional")
+        .single();
+      expect(data?.responsavel_id).toBe(FUNCIONARIO_SN_ID);
     });
 
     it("Admin também NÃO atribui o Responsável (só o Líder do SN)", async () => {
@@ -481,14 +473,14 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
       await servico.auth.admin.deleteUser(conta.user.id);
 
       const { data } = await admin
-        .from("cliente_cadastro_operacional_sn")
+        .from("cliente_responsaveis")
         .select("responsavel_id")
         .eq("cliente_id", clienteBase.id)
-        .single();
-      expect(data?.responsavel_id).toBeNull();
+        .eq("setor", "simples_nacional")
+        .maybeSingle();
+      expect(data?.responsavel_id ?? null).toBeNull();
     });
 
-    // O evento nasce no banco, na transação da escrita.
     describe("auditoria atômica do Responsável", () => {
       const eventosDoResponsavel = async (cnpj: string) => {
         const servico = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
@@ -526,10 +518,14 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
         const clienteBase = await criarClienteBase(admin, "62785037000200");
         const lider = await comoLiderSN();
 
-        const direto = await lider
-          .from("cliente_cadastro_operacional_sn")
-          .update({ responsavel_id: FUNCIONARIO_SN_ID })
-          .eq("cliente_id", clienteBase.id);
+        const direto = await lider.from("cliente_responsaveis").upsert(
+          {
+            cliente_id: clienteBase.id,
+            setor: "simples_nacional",
+            responsavel_id: FUNCIONARIO_SN_ID,
+          },
+          { onConflict: "cliente_id,setor" },
+        );
 
         expect(direto.error).toBeNull();
         expect((await eventosDoResponsavel("62785037000200")).map((e) => e.acao)).toEqual([
@@ -543,10 +539,14 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
         await atribuirComoLider(clienteBase.id, FUNCIONARIO_SN_ID);
         const lider = await comoLiderSN();
 
-        await lider
-          .from("cliente_cadastro_operacional_sn")
-          .update({ responsavel_id: FUNCIONARIO_SN_ID })
-          .eq("cliente_id", clienteBase.id);
+        await lider.from("cliente_responsaveis").upsert(
+          {
+            cliente_id: clienteBase.id,
+            setor: "simples_nacional",
+            responsavel_id: FUNCIONARIO_SN_ID,
+          },
+          { onConflict: "cliente_id,setor" },
+        );
 
         expect(await eventosDoResponsavel("62785037000391")).toHaveLength(1);
       });
@@ -565,11 +565,12 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
 
       expect(edicao.ok).toBe(true);
       const { data } = await admin
-        .from("cliente_cadastro_operacional_sn")
+        .from("cliente_responsaveis")
         .select("responsavel_id")
         .eq("cliente_id", clienteBase.id)
-        .single();
-      expect(data?.responsavel_id).toBeNull();
+        .eq("setor", "simples_nacional")
+        .maybeSingle();
+      expect(data?.responsavel_id ?? null).toBeNull();
     });
   });
 
@@ -583,8 +584,6 @@ describe("SupabaseClienteRepository — cadastro operacional (#34, integração)
     if (resultado.ok) expect(resultado.value).toBeNull();
   });
 
-  // Cadastrar um Cliente Simples Nacional/MEI já cria a linha do cadastro SN (RPC criar_cliente),
-  // em vez de só nascer no primeiro upsert de EditarCadastroOperacionalCliente.
   it("criar Cliente Simples Nacional já cria o cadastro operacional com os defaults negativos/pendentes", async () => {
     const admin = await comoAdmin();
     const clienteBase = await criarClienteBase(admin, "92773334000116");

@@ -15,13 +15,15 @@ import {
 import { AppError } from "@/shared/errors/app.error";
 import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import type { SetorSlug } from "@/shared/kernel/setores";
 
 class PersistenciaError extends AppError {
   readonly code = "PERSISTENCIA_ERROR";
 }
 
-// Sem resposta (status 0) ou gateway/timeout (502-504): o banco pode ter confirmado a transação.
 const semDesfechoConhecido = (status: number) => status === 0 || status >= 502;
+
+const PG_VIOLACAO_DE_CHECK = "23514";
 
 export class SupabaseClienteParcelamentoRepository implements ClienteParcelamentoRepository {
   constructor(
@@ -29,11 +31,15 @@ export class SupabaseClienteParcelamentoRepository implements ClienteParcelament
     private readonly erros: RegistroDeErrosPort = new ConsoleRegistroDeErrosGateway(),
   ) {}
 
-  async listar(clienteId: string): Promise<Result<ParcelamentoSalvo[], AppError>> {
+  async listar(
+    clienteId: string,
+    setor: SetorSlug,
+  ): Promise<Result<ParcelamentoSalvo[], AppError>> {
     const { data, error } = await this.supabase
       .from("cliente_parcelamentos")
       .select(SELECT_PARCELAMENTO)
       .eq("cliente_id", clienteId)
+      .eq("setor", setor)
       .order("criado_em")
       .order("codigo");
     if (error) {
@@ -44,9 +50,14 @@ export class SupabaseClienteParcelamentoRepository implements ClienteParcelament
     return ok((data as ParcelamentoRow[]).map(parcelamentoDoRow));
   }
 
-  async salvar(clienteId: string, itens: ParcelamentoProps[]): Promise<Result<void, AppError>> {
+  async salvar(
+    clienteId: string,
+    setor: SetorSlug,
+    itens: ParcelamentoProps[],
+  ): Promise<Result<void, AppError>> {
     const { error, status } = await this.supabase.rpc("salvar_parcelamentos_cliente", {
       p_cliente_id: clienteId,
+      p_setor: setor,
       p_itens: itens,
     });
     if (error) {
@@ -58,8 +69,7 @@ export class SupabaseClienteParcelamentoRepository implements ClienteParcelament
       }
       return err(
         new PersistenciaError(
-          // Gatilhos do banco recusam com 23514 e mensagem em português, própria para o usuário.
-          error.code === "23514"
+          error.code === PG_VIOLACAO_DE_CHECK
             ? error.message
             : "Não foi possível salvar os Parcelamentos. Tente novamente.",
         ),

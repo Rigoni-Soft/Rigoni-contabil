@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase Storage (testes.md, seção 3): requer
- * `npx supabase start` local com as migrations aplicadas (bucket
- * `documentos-clientes` e as policies de storage.objects).
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { SupabaseArquivoStorageGateway } from "./supabase-arquivo-storage.gateway";
@@ -139,9 +134,9 @@ describe("SupabaseArquivoStorageGateway (integração)", () => {
       expect(error).not.toBeNull();
     });
 
-    it("nega arquivo acima de 10 MB", async () => {
+    it("nega arquivo acima de 20 MB", async () => {
       const supabase = await comoAdmin();
-      const grande = new File([new Uint8Array(10 * 1024 * 1024 + 1)], "grande.pdf", {
+      const grande = new File([new Uint8Array(20 * 1024 * 1024 + 1)], "grande.pdf", {
         type: "application/pdf",
       });
 

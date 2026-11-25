@@ -1,4 +1,4 @@
-# Estratégia de Testes — MyChurch
+# Estratégia de Testes
 
 Fonte única das regras de teste do projeto. O `arquitetura.md` define camadas, portas e nomes e **remete a este documento** sem repetir regras de teste; este documento remete de volta às seções de arquitetura de que depende, também sem repeti-las.
 
@@ -74,7 +74,7 @@ O unitário é o nível priorizado: toda classe, função e método com lógica 
 
 - **Isolamento:** nunca se testa contra o Supabase real, nem client nem server. O ponto de substituição são as portas OUT (`arquitetura.md`, seção 3.6).
 - **RTL:** testa comportamento observável pelo usuário (o que é renderizado, o que reage a evento), não detalhe interno do componente.
-- **Container:** é um arquivo de poucas linhas que chama o hook do ViewModel e entrega o resultado à View. Todo Container tem **um teste RTL curto**, com o hook substituído por `jest.mock`, que verifica duas coisas: a View recebe os dados que o hook devolve, e uma ação do usuário chama a função do hook. A lógica em si já é testada no hook e na View; este teste só prova que os dois estão ligados. Vale para todo Container, sem exceção.
+- **Container:** é um arquivo de poucas linhas que chama o hook do ViewModel e entrega o resultado à View. Todo Container tem **um teste RTL curto**, com o hook substituído por `jest.mock`, que verifica duas coisas: a View recebe os dados que o hook devolve, e uma ação do usuário chama a função do hook. A lógica em si já é testada no hook e na View; este teste só prova que os dois estão ligados. Vale para todo Container, sem exceção. `yarn check:specs` (CI) reprova Container, molecule ou organism novo sem `*.spec.tsx` ao lado; os que já existiam sem spec ficam em `scripts/specs-sem-teste.baseline.txt`, que só encolhe.
 
 ### 4.2 Integração (`*.test.ts`)
 
@@ -84,7 +84,7 @@ O unitário é o nível priorizado: toda classe, função e método com lógica 
 - **Supertest** é uma ferramenta, não um nível: o teste de webhook que o usa é um teste de integração como os demais e usa o sufixo `*.test.ts`. Só entra onde há HTTP real (o handler de webhook).
 - **Ambiente:** Supabase local (seção 5); o próprio teste monta o estado inicial de que precisa.
 - **Execução serial:** as suítes de integração dividem o mesmo banco e as mesmas regras globais por Setor (a espera), então `yarn test:int` roda uma de cada vez (`--runInBand`), como o E2E.
-- **Dados de teste:** nunca um `DELETE` amplo (nem em `globalSetup`). Cada suíte que usa CNPJ fixo declara a lista e a limpa antes e depois com `removerClientesDeTeste` (`test-support/`), que apaga só esses CNPJs e os eventos de auditoria deles, e só no Supabase local; os CNPJs listados nas suítes são reservados para teste. Clientes e usuários de outra origem (seed, teste manual) ficam intactos, e a suíte roda repetidas vezes sem `db reset`.
+- **Dados de teste:** nunca um `DELETE` amplo (nem em `globalSetup`). Cada suíte que usa CNPJ fixo declara a lista e a limpa antes e depois com `removerClientesDeTeste` (`test-support/`), que apaga só esses CNPJs e os eventos de auditoria deles, e só no Supabase local; os CNPJs listados nas suítes são reservados para teste. Clientes e usuários de outra origem (seed, teste manual) ficam intactos, e a suíte roda repetidas vezes sem `db reset`. O seed já tem Líder em `contabil`, `simples_nacional` e `rh`, e o banco aceita um Líder ativo por Setor: teste que cria Líder usa outro Setor (ex.: `tributario`).
 
 ### 4.3 E2E (`*.e2e.ts`, Playwright CLI)
 
@@ -97,6 +97,8 @@ Há **duas execuções**, com objetivos diferentes:
 
 Todo `*.e2e.ts` entra na suíte da regressão completa e ali permanece.
 
+**Login nos e2e.** Depois de `login()`, espere `await expect(page).toHaveURL(...)` antes do próximo `goto`: sem isso a sessão ainda não gravou o cookie e a navegação cai em `/login`. Evite deslogar e logar outro papel no mesmo teste (a segunda hidratação do formulário é frágil); um papel por teste, com o estado de partida semeado pelo banco.
+
 ## 5. Ambientes e gitflow
 
 Branches: `main`, `homolog`, `develop` e `feature/*`.
@@ -106,10 +108,13 @@ Branches: `main`, `homolog`, `develop` e `feature/*`.
 | **Dev** | Máquina do dev e CI da branch de feature | Supabase local (`supabase start`), com as migrations e o seed do repositório | unitário, integração, E2E do diff |
 | **Homolog** | Cópia do ambiente de `main` | Projeto Supabase de homologação, com dados sintéticos | E2E completo |
 
-Fluxo (proposta):
+Fluxo (implementado em `.github/workflows/ci.yml`):
 
-- **PR de `feature/*` para `develop`:** unitário, integração e E2E do diff, todos verdes para o merge.
-- **Promoção para `homolog`:** deploy no ambiente de homologação e E2E completo. Só o que passa segue para `main`.
+- **PR de `feature/*` para `develop`:** unitário, integração completa e E2E rápido (os `*.e2e.ts` do diff mais todo `@smoke`), todos verdes para o merge.
+- **Merge na `develop`, PR e merge na `homolog`:** E2E completo, dividido em 3 shards em paralelo (`--shard`), cada um com o seu Supabase local. Na `homolog`, o `e2e-preview.yml` roda a suíte completa também contra o preview da Vercel. Só o que passa segue para `main`.
+- **PR e merge na `main`:** sem E2E; o código já passou no completo da `homolog`.
+
+A integração (`test:int`, menos de 1 min) roda em toda execução; o que pesa é o E2E (serial, `next dev`), por isso só ele muda de tamanho.
 
 **Banco de homologação.** Precisa espelhar o funcionamento real do sistema sem expor dado crítico:
 
@@ -123,7 +128,7 @@ Fluxo (proposta):
 
 ## 6. Cobertura e qualidade
 
-Reforça o que a `constitution.md` já define (seção 5.3).
+Regras de cobertura do projeto.
 
 - **Mínimo:** 90% de statement, line e function; 85% de branch.
 - **Proibido:** teste que não afirma comportamento real (por exemplo, só instancia um componente sem asserção significativa) e teste redundante que cobre a mesma branch de outro sem motivo.
@@ -186,6 +191,8 @@ export default defineConfig({
 "test:e2e:diff": "playwright test --only-changed=develop"
 ```
 
+Para rodar um arquivo só, passe o caminho com `--runTestsByPath` e ponha `--selectProjects` depois: `jest --runTestsByPath <caminho> --selectProjects unit` (no de integração, junto de `--runInBand`). Com `--selectProjects unit <caminho>` o Jest toma o caminho por nome de projeto e roda outras suítes. `--testPathPatterns <trecho>` também filtra. O ambiente jsdom do projeto `unit` não tem `TextEncoder`: monte bytes com `Buffer.from(...)`.
+
 `test:e2e:diff` precisa do histórico do branch base disponível no CI (clone completo, não raso).
 
 `test:int` persiste registros reais no Supabase local (sem limpeza — não é o
@@ -193,6 +200,9 @@ papel do teste de integração fazer isso). Rodar `test:e2e` logo em seguida
 sobre o mesmo banco arrisca colisão de estado quando o E2E faz asserção por
 texto exato que também aparece no seed (ex.: `acao: "usuario.criar"`
 inserido por um teste de integração de auditoria colidindo com o mesmo texto
-no seed, fazendo `getByText` bater 2 elementos). Rodar `supabase db reset`
-entre as duas suítes (local e no CI, ver `.github/workflows/ci.yml`) evita
-isso reaplicando migrations + seed do zero antes do E2E.
+no seed, fazendo `getByText` bater 2 elementos). No CI, integração e E2E rodam em jobs separados, cada um com o seu Supabase recém-subido (seed limpo); no E2E rápido há um `supabase db reset` entre os dois passos. Localmente, rodar `supabase db reset` entre as duas suítes evita isso.
+
+- Migration que relaxa ou troca um gatilho ou uma política leva, na mesma PR, o teste de integração **negativo**: o que continua barrado fora do caminho liberado (ex.: a escrita direta de contatos fora do SN segue negada depois da função do RH).
+- Semente de teste de integração por `admin`: inserir `cliente_contatos` com `dono_setor` já cria a linha em `cliente_contato_setores` por gatilho (inserir de novo dá `23505`). O gatilho `BEFORE` de `destinos_de_envio` confere o canal contra os dados do contato e levanta `23514` antes da RLS: para provar a RLS (`42501`), a linha de teste precisa ser válida (canal que o contato tem).
+- `select` em teste de integração sem `ORDER BY` não tem ordem: separe as linhas novas das antigas por `id` (guarde o conjunto de ids de antes e filtre), nunca por `slice(antes)` sobre a contagem. A ordem física muda com `UPDATE` e com a ordem das suítes, e o teste passa isolado e falha na suíte inteira do CI.
+- O banco local acumula Clientes de e2e e de rodadas anteriores; a carteira do RH aborta acima de 100 páginas e o teste que simula `max_rows` em 1 passa a falhar. O CI nasce limpo; localmente, `npx supabase db reset` e rode o preparo do roteiro de novo.

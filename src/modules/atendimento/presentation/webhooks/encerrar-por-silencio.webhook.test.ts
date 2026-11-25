@@ -1,8 +1,5 @@
 import { GET, POST } from "./encerrar-por-silencio.webhook";
 
-/**
- * Job de encerramento automático: autenticar não basta, a flag manda.
- */
 const executar = jest.fn();
 let ativo = false;
 let autorizado = true;

@@ -9,7 +9,6 @@ type CampoDeArquivoProps = React.ComponentProps<typeof FileInput> & {
   erro?: string;
 };
 
-// Rótulo visível + seletor de arquivo + erro. O `aria-invalid` sai de `erro`.
 export function CampoDeArquivo({ id, rotulo, erro, ...props }: CampoDeArquivoProps) {
   return (
     <Pilha espaco="campo">

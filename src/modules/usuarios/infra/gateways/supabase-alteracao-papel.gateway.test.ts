@@ -1,9 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3): requer `npx supabase start`
- * rodando localmente. Usa service_role (docs/adr/0001) — nunca o client
- * autenticado do usuário. Cada teste usa um Setor que o seed não ocupa com Líder
- * e limpa o que criou, pra não vazar Líder entre testes/execuções.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import type { UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
@@ -44,7 +38,6 @@ const papelDe = async (id: string) =>
   (await admin.from("perfis").select("papel").eq("id", id).single()).data?.papel;
 
 afterEach(async () => {
-  // Libera o Setor: sem isso, um Líder sobrevivente quebraria os demais testes.
   await admin.from("perfis").delete().in("id", criados);
   criados.length = 0;
 });

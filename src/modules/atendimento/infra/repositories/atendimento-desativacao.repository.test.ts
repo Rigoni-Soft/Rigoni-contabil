@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3): desativar um
- * usuário não deixa Atendimento preso a uma conta irrecuperável: volta à espera do Setor, sem
- * atribuição automática. Requer `npx supabase start` local com migrations + seed.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { abrirComDono } from "../../../../../test-support/atendimento-com-dono";
@@ -17,7 +12,6 @@ const ADMIN_ID = "11111111-1111-1111-1111-111111111111";
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 const repositorio = new SupabaseAtendimentoRepository(admin);
 
-// Setor sem ninguém no seed e fora das outras suítes: só os perfis criados aqui são "livres".
 const SETOR = "condominios" as const;
 const OUTRO_SETOR = "recepcao" as const;
 const usuarios: string[] = [];
@@ -106,7 +100,6 @@ async function auditoriasDe(acao: string, atendimentoId: string) {
   return data ?? [];
 }
 
-// Cada teste começa sem Fila no Setor desta suíte e sem ninguém livre de testes anteriores.
 beforeEach(async () => {
   await admin
     .from("atendimentos")
@@ -139,7 +132,6 @@ describe("desativação × Atendimento em andamento", () => {
       fila_funcionario_id: null,
       assumido_em: null,
     });
-    // O tempo de espera conta da entrada na espera (a devolução), não a da abertura do Atendimento.
     expect(new Date(depois.fila_desde!).getTime()).toBeGreaterThan(
       new Date(antes.criado_em).getTime(),
     );
@@ -216,7 +208,6 @@ describe("desativação × Atendimento em andamento", () => {
     expect(new Date(depois.fila_desde!).getTime()).toBeGreaterThan(
       new Date(antes.fila_desde!).getTime(),
     );
-    // Os dois esperam e B (que já esperava) está na frente.
     const fila = await repositorio.filaDoSetor(SETOR);
     if (!fila.ok) throw new Error("setup: fila");
     expect(fila.value.map((item) => item.id)).toEqual([esperava, devolvido]);

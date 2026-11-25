@@ -12,11 +12,9 @@ type PainelDeEsperaProps = {
   carregando?: boolean;
   assumindo: boolean;
   onAssumir: (id: string) => void;
-  // Líder e Admin: o card dirigido a outro abre a conversa em leitura de supervisão.
   onLer?: (id: string) => void;
 };
 
-// A aba "Em espera": os clientes do Setor, do mais antigo ao mais novo (a ordem vem pronta).
 export function PainelDeEspera({
   itens,
   carregando = false,

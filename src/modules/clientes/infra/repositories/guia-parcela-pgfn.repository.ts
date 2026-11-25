@@ -17,7 +17,6 @@ class PersistenciaError extends AppError {
   readonly code = "PERSISTENCIA_ERROR";
 }
 
-// Sem resposta (status 0) ou gateway/timeout (502-504): o banco pode ter confirmado a gravação.
 const semDesfechoConhecido = (status: number) => status === 0 || status >= 502;
 
 type Tabela = ReturnType<SupabaseClient["from"]>;
@@ -29,6 +28,9 @@ type GuiaRow = {
   estado: GuiaDaParcela["estado"];
   motivo: string | null;
 };
+
+const PG_VIOLACAO_DE_CHECK = "23514";
+const PG_VIOLACAO_DE_UNICIDADE = "23505";
 
 export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnRepository {
   constructor(
@@ -47,7 +49,6 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       return err(new PersistenciaError("Não foi possível carregar o Parcelamento."));
     }
     if (!data) return ok(null);
-    // O CNPJ vem da view que quem edita o cadastro operacional pode ler (a tabela é só do Admin).
     const cliente = await this.supabase
       .from("clientes_basico")
       .select("cnpj")
@@ -114,13 +115,14 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
     if (semDesfechoConhecido(status)) {
       return err(new ResultadoIncertoError("Não foi possível confirmar o anexo da guia."));
     }
-    if (error.code === "23505") {
+    if (error.code === PG_VIOLACAO_DE_UNICIDADE) {
       return err(new PersistenciaError("Já existe guia anexada para esta competência."));
     }
-    // Gatilhos do banco recusam com 23514 e mensagem em português, própria para o usuário.
     return err(
       new PersistenciaError(
-        error.code === "23514" ? error.message : "Não foi possível anexar a guia. Tente novamente.",
+        error.code === PG_VIOLACAO_DE_CHECK
+          ? error.message
+          : "Não foi possível anexar a guia. Tente novamente.",
       ),
     );
   }
@@ -130,7 +132,6 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
     competencia: string,
     versao: string,
   ): Promise<Result<void, AppError>> {
-    // `.select()` devolve as linhas atualizadas: RLS que esconde a guia não dá erro, dá zero linhas.
     const { data, error } = await this.supabase
       .from("cliente_parcelamento_guias")
       .update({ estado: "confirmada" })
@@ -142,7 +143,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       this.erros.registrar("Falha ao confirmar guia da parcela:", error.message);
       return err(
         new PersistenciaError(
-          error.code === "23514"
+          error.code === PG_VIOLACAO_DE_CHECK
             ? error.message
             : "Não foi possível confirmar a guia. Tente novamente.",
         ),
@@ -192,9 +193,6 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
     return this.mutar("remover", parcelamentoId, competencia, (tabela) => tabela.delete());
   }
 
-  // Troca e remoção da guia de uma competência. `.select()` devolve as linhas afetadas: RLS que esconde
-  // a guia não dá erro, dá zero linhas. Sem desfecho conhecido o banco pode ter confirmado; gatilhos
-  // recusam com 23514 e mensagem em português, própria para o usuário.
   private async mutar(
     acao: "trocar" | "remover",
     parcelamentoId: string,
@@ -212,7 +210,7 @@ export class SupabaseGuiaParcelaPgfnRepository implements GuiaParcelaPgfnReposit
       }
       return err(
         new PersistenciaError(
-          error.code === "23514"
+          error.code === PG_VIOLACAO_DE_CHECK
             ? error.message
             : `Não foi possível ${acao} a guia. Tente novamente.`,
         ),

@@ -10,7 +10,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const BUCKET = "documentos-clientes";
 
-// Row da RPC: falha alto se o banco divergir (arquitetura.md §3.9).
 const rowSchema = z.array(
   z.object({
     tipo: z.enum(["contrato", "alteracao"]),
@@ -24,7 +23,6 @@ class DocumentosContratuaisError extends AppError {
   readonly code = "DOCUMENTOS_CONTRATUAIS_ERROR";
 }
 
-// Sessão do usuário: a RPC e a policy de storage.objects aplicam pode_ver_cliente + Setor SN.
 export class SupabaseDocumentosContratuaisClienteGateway implements DocumentosContratuaisClientePort {
   constructor(private readonly supabase: SupabaseClient) {}
 

@@ -16,6 +16,7 @@ const parcelamento = (
   id,
   codigo: `COD-${id}`,
   interno: false,
+  setor: "simples_nacional" as const,
   valorParcelaCentavos,
   parcelasRestantes: 5,
   parcelasEnviadas: enviadas,
@@ -87,6 +88,15 @@ describe("atribuirGuiasParcelamento", () => {
     ).toEqual([]);
   });
 
+  it("acordos de mesmo valor em Setores diferentes não recebem guia: o Setor não desempata", () => {
+    expect(
+      atribuirGuiasParcelamento(
+        [guia("202610", 10_000)],
+        [parcelamento("sn", 10_000), { ...parcelamento("rh", 10_000), setor: "rh" as const }],
+      ),
+    ).toEqual([]);
+  });
+
   it("reemissão com valor corrigido de acordo quitado não vai ao único acordo em aberto", () => {
     const entregues = [
       { parcelamentoId: "quitado", parcela: "202610", identidade: "202610:30000", caminho: null },
@@ -130,7 +140,6 @@ describe("atribuirGuiasParcelamento", () => {
   });
 
   it("nova emissão da guia de quem já a recebeu é descartada, não vai a outro parcelamento", () => {
-    // a (30 mil) já recebeu 202610; o provedor a emite de novo e b (10 mil) ainda espera a dele.
     const atribuidas = atribuirGuiasParcelamento(
       [guia("202610", 30_000), guia("202610", 10_000)],
       [parcelamento("a", 30_000, ["202610"]), parcelamento("b", 10_000)],

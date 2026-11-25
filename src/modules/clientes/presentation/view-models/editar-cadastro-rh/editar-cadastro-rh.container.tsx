@@ -1,0 +1,220 @@
+"use client";
+
+import { useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useFieldArray, useForm } from "react-hook-form";
+
+import { Texto } from "@/presentation/components/atoms/texto.component";
+import type { EditarCadastroOperacionalFormValues } from "@/presentation/components/organisms/editar-cadastro-operacional-form.component";
+import { EditarCadastroRhForm } from "@/presentation/components/organisms/editar-cadastro-rh-form.component";
+import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
+import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
+import type { CadastroRhClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
+import { SETOR_RH } from "@/shared/kernel/setores";
+
+import { guiasDaParcela } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
+import {
+  contatoNovo,
+  descartarLinhasEmBranco,
+  mensagemDeFalhaDeEtapa,
+  parcelamentoNovo,
+  reposicionarErros,
+  semChaves,
+} from "../editar-cadastro-operacional/editar-cadastro-operacional.presenter";
+import { contatosIniciais } from "../editar-cadastro-operacional/tipos-de-envio.presenter";
+import { useContatosDoCadastro } from "../editar-cadastro-operacional/use-contatos-do-cadastro.hook";
+import { useParcelamentosDoCadastro } from "../editar-cadastro-operacional/use-parcelamentos-do-cadastro.hook";
+import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
+import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
+import { editarCadastroRhFormSchema } from "./editar-cadastro-rh.schema";
+
+type Props = {
+  dados: CadastroRhClienteDto | null;
+  readOnly: boolean;
+  ator: { papel: string; setor: string };
+  voltarHref: string;
+  documentosContratuais?: DocumentoContratualVisivelDto[];
+  responsavel?: React.ReactNode;
+  acompanhamento?: React.ReactNode;
+};
+
+type Valores = EditarCadastroOperacionalFormValues;
+
+const valoresIniciaisDe = (
+  dados: CadastroRhClienteDto,
+  readOnly: boolean,
+  ator: { papel: string },
+): Valores => ({
+  formaEnvio: "whatsapp",
+  contatos: contatosIniciais(dados.contatos, dados.destinos, {
+    verTodos: ator.papel === "admin" || readOnly,
+    setor: SETOR_RH,
+    somenteLeitura: readOnly,
+  }),
+  documentoObrigatorio: null,
+  dasStatus: null,
+  dataEnvioDas: null,
+  parcelamentos:
+    dados.parcelamentos.length || readOnly ? dados.parcelamentos : [parcelamentoNovo()],
+  observacoesGerais: dados.observacoes,
+  atividadeMes: { industria: false, comercio: false, servico: false },
+  responsavelId: "",
+});
+
+export function EditarCadastroRhContainer({
+  dados,
+  readOnly,
+  ator,
+  voltarHref,
+  documentosContratuais,
+  responsavel,
+  acompanhamento,
+}: Props) {
+  const router = useRouter();
+  const hidratado = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
+  const [pendente, setPendente] = useState(false);
+  const [erroServidor, setErroServidor] = useState<string>();
+  const [sucesso, setSucesso] = useState(false);
+
+  const admin = ator.papel === "admin";
+  const valoresIniciais = dados ? valoresIniciaisDe(dados, readOnly, ator) : undefined;
+  const form = useForm<Valores>({
+    resolver: async (valores, contexto, opcoes) => {
+      const semBranco = descartarLinhasEmBranco(valores);
+      const resultado = await zodResolver(editarCadastroRhFormSchema)(
+        semBranco.valores as never,
+        contexto as never,
+        opcoes as never,
+      );
+      return {
+        ...resultado,
+        errors: {
+          ...resultado.errors,
+          ...(resultado.errors.contatos && {
+            contatos: reposicionarErros(resultado.errors.contatos, semBranco.contatos),
+          }),
+          ...(resultado.errors.parcelamentos && {
+            parcelamentos: reposicionarErros(
+              resultado.errors.parcelamentos,
+              semBranco.parcelamentos,
+            ),
+          }),
+        },
+      } as never;
+    },
+    defaultValues: valoresIniciais,
+  });
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    getValues,
+    setValue,
+    setError,
+    formState: { errors },
+  } = form;
+  const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
+  const linhasDeContato = useContatosDoCadastro({
+    clienteId: dados?.id ?? "",
+    form,
+    campos: fields,
+    remover: remove,
+    destinos: dados?.destinos ?? [],
+    tiposDeEnvio: dados?.tiposDeEnvio ?? [],
+    setorDoCadastro: SETOR_RH,
+    admin,
+    verTodos: admin || readOnly,
+  });
+  const parcelamentos = useParcelamentosDoCadastro({
+    clienteId: dados?.id ?? "",
+    setor: "rh",
+    salvos: dados?.parcelamentos ?? [],
+    control,
+    getValues,
+    setValue,
+  });
+
+  if (!dados) return <Texto variante="apoio">Cliente não encontrado.</Texto>;
+
+  const salvar = async (valores: Valores) => {
+    setPendente(true);
+    setErroServidor(undefined);
+    setSucesso(false);
+    try {
+      const contatos = descartarLinhasEmBranco(getValues()).valores.contatos.map((c) =>
+        semChaves(c, "tipos", "canal"),
+      );
+      const resultado = await editarCadastroRhAction({
+        clienteId: dados.id,
+        observacoes: valores.observacoesGerais,
+        contatos,
+      });
+      if (!resultado.ok) {
+        setErroServidor(resultado.error.message);
+        for (const [campo, mensagens] of Object.entries(resultado.error.fields ?? {})) {
+          const nome = campo === "observacoes" ? "observacoesGerais" : campo;
+          if (mensagens[0]) setError(nome as keyof Valores, { message: mensagens[0] });
+        }
+        return;
+      }
+      const erroParcelamentos = await parcelamentos.salvar(valores);
+      if (erroParcelamentos) {
+        setErroServidor(erroParcelamentos);
+        return;
+      }
+      setSucesso(true);
+      router.push(voltarHref);
+    } catch (erro) {
+      console.error("Falha ao salvar o cadastro do RH", erro);
+      setErroServidor(mensagemDeFalhaDeEtapa(erro, mensagemDaFalha(erro)));
+    } finally {
+      setPendente(false);
+    }
+  };
+
+  return (
+    <EditarCadastroRhForm
+      cabecalho={{ empresa: dados.empresa, cnpj: dados.cnpj }}
+      register={register}
+      control={control}
+      errors={errors}
+      onSubmit={handleSubmit(salvar)}
+      pendente={pendente}
+      readOnly={readOnly}
+      erroServidor={erroServidor}
+      sucesso={sucesso}
+      oculto={!hidratado}
+      contatos={fields}
+      onAdicionarContato={() => append(contatoNovo())}
+      linhasDeContato={linhasDeContato}
+      parcelamentos={parcelamentos.parcelamentos}
+      parcelamentoCampos={parcelamentos.parcelamentoCampos}
+      onAdicionarParcelamento={parcelamentos.onAdicionarParcelamento}
+      onRemoverParcelamento={parcelamentos.onRemoverParcelamento}
+      leituras={parcelamentos.leituras}
+      onArquivoEscolhido={parcelamentos.onArquivoEscolhido}
+      guiasDaParcela={guiasDaParcela}
+      responsavel={responsavel}
+      acompanhamento={acompanhamento}
+      onLimpar={() => {
+        reset(valoresIniciais);
+        parcelamentos.esquecerLeituras();
+        setErroServidor(undefined);
+        setSucesso(false);
+      }}
+      documentoContratual={
+        <DocumentoContratualDoClienteContainer
+          clienteId={dados.id}
+          documentosIniciais={documentosContratuais}
+          podeAnexar={false}
+        />
+      }
+    />
+  );
+}

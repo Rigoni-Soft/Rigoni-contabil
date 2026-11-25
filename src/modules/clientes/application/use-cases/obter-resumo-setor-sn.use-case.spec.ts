@@ -30,6 +30,9 @@ class ClienteQueryPortFalso implements ClienteQueryPort {
   async listarResponsaveisElegiveis() {
     return ok([]);
   }
+  async buscarCadastroRh() {
+    return ok(null);
+  }
   async buscarResponsavelDoSetor() {
     return ok(null);
   }
@@ -38,7 +41,6 @@ class ClienteQueryPortFalso implements ClienteQueryPort {
 const sessaoDe = (papel: string, setor: string): SessaoPort => ({
   usuarioAtual: async () => ({ id: "u1", papel, setor }),
 });
-// 2026-10-28 e 2026-10-29 ao meio-dia em São Paulo: antes e depois da última rodada do job.
 const relogioEm = (iso: string): RelogioPort => ({ agora: () => new Date(iso) });
 const DIA_28 = relogioEm("2026-10-28T15:00:00Z");
 const DIA_29 = relogioEm("2026-10-29T15:00:00Z");
@@ -82,6 +84,10 @@ describe("ObterResumoSetorSn", () => {
     if (!resultado.ok) return;
     expect(resultado.value.totalClientes).toBe(2);
     expect(resultado.value.cards).toHaveLength(11);
+    expect(resultado.value.grupos.map((g) => g.titulo)).toEqual([
+      "Documentos e DAS",
+      "Parcelamento",
+    ]);
     expect(resultado.value.comparativos.das.find((f) => f.id === "enviado")?.quantidade).toBe(1);
     expect(
       resultado.value.comparativos.atividade.find((f) => f.id === "industria")?.quantidade,

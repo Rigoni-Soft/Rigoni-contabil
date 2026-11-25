@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) do Atendimento/Mensagem.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { SupabaseAtendimentoRepository } from "./atendimento.repository";
@@ -14,7 +10,7 @@ const SERVICE_KEY =
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 const gateway = new SupabaseAtendimentoRepository(admin);
 const TELEFONE = "61977776666";
-const TELEFONE_B = "61977776667"; // índice único: um Atendimento em andamento por número
+const TELEFONE_B = "61977776667";
 afterAll(async () => {
   await admin.from("atendimentos").delete().in("telefone", [TELEFONE, TELEFONE_B]);
 });
@@ -99,7 +95,7 @@ describe("SupabaseAtendimentoRepository — origem URA (#46)", () => {
   const TELEFONES = ["61977770001", "61977770002", "61977770003"];
   const clienteId = crypto.randomUUID();
   const cnpjCliente = `8${Date.now()}`.slice(0, 14);
-  const cnpjNovo = `6${Date.now()}`.slice(0, 14); // sem Cliente no sistema
+  const cnpjNovo = `6${Date.now()}`.slice(0, 14);
 
   beforeAll(async () => {
     const { error } = await admin.from("clientes").insert({

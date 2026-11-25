@@ -3,10 +3,8 @@ import { useCallback, useId, useRef, useState } from "react";
 import { useEmojisRecentes } from "@/modules/atendimento/presentation/view-models/conversa/use-emojis-recentes.hook";
 import { useFechaSeletor } from "@/modules/atendimento/presentation/view-models/conversa/use-fecha-seletor.hook";
 
-// UI efêmera do seletor de emoji no campo de resposta (arquitetura.md §4.7).
 export function useSeletorDeEmoji() {
   const [aberto, setAberto] = useState(false);
-  // Com recentes o seletor mostra só a linha deles; "ver todos" abre as categorias.
   const [completo, setCompleto] = useState(false);
   const { recentes, recarregar, registrar } = useEmojisRecentes();
   const campo = useRef<HTMLTextAreaElement>(null);
@@ -17,7 +15,6 @@ export function useSeletorDeEmoji() {
 
   useFechaSeletor(aberto, raiz, botao, fechar);
 
-  // Insere na posição do cursor (ou no lugar da seleção) e devolve o foco ao campo.
   function escolher(emoji: string) {
     setAberto(false);
     registrar(emoji);

@@ -14,10 +14,6 @@ import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
 import { podeAnexarAlteracaoContratual } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Tamanho do arquivo e data futura são barrados pelo schema da Server Action (única entrada da
-// porta); aqui ficam papel, upload e compensação.
-// A auditoria de sucesso (`cliente.anexar-alteracao`) e o aviso nascem de gatilhos no banco, na
-// mesma transação do INSERT: aqui só se sobe o arquivo e, se a gravação falhar, se desfaz o upload.
 export class AnexarAlteracaoContratual implements AnexarAlteracaoContratualPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -47,9 +43,6 @@ export class AnexarAlteracaoContratual implements AnexarAlteracaoContratualPort 
     return this.desfazerUpload(input.clienteId, caminho, salvo.error);
   }
 
-  // Resposta perdida não prova rollback, e leitura vazia também não: a gravação original pode
-  // confirmar depois da leitura. Só `true` vira sucesso; qualquer outro resultado mantém o arquivo
-  // (apagar quebraria uma alteração que ainda pode ser confirmada) e pede conferência manual.
   private async reconciliar(
     clienteId: string,
     alteracao: AlteracaoContratual,
@@ -68,7 +61,6 @@ export class AnexarAlteracaoContratual implements AnexarAlteracaoContratualPort 
     );
   }
 
-  // Falha da própria remoção não é mascarada como o erro original: o arquivo ficou órfão.
   private async desfazerUpload(
     clienteId: string,
     caminho: string,

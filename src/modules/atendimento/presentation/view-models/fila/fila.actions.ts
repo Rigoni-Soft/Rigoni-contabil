@@ -9,7 +9,6 @@ import type { ActionResult } from "@/shared/dtos/action-result.dto";
 import { SETORES } from "@/shared/kernel/setores";
 import { toActionResult } from "@/shared/kernel/to-action-result";
 
-// Sem Setor: a Fila do Setor do próprio usuário (aviso global da Fila).
 const setorSchema = z.enum(SETORES).optional();
 
 export async function listarFilaAction(setor: unknown): Promise<ActionResult<ItemDaFilaVisto[]>> {

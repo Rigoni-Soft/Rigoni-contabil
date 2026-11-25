@@ -11,9 +11,6 @@ export type RegistroAcaoView = {
   dataHora: string;
 };
 
-// Mesmo timezone de negócio do filtro em listar-registros.use-case.ts:
-// `toLocaleString("pt-BR")` sem `timeZone` explícito usa o fuso do ambiente
-// (navegador, servidor, CI), não determinístico.
 export function registroAcaoParaView(registro: RegistroAcaoDto): RegistroAcaoView {
   return {
     ...registro,

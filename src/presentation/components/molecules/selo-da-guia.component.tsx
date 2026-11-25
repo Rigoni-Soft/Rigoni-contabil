@@ -3,11 +3,7 @@ import { CheckCircle2, Clock, Send } from "lucide-react";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { cn } from "@/presentation/lib/utils";
 
-// Estado da guia anexada: ícone + texto + cor, nunca só cor (DESIGN.md "Indicadores de estado"). Mesmo
-// par do selo do Parcelamento: confirmada é `primary` (liberada ao envio); a confirmar é neutra.
-// Enviada (registro de envio) vem depois de confirmada e prevalece: é o estado final da guia.
 const ESTADOS = {
-  // Enviada é o marco final e irreversível: preenchida. Liberada ao envio ainda pode sair do fluxo: contorno.
   enviada: {
     Icone: Send,
     texto: "Enviada",

@@ -6,26 +6,27 @@ import { cn } from "@/presentation/lib/utils";
 type CabecalhoDeTelaProps = {
   titulo?: string;
   descricao?: string;
-  // Sem `voltarHref` não há link de volta (telas de entrada da navegação e do perfil).
   voltarHref?: string;
   voltarRotulo?: string;
+  voltar?: React.ReactNode;
 };
 
-// Topo de uma tela de trabalho: "Voltar", título e, opcionalmente, uma descrição.
 export function CabecalhoDeTela({
   titulo,
   descricao,
   voltarHref,
   voltarRotulo,
+  voltar,
 }: CabecalhoDeTelaProps) {
+  const temVoltar = Boolean(voltarHref || voltar);
   return (
-    <Caixa className={cn(voltarHref && !titulo && "mb-3")}>
-      {voltarHref && <LinkDeVoltar href={voltarHref}>{voltarRotulo}</LinkDeVoltar>}
+    <Caixa className={cn(temVoltar && !titulo && "mb-3")}>
+      {voltarHref ? <LinkDeVoltar href={voltarHref}>{voltarRotulo}</LinkDeVoltar> : voltar}
       {titulo && (
         <Texto
           como="h1"
           variante="tela"
-          className={cn(voltarHref && "mt-3", descricao ? "mb-2" : "mb-6")}
+          className={cn(temVoltar && "mt-3", descricao ? "mb-2" : "mb-6")}
         >
           {titulo}
         </Texto>

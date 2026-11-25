@@ -3,8 +3,6 @@ import type { UploadDeAnexoPort } from "@/modules/atendimento/application/ports/
 
 let upload: UploadDeAnexoPort | undefined;
 
-// Sobe o arquivo em partes direto ao Storage e devolve o caminho do objeto, ou lança com a mensagem
-// para a tela. Quem confere e entrega ao cliente é o servidor (`enviarAnexoGuardadoAction`).
 export async function subirAnexoEmPartes(atendimentoId: string, arquivo: File): Promise<string> {
   upload ??= makeUploadDeAnexo();
   const subido = await upload.enviar({

@@ -19,8 +19,7 @@ export class ListarUsuarios implements ListarUsuariosPort {
 
     const ativos = await this.usuarios.listarAtivos();
     if (!ativos.ok) return ativos;
-    // Sem isto, uma falha parcial no ban sumiria da tela e ficaria sem saída.
-    const pendentes = await this.usuarios.listarComBloqueioPendente();
+    const pendentes = await this.usuarios.listarComDesativacaoPendente();
     if (!pendentes.ok) return pendentes;
     return ok([...ativos.value, ...pendentes.value].map(usuarioParaDto));
   }

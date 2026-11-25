@@ -15,9 +15,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 export class SupabaseRegistroAcaoRepository implements RegistroAcaoRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
-  // A RPC só aceita `service_role` (migration 20260924190000_usuarios_e_auditoria.sql): só o servidor, que já validou a
-  // sessão antes de chamar `RegistrarAcao`, tem acesso. Sem JWT de usuário, `auth.uid()` não existe
-  // aqui — `p_ator` vai explícito. `criado_em` continua decidido pelo banco (now()).
   async salvar(registro: RegistroAcao): Promise<Result<void, AppError>> {
     const { error } = await this.supabase.rpc("registrar_acao_auditoria", {
       p_id: registro.id,
@@ -39,8 +36,6 @@ export class SupabaseRegistroAcaoRepository implements RegistroAcaoRepository {
       .order("criado_em", { ascending: false })
       .limit(filtro.limite);
 
-    // ator é uuid: filtra por igualdade exata (sem busca textual, RigoniContabil ainda
-    // não guarda nome legível do ator na auditoria).
     if (filtro.ator) query = query.eq("ator", filtro.ator);
     if (filtro.setor) query = query.eq("setor", filtro.setor);
     if (filtro.resultado) query = query.eq("resultado", filtro.resultado);

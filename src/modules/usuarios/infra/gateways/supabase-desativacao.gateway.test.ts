@@ -1,14 +1,10 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3): requer `npx supabase start`
- * rodando localmente. Usa service_role (docs/adr/0001) — nunca o client
- * autenticado do usuário.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import type { UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
 import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories/usuario.repository";
 
 import { SupabaseAuthAdminGateway } from "./supabase-auth-admin.gateway";
+import { SupabaseAvatarMarcaGateway } from "./supabase-avatar-marca.gateway";
 import { SupabaseDesativacaoGateway } from "./supabase-desativacao.gateway";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -110,14 +106,14 @@ describe("desativação de usuário (integração)", () => {
     expect(depois.ok && depois.value.some((u) => u.id === alvo.id)).toBe(false);
   });
 
-  it("conta desativada sem ban confirmado aparece como bloqueio pendente e sai depois de registrar o bloqueio", async () => {
+  it("conta desativada sem ban confirmado aparece como desativação pendente e sai depois de registrar o bloqueio", async () => {
     const admin = clienteAdmin();
     const ator = await criarPerfil("admin");
     const alvo = await criarPerfil("funcionario");
     const repositorio = new SupabaseUsuarioRepository(admin);
     const desativacao = new SupabaseDesativacaoGateway(admin);
     const pendentes = async () => {
-      const lista = await repositorio.listarComBloqueioPendente();
+      const lista = await repositorio.listarComDesativacaoPendente();
       return lista.ok && lista.value.some((u) => u.id === alvo.id);
     };
 
@@ -127,6 +123,27 @@ describe("desativação de usuário (integração)", () => {
 
     expect((await desativacao.registrarBloqueio(alvo.id as UsuarioId)).ok).toBe(true);
     expect((await desativacao.registrarBloqueio(alvo.id as UsuarioId)).ok).toBe(true);
+    expect(await pendentes()).toBe(false);
+  });
+
+  it("conta desativada e banida com a foto ainda gravada segue pendente até a coluna ser zerada", async () => {
+    const admin = clienteAdmin();
+    const ator = await criarPerfil("admin");
+    const alvo = await criarPerfil("funcionario");
+    const repositorio = new SupabaseUsuarioRepository(admin);
+    const desativacao = new SupabaseDesativacaoGateway(admin);
+    const marca = new SupabaseAvatarMarcaGateway(admin);
+    const pendentes = async () => {
+      const lista = await repositorio.listarComDesativacaoPendente();
+      return lista.ok && lista.value.some((u) => u.id === alvo.id);
+    };
+
+    await marca.definir(alvo.id as UsuarioId, new Date());
+    await desativacao.desativar(alvo.id as UsuarioId, ator.id as UsuarioId);
+    await desativacao.registrarBloqueio(alvo.id as UsuarioId);
+    expect(await pendentes()).toBe(true);
+
+    await marca.definir(alvo.id as UsuarioId, null);
     expect(await pendentes()).toBe(false);
   });
 });

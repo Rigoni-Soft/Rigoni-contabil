@@ -12,12 +12,8 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
 const BUCKET = "anexos-atendimento";
-// Vale para a tela do Funcionário (que busca os links a cada leitura da conversa) e para o provedor
-// buscar o arquivo ao enviar.
 const VALIDADE_LINK_SEGUNDOS = 3600;
 
-// Só o que o Storage aceita em um caminho (sem acento nem espaço). O nome original fica na Mensagem
-// e no envio ao provedor; o arquivo baixado pelo link leva este nome.
 function nomeSeguro(nome: string): string {
   return (
     nome
@@ -28,8 +24,6 @@ function nomeSeguro(nome: string): string {
   );
 }
 
-// Usa o client service_role (docs/adr/0001), como o gateway de documentos contratuais. O bucket
-// é privado e sem policy: o arquivo só sai por link temporário.
 export class SupabaseAnexosAtendimentoGateway implements AnexosAtendimentoPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
@@ -40,7 +34,6 @@ export class SupabaseAnexosAtendimentoGateway implements AnexosAtendimentoPort {
     atendimentoId: string;
     arquivo: ArquivoAnexo;
   }): Promise<Result<string, AppError>> {
-    // Uma pasta por envio: o link com `download` entrega o arquivo com o nome original.
     const caminho = `${atendimentoId}/${randomUUID()}/${nomeSeguro(arquivo.nome)}`;
     const { error } = await this.supabaseAdmin.storage
       .from(BUCKET)
@@ -59,9 +52,7 @@ export class SupabaseAnexosAtendimentoGateway implements AnexosAtendimentoPort {
     const expiraEm = new Date(Date.now() + VALIDADE_LINK_SEGUNDOS * 1000).toISOString();
     const links: Record<string, LinkTemporario> = {};
     for (const item of data) {
-      // Um anexo sem link aparece sem arquivo na conversa; os demais, e o texto, continuam.
       if (item.error || !item.signedUrl || !item.path) continue;
-      // O token assina só o caminho: sem `download` o mesmo endereço serve o arquivo para ver.
       const visualizacao = new URL(item.signedUrl);
       visualizacao.searchParams.delete("download");
       links[item.path] = {
@@ -102,8 +93,6 @@ export class SupabaseAnexosAtendimentoGateway implements AnexosAtendimentoPort {
     caminho: string,
   ): Promise<Result<{ tipoMime: string; tamanho: number } | null, AppError>> {
     const { data, error } = await this.supabaseAdmin.storage.from(BUCKET).info(caminho);
-    // Objeto inexistente: o Storage responde erro, sem distinguir de falha de rede; os dois viram
-    // "não chegou", e quem chama pede o envio de novo.
     if (error || !data) return ok(null);
     return ok({ tipoMime: data.contentType ?? "", tamanho: data.size ?? 0 });
   }

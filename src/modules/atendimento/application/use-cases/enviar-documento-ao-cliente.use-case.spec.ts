@@ -69,7 +69,6 @@ function montar({
       ok([
         { ...CONTRATO, data: null, caminho: "a/contrato.pdf" },
         { ...ALTERACAO, data: "2026-03-01", caminho: "a/alteracao.pdf" },
-        // Mesma data da nº 3: só o nº distingue as duas.
         { tipo: "alteracao", numero: 2, data: "2026-03-01", caminho: "a/alteracao-2.pdf" },
       ]),
     linkTemporario: async (caminho: string) => ok(`https://link/${caminho}`),
@@ -193,7 +192,6 @@ describe("EnviarDocumentoAoCliente", () => {
     expect(registradas).toEqual([]);
     expect(enviados).toEqual([]);
     expect(auditadas).toEqual([expect.objectContaining({ resultado: "falha" })]);
-    // Só a mensagem, nunca o objeto de erro (poderia levar o CNPJ ao log).
     expect(log).toHaveBeenCalledWith("Falha inesperada ao buscar a guia das:", "boom");
   });
 

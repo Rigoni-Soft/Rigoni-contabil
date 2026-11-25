@@ -52,7 +52,7 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
   async buscarPorId(): Promise<Result<Usuario | null, AppError>> {
     return this.erroTecnico ? err(this.erroTecnico) : ok(this.usuario);
   }
-  async listarComBloqueioPendente(): Promise<Result<Usuario[], AppError>> {
+  async listarComDesativacaoPendente(): Promise<Result<Usuario[], AppError>> {
     return ok([]);
   }
   async buscarLiderAtivoDoSetor(): Promise<Result<Usuario | null, AppError>> {
@@ -229,7 +229,6 @@ describe("Login", () => {
     if (resultado.ok) expect(resultado.value.precisaTrocarSenha).toBe(true);
   });
 
-  // O ban no Auth já barra o login; isto cobre o caso do ban ter falhado.
   it("bloqueia e encerra a sessão quando o usuário está desativado", async () => {
     const sessao = new SessaoFalsa();
     const repositorio = new UsuarioRepositoryFalso();

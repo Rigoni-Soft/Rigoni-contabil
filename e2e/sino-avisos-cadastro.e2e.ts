@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-import { expect, test } from "./fixtures";
+import { esperarHidratacao, expect, test } from "./fixtures";
 import { criarClienteComoAdmin, empresaUnica, login } from "./support/criar-cliente";
 
 const SINO = /Avisos de cadastro/;
@@ -10,7 +10,6 @@ async function entrarComoLider(page: Page) {
   await expect(page).toHaveURL("/simples-nacional");
 }
 
-// Sem selo = zero não vistos.
 async function naoVistos(page: Page): Promise<number> {
   const selo = page.getByTestId("selo-avisos");
   return (await selo.count()) === 0 ? 0 : Number((await selo.textContent()) ?? 0);
@@ -29,7 +28,6 @@ test.describe("Sino de Avisos de cadastro (#143)", () => {
     await expect.poll(() => naoVistos(page)).toBeGreaterThan(0);
     const antes = await naoVistos(page);
 
-    // Abrir o modal não marca nada como visto.
     await page.getByRole("button", { name: SINO }).click();
     const aviso = page
       .getByRole("button", { name: /Novo Cliente no Cadastro operacional/ })
@@ -37,7 +35,6 @@ test.describe("Sino de Avisos de cadastro (#143)", () => {
     await expect(aviso).toHaveAttribute("data-visto", "false");
     expect(await naoVistos(page)).toBe(antes);
 
-    // O clique marca como visto e leva ao formulário do Cliente.
     await aviso.click();
     await expect(page).toHaveURL(/\/clientes\/[0-9a-f-]{36}$/);
     await expect(page.getByLabel("Empresa")).toHaveValue(empresa);
@@ -59,9 +56,7 @@ test.describe("Sino de Avisos de cadastro (#143)", () => {
     await entrarComoLider(page);
     await page.clock.install();
     await page.reload();
-    // Linha de base só depois da primeira leitura do contador (sem selo = 0 ou ainda carregando).
-    // Teto curto: no preview a rede nunca fica ociosa (ver e2e/fixtures.ts).
-    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+    await esperarHidratacao(page);
     const antes = await naoVistos(page);
 
     const admin = await (await browser.newContext()).newPage();
@@ -82,7 +77,6 @@ test.describe("Sino de Avisos de cadastro (#143)", () => {
     await expect(modal).toBeVisible();
     await expect(page.getByRole("button", { name: "Fechar avisos" })).toBeFocused();
 
-    // O Tab não escapa do modal para a página atrás do véu.
     for (let i = 0; i < 8; i++) await page.keyboard.press("Tab");
     expect(await page.evaluate(() => !!document.activeElement?.closest("dialog"))).toBe(true);
 
@@ -90,7 +84,6 @@ test.describe("Sino de Avisos de cadastro (#143)", () => {
     await expect(modal).toBeHidden();
     await expect(sino).toBeFocused();
 
-    // Clique no véu (fora da caixa) também fecha.
     await sino.click();
     await expect(modal).toBeVisible();
     await page.mouse.click(5, 5);

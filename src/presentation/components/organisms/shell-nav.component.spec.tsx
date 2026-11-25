@@ -32,6 +32,12 @@ describe("ShellNav", () => {
     );
   });
 
+  it("RH é um link de verdade pro dashboard do setor", () => {
+    render(<ShellNav setores={[{ slug: "rh" }]} />);
+
+    expect(screen.getByRole("link", { name: "RH" })).toHaveAttribute("href", "/rh");
+  });
+
   it("marca os demais setores como indisponíveis (nenhuma tela existe ainda)", () => {
     render(<ShellNav setores={[{ slug: "financeiro" }]} />);
 
@@ -151,5 +157,26 @@ describe("ShellNav — pendentes de Atendimento (#163)", () => {
         "simples_nacional",
       );
     });
+  });
+
+  it("mostra a engrenagem no extremo direito com os itens de configuração do Setor", () => {
+    render(
+      <ShellNav
+        setores={[{ slug: "rh" }]}
+        configuracoes={[{ rotulo: "Serviços do acompanhamento", href: "/rh/servicos" }]}
+      />,
+    );
+
+    expect(screen.getByLabelText("Configurações do Setor")).toBeInTheDocument();
+    expect(screen.getByText("Serviços do acompanhamento").closest("a")).toHaveAttribute(
+      "href",
+      "/rh/servicos",
+    );
+  });
+
+  it("sem itens de configuração não há engrenagem", () => {
+    render(<ShellNav setores={[{ slug: "rh" }]} />);
+
+    expect(screen.queryByLabelText("Configurações do Setor")).not.toBeInTheDocument();
   });
 });

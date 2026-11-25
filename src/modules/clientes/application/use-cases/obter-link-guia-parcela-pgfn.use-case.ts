@@ -12,8 +12,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const VALIDADE_LINK_SEGUNDOS = 120;
 
-// O caminho nasce da leitura pela sessão do usuário (RLS do Parcelamento), nunca da tela: quem não vê
-// o Parcelamento não gera link, e "não existe" e "sem acesso" são indistinguíveis de propósito.
 export class ObterLinkGuiaParcelaPgfn implements ObterLinkGuiaParcelaPgfnPort {
   constructor(
     private readonly sessao: SessaoPort,

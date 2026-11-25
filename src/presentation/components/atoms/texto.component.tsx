@@ -1,7 +1,5 @@
 import { cn } from "@/presentation/lib/utils";
 
-// Papéis tipográficos do produto (DESIGN.md → Tipografia): a cor e o peso saem do papel, não da tela.
-// Trecho sem papel (só layout) é `Caixa`, não `Texto`.
 const VARIANTES = {
   destaque: "font-medium text-foreground",
   corpo: "text-sm text-foreground",
@@ -24,8 +22,7 @@ const VARIANTES = {
 
 type TextoProps = Omit<React.HTMLAttributes<HTMLElement>, "className"> & {
   variante: keyof typeof VARIANTES;
-  // Elemento semântico; o padrão é parágrafo.
-  como?: "p" | "span" | "h1" | "h2" | "h3" | "strong" | "small";
+  como?: "p" | "span" | "h1" | "h2" | "h3" | "strong" | "small" | "dt" | "dd";
   className?: string;
   ref?: React.Ref<HTMLElement>;
 };

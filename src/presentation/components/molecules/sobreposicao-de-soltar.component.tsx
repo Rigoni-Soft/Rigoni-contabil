@@ -3,10 +3,6 @@ import { Paperclip } from "lucide-react";
 import { Caixa } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
-// A moldura de segurança do talão sobre a região, enquanto um arquivo é arrastado até ela: o
-// gesto de entregar um documento ganha a mesma moldura que o produto usa para os documentos do
-// Cliente. Puramente visual (o arraste é de mouse): o caminho por teclado é o clipe.
-// A camada externa posiciona (a moldura define `position: relative`, que venceria `absolute`).
 export function SobreposicaoDeSoltar() {
   return (
     <Caixa aria-hidden="true" className="pointer-events-none absolute inset-0 z-10">

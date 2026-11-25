@@ -1,7 +1,3 @@
-/**
- * Integração presentation ↔ application: o `main` é substituído por uma composição com o caso de
- * uso falso (testes.md, seção 3), sem tocar Supabase real.
- */
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok } from "@/shared/kernel/result";
 
@@ -18,6 +14,7 @@ const pdf = (bytes = 8) =>
 
 const INPUT_VALIDO = {
   clienteId: "c1c1c1c1-c1c1-4c1c-8c1c-c1c1c1c1c1c1",
+  setor: "simples_nacional",
   parcelamentos: [
     { codigo: "PARC-1", parcelasRestantes: 12, interno: false, arquivo: pdf() },
     {

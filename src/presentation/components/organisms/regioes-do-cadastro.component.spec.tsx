@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useForm } from "react-hook-form";
 
+import { LINHAS_DE_CONTATO_DE_TESTE } from "../../../../test-support/linhas-de-contato-de-teste";
 import { CabecalhoDoCadastro } from "./cabecalho-do-cadastro.component";
 import { ContatosDoCadastro } from "./contatos-do-cadastro.component";
 import { DasDoCadastro } from "./das-do-cadastro.component";
@@ -10,7 +11,6 @@ import { ParcelamentosDoCadastro } from "./parcelamentos-do-cadastro.component";
 import { ResponsavelDoCadastro } from "./responsavel-do-cadastro.component";
 
 const opcoes = {
-  formaEnvio: [{ valor: "email", rotulo: "E-mail" }],
   documento: [{ valor: "recebido", rotulo: "Recebido" }],
   das: [{ valor: "pendente", rotulo: "Pendente" }],
 };
@@ -59,7 +59,7 @@ function Wrapper({ dasEnviado = false }: { dasEnviado?: boolean }) {
         readOnly={false}
         contatos={[]}
         onAdicionar={() => adicionar()}
-        onRemover={jest.fn()}
+        linhas={LINHAS_DE_CONTATO_DE_TESTE}
       />
       <ParcelamentosDoCadastro
         register={register}
@@ -90,7 +90,8 @@ describe("regiões do cadastro operacional", () => {
 
   it("DAS usa as opções recebidas e trava o select quando o sistema já enviou", () => {
     const { rerender } = render(<Wrapper />);
-    expect(screen.getByRole("option", { name: "E-mail" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Pendente" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Forma de envio")).not.toBeInTheDocument();
     expect(screen.getByLabelText("DAS")).toBeEnabled();
     rerender(<Wrapper dasEnviado />);
     expect(screen.getByLabelText("DAS")).toBeDisabled();

@@ -38,7 +38,6 @@ type RespostaCloudApi =
       };
     };
 
-// Códigos de erro da Cloud API (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes).
 const ERROS_CLOUD_API: Record<number, { status: number; titulo: string }> = {
   0: { status: 401, titulo: "AuthException" },
   3: { status: 403, titulo: "Permission Error" },
@@ -60,8 +59,6 @@ const ERROS_CLOUD_API: Record<number, { status: number; titulo: string }> = {
   133010: { status: 400, titulo: "Not Registered" },
 };
 
-// 4xx de destinatário/parâmetro não melhora ao tentar de novo; o resto (auth,
-// limite de taxa, 5xx) é falha do serviço.
 function paraAppError(
   status: number,
   { message, code }: { message: string; code: number },
@@ -70,10 +67,6 @@ function paraAppError(
   return status === 400 ? new ValidationError(texto) : new ServicoExternoError(texto);
 }
 
-// Adapter falso (padrão em dev/e2e): reproduz a Cloud API da Meta sem enviar nada.
-// `falhas` mapeia um telefone a um código de erro da tabela acima.
-// ponytail: listas em memória sem limite, somem a cada restart; trocar por tabela se
-// alguém precisar auditar o que "foi enviado" fora de testes.
 export class EnvioMensagemFalsoGateway implements EnvioMensagemPort {
   readonly enviadas: MensagemEnviada[] = [];
   readonly documentosEnviados: DocumentoEnviado[] = [];

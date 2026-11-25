@@ -6,24 +6,17 @@ import { SEGREDOS_MENSAGERIA_PLACEHOLDER } from "@/main/segredos-mensageria.fact
 
 export * from "./env.client";
 
-// PORT não entra aqui: nenhum código do app a lê (é consumida só por `next dev`/`next start` e pelo
-// baseURL do Playwright, direto de process.env) — validá-la como obrigatória faria o app inteiro
-// depender dela sem motivo, inclusive em build/deploy onde a plataforma controla a porta sozinha.
+const emProductionDaVercel = process.env.VERCEL_ENV === "production";
+const CNPJ_ALFANUMERICO = /^[0-9A-Z]{14}$/;
+const TELEFONE_COM_DDI_SO_DIGITOS = /^[1-9]\d{9,14}$/;
+const TAMANHO_MINIMO_DO_SEGREDO_E2E = 16;
+
 const resultado = z
   .object({
-    // O Next define NODE_ENV (production no build e na Vercel, inclusive preview). As regras que
-    // dependem de "produção" (segredos reais, jobs só com mensageria real) leem daqui, não de
-    // process.env.
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-    // Fonte das obrigações fiscais (docs/contratos): por padrão o mock de mock-api/.
     OBRIGACOES_FISCAIS_URL: z.url().default("http://127.0.0.1:4010"),
-    // Provedor das obrigações fiscais: o mock acima (padrão) ou o Serpro real.
     OBRIGACOES_FISCAIS_MODO: z.enum(["mock", "serpro"]).default("mock"),
-    // Só com OBRIGACOES_FISCAIS_MODO=serpro: credenciais do contrato (Consumer Key/Secret) e
-    // certificado e-CNPJ do escritório (.p12 em base64, pois a Vercel não tem arquivos) + senha.
-    // Ambiente do Serpro: "trial" (demonstração: token fixo, sem certificado; Preview/homolog) ou
-    // "producao" (OAuth2 + e-CNPJ; Production). Define as URLs padrão; cada uma é sobrescrevível.
     SERPRO_AMBIENTE: z.enum(["trial", "producao"]).default("trial"),
     SERPRO_URL_AUTENTICACAO: z.url().optional(),
     SERPRO_URL_INTEGRA_CONTADOR: z.url().optional(),
@@ -34,19 +27,12 @@ const resultado = z
     SERPRO_CONSUMER_SECRET: z.string().min(1).optional(),
     SERPRO_CERTIFICADO_P12_BASE64: z.string().min(1).optional(),
     SERPRO_CERTIFICADO_SENHA: z.string().min(1).optional(),
-    SERPRO_CNPJ_ESCRITORIO: z
-      .string()
-      .regex(/^[0-9A-Z]{14}$/)
-      .optional(),
-    // CND (outro produto do Serpro, chave própria, sem certificado): mesmo esquema, modo à parte.
+    SERPRO_CNPJ_ESCRITORIO: z.string().regex(CNPJ_ALFANUMERICO).optional(),
     CND_MODO: z.enum(["mock", "serpro"]).default("mock"),
     SERPRO_CND_CONSUMER_KEY: z.string().min(1).optional(),
     SERPRO_CND_CONSUMER_SECRET: z.string().min(1).optional(),
     SERPRO_CND_CODIGO_IDENTIFICACAO: z.string().min(1).optional(),
-    // Adapter de mensageria (docs/contratos/mensageria.md): falso por padrão.
     MENSAGERIA_MODO: z.enum(["falso", "real"]).default("falso"),
-    // Segredos do webhook (assinatura HMAC e handshake de verificação). Valores
-    // falsos de dev; em produção vêm do painel do provedor (a factory recusa os falsos).
     MENSAGERIA_SEGREDO_ASSINATURA: z
       .string()
       .min(1)
@@ -55,46 +41,26 @@ const resultado = z
       .string()
       .min(1)
       .default(SEGREDOS_MENSAGERIA_PLACEHOLDER.tokenVerificacao),
-    // Chave do HMAC que pseudonimiza o telefone na sessão da URA. Própria (não reaproveita o
-    // segredo do webhook): trocar um não invalida o outro. Valor falso só pra dev.
     MENSAGERIA_SEGREDO_SESSAO: z.string().min(1).default(SEGREDOS_MENSAGERIA_PLACEHOLDER.sessao),
-    // Segredo que os e2e mandam no cabeçalho para usar o adapter falso num deploy com mensageria real
-    // (ver pedeAdapterFalsoDoE2E). Só no Preview/homolog; Production da Vercel recusa (refine abaixo).
-    E2E_ADAPTER_SECRET: z.string().min(16).optional(),
-    // Credenciais da Cloud API (Meta); só exigidas com MENSAGERIA_MODO=real (a factory valida).
+    E2E_ADAPTER_SECRET: z.string().min(TAMANHO_MINIMO_DO_SEGREDO_E2E).optional(),
     WHATSAPP_TOKEN: z.string().min(1).optional(),
     WHATSAPP_PHONE_NUMBER_ID: z.string().min(1).optional(),
-    // Bearer das rotas de job (agendador). Sem valor, as rotas recusam tudo.
     CRON_SECRET: z.string().min(1).optional(),
-    // Liga o encerramento automático dos Atendimentos 23h50 após a última Mensagem do cliente.
-    // Desligada por padrão: ter o CRON_SECRET não basta. Não fala com o cliente, então não exige
-    // mensageria real.
     ENCERRAMENTO_AUTOMATICO: z.enum(["desligada", "ligada"]).default("desligada"),
-    // Binário do ffmpeg que converte o áudio gravado em webm (docs/adr/0006). Sem valor, usa o
-    // do pacote `ffmpeg-static`.
     FFMPEG_PATH: z.string().min(1).optional(),
-    // Liga o job de lembrete de documento e envio de DAS. Desligada por padrão, como o encerramento.
     LEMBRETES_AUTOMATICOS: z.enum(["desligada", "ligada"]).default("desligada"),
-    // Liga o job de lembretes PGFN (alerta do setor dos dias 1, 10 e 15). Não envia nada ao Cliente,
-    // então não exige mensageria real.
     LEMBRETES_PGFN_AUTOMATICOS: z.enum(["desligada", "ligada"]).default("desligada"),
-    // Adapter de e-mail: falso por padrão. Com "real": SMTP do Gmail com senha de app (a conta
-    // precisa de verificação em duas etapas) e o `from`, ex.: "Rigoni Contábil <conta@gmail.com>".
     EMAIL_MODO: z.enum(["falso", "real"]).default("falso"),
+    EMAIL_SMTP_HOST: z.string().min(1).default("smtp.gmail.com"),
     EMAIL_SMTP_USUARIO: z.string().min(1).optional(),
     EMAIL_SMTP_SENHA: z.string().min(1).optional(),
     EMAIL_REMETENTE: z.string().min(1).optional(),
-    // Leitor do PDF de parcelamento: falso (determinístico, padrão em dev/CI/Preview) ou "texto" (lê a
-    // camada de texto do PDF no servidor, sem API externa).
     LEITURA_PDF_MODO: z.enum(["falso", "texto"]).default("falso"),
-    // WhatsApp do financeiro do escritório (só dígitos, com DDI), destino das guias de parcelamento
-    // interno. Ausente ou inválido não derruba o app: o job não envia o interno, ele segue
-    // pendente e abre o alerta `financeiro_ausente`.
-    FINANCEIRO_TELEFONE: z
-      .string()
-      .regex(/^[1-9]\d{9,14}$/)
-      .optional()
-      .catch(undefined),
+    EXTRACAO_CONVENCAO_MODO: z.enum(["falso", "indisponivel"]).default("falso"),
+    LEITURA_CARTAO_MODO: z.enum(["falso", "indisponivel", "visao"]).default("falso"),
+    ANTHROPIC_API_KEY: z.string().min(1).optional(),
+    LEITURA_CARTAO_MODELO: z.string().min(1).default("claude-haiku-5-5"),
+    FINANCEIRO_TELEFONE: z.string().regex(TELEFONE_COM_DDI_SO_DIGITOS).optional().catch(undefined),
   })
   .refine(
     (v) =>
@@ -108,15 +74,20 @@ const resultado = z
     message: "MENSAGERIA_MODO=real exige WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID.",
     path: ["WHATSAPP_TOKEN"],
   })
+  .refine((v) => v.LEITURA_CARTAO_MODO !== "visao" || v.ANTHROPIC_API_KEY, {
+    message: "LEITURA_CARTAO_MODO=visao exige ANTHROPIC_API_KEY.",
+    path: ["ANTHROPIC_API_KEY"],
+  })
   .refine(
-    (v) =>
-      v.OBRIGACOES_FISCAIS_MODO !== "serpro" ||
-      (v.SERPRO_CNPJ_ESCRITORIO &&
-        (v.SERPRO_AMBIENTE === "trial" ||
-          (v.SERPRO_CONSUMER_KEY &&
-            v.SERPRO_CONSUMER_SECRET &&
-            v.SERPRO_CERTIFICADO_P12_BASE64 &&
-            v.SERPRO_CERTIFICADO_SENHA))),
+    (v) => {
+      if (v.OBRIGACOES_FISCAIS_MODO !== "serpro") return true;
+      const temCredencialDeProducao =
+        v.SERPRO_CONSUMER_KEY &&
+        v.SERPRO_CONSUMER_SECRET &&
+        v.SERPRO_CERTIFICADO_P12_BASE64 &&
+        v.SERPRO_CERTIFICADO_SENHA;
+      return v.SERPRO_CNPJ_ESCRITORIO && (v.SERPRO_AMBIENTE === "trial" || temCredencialDeProducao);
+    },
     {
       message:
         "OBRIGACOES_FISCAIS_MODO=serpro exige SERPRO_CNPJ_ESCRITORIO e, com SERPRO_AMBIENTE=producao, também SERPRO_CONSUMER_KEY, SERPRO_CONSUMER_SECRET, SERPRO_CERTIFICADO_P12_BASE64 e SERPRO_CERTIFICADO_SENHA.",
@@ -136,11 +107,9 @@ const resultado = z
       path: ["CND_MODO"],
     },
   )
-  // Trial devolve dados de demonstração: em Production da Vercel isso "enviaria" guias falsas
-  // a Clientes reais.
   .refine(
     (v) =>
-      process.env.VERCEL_ENV !== "production" ||
+      !emProductionDaVercel ||
       v.SERPRO_AMBIENTE === "producao" ||
       (v.OBRIGACOES_FISCAIS_MODO !== "serpro" && v.CND_MODO !== "serpro"),
     {
@@ -148,11 +117,15 @@ const resultado = z
       path: ["SERPRO_AMBIENTE"],
     },
   )
-  .refine((v) => v.MENSAGERIA_MODO !== "real" || (v.WHATSAPP_TOKEN && v.WHATSAPP_PHONE_NUMBER_ID), {
-    message: "MENSAGERIA_MODO=real exige WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID.",
-    path: ["WHATSAPP_TOKEN"],
+  .refine((v) => !emProductionDaVercel || v.LEITURA_CARTAO_MODO !== "falso", {
+    message: "Production da Vercel não pode usar LEITURA_CARTAO_MODO=falso.",
+    path: ["LEITURA_CARTAO_MODO"],
   })
-  .refine((v) => process.env.VERCEL_ENV !== "production" || !v.E2E_ADAPTER_SECRET, {
+  .refine((v) => !emProductionDaVercel || v.EXTRACAO_CONVENCAO_MODO !== "falso", {
+    message: "Production da Vercel não pode usar EXTRACAO_CONVENCAO_MODO=falso.",
+    path: ["EXTRACAO_CONVENCAO_MODO"],
+  })
+  .refine((v) => !emProductionDaVercel || !v.E2E_ADAPTER_SECRET, {
     message: "Production da Vercel não pode definir E2E_ADAPTER_SECRET.",
     path: ["E2E_ADAPTER_SECRET"],
   })
@@ -189,10 +162,15 @@ const resultado = z
     LEMBRETES_AUTOMATICOS: process.env.LEMBRETES_AUTOMATICOS || undefined,
     LEMBRETES_PGFN_AUTOMATICOS: process.env.LEMBRETES_PGFN_AUTOMATICOS || undefined,
     EMAIL_MODO: process.env.EMAIL_MODO || undefined,
+    EMAIL_SMTP_HOST: process.env.EMAIL_SMTP_HOST || undefined,
     EMAIL_SMTP_USUARIO: process.env.EMAIL_SMTP_USUARIO || undefined,
     EMAIL_SMTP_SENHA: process.env.EMAIL_SMTP_SENHA || undefined,
     EMAIL_REMETENTE: process.env.EMAIL_REMETENTE || undefined,
     LEITURA_PDF_MODO: process.env.LEITURA_PDF_MODO || undefined,
+    EXTRACAO_CONVENCAO_MODO: process.env.EXTRACAO_CONVENCAO_MODO || undefined,
+    LEITURA_CARTAO_MODO: process.env.LEITURA_CARTAO_MODO || undefined,
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || undefined,
+    LEITURA_CARTAO_MODELO: process.env.LEITURA_CARTAO_MODELO || undefined,
     FINANCEIRO_TELEFONE: process.env.FINANCEIRO_TELEFONE || undefined,
   });
 
@@ -233,9 +211,14 @@ export const {
   LEMBRETES_AUTOMATICOS,
   LEMBRETES_PGFN_AUTOMATICOS,
   EMAIL_MODO,
+  EMAIL_SMTP_HOST,
   EMAIL_SMTP_USUARIO,
   EMAIL_SMTP_SENHA,
   EMAIL_REMETENTE,
   LEITURA_PDF_MODO,
+  EXTRACAO_CONVENCAO_MODO,
+  LEITURA_CARTAO_MODO,
+  ANTHROPIC_API_KEY,
+  LEITURA_CARTAO_MODELO,
   FINANCEIRO_TELEFONE,
 } = resultado.data;

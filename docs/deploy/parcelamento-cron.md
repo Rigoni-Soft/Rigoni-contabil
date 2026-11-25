@@ -13,7 +13,11 @@ Mesmo gate, retentativa, reserva da entrega e alertas do job de lembrete/DAS
 
 - Mesma flag `LEMBRETES_AUTOMATICOS=ligada` e mesmos pré-requisitos (mensageria real, e-mail real,
   templates `envio_guia_parcelamento` e `envio_guia_parcelamento_interno` aprovados).
-- `alertas_setor.origem = 'parcelamento'`: cada job renova e resolve só os seus alertas.
+- `alertas_setor.origem = 'parcelamento'`: cada job renova e resolve só os seus alertas. O alerta é do
+  Setor dono do Parcelamento (chave: Cliente, tipo, origem e Setor); o job e a URA leem a união dos
+  Parcelamentos de todos os Setores e entregam as guias numa só entrega, com a atribuição por CNPJ
+  falhando fechado entre todos os acordos do Cliente. A migration `20261104100000` preserva os
+  alertas existentes no Setor em que foram gravados (Simples Nacional); aplicar junto com o código.
 - A parcela do provedor (`AAAAMM`) vai como `MM/AAAA`; guia sem parcela não é atribuída a ninguém.
 - Não há data de envio do Parcelamento (o DAS tem): o registro de envio e a auditoria dizem quando.
 
@@ -76,7 +80,10 @@ Passos do núcleo:
 ## Parcelamento interno (#127)
 
 O interno vai sempre e só ao WhatsApp do financeiro (`FINANCEIRO_TELEFONE`, só dígitos com DDI), por
-template `envio_guia_parcelamento_interno`, qualquer que seja a forma de envio do Cliente; nunca ao Cliente.
+template `envio_guia_parcelamento_interno`, quaisquer que sejam os Destinos de envio do Cliente; nunca ao Cliente.
+O parcelamento comum (SN ou RH) vai aos Destinos de "guia de parcelamento" (ou "todos") do Setor do próprio
+Parcelamento, cada um pelo canal que o Setor escolheu; Setor sem Destino válido abre `contato_ausente` do Setor
+e o aviso no sino do Líder e do Responsável, e o Parcelamento do outro Setor segue.
 
 - Telefone ausente ou inválido não derruba o app: o interno não é enviado, segue pendente e abre
   `financeiro_ausente` até configurar. Definir no Production.

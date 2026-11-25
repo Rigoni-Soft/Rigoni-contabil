@@ -10,16 +10,14 @@ const SEM_FFMPEG =
 const TIMEOUT_MS = 30_000;
 const FALHA_NA_CONVERSAO = "Não foi possível converter o áudio. Tente gravar de novo.";
 
-// ogg/opus mono, o formato da mensagem de voz do WhatsApp. Entrada e saída por pipe: nada vai a disco.
 const ARGS_OGG_OPUS = [
   ...["-hide_banner", "-loglevel", "error", "-i", "pipe:0", "-vn"],
   ...["-ac", "1", "-c:a", "libopus", "-b:a", "32k", "-f", "ogg", "pipe:1"],
 ];
 
-// Usa o binário `ffmpeg` do ambiente (ou o de `caminho`); sem ele a conversão falha com mensagem
-// clara e nada é perdido (docs/adr/0006).
+const ignorarPipeFechadoPeloFfmpeg = () => {};
+
 export class FfmpegConversorDeAudioGateway implements ConversorDeAudioPort {
-  // `caminho` como função: o binário só é resolvido (e descomprimido) quando há o que converter.
   constructor(private readonly caminho: string | (() => Promise<string>) = "ffmpeg") {}
 
   async paraOggOpus(conteudo: Uint8Array): Promise<Result<Uint8Array, AppError>> {
@@ -63,8 +61,7 @@ export class FfmpegConversorDeAudioGateway implements ConversorDeAudioPort {
             : err(new ServicoExternoError(FALHA_NA_CONVERSAO)),
         );
       });
-      // ffmpeg que morre antes de ler tudo fecha o pipe: o erro vem pelo `close`.
-      processo.stdin.on("error", () => {});
+      processo.stdin.on("error", ignorarPipeFechadoPeloFfmpeg);
       processo.stdin.end(conteudo);
     });
   }

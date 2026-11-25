@@ -1,10 +1,3 @@
-/**
- * Integração infra ↔ Supabase: guia anexada da parcela PGFN (`cliente_parcelamento_guias`).
- * Requer `npx supabase start` com migrations + seed aplicados. Prova a RLS por papel, as travas dos
- * gatilhos (só PGFN, um anexo por competência, competência já enviada, só a->confirmada), os grants
- * (UPDATE só de estado, arquivo, conta e motivo, DELETE da guia não enviada, anon nada), a troca e a
- * remoção da guia ainda não enviada e os campos fixos do Parcelamento PGFN e a auditoria de quem anexou e quem confirmou.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
@@ -95,6 +88,7 @@ async function criarParcelamento(clienteId: string, origem: "pgfn" | "receita_fe
   const id = crypto.randomUUID();
   const salvo = await new SupabaseClienteParcelamentoRepository(await comoFuncionarioSN()).salvar(
     clienteId,
+    "simples_nacional",
     [
       {
         id,
@@ -116,7 +110,6 @@ async function criarParcelamento(clienteId: string, origem: "pgfn" | "receita_fe
   return id;
 }
 
-// O caminho tem de ser o do Parcelamento (o banco recusa outro): guia() usa o último criado no teste.
 let ultimo = { clienteId: "", parcelamentoId: "" };
 const guia = (competencia = "202610") => ({
   competencia,
@@ -334,7 +327,7 @@ describe("guia anexada da parcela PGFN", () => {
     ).not.toBeNull();
   });
 
-  it("mesma visibilidade do Parcelamento: outro Setor só lê a lista se for Responsável do Cliente", async () => {
+  it("mesma visibilidade do Parcelamento: outro Setor não lê a lista, nem sendo Responsável do Cliente", async () => {
     const clienteId = await criarClienteResponsavelFuncionarioSN("77330009000195");
     const parcelamentoId = await criarParcelamento(clienteId);
     await new SupabaseGuiaParcelaPgfnRepository(await comoFuncionarioSN()).anexar(
@@ -354,7 +347,7 @@ describe("guia anexada da parcela PGFN", () => {
     });
     if (atribuido.error) throw atribuido.error;
     const comAtribuicao = await financeiro.listar(parcelamentoId);
-    expect(comAtribuicao.ok && comAtribuicao.value).toHaveLength(1);
+    expect(comAtribuicao.ok && comAtribuicao.value).toHaveLength(0);
   });
 
   it("remover o Parcelamento leva as guias junto (cascata)", async () => {
@@ -368,6 +361,7 @@ describe("guia anexada da parcela PGFN", () => {
 
     await new SupabaseClienteParcelamentoRepository(await comoFuncionarioSN()).salvar(
       clienteId,
+      "simples_nacional",
       [],
     );
 
@@ -517,7 +511,6 @@ describe("guia anexada da parcela PGFN", () => {
           p_caminho: caminho,
         });
 
-      // Versão que já não é a atual não é reservada.
       expect((await reservar(guia("202610").arquivoCaminho)).data).toBeNull();
       const token = (await reservar(original.arquivoCaminho)).data as string;
       expect(token).toEqual(expect.any(String));
@@ -610,6 +603,7 @@ describe("guia anexada da parcela PGFN", () => {
       }
       const porRpc = await new SupabaseClienteParcelamentoRepository(funcionario).salvar(
         clienteId,
+        "simples_nacional",
         [
           {
             id: parcelamentoId,
@@ -659,13 +653,11 @@ describe("guia anexada da parcela PGFN", () => {
       const outubro = guia("202610");
       await repo.anexar(parcelamentoId, outubro, null);
 
-      // Anexo de outra competência com o caminho de setembro.
       const anexo = await repo.anexar(
         parcelamentoId,
         { ...guia("202611"), arquivoCaminho: setembro.arquivoCaminho },
         null,
       );
-      // Troca de outubro para o caminho de setembro.
       const troca = await repo.substituir(
         parcelamentoId,
         "202610",
@@ -715,7 +707,6 @@ describe("guia anexada da parcela PGFN", () => {
       const repo = new SupabaseGuiaParcelaPgfnRepository(await comoFuncionarioSN());
       const a = guia("202610");
       await repo.anexar(parcelamentoId, a, null);
-      // Outra requisição troca o PDF por um de conta divergente antes da confirmação atrasada de A.
       const b = { ...guia("202610"), contaNegociacao: "99999" };
       await repo.substituir(
         parcelamentoId,

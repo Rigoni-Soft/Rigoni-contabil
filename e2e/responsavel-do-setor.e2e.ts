@@ -2,7 +2,6 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, login } from "./support/criar-cliente";
 
-// Líder fora do Simples Nacional atribui, troca e remove o Responsável do Cliente no próprio Setor (#165).
 const admin = adminLocal();
 const SUFIXO = `${Date.now()}`.slice(-6);
 const ANA = `Ana Contábil ${SUFIXO}`;
@@ -65,7 +64,6 @@ test.describe("Responsável do Setor na tela do Cliente (#165)", () => {
 
     const campo = page.getByLabel("Responsável", { exact: true });
     const salvar = page.getByRole("button", { name: "Salvar Responsável" });
-    // A lista de Funcionários só é buscada quando o Select recebe foco (lazy).
     await campo.focus();
 
     await campo.selectOption({ label: ANA });

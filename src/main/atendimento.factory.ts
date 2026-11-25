@@ -12,6 +12,7 @@ import {
   E2E_ADAPTER_SECRET,
   EMAIL_MODO,
   EMAIL_REMETENTE,
+  EMAIL_SMTP_HOST,
   EMAIL_SMTP_SENHA,
   EMAIL_SMTP_USUARIO,
   ENCERRAMENTO_AUTOMATICO,
@@ -41,6 +42,10 @@ import { createSupabaseServer } from "@/main/supabase-server.factory";
 import type { AssumirAtendimentoPort } from "@/modules/atendimento/application/ports/in/assumir-atendimento.provider";
 import type { AutenticarWebhookPort } from "@/modules/atendimento/application/ports/in/autenticar-webhook.provider";
 import type { AvisarClientePort } from "@/modules/atendimento/application/ports/in/avisar-cliente.provider";
+import type {
+  BuscarClienteParaContatoUraPort,
+  CadastrarContatoUraPort,
+} from "@/modules/atendimento/application/ports/in/cadastrar-contato-ura.provider";
 import type { EncerrarAtendimentoPort } from "@/modules/atendimento/application/ports/in/encerrar-atendimento.provider";
 import type { EncerrarPorSilencioPort } from "@/modules/atendimento/application/ports/in/encerrar-por-silencio.provider";
 import type { EnviarAnexoAoClientePort } from "@/modules/atendimento/application/ports/in/enviar-anexo-ao-cliente.provider";
@@ -75,6 +80,8 @@ import { AnexarMensagemAtendimento } from "@/modules/atendimento/application/use
 import { AssumirAtendimento } from "@/modules/atendimento/application/use-cases/assumir-atendimento.use-case";
 import { AutenticarWebhook } from "@/modules/atendimento/application/use-cases/autenticar-webhook.use-case";
 import { AvisarCliente } from "@/modules/atendimento/application/use-cases/avisar-cliente.use-case";
+import { BuscarClienteParaContatoUra } from "@/modules/atendimento/application/use-cases/buscar-cliente-para-contato-ura.use-case";
+import { CadastrarContatoUra } from "@/modules/atendimento/application/use-cases/cadastrar-contato-ura.use-case";
 import { CadastrarFeriado } from "@/modules/atendimento/application/use-cases/cadastrar-feriado.use-case";
 import { EncerrarAtendimento } from "@/modules/atendimento/application/use-cases/encerrar-atendimento.use-case";
 import { EncerrarPorSilencio } from "@/modules/atendimento/application/use-cases/encerrar-por-silencio.use-case";
@@ -120,6 +127,8 @@ import { SupabaseClienteCnpjGateway } from "@/modules/atendimento/infra/gateways
 import { SupabaseClientesComParcelamentoPgfnGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-com-parcelamento-pgfn.gateway";
 import { SupabaseClientesParaLembreteGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-para-lembrete.gateway";
 import { SupabaseClientesParaParcelamentoGateway } from "@/modules/atendimento/infra/gateways/supabase-clientes-para-parcelamento.gateway";
+import { SupabaseContatoUraGateway } from "@/modules/atendimento/infra/gateways/supabase-contato-ura.gateway";
+import { SupabaseDestinosDeEnvioGateway } from "@/modules/atendimento/infra/gateways/supabase-destinos-de-envio.gateway";
 import { SupabaseDocumentosContratuaisGateway } from "@/modules/atendimento/infra/gateways/supabase-documentos-contratuais.gateway";
 import { SupabaseGuiaPublicadaGateway } from "@/modules/atendimento/infra/gateways/supabase-guia-publicada.gateway";
 import { SupabaseGuiasPgfnGateway } from "@/modules/atendimento/infra/gateways/supabase-guias-pgfn.gateway";
@@ -138,17 +147,13 @@ import type { SetorSlug } from "@/shared/kernel/setores";
 const errosAtendimento = new ConsoleAtendimento();
 const errosUsuarios = new ConsoleUsuarios();
 
-// Instância única: o falso guarda em memória o que "enviou".
 const envioFalso = new EnvioMensagemFalsoGateway();
 
-// Modo do ambiente; vale onde não há requisição de usuário (jobs).
 function makeEnvioMensagem(): EnvioMensagemPort {
   if (MENSAGERIA_MODO !== "real") return envioFalso;
-  // env.ts garante as duas credenciais com o modo real.
   return new EnvioMensagemWhatsappGateway(WHATSAPP_TOKEN!, WHATSAPP_PHONE_NUMBER_ID!);
 }
 
-// Uma requisição dos e2e pode pedir o adapter falso (cabeçalho secreto) mesmo com o deploy em modo real.
 async function requisicaoPedeAdapterFalso(): Promise<boolean> {
   if (!E2E_ADAPTER_SECRET) return false;
   return pedeAdapterFalsoDoE2E(
@@ -161,8 +166,6 @@ async function makeEnvioMensagemDaRequisicao(): Promise<EnvioMensagemPort> {
   return (await requisicaoPedeAdapterFalso()) ? envioFalso : makeEnvioMensagem();
 }
 
-// Chamada por makeAutenticarWebhook e makeReceberMensagem: nenhum caminho da rota pública
-// (GET/POST) chega ao client privilegiado nem valida HMAC com segredo de desenvolvimento.
 function exigirSegredosDeProducao(): void {
   exigirSegredosReais(
     {
@@ -258,9 +261,6 @@ export function makeAutenticarWebhook(): AutenticarWebhookPort {
   );
 }
 
-// Adapta a sessão do módulo usuarios à porta própria de atendimento (arquitetura.md, seção 3.11);
-// monta o ObterSessao direto, sem chamar usuarios.factory, pra não criar import circular. O adapter
-// fica no `main` (não em infra) pelo mesmo motivo e padrão do clientes.factory.
 function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   const obterSessao = new ObterSessao(
     new SupabaseSessaoGateway(supabase),
@@ -270,7 +270,6 @@ function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   return {
     usuarioAtual: async (): Promise<AtorSessaoDto | null> => {
       const usuario = await obterSessao.execute();
-      // O módulo usuarios só devolve Papel e Setor já validados (builder); o cast é a única fronteira.
       return usuario
         ? {
             id: usuario.id,
@@ -320,14 +319,11 @@ export async function makeEncerrarAtendimento(): Promise<EncerrarAtendimentoPort
   );
 }
 
-// O job só age com a flag ligada, e em produção só com mensageria real: o adapter falso "envia"
-// sem avisar ninguém (marcaria DAS como enviado sem o cliente saber).
-// Autenticar o job (CRON_SECRET) não autoriza executá-lo.
 function jobAutomaticoAtivo(flag: string): boolean {
-  return flag === "ligada" && !(NODE_ENV === "production" && MENSAGERIA_MODO === "falso");
+  const mensageriaFalsaEmProducao = NODE_ENV === "production" && MENSAGERIA_MODO === "falso";
+  return flag === "ligada" && !mensageriaFalsaEmProducao;
 }
 
-// Não fala com o Cliente: vale a flag, sem a exigência de mensageria real.
 export function encerramentoAutomaticoAtivo(): boolean {
   return ENCERRAMENTO_AUTOMATICO === "ligada";
 }
@@ -336,12 +332,10 @@ export function lembretesAutomaticosAtivos(): boolean {
   return jobAutomaticoAtivo(LEMBRETES_AUTOMATICOS);
 }
 
-// Só alerta o setor, não fala com o Cliente: vale a flag, sem a exigência de mensageria real.
 export function lembretesParcelamentoPgfnAtivos(): boolean {
   return LEMBRETES_PGFN_AUTOMATICOS === "ligada";
 }
 
-// Job (service_role, sem sessão de usuário): o sistema encerra os Atendimentos sem resposta do cliente.
 export function makeEncerrarPorSilencio(): EncerrarPorSilencioPort {
   return new EncerrarPorSilencio(
     new SupabaseAtendimentoRepository(createSupabaseAdmin()),
@@ -349,12 +343,10 @@ export function makeEncerrarPorSilencio(): EncerrarPorSilencioPort {
   );
 }
 
-// Em produção o e-mail falso responderia ok sem enviar nada: sem EMAIL_MODO=real o canal falha de
-// forma explícita.
 function makeEnvioEmail(): EnvioEmailPort {
   if (EMAIL_MODO === "real") {
-    // env.ts garante usuário, senha de app e remetente com o modo real.
     return new EnvioEmailSmtpGateway({
+      host: EMAIL_SMTP_HOST,
       usuario: EMAIL_SMTP_USUARIO!,
       senha: EMAIL_SMTP_SENHA!,
       remetente: EMAIL_REMETENTE!,
@@ -365,12 +357,12 @@ function makeEnvioEmail(): EnvioEmailPort {
     : new EnvioEmailFalsoGateway();
 }
 
-// Job (service_role, sem sessão de usuário): lembrete de documento e envio de DAS.
 export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumentoEDasPort {
   const supabaseAdmin = createSupabaseAdmin();
   const publicadas = new SupabaseGuiaPublicadaGateway(supabaseAdmin);
   return new ExecutarLembretesDocumentoEDas(
     new SupabaseClientesParaLembreteGateway(supabaseAdmin),
+    new SupabaseDestinosDeEnvioGateway(supabaseAdmin),
     new ObterGuiaDasParaEnvio(guiasFiscais(supabaseAdmin), publicadas),
     new EntregarComunicacaoPorCanais(
       new EnviarComunicacaoProativa(makeEnvioMensagem(), TENTATIVAS, ESPERA_MS),
@@ -381,7 +373,6 @@ export function makeExecutarLembretesDocumentoEDas(): ExecutarLembretesDocumento
   );
 }
 
-// Job (service_role, sem sessão de usuário): lembrete dos Parcelamentos PGFN sem guia do mês.
 export function makeExecutarLembretesParcelamentoPgfn(): ExecutarLembretesParcelamentoPgfnPort {
   const supabaseAdmin = createSupabaseAdmin();
   return new ExecutarLembretesParcelamentoPgfn(
@@ -391,8 +382,6 @@ export function makeExecutarLembretesParcelamentoPgfn(): ExecutarLembretesParcel
   );
 }
 
-// Job (service_role, sem sessão de usuário): envio da guia de parcelamento. Mesma flag do job de
-// lembrete: os dois são comunicação automática ao Cliente.
 export function makeExecutarEnvioGuiaParcelamento(): ExecutarEnvioGuiaParcelamentoPort {
   const supabaseAdmin = createSupabaseAdmin();
   const envio = makeEnvioMensagem();
@@ -400,6 +389,7 @@ export function makeExecutarEnvioGuiaParcelamento(): ExecutarEnvioGuiaParcelamen
     new SupabaseClientesParaParcelamentoGateway(supabaseAdmin),
     new EnviarGuiasParcelamento(
       new SupabaseParcelamentosDoClienteGateway(supabaseAdmin),
+      new SupabaseDestinosDeEnvioGateway(supabaseAdmin),
       guiasFiscais(supabaseAdmin),
       new SupabaseGuiaPublicadaGateway(supabaseAdmin),
       new EntregarComunicacaoPorCanais(
@@ -440,6 +430,27 @@ export async function makeListarMeusAtendimentos(): Promise<ListarMeusAtendiment
   );
 }
 
+export async function makeBuscarClienteParaContatoUra(): Promise<BuscarClienteParaContatoUraPort> {
+  const supabase = await createSupabaseServer();
+  const admin = createSupabaseAdmin();
+  return new BuscarClienteParaContatoUra(
+    sessaoViaUsuarios(supabase),
+    new SupabaseAtendimentoRepository(admin),
+    new SupabaseContatoUraGateway(supabase, admin),
+    auditoriaBestEffort(errosAtendimento),
+  );
+}
+
+export async function makeCadastrarContatoUra(): Promise<CadastrarContatoUraPort> {
+  const supabase = await createSupabaseServer();
+  const admin = createSupabaseAdmin();
+  return new CadastrarContatoUra(
+    sessaoViaUsuarios(supabase),
+    new SupabaseAtendimentoRepository(admin),
+    new SupabaseContatoUraGateway(supabase, admin),
+  );
+}
+
 export async function makeObterConversa(): Promise<ObterConversaPort> {
   const supabaseAdmin = createSupabaseAdmin();
   return new ObterConversa(
@@ -450,19 +461,18 @@ export async function makeObterConversa(): Promise<ObterConversaPort> {
   );
 }
 
-// `FFMPEG_PATH` manda; senão o binário comprimido do build (menor na função); senão o do pacote
-// ffmpeg-static (desenvolvimento) ou o do PATH. Só é chamada quando há áudio webm a converter.
 function caminhoDoFfmpeg(): Promise<string> {
   if (FFMPEG_PATH) return Promise.resolve(FFMPEG_PATH);
   return resolverFfmpeg({
     comprimido: join(process.cwd(), ".ffmpeg", "ffmpeg.br"),
     destino: join(tmpdir(), "rigoni-ffmpeg", "ffmpeg"),
-    alternativo: async () => {
-      // Import dinâmico: no deploy o pacote é excluído do trace (só o comprimido segue).
-      const pacote = await import("ffmpeg-static").catch(() => null);
-      return pacote?.default ?? "ffmpeg";
-    },
+    alternativo: ffmpegDoPacoteOuDoPath,
   });
+}
+
+async function ffmpegDoPacoteOuDoPath(): Promise<string> {
+  const pacote = await import("ffmpeg-static").catch(() => null);
+  return pacote?.default ?? "ffmpeg";
 }
 
 export async function makeEnviarAnexoAoCliente(): Promise<EnviarAnexoAoClientePort> {
@@ -509,7 +519,6 @@ export async function makeReagirAMensagem(): Promise<ReagirAMensagemPort> {
   );
 }
 
-// Feriados do Admin: client da sessão dele, para a RLS e a auditoria do banco valerem.
 async function makeFeriados() {
   const supabase = await createSupabaseServer();
   return {

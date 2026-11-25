@@ -1,0 +1,75 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+
+import { ServicosDoAcompanhamento } from "@/presentation/components/organisms/servicos-do-acompanhamento.component";
+import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
+import type { ActionResult } from "@/shared/dtos/action-result.dto";
+
+import {
+  criarServicoAction,
+  desativarServicoAction,
+  renomearServicoAction,
+} from "./acompanhamento-mensal.actions";
+
+type Props = { servicos: { id: string; nome: string; sistema: boolean }[] };
+
+export function ServicosDoAcompanhamentoContainer({ servicos }: Props) {
+  const router = useRouter();
+  const [pendente, iniciar] = useTransition();
+  const [erro, setErro] = useState<string>();
+  const [desativando, setDesativando] = useState<string>();
+  const [novoNome, setNovoNome] = useState("");
+  const [edicao, setEdicao] = useState<{ id: string; nome: string }>();
+
+  const executar = (acao: () => Promise<ActionResult<void>>, aoDarCerto: () => void) =>
+    iniciar(async () => {
+      setErro(undefined);
+      try {
+        const resultado = await acao();
+        if (!resultado.ok) return setErro(resultado.error.message);
+        aoDarCerto();
+        router.refresh();
+      } catch (erro) {
+        console.error("Falha ao gravar os serviços do acompanhamento", erro);
+        setErro(mensagemDaFalha(erro));
+      }
+    });
+
+  return (
+    <ServicosDoAcompanhamento
+      servicos={servicos}
+      novoNome={novoNome}
+      onNovoNome={setNovoNome}
+      pendente={pendente}
+      onCriar={() =>
+        executar(
+          () => criarServicoAction({ nome: novoNome }),
+          () => setNovoNome(""),
+        )
+      }
+      edicao={edicao}
+      onEditar={(servicoId, nome) => setEdicao({ id: servicoId, nome })}
+      onNomeEdicao={(nome) => edicao && setEdicao({ id: edicao.id, nome })}
+      onCancelarEdicao={() => setEdicao(undefined)}
+      onSalvarEdicao={() =>
+        edicao &&
+        executar(
+          () => renomearServicoAction({ servicoId: edicao.id, nome: edicao.nome }),
+          () => setEdicao(undefined),
+        )
+      }
+      erro={erro}
+      desativando={desativando}
+      onDesativar={setDesativando}
+      onCancelarDesativar={() => setDesativando(undefined)}
+      onConfirmarDesativar={(servicoId) =>
+        executar(
+          () => desativarServicoAction({ servicoId }),
+          () => setDesativando(undefined),
+        )
+      }
+    />
+  );
+}

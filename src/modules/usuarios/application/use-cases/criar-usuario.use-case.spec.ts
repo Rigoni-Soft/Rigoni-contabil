@@ -56,7 +56,7 @@ class UsuarioRepositoryFalso implements UsuarioRepository {
     if (this.erroTecnicoAoBuscarAtor) return err(this.erroTecnicoAoBuscarAtor);
     return ok(id === "admin-1" ? this.ator : null);
   }
-  async listarComBloqueioPendente(): Promise<Result<Usuario[], AppError>> {
+  async listarComDesativacaoPendente(): Promise<Result<Usuario[], AppError>> {
     return ok([]);
   }
   async buscarLiderAtivoDoSetor(): Promise<Result<Usuario | null, AppError>> {
@@ -336,8 +336,6 @@ describe("CriarUsuario", () => {
     expect(auditoria.registros).toEqual([expect.objectContaining({ resultado: "falha" })]);
   });
 
-  // Nenhum destes 3 casos pode deixar a conta Auth (id "novo-usuario-1", gerada
-  // por AuthAdminFalso) sem compensação.
   it("compensa (remove a conta Auth) quando o INSERT em perfis falha depois da conta já criada", async () => {
     const sessao = new SessaoFalsa();
     const usuarios = new UsuarioRepositoryFalso();
@@ -375,13 +373,8 @@ describe("CriarUsuario", () => {
 
     expect(resultado.ok).toBe(false);
     expect(authAdmin.contasRemovidas).toEqual(["novo-usuario-1"]);
-    // O perfil já tinha sido salvo antes da auditoria falhar — a compensação real
-    // (delete no Auth, testada no gateway/integração) cascateia pro perfil via FK;
-    // aqui, no unit test com fakes, só garantimos que a compensação foi acionada.
   });
 
-  // Falha da própria compensação não é mascarada como o erro original — vira erro
-  // específico + registro de auditoria próprio, distinguível de "rollback funcionou".
   it("distingue falha da própria compensação: erro específico, registro de auditoria próprio e log sem senha", async () => {
     const sessao = new SessaoFalsa();
     const usuarios = new UsuarioRepositoryFalso();

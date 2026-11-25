@@ -6,6 +6,7 @@ houver domínio, troque o adapter por um provedor transacional (a porta `EnvioEm
 | Variável | O que é | Segredo |
 |---|---|---|
 | `EMAIL_MODO` | `real` liga o adapter; `falso` (padrão) só registra no log e, em produção, o canal de e-mail falha de forma explícita | não |
+| `EMAIL_SMTP_HOST` | servidor SMTP (porta 465, TLS). Padrão `smtp.gmail.com`; com a Resend, `smtp.resend.com` | não |
 | `EMAIL_SMTP_USUARIO` | a conta Gmail que envia (ex.: `rigonicontadm@gmail.com`) | não |
 | `EMAIL_SMTP_SENHA` | **senha de app** de 16 letras dessa conta (não é a senha do e-mail) | **sim** |
 | `EMAIL_REMETENTE` | o `from`: `Rigoni Contábil <rigonicontadm@gmail.com>` | não |
@@ -32,6 +33,21 @@ vercel env add EMAIL_SMTP_SENHA preview --sensitive
 
 Para o Production, repita com o escopo `production`. O job de lembrete só liga com `LEMBRETES_AUTOMATICOS=ligada`, e em
 produção ele exige o e-mail real.
+
+## Com a Resend (domínio próprio, remetente `no-reply`)
+
+A Resend fala SMTP, então só o host e as credenciais mudam. O domínio do remetente precisa estar verificado na Resend (registros
+SPF e DKIM no DNS); o endereço `no-reply@<domínio>` não precisa de caixa de e-mail.
+
+```
+EMAIL_MODO=real
+EMAIL_SMTP_HOST=smtp.resend.com
+EMAIL_SMTP_USUARIO=resend                      # literal
+EMAIL_SMTP_SENHA=re_...                        # API key com permissão "Sending access"
+EMAIL_REMETENTE=Rigoni Contábil <no-reply@SEU-DOMINIO-VERIFICADO>
+```
+
+O domínio do `EMAIL_REMETENTE` tem de ser exatamente o verificado (raiz ou subdomínio). Respostas ao `no-reply` não chegam a ninguém.
 
 ## Comportamento e limites
 

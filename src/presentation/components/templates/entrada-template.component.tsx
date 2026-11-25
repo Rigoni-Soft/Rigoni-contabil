@@ -1,5 +1,7 @@
 import { Caixa, Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
+import { MOLDURA_DO_CARTAO } from "@/presentation/lib/moldura-do-cartao";
+import { cn } from "@/presentation/lib/utils";
 
 type EntradaTemplateProps = {
   titulo: string;
@@ -8,7 +10,6 @@ type EntradaTemplateProps = {
   formulario: React.ReactNode;
 };
 
-// Tela de entrada (login): conteúdo único centralizado, sem cabeçalho nem navegação. Sempre Server.
 export function EntradaTemplate({ titulo, subtitulo, rodape, formulario }: EntradaTemplateProps) {
   return (
     <Linha
@@ -24,9 +25,7 @@ export function EntradaTemplate({ titulo, subtitulo, rodape, formulario }: Entra
           <Texto variante="apoio">{subtitulo}</Texto>
         </Caixa>
 
-        <Caixa className="rc-guilloche-frame rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8">
-          {formulario}
-        </Caixa>
+        <Caixa className={cn(MOLDURA_DO_CARTAO, "p-6 sm:p-8")}>{formulario}</Caixa>
 
         <Texto variante="nota" className="mt-6 text-center">
           {rodape}

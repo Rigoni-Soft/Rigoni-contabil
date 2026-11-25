@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase para anexar alteração contratual a Cliente existente.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { AlteracaoContratual } from "@/modules/clientes/domain/value-objects/alteracao-contratual.vo";
@@ -230,7 +226,6 @@ describe("SupabaseClienteRepository.alteracaoContratualGravada", () => {
 });
 
 describe("classificação de falha de transporte (R170-01)", () => {
-  // Fronteira de teste: a RPC "perde a resposta" (status 0) ou o gateway estoura (504).
   const supabaseComStatus = (status: number) =>
     ({
       rpc: async () => ({ error: { code: "", message: "TypeError: fetch failed" }, status }),

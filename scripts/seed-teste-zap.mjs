@@ -1,9 +1,3 @@
-// Cria o Cliente "Teste Zap" (teste de ponta a ponta com o WhatsApp real) do mesmo jeito que o
-// cadastro do app: PDFs no bucket `documentos-clientes`, caminhos gravados pela RPC `criar_cliente`
-// (contrato social no cliente, alteração na tabela própria) e os contatos. Idempotente.
-// Roda depois do `db reset` da homologação (e2e-preview.yml) ou à mão:
-//   node --env-file=.env.local scripts/seed-teste-zap.mjs
-// Só aceita o Supabase local ou o projeto de homologação (SUPABASE_HOMOLOG_PROJECT_REF).
 import { readFile } from "node:fs/promises";
 
 import { createClient } from "@supabase/supabase-js";
@@ -11,17 +5,18 @@ import { createClient } from "@supabase/supabase-js";
 const { NEXT_PUBLIC_SUPABASE_URL: url, SUPABASE_SERVICE_ROLE_KEY: chave } = process.env;
 const refHomolog = process.env.SUPABASE_HOMOLOG_PROJECT_REF;
 
-const local = /^[a-z]+:\/\/(127\.0\.0\.1|localhost)([:/]|$)/.test(url ?? "");
-if (!url || !chave || !(local || (refHomolog && url === `https://${refHomolog}.supabase.co`))) {
+const ehSupabaseLocal = /^[a-z]+:\/\/(127\.0\.0\.1|localhost)([:/]|$)/.test(url ?? "");
+const ehProjetoDeHomologacao = Boolean(refHomolog) && url === `https://${refHomolog}.supabase.co`;
+if (!url || !chave || !(ehSupabaseLocal || ehProjetoDeHomologacao)) {
   throw new Error("Recusado: só roda contra o Supabase local ou o projeto de homologação.");
 }
 
-const ID = "5b1f4f4e-6a0c-4c1e-9d0a-1c2d3e4f5a61";
-const CNPJ = "90000010000110"; // fictício, com dígitos verificadores válidos
+const CLIENTE_ID = "5b1f4f4e-6a0c-4c1e-9d0a-1c2d3e4f5a61";
+const CNPJ_FICTICIO = "90000010000110";
 const BUCKET = "documentos-clientes";
 const ARQUIVOS = new URL("../supabase/arquivos-seed/", import.meta.url);
-const CONTRATO = `${ID}/contrato-social/contrato-social.pdf`;
-const ALTERACAO = `${ID}/alteracoes-contratuais/1-alteracao-contratual.pdf`;
+const CONTRATO = `${CLIENTE_ID}/contrato-social/contrato-social.pdf`;
+const ALTERACAO = `${CLIENTE_ID}/alteracoes-contratuais/1-alteracao-contratual.pdf`;
 
 const supabase = createClient(url, chave, { auth: { persistSession: false } });
 const falhou = (etapa, error) => {
@@ -32,7 +27,6 @@ for (const [caminho, nome] of [
   [CONTRATO, "contrato-social.pdf"],
   [ALTERACAO, "alteracao-contratual.pdf"],
 ]) {
-  // remove + upload (sem `upsert`): é o que o app faz, e o ON CONFLICT do upsert falha no Storage local.
   await supabase.storage.from(BUCKET).remove([caminho]);
   const { error } = await supabase.storage
     .from(BUCKET)
@@ -43,15 +37,15 @@ for (const [caminho, nome] of [
 const { data: existente, error: erroBusca } = await supabase
   .from("clientes")
   .select("id")
-  .eq("cnpj", CNPJ)
+  .eq("cnpj", CNPJ_FICTICIO)
   .maybeSingle();
 falhou("busca", erroBusca);
 
 if (!existente) {
   const criado = await supabase.rpc("criar_cliente", {
-    p_id: ID,
+    p_id: CLIENTE_ID,
     p_empresa: "Teste Zap",
-    p_cnpj: CNPJ,
+    p_cnpj: CNPJ_FICTICIO,
     p_regime: "simples_nacional",
     p_contrato_social_caminho: CONTRATO,
     p_email: null,
@@ -64,17 +58,15 @@ if (!existente) {
   const contatos = await supabase.from("cliente_contatos").insert([
     {
       id: crypto.randomUUID(),
-      cliente_id: ID,
+      cliente_id: CLIENTE_ID,
       nome: "Cledson",
       telefone: "(45) 99832-4311",
-      padrao: true,
     },
     {
       id: crypto.randomUUID(),
-      cliente_id: ID,
+      cliente_id: CLIENTE_ID,
       nome: "Patriki",
       telefone: "(45) 98821-2366",
-      padrao: false,
     },
   ]);
   falhou("contatos", contatos.error);

@@ -6,9 +6,7 @@ import { cn } from "@/presentation/lib/utils";
 type CampoTextareaProps = React.ComponentProps<"textarea"> & {
   id: string;
   rotulo: string;
-  // Rótulo só para leitor de tela (o placeholder já diz o que escrever).
   rotuloOculto?: boolean;
-  // Classes do contêiner do campo (largura/ordem dentro de uma linha flex).
   containerClassName?: string;
 };
 

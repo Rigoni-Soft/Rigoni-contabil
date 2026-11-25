@@ -19,10 +19,6 @@ import { DIAS_DO_JOB_PARCELAMENTO } from "@/shared/kernel/dias-do-job-parcelamen
 import { diaDoMes } from "@/shared/kernel/mes-atual";
 import { ok, type Result } from "@/shared/kernel/result";
 
-// Job dos dias 20/22/24/26/28 (fuso de São Paulo): reserva o Cliente com parcelamento pendente e
-// delega a entrega das guias ao núcleo `EnviarGuiasParcelamento` (que decide o destino de cada
-// parcelamento: Cliente ou financeiro); a reserva é liberada se nada foi aceito e a rodada seguinte
-// tenta de novo (`entregarComReserva`). Cada Cliente é independente.
 export class ExecutarEnvioGuiaParcelamento implements ExecutarEnvioGuiaParcelamentoPort {
   constructor(
     private readonly clientes: ClientesParaParcelamentoPort,

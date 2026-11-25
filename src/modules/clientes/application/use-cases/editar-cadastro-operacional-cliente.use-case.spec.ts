@@ -72,7 +72,7 @@ class AuditoriaFalsa implements AuditoriaPort {
 const INPUT_VALIDO: EditarCadastroOperacionalClienteInput = {
   clienteId: CLIENTE_ID,
   formaEnvio: "email",
-  contatos: [{ nome: "Maria", telefone: "11999990000", padrao: true }],
+  contatos: [{ nome: "Maria", telefone: "11999990000", email: "" }],
   documentoObrigatorio: "positivo",
   dasStatus: "pronto",
   dataEnvioDas: null,
@@ -177,7 +177,7 @@ describe("EditarCadastroOperacionalCliente", () => {
     expect(auditoria.registros).toEqual([expect.objectContaining({ resultado: "falha" })]);
   });
 
-  it("devolve erro de validação quando os dados de entrada são inválidos (ex.: 2 contatos padrão)", async () => {
+  it("devolve erro de validação quando os dados de entrada são inválidos (ex.: contato sem WhatsApp nem e-mail)", async () => {
     const sessao = new SessaoFalsa();
     const clientes = new ClienteRepositoryFalso();
     const auditoria = new AuditoriaFalsa();
@@ -188,10 +188,7 @@ describe("EditarCadastroOperacionalCliente", () => {
       auditoria,
     ).execute({
       ...INPUT_VALIDO,
-      contatos: [
-        { nome: "Maria", telefone: "11999990000", padrao: true },
-        { nome: "João", telefone: "11988880000", padrao: true },
-      ],
+      contatos: [{ nome: "Maria", telefone: "", email: "" }],
     });
 
     expect(resultado.ok).toBe(false);

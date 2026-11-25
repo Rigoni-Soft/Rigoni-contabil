@@ -27,6 +27,7 @@ const aviso = (id: string, vistoEm: string | null = null): AvisoCadastroDto => (
   clienteId: `c-${id}`,
   alteracaoId: null,
   alteracaoNumero: null,
+  mensagem: null,
   criadoEm: "2026-10-22T15:30:00.000Z",
   vistoEm,
 });
@@ -39,7 +40,6 @@ function renderizar(usuarioId = "user-a", client = new QueryClient()) {
   });
 }
 
-// O jsdom não implementa showModal/close: o <dialog> do teste guarda só o estado `open`.
 let modal: HTMLDialogElement;
 
 describe("useSinoAvisos", () => {
@@ -154,7 +154,6 @@ describe("useSinoAvisos", () => {
 
     expect(push).toHaveBeenCalledWith("/clientes/c-a1");
     expect(modal.close).toHaveBeenCalled();
-    // O estado real vem da releitura: a marcação incerta não é dada como feita.
     expect(result.current.avisos[0].visto).toBe(false);
   });
 
@@ -182,7 +181,6 @@ describe("useSinoAvisos", () => {
     await waitFor(() => expect(a.result.current.avisos).toHaveLength(1));
     a.unmount();
 
-    // B: contador 0, lista lenta e depois com falha.
     contarMock.mockResolvedValue({ ok: true, data: 0 });
     let falhar: (v: unknown) => void = () => {};
     listarMock.mockReturnValue(new Promise((resolve) => (falhar = resolve)));

@@ -1,13 +1,12 @@
 import { expect, test } from "./fixtures";
-import { adminLocal } from "./support/admin-local";
+import { adminLocal, limparEsperaSemDonoDoSetor } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
+import { FUNCIONARIO_FINANCEIRO_ID, FUNCIONARIO2_FINANCEIRO_ID } from "./support/usuarios-do-seed";
 
-// A URA encaminha o cliente ao Setor pedido e o Atendimento vai só ao Responsável do Cliente naquele
-// Setor: os demais Funcionários (do Setor ou de outros) não sabem dele.
 const admin = adminLocal();
 
-const ANA = "33333333-3333-3333-3333-333333333333"; // funcionario.financeiro
-const BETO = "55555555-5555-5555-5555-555555555555"; // funcionario2.financeiro
+const ANA = FUNCIONARIO_FINANCEIRO_ID;
+const BETO = FUNCIONARIO2_FINANCEIRO_ID;
 const TEL_ALFA = "61955576001";
 const TEL_BETA = "61955576002";
 const TELEFONES = [TEL_ALFA, TEL_BETA];
@@ -27,7 +26,6 @@ async function cliente(nome: string, telefone: string, responsavel: string): Pro
     cliente_id: id,
     nome,
     telefone: `(61) ${telefone.slice(2, 7)}-${telefone.slice(7)}`,
-    padrao: true,
   });
   if (contato.error) throw contato.error;
   const atribuido = await admin
@@ -50,8 +48,7 @@ async function cliente(nome: string, telefone: string, responsavel: string): Pro
 test.describe("Espera dirigida ao Responsável do Cliente em todo Setor (#165)", () => {
   test.beforeAll(async () => {
     await admin.from("atendimentos").delete().in("chave_telefone", TELEFONES);
-    // Sem Líder no Financeiro do seed, o que sobra de outras execuções ficaria sem destinatário.
-    await admin.from("atendimentos").delete().eq("setor", "financeiro").is("funcionario_id", null);
+    await limparEsperaSemDonoDoSetor(admin, "financeiro");
     clientes.push(await cliente("Dona Alfa Resp", TEL_ALFA, ANA));
     clientes.push(await cliente("Seu Beta Resp", TEL_BETA, BETO));
   });
@@ -82,14 +79,12 @@ test.describe("Espera dirigida ao Responsável do Cliente em todo Setor (#165)",
     ).toBeVisible();
     await expect(beto.getByText(/Dona Alfa Resp/)).toHaveCount(0);
 
-    // Funcionário de outro Setor não sabe de nenhum dos dois.
     const sn = await (await browser.newContext()).newPage();
     await login(sn, "funcionario.sn@rigonicontabil.local", "func123");
     await expect(sn).toHaveURL("/simples-nacional");
     await sn.goto("/atendimento");
     await expect(sn.getByText("Nenhum cliente em espera.")).toBeVisible();
 
-    // Quem recebeu assume e conversa; o Atendimento passa a ser dele.
     await ana.getByRole("button", { name: /Assumir o atendimento de Dona Alfa Resp/ }).click();
     await expect(ana.getByRole("textbox", { name: "Mensagem ao cliente" })).toBeVisible();
     const dono = await admin

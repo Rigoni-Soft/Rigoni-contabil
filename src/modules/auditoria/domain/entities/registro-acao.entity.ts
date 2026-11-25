@@ -10,8 +10,6 @@ export type RegistroAcaoProps = {
   id: RegistroAcaoId;
   ator: AtorId;
   setor: SetorDoAtor;
-  // acao e alvo ficam string: texto livre (convenção "dominio.verbo", mas o banco é text e
-  // o alvo descreve qualquer entidade); a única regra é não-vazio, validada no builder.
   acao: string;
   alvo: string;
   resultado: ResultadoAcao;

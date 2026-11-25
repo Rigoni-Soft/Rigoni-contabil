@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) da sessão da URA.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { SupabaseSessaoAtendimentoGateway } from "./supabase-sessao-atendimento.gateway";
@@ -33,6 +29,8 @@ describe("SupabaseSessaoAtendimentoGateway", () => {
     [{ etapa: "cnpj_nova_tentativa" as const, invalidos: 0 }],
     [{ etapa: "cnpj_nova_tentativa" as const, invalidos: 1 }],
     [{ etapa: "cnpj" as const, invalidos: 2 }],
+    [{ etapa: "setor" as const, pagina: 1, invalidos: 0 }],
+    [{ etapa: "setor" as const, pagina: 2, invalidos: 2 }],
   ])("grava e lê a sessão %j", async (sessao) => {
     expect((await gateway.salvar(TELEFONE, sessao)).ok).toBe(true);
     expect(await gateway.obter(TELEFONE)).toEqual({ ok: true, value: sessao });
@@ -80,6 +78,24 @@ describe("SupabaseSessaoAtendimentoGateway", () => {
     await gateway.salvar("61900001111", { etapa: "tipo_documento" });
     const { data } = await admin.from("atendimento_sessoes").select("chave");
     expect(data).toHaveLength(1);
+  });
+
+  it("o banco recusa a etapa setor sem página e a página fora de setor e alteracao", async () => {
+    const chave = "chave-de-teste-setor";
+    const semPagina = await admin
+      .from("atendimento_sessoes")
+      .insert({ chave, etapa: "setor", invalidos: 0 });
+    const paginaSobrando = await admin
+      .from("atendimento_sessoes")
+      .insert({ chave, etapa: "cnpj", pagina: 1, invalidos: 0 });
+    const modoNoSetor = await admin
+      .from("atendimento_sessoes")
+      .insert({ chave, etapa: "setor", pagina: 1, modo: "ambos", invalidos: 0 });
+
+    expect(semPagina.error?.code).toBe("23514");
+    expect(paginaSobrando.error?.code).toBe("23514");
+    expect(modoNoSetor.error?.code).toBe("23514");
+    await admin.from("atendimento_sessoes").delete().eq("chave", chave);
   });
 
   it("linha fora do formato esperado vira erro, não sessão", async () => {

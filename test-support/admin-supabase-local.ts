@@ -10,9 +10,6 @@ type Criar = (
   opcoes: { auth: { persistSession: false } },
 ) => SupabaseClient;
 
-// Client service_role das suítes de integração destrutivas. O destino é validado ANTES de o client
-// existir: com URL remota (mesmo com a chave presente), inválida ou fora do loopback, nenhum I/O
-// administrativo chega a ser possível. `criar` só existe para o teste provar essa ordem.
 export function criarAdminLocal(
   chave: string,
   url: string = process.env.NEXT_PUBLIC_SUPABASE_URL ?? URL_LOCAL,

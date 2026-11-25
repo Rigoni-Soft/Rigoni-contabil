@@ -3,6 +3,7 @@ import { Linha, Pilha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.component";
 import { Button } from "@/presentation/components/ui/button";
+import { BOTAO_OCUPADO } from "@/presentation/lib/botao-ocupado";
 
 type PainelDeEncerramentoProps = {
   confirmando: boolean;
@@ -13,7 +14,6 @@ type PainelDeEncerramentoProps = {
   aviso?: { tipo: "erro" | "sucesso"; texto: string };
 };
 
-// Encerrar não tem volta: o primeiro clique só pede a confirmação.
 export function PainelDeEncerramento({
   confirmando,
   encerrando,
@@ -50,11 +50,9 @@ export function PainelDeEncerramento({
               type="button"
               size="sm"
               variant="outline"
-              // O botão que pediu a confirmação sumiu: leva o foco do teclado para a saída segura.
               autoFocus
-              // aria-disabled (não disabled) para o foco não se perder enquanto encerra.
               aria-disabled={encerrando}
-              className="aria-disabled:pointer-events-none aria-disabled:opacity-50 pointer-coarse:h-11"
+              className={`${BOTAO_OCUPADO} pointer-coarse:h-11`}
               onClick={() => !encerrando && onCancelar()}
             >
               Cancelar

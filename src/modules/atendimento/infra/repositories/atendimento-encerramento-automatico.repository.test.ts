@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) do encerramento automático por silêncio do
- * cliente. Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { URA_ATOR_ID } from "@/modules/atendimento/domain/services/encerramento-automatico.service";
@@ -15,7 +11,6 @@ const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
-// Antes de qualquer setup destrutivo.
 exigirSupabaseLocal(SUPABASE_URL);
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
@@ -35,7 +30,6 @@ const TELEFONES = [
 
 const HORA = 3_600_000;
 const horasAtras = (h: number) => new Date(Date.now() - h * HORA);
-// O corte do caso de uso: 23h50 antes de agora.
 const corte = () => new Date(Date.now() - (23 * HORA + 50 * 60_000));
 
 async function criarFuncionario(): Promise<string> {
@@ -56,7 +50,6 @@ async function criarFuncionario(): Promise<string> {
   return id;
 }
 
-// Atendimento com dono; a Mensagem do cliente e a do Funcionário (se houver) com as idades dadas.
 async function abrir(
   telefone: string,
   opcoes: { semDono?: boolean; contatoHa: number; funcionarioHa?: number },

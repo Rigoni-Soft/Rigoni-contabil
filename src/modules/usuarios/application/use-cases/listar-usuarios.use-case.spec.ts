@@ -1,6 +1,6 @@
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";
 import type { UsuarioRepository } from "@/modules/usuarios/application/ports/out/usuario.repository";
-import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
+import { Usuario } from "@/modules/usuarios/domain/entities/usuario.entity";
 import { ok } from "@/shared/kernel/result";
 
 import { ListarUsuarios } from "./listar-usuarios.use-case";
@@ -22,7 +22,7 @@ function montar(atorId: string | null, ator: Usuario | null, pendentes: Usuario[
   const usuarios = {
     buscarPorId: async () => ok(ator),
     listarAtivos: async () => ok([usuario("admin-1", "admin"), usuario("func-1", "funcionario")]),
-    listarComBloqueioPendente: async () => ok(pendentes),
+    listarComDesativacaoPendente: async () => ok(pendentes),
   } as unknown as UsuarioRepository;
   return new ListarUsuarios(sessao, usuarios);
 }
@@ -35,7 +35,7 @@ describe("ListarUsuarios", () => {
     if (resultado.ok) expect(resultado.value.map((u) => u.id)).toEqual(["admin-1", "func-1"]);
   });
 
-  it("inclui as contas desativadas com bloqueio pendente, marcadas, para o Admin reprocessar", async () => {
+  it("inclui as contas desativadas com desativação pendente, marcadas, para o Admin reprocessar", async () => {
     const pendente = Usuario.builder()
       .comId("func-2")
       .comNome("Nome func-2")
@@ -52,7 +52,7 @@ describe("ListarUsuarios", () => {
 
     expect(resultado.ok).toBe(true);
     if (resultado.ok) {
-      expect(resultado.value.map((u) => [u.id, u.bloqueioPendente])).toEqual([
+      expect(resultado.value.map((u) => [u.id, u.desativacaoPendente])).toEqual([
         ["admin-1", false],
         ["func-1", false],
         ["func-2", true],

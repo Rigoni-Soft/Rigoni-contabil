@@ -3,14 +3,11 @@ import { Paperclip } from "lucide-react";
 import { cn } from "@/presentation/lib/utils";
 
 type BotaoDeAnexoProps = {
-  // Tipos que o seletor do sistema oferece (`accept`).
   aceitar: string;
   disabled?: boolean;
   onEscolher: (arquivo: File) => void;
 };
 
-// Clipe: o <label> carrega a aparência de botão (alvo de 44 px, igual ao ghost icon dos irmãos emoji e
-// microfone) e aciona o seletor de arquivos do sistema; o input fica sr-only (mesmo padrão do FileInput).
 export function BotaoDeAnexo({ aceitar, disabled, onEscolher }: BotaoDeAnexoProps) {
   return (
     <label
@@ -29,7 +26,6 @@ export function BotaoDeAnexo({ aceitar, disabled, onEscolher }: BotaoDeAnexoProp
         className="sr-only"
         onChange={(evento) => {
           const arquivo = evento.target.files?.[0];
-          // Esvazia para que escolher o mesmo arquivo de novo (depois de remover) dispare onChange.
           evento.target.value = "";
           if (arquivo) onEscolher(arquivo);
         }}

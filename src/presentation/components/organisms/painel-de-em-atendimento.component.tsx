@@ -11,12 +11,9 @@ type PainelDeEmAtendimentoProps = {
   itens: ConversaView[];
   abertoId: string | null;
   onAbrir: (id: string) => void;
-  // Líder e Admin: os Atendimentos dos outros, só para leitura.
   equipe?: ConversaView[];
 };
 
-// A aba "Em atendimento": os Atendimentos do usuário; clicar abre o chat no centro. Quem
-// supervisiona vê também os dos outros, abertos em leitura.
 export function PainelDeEmAtendimento({
   itens,
   abertoId,
@@ -64,10 +61,8 @@ function ListaDeConversas({
   itens: ConversaView[];
   abertoId: string | null;
   onAbrir: (id: string) => void;
-  // Com a seção da equipe ao lado, cada lista diz de quem é.
   comTitulo?: boolean;
 }) {
-  // Com título visível a lista se nomeia por ele (uma frase só para o leitor de tela).
   const lista =
     itens.length === 0 ? (
       <Texto variante="apoio">{vazio}</Texto>

@@ -1,16 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 
-import { expect, test } from "./fixtures";
+import { esperarHidratacao, expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import {
   atribuirResponsavelComoLider,
   criarClienteComoAdmin,
   login,
 } from "./support/criar-cliente";
+import { FUNCIONARIO_FINANCEIRO_ID } from "./support/usuarios-do-seed";
 
-// Playwright roda o arquivo de teste fora do Next (não carrega .env.local
-// automaticamente como o runner do Jest faz) — fallback pra chave anon
-// pública padrão do Supabase local (supabase/.env.local, não é segredo).
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SUPABASE_ANON_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
@@ -38,13 +36,11 @@ async function buscarClienteIdPorCnpj(cnpjDigits: string): Promise<string> {
   return data.id as string;
 }
 
-// Em todo Setor o Funcionário só enxerga os Clientes de que é Responsável (#165): para o Funcionário
-// do Financeiro ver o cadastro só para leitura, o e2e o atribui como Responsável no Financeiro.
 async function tornarFinanceiroResponsavel(clienteId: string) {
   const { error } = await adminLocal().from("cliente_responsaveis").insert({
     cliente_id: clienteId,
     setor: "financeiro",
-    responsavel_id: "33333333-3333-3333-3333-333333333333",
+    responsavel_id: FUNCIONARIO_FINANCEIRO_ID,
   });
   if (error) throw new Error(`Falha ao atribuir Responsável no Financeiro: ${error.message}`);
 }
@@ -59,46 +55,98 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await logout(page);
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    // Simples Nacional é a página principal do próprio setor.
     await expect(page).toHaveURL("/simples-nacional");
     await page.goto(`/clientes/${clienteId}`);
 
     await expect(page.getByRole("heading", { name: "Editar cadastro operacional" })).toBeVisible();
-    // Espera a hidratação: preencher antes dela deixa o React Hook Form
-    // reaplicar os valores iniciais por cima do que foi digitado (flaky no
-    // dev server frio, o salvar gravava os defaults).
-    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+    await esperarHidratacao(page);
 
-    await page.getByLabel("Forma de envio").selectOption("email");
+    await expect(page.locator("#formaEnvio")).toHaveCount(0);
     await page.getByLabel("Nome").fill("Maria Contato");
-    await page.getByLabel("Telefone").fill("11999998888");
+    await page.getByLabel("WhatsApp").fill("11999998888");
+    await page.getByLabel("E-mail", { exact: true }).fill("maria.contato@exemplo.com");
+    await page.getByRole("button", { name: "Salvar contato 1" }).click();
+    await expect(page.getByRole("button", { name: "Remover contato 1" })).toBeVisible();
     await page.getByLabel("Documento recebido").selectOption("positivo");
-    // "Enviado" e a data de envio são só do sistema (#108).
-    await expect(
-      page.getByLabel("DAS", { exact: true }).getByRole("option", { name: "Enviado" }),
-    ).toHaveCount(0);
+    await expect(page.locator("#dasStatus").getByRole("option", { name: "Enviado" })).toHaveCount(
+      0,
+    );
     await expect(page.getByLabel("Data de envio")).toHaveAttribute("readonly", "");
     await expect(page.getByLabel("Data de envio")).toBeDisabled();
-    await page.getByLabel("DAS", { exact: true }).selectOption("pronto");
+    await page.locator("#dasStatus").selectOption("pronto");
     await page.getByRole("checkbox", { name: "Comércio" }).check();
     await page.getByLabel("Observações gerais").fill("Observação de teste E2E.");
 
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
 
-    // Salvar fecha a tela e volta pro destino certo (sem ?voltarPara= nesta navegação, cai em "/",
-    // que redireciona Funcionário SN de volta pra página principal do próprio setor).
     await expect(page).toHaveURL("/simples-nacional");
 
-    // Reabre a tela do cliente pra conferir que a alteração persistiu.
     await page.goto(`/clientes/${clienteId}`);
 
-    await expect(page.getByLabel("Forma de envio")).toHaveValue("email");
     await expect(page.getByLabel("Nome")).toHaveValue("Maria Contato");
-    await expect(page.getByLabel("Telefone")).toHaveValue("(11) 99999-8888");
+    await expect(page.getByLabel("WhatsApp")).toHaveValue("(11) 99999-8888");
+    await expect(page.getByLabel("E-mail", { exact: true })).toHaveValue(
+      "maria.contato@exemplo.com",
+    );
     await expect(page.getByLabel("Documento recebido")).toHaveValue("positivo");
-    await expect(page.getByLabel("DAS", { exact: true })).toHaveValue("pronto");
+    await expect(page.locator("#dasStatus")).toHaveValue("pronto");
     await expect(page.getByRole("checkbox", { name: "Comércio" })).toBeChecked();
     await expect(page.getByLabel("Observações gerais")).toHaveValue("Observação de teste E2E.");
+  });
+
+  test("contato por linha: Salvar mantém o id, Limpar zera a linha nova e o contato em uso por outro Setor passa à URA @smoke", async ({
+    page,
+  }) => {
+    const cnpjDigits = await criarClienteComoAdmin(page, "Contato Por Linha E2E Ltda");
+    const clienteId = await buscarClienteIdPorCnpj(cnpjDigits);
+    await atribuirResponsavelComoLider(cnpjDigits);
+    await logout(page);
+    await login(page, "funcionario.sn@rigonicontabil.local", "func123");
+    await expect(page).toHaveURL("/simples-nacional");
+    await page.goto(`/clientes/${clienteId}`);
+    await esperarHidratacao(page);
+
+    await page.locator("[id='contatos.0.nome']").fill("Ana Linha");
+    await page.locator("[id='contatos.0.telefone']").fill("11988887777");
+    await page.getByRole("button", { name: "Salvar contato 1" }).click();
+    await expect(page.getByRole("button", { name: "Remover contato 1" })).toBeVisible();
+    await expect(page.getByText("Contato 1 salvo.")).toBeAttached();
+    await expect(page.locator("[id='contatos.0.editar']")).toBeFocused();
+
+    const admin = adminLocal();
+    const gravado = await admin
+      .from("cliente_contatos")
+      .select("id, nome")
+      .eq("cliente_id", clienteId)
+      .single();
+    expect(gravado.data?.nome).toBe("Ana Linha");
+
+    await page.reload();
+    await expect(page.locator("[id='contatos.0.nome']")).toHaveValue("Ana Linha");
+    const depois = await admin.from("cliente_contatos").select("id").eq("cliente_id", clienteId);
+    expect(depois.data).toEqual([{ id: gravado.data?.id }]);
+
+    await page.getByRole("button", { name: "Adicionar contato" }).click();
+    await page.locator("[id='contatos.1.nome']").fill("Rascunho");
+    await page.getByRole("button", { name: "Cancelar edição do contato 2" }).click();
+    await expect(page.locator("[id='contatos.1.nome']")).toHaveCount(0);
+    await expect(page.locator("[id='contatos.0.nome']")).toHaveValue("Ana Linha");
+
+    const uso = await admin.from("destinos_de_envio").insert({
+      cliente_id: clienteId,
+      setor: "rh",
+      contato_id: gravado.data?.id,
+      canal: "whatsapp",
+    });
+    expect(uso.error).toBeNull();
+    await page.getByRole("button", { name: "Remover contato 1" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect(page).toHaveURL("/simples-nacional");
+    const aindaLa = await admin
+      .from("cliente_contatos")
+      .select("id, dono_setor")
+      .eq("cliente_id", clienteId);
+    expect(aindaLa.data).toEqual([{ id: gravado.data?.id, dono_setor: null }]);
   });
 
   test("DAS já enviado pelo sistema: DAS e data ficam desativados e o salvar preserva os dois", async ({
@@ -107,7 +155,6 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     const cnpjDigits = await criarClienteComoAdmin(page, "Cadastro DAS Enviado E2E Ltda");
     const clienteId = await buscarClienteIdPorCnpj(cnpjDigits);
     await atribuirResponsavelComoLider(cnpjDigits);
-    // Quem grava "enviado" e a data é o sistema (job, sem sessão): aqui, a chave de serviço.
     const { error } = await adminLocal()
       .from("cliente_cadastro_operacional_sn")
       .update({ das_status: "enviado", data_envio_das: "2026-10-05" })
@@ -119,24 +166,22 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(page).toHaveURL("/simples-nacional");
     await page.goto(`/clientes/${clienteId}`);
 
-    await expect(page.getByLabel("DAS", { exact: true })).toHaveValue("enviado");
-    await expect(page.getByLabel("DAS", { exact: true })).toBeDisabled();
+    await expect(page.locator("#dasStatus")).toHaveValue("enviado");
+    await expect(page.locator("#dasStatus")).toBeDisabled();
     await expect(page.getByLabel("Data de envio")).toHaveValue("2026-10-05");
     await expect(page.getByLabel("Data de envio")).toBeDisabled();
-    // Um só jeito de "travado" na tela: esmaecido (opacidade de desabilitado), como a identidade
-    // do Cliente, para o usuário entender que não se altera.
-    await expect(page.getByLabel("DAS", { exact: true })).toHaveCSS("opacity", "0.5");
+    await expect(page.locator("#dasStatus")).toHaveCSS("opacity", "0.5");
     await expect(page.getByLabel("Data de envio")).toHaveCSS("opacity", "0.5");
     await expect(page.getByLabel("Empresa", { exact: true })).toHaveCSS("opacity", "0.5");
     await expect(page.getByLabel("CNPJ", { exact: true })).toHaveCSS("opacity", "0.5");
 
     await page.getByLabel("Observações gerais").fill("Edição com DAS já enviado.");
-    await page.getByRole("button", { name: "Salvar" }).click();
+    await page.getByRole("button", { name: "Salvar", exact: true }).click();
     await expect(page).toHaveURL("/simples-nacional");
 
     await page.goto(`/clientes/${clienteId}`);
     await expect(page.getByLabel("Observações gerais")).toHaveValue("Edição com DAS já enviado.");
-    await expect(page.getByLabel("DAS", { exact: true })).toHaveValue("enviado");
+    await expect(page.locator("#dasStatus")).toHaveValue("enviado");
     await expect(page.getByLabel("Data de envio")).toHaveValue("2026-10-05");
   });
 
@@ -149,7 +194,6 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await login(page, "admin@rigonicontabil.local", "admin123");
     await expect(page).toHaveURL("/");
 
-    // Sem os scripts da aplicação o React nunca hidrata: o formulário não pode ficar oculto.
     await page.route("**/_next/static/**/*.js", (rota) => rota.abort());
     await page.goto(`/clientes/${clienteId}`);
 
@@ -171,10 +215,9 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await expect(
       page.getByRole("heading", { name: "Visualizar cadastro operacional" }),
     ).toBeVisible();
-    await expect(page.getByLabel("Forma de envio")).toBeDisabled();
+    await expect(page.getByLabel("Documento recebido")).toBeDisabled();
     await expect(page.getByRole("button", { name: "Salvar" })).not.toBeVisible();
-    // Na visualização os campos ficam esmaecidos (não editáveis); sem botão de adicionar contato.
-    await expect(page.getByLabel("Forma de envio")).toHaveCSS("opacity", "0.5");
+    await expect(page.getByLabel("Documento recebido")).toHaveCSS("opacity", "0.5");
     await expect(page.getByLabel("Observações gerais")).toHaveCSS("opacity", "0.5");
     await expect(page.getByRole("button", { name: "Adicionar contato" })).toBeHidden();
   });
@@ -190,9 +233,7 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
 
     await logout(page);
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    // Simples Nacional é a página principal do próprio setor.
     await expect(page).toHaveURL("/simples-nacional");
-    // Não é Responsável deste Cliente: nem a tela abre.
     await page.goto(`/clientes/${clienteId}`);
     await expect(page).toHaveURL("/simples-nacional");
     await expect(botao).toBeHidden();
@@ -200,7 +241,6 @@ test.describe("Editar cadastro operacional do Cliente (#34)", () => {
     await logout(page);
     await login(page, "funcionario.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
-    // Responsável em outro Setor vê o cadastro só para leitura, sem acesso ao contrato.
     await page.goto(`/clientes/${clienteId}`);
     await expect(
       page.getByRole("heading", { name: "Visualizar cadastro operacional" }),

@@ -11,9 +11,6 @@ import {
 import type { AppError } from "@/shared/errors/app.error";
 import { ok, type Result } from "@/shared/kernel/result";
 
-// Job periódico: encerra o Atendimento em atendimento cujo cliente está há 23h50 sem escrever (a
-// Mensagem do Funcionário não reinicia a contagem). Ator = sistema, também fora do expediente. Não
-// avisa ninguém: o cliente que voltar abre um Atendimento novo pela URA.
 export class EncerrarPorSilencio implements EncerrarPorSilencioPort {
   constructor(
     private readonly repositorio: AtendimentoRepositoryPort,

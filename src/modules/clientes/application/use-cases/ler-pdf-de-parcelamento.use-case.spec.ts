@@ -123,6 +123,17 @@ describe("LerPdfDeParcelamento", () => {
     }
   });
 
+  it("o Funcionário do RH também lê o PDF do acordo (o RH tem Parcelamento próprio)", async () => {
+    const { useCase, recebidos } = montar(lida(), {
+      ator: { id: "u-3", papel: "funcionario", setor: "rh" },
+    });
+
+    const r = await useCase.execute(entrada);
+
+    expect(r.ok).toBe(true);
+    expect(recebidos).toHaveLength(1);
+  });
+
   it("Cliente inexistente: NotFound, sem chamar o leitor", async () => {
     const { useCase, recebidos } = montar(lida(), { clienteExiste: false });
 

@@ -30,8 +30,6 @@ const conversa = (id: string, autor: "contato" | "funcionario") => ({
   contato: { contatoNome: "João", empresa: null, cnpj: null },
 });
 
-// O contador só lê o cache: quem consulta e repete a leitura (polling) é o aviso global (layout) e
-// a tela Atendimento. Um observador a mais com o próprio intervalo dobraria as chamadas.
 function renderizar(preencher: (cliente: QueryClient) => void = () => {}) {
   const cliente = new QueryClient();
   preencher(cliente);
@@ -71,7 +69,6 @@ describe("usePendentesDoMenu", () => {
   it("Fila negada (Admin sem Setor) é leitura encerrada: vale zero e as conversas seguem contando", async () => {
     const { result } = renderizar((cliente) => {
       cliente.setQueryData(meusAtendimentosKeys.lista(), [conversa("a-1", "contato")]);
-      // erro da Fila no cache, como o aviso global o deixa
       void cliente
         .fetchQuery({
           queryKey: filaKeys.setor(null),

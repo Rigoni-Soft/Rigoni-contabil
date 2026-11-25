@@ -2,11 +2,11 @@ import { expect, test } from "./fixtures";
 import { abrirConversaEmAtendimento } from "./support/abrir-conversa";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
+import { FUNCIONARIO2_FINANCEIRO_ID } from "./support/usuarios-do-seed";
 
-// O Atendimento nasce direto no banco, sem passar pela URA/webhook.
 const admin = adminLocal();
 
-const FUNCIONARIO = "55555555-5555-5555-5555-555555555555";
+const FUNCIONARIO = FUNCIONARIO2_FINANCEIRO_ID;
 const TELEFONE = "61955572001";
 const CLIENTE = crypto.randomUUID();
 const CNPJ = `6${Date.now()}`.slice(0, 14);
@@ -23,7 +23,6 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
       cliente_id: CLIENTE,
       nome: "Dona Painel",
       telefone: "(61) 95557-2001",
-      padrao: true,
     });
     if (contato.error) throw contato.error;
     const atendimento = await admin
@@ -57,7 +56,6 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
   });
 
   test.afterAll(async () => {
-    // Por Cliente, não por Funcionário: depois de transferido o Atendimento muda de dono.
     await admin.from("atendimentos").delete().eq("cliente_id", CLIENTE);
     await admin.from("clientes").delete().eq("id", CLIENTE);
   });
@@ -68,7 +66,6 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
     await login(page, "funcionario2.financeiro@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/");
 
-    // A conversa abre no centro da tela Atendimento, sem rota própria.
     await abrirConversaEmAtendimento(page, /Dona Painel/);
     await expect(page).toHaveURL("/atendimento");
 
@@ -83,14 +80,12 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
     const balaoDoAtendente = mensagens.getByRole("listitem").filter({ hasText: "Já te envio" });
     await expect(balaoDoAtendente).toContainText("Segundo Funcionário Financeiro · Financeiro");
 
-    // Em tela larga a página não rola em nenhum sentido: só a lista de mensagens rola.
     const transborda = await page.evaluate(() => ({
       vertical: document.documentElement.scrollHeight > window.innerHeight,
       horizontal: document.documentElement.scrollWidth > window.innerWidth,
     }));
     expect(transborda).toEqual({ vertical: false, horizontal: false });
 
-    // O Cliente está vinculado: o disparo oferece o documento sem pedir o CNPJ de novo.
     await expect(page.getByRole("heading", { name: "Serviços do cliente" })).toBeVisible();
   });
 
@@ -140,7 +135,6 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
     const campo = page.getByLabel("Mensagem ao cliente");
     const clipe = page.getByLabel("Anexar arquivo");
 
-    // Imagem: a prévia mostra o arquivo, o texto digitado vira a legenda e o campo esvazia.
     await clipe.setInputFiles({
       name: "foto-fachada.png",
       mimeType: "image/png",
@@ -158,14 +152,12 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
       balaoDaImagem.getByRole("button", { name: "Ampliar foto-fachada.png" }),
     ).toBeVisible();
     await expect(balaoDaImagem).toContainText("Segundo Funcionário Financeiro · Financeiro");
-    // A conversa mostra a miniatura reduzida (WebP) e só baixa o original ao ampliar.
     await expect(
       balaoDaImagem.getByRole("button", { name: "Ampliar foto-fachada.png" }).locator("img"),
     ).toHaveAttribute("src", /miniatura\.webp/);
     await expect(page.getByRole("button", { name: "Remover foto-fachada.png" })).toHaveCount(0);
     await expect(campo).toHaveValue("");
 
-    // Ampliar: o diálogo abre com o botão de fechar à vista, e fechar devolve a conversa.
     await balaoDaImagem.getByRole("button", { name: "Ampliar foto-fachada.png" }).click();
     const fechar = page.getByRole("button", { name: "Fechar imagem" });
     await expect(
@@ -176,7 +168,6 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
     await fechar.click();
     await expect(page.getByRole("dialog", { name: /Imagem ampliada/ })).toBeHidden();
 
-    // PDF sem legenda: balão com nome, tamanho e link para baixar.
     await clipe.setInputFiles({
       name: "balanco-setembro.pdf",
       mimeType: "application/pdf",
@@ -187,7 +178,6 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
     await expect(page.getByRole("link", { name: "Visualizar balanco-setembro.pdf" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Baixar balanco-setembro.pdf" })).toBeVisible();
 
-    // Arrastar um arquivo sobre a conversa acende a moldura; soltar o põe na prévia do campo.
     const conversa = page.getByRole("log", { name: "Conversa" });
     const transferencia = await page.evaluateHandle(() => {
       const dados = new DataTransfer();
@@ -201,7 +191,6 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
     await expect(page.getByRole("button", { name: "Remover planilha.csv" })).toBeVisible();
     await page.getByRole("button", { name: "Remover planilha.csv" }).click();
 
-    // Tipo não aceito é recusado com mensagem clara e nada é anexado.
     await clipe.setInputFiles({
       name: "script.html",
       mimeType: "text/html",
@@ -210,8 +199,6 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
     await expect(page.getByText("Tipo de arquivo não aceito")).toBeVisible();
     await expect(page.getByRole("button", { name: "Remover script.html" })).toHaveCount(0);
 
-    // Limpa o que o teste criou: os balões com mídia alongam a conversa e os testes seguintes
-    // (reação) a esperam curta; o Storage não fica com os arquivos de teste.
     const anexos = await admin
       .from("mensagens")
       .select("id, anexo_caminho, atendimentos!inner(cliente_id)")
@@ -241,7 +228,6 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
     await expect(page.getByRole("button", { name: "Enviar áudio" })).toBeVisible();
     await expect(page.getByText(/Gravando: 00:0[1-9]/)).toBeVisible();
 
-    // O foco entra em enviar (Enter envia), o Esc descarta e o foco volta ao microfone.
     await expect(page.getByRole("button", { name: "Enviar áudio" })).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("button", { name: "Gravar áudio" })).toBeFocused();
@@ -260,12 +246,9 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
     await page.getByRole("button", { name: "Enviar áudio" }).click();
 
     const player = page.getByLabel(/^Áudio: gravacao\.(ogg|m4a)$/);
-    // O Chromium recente grava mp4/AAC (m4a), aceito sem conversão; o webm→ogg é coberto pelo
-    // gateway (ffmpeg real) e pelo caso de uso.
     await expect(player).toBeVisible();
     await expect(page.getByRole("button", { name: "Gravar áudio" })).toBeVisible();
 
-    // Limpa o que o teste criou, como o teste dos anexos.
     const anexos = await admin
       .from("mensagens")
       .select("id, anexo_caminho, atendimentos!inner(cliente_id)")
@@ -298,7 +281,6 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
       .click();
 
     await expect(page.getByRole("img", { name: "Reação do escritório: 👍" })).toBeVisible();
-    // Escolher o mesmo emoji de novo remove a reação.
     await page.getByRole("button", { name: "Reagir à mensagem de Dona Painel" }).click();
     await page
       .getByRole("group", { name: "Emojis da reação" })
@@ -328,8 +310,6 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
     });
     if (nova.error) throw nova.error;
 
-    // Estímulo determinístico: um carregamento novo lê na hora, sem esperar o ciclo de 15 s do
-    // polling (esse é coberto pelo spec do hook). Antes da mensagem o menu não tinha contador.
     await page.reload();
     await expect(menu.getByRole("link", { name: "Atendimento, 1 pendente" })).toBeVisible({
       timeout: 10_000,
@@ -346,14 +326,12 @@ test.describe("Conversa na tela Atendimento (#49)", () => {
     const painel = page.getByRole("complementary", { name: "Ações do Atendimento" });
     const setores = painel.getByLabel("Setor de destino");
     await expect(setores.locator("option", { hasText: "Financeiro" })).toHaveCount(0);
-    // O Cliente de teste é Lucro Presumido: o Simples Nacional não é destino possível.
     await expect(setores.locator("option", { hasText: "Simples Nacional" })).toHaveCount(0);
 
     await setores.selectOption({ label: "Tributário" });
     await painel.getByLabel("Resumo do assunto").fill("Cliente quer revisar o DAS");
     await painel.getByRole("button", { name: "Transferir" }).click();
 
-    // Transferido, o Funcionário perde a conversa: ela fecha e a aba "Em atendimento" fica vazia.
     await expect(page.getByText("Escolha um atendimento para conversar.")).toBeVisible();
     await expect(page.getByText("Você não tem atendimentos em andamento.")).toBeVisible();
   });

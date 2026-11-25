@@ -9,9 +9,7 @@ type FileInputProps = {
   name?: string;
   accept?: string;
   file?: File;
-  // Formato e limite, ditos antes de escolher (ex.: "PDF ou DOCX"), não só no erro depois.
   dica?: string;
-  // Campo secundário (ex.: anexo opcional ao lado de um principal): área baixa, em linha, para não repetir o peso da primeira.
   compacto?: boolean;
   onChange: (file: File | undefined) => void;
   onBlur?: () => void;
@@ -19,13 +17,6 @@ type FileInputProps = {
   "aria-describedby"?: string;
 };
 
-// Área de soltar arquivo, padrão de todo campo de arquivo do produto: clique abre o seletor do SO,
-// arrastar e soltar entrega o arquivo. O <input type="file"> nativo fica sr-only dentro de um
-// <label> que carrega a aparência (o label ainda aciona o seletor e o foco por teclado no input
-// escondido acende o anel via `has-[:focus-visible]`). O tipo do arquivo solto não é filtrado aqui:
-// quem valida (schema do formulário) mostra o erro, como para o arquivo escolhido pelo clique.
-// O destaque de "arrastando" é um data-attribute (sem estado), e os filhos não recebem o ponteiro
-// para o dragleave não disparar ao passar por cima do texto.
 const arrastando = (evento: React.DragEvent<HTMLLabelElement>, valor: boolean) => {
   evento.preventDefault();
   evento.currentTarget.dataset.arrastando = String(valor);
@@ -67,9 +58,6 @@ export function FileInput({
         ) : (
           <Upload className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />
         )}
-        {/* O nome do arquivo escolhido entra no nome acessível do campo (é o estado); as instruções de
-          uso e a dica ficam fora dele (aria-hidden): o rótulo do campo já o nomeia, e ouvir
-          "Contrato social, arraste o arquivo aqui, ou clique para selecionar, PDF ou DOCX" é ruído. */}
         <span
           aria-hidden={file ? undefined : "true"}
           className={cn(
@@ -83,7 +71,6 @@ export function FileInput({
           <span>{file ? "Clique ou arraste para trocar" : "ou clique para selecionar"}</span>
           {dica && <span>{dica}</span>}
         </span>
-        {/* A dica (formato e limite) visível é aria-hidden; esta cópia só para leitor de tela a diz antes do erro. */}
         {dica && (
           <span id={`${id}-dica`} className="sr-only">
             {dica}
@@ -102,7 +89,6 @@ export function FileInput({
           onChange={(evento) => onChange(evento.target.files?.[0])}
         />
       </label>
-      {/* Fora do <label>: o clique no botão não pode abrir o seletor. Escolheu o arquivo errado, tira. */}
       {file && (
         <Button
           type="button"
@@ -112,7 +98,6 @@ export function FileInput({
           aria-label={`Remover arquivo ${file.name}`}
           onClick={() => {
             onChange(undefined);
-            // O botão some ao limpar: o foco volta ao campo, não ao body.
             document.getElementById(id)?.focus();
           }}
         >

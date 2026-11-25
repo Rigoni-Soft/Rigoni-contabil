@@ -7,9 +7,9 @@ import type {
   DasDoCliente,
 } from "@/modules/atendimento/application/ports/out/clientes-para-lembrete.provider";
 import {
-  linhaDestinatarioSchema,
-  paraDestinatario,
-} from "@/modules/atendimento/infra/mappers/linha-destinatario.mapper";
+  linhaClienteDoJobSchema,
+  paraClienteDoJob,
+} from "@/modules/atendimento/infra/mappers/linha-cliente-do-job.mapper";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { DAS_STATUSES } from "@/shared/kernel/das-status";
@@ -17,7 +17,7 @@ import { DOCUMENTO_OBRIGATORIO_STATUSES } from "@/shared/kernel/documento-obriga
 import { lerTodasAsPaginas, TAMANHO_DA_PAGINA } from "@/shared/kernel/paginacao-por-cursor";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-const linhaSchema = linhaDestinatarioSchema.extend({
+const linhaSchema = linhaClienteDoJobSchema.extend({
   documento_obrigatorio: z.enum(DOCUMENTO_OBRIGATORIO_STATUSES).nullable(),
   das_status: z.enum(DAS_STATUSES).nullable(),
   data_envio_das: z.string().nullable(),
@@ -31,7 +31,6 @@ const dasSchema = z
   })
   .nullable();
 
-// Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
 export class SupabaseClientesParaLembreteGateway implements ClientesParaLembretePort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
@@ -50,7 +49,7 @@ export class SupabaseClientesParaLembreteGateway implements ClientesParaLembrete
     if (!linhas) return err(new ServicoExternoError("Falha ao ler os Clientes do lembrete."));
     return ok(
       linhas.map((l) => ({
-        ...paraDestinatario(l),
+        ...paraClienteDoJob(l),
         documentoObrigatorio: l.documento_obrigatorio,
         dasStatus: l.das_status,
         dataEnvioDas: l.data_envio_das,

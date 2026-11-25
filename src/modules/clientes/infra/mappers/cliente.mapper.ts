@@ -3,9 +3,9 @@ import {
   operacionalUnico,
   type CadastroOperacionalRow,
 } from "@/modules/clientes/infra/mappers/cadastro-operacional-row.mapper";
+import { contatoDoRow, type ContatoRow } from "@/modules/clientes/infra/mappers/contato-row.mapper";
 
 type AlteracaoRow = { numero: number; data: string; arquivo_caminho: string };
-type ContatoRow = { id: string; nome: string; telefone: string; padrao: boolean };
 type AtividadeMensalRow = {
   ano_mes: string;
   industria: boolean;
@@ -43,12 +43,7 @@ export function clienteDoRow(row: ClienteRow): Cliente {
       arquivoCaminho: alteracao.arquivo_caminho,
     })),
     formaEnvio: operacional?.forma_envio,
-    contatos: (row.cliente_contatos ?? []).map((contato) => ({
-      id: contato.id,
-      nome: contato.nome,
-      telefone: contato.telefone,
-      padrao: contato.padrao,
-    })),
+    contatos: (row.cliente_contatos ?? []).map(contatoDoRow),
     documentoObrigatorio: operacional?.documento_obrigatorio ?? null,
     dasStatus: operacional?.das_status ?? null,
     dataEnvioDas: operacional?.data_envio_das ?? null,

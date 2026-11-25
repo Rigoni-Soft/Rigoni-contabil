@@ -9,16 +9,20 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { lerTodasAsPaginas, TAMANHO_DA_PAGINA } from "@/shared/kernel/paginacao-por-cursor";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import { SETORES } from "@/shared/kernel/setores";
 
 const linhaSchema = z.object({
   cliente_id: z.string(),
   empresa: z.string(),
   pendencias: z.array(
-    z.object({ codigo: z.string(), estado: z.enum(["sem_guia", "a_confirmar"]) }),
+    z.object({
+      codigo: z.string(),
+      setor: z.enum(SETORES),
+      estado: z.enum(["sem_guia", "a_confirmar"]),
+    }),
   ),
 });
 
-// Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
 export class SupabaseClientesComParcelamentoPgfnGateway implements ClientesComParcelamentoPgfnPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 

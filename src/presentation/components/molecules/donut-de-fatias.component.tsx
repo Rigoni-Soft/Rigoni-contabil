@@ -6,8 +6,6 @@ import { corDeStatus } from "@/presentation/lib/cor-de-status";
 import type { Fatia } from "@/presentation/lib/fatia-de-grafico";
 import { cn } from "@/presentation/lib/utils";
 
-// Donut de fatias com o total no centro e a legenda (cor + rótulo + número) ao lado. A cor nunca é
-// o único canal: toda fatia aparece na legenda com rótulo e quantidade.
 export function DonutDeFatias({ titulo, fatias }: { titulo: string; fatias: Fatia[] }) {
   return (
     <CartaoDeGrafico titulo={titulo}>

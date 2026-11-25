@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) dos feriados do Admin.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { SupabaseFeriadoRepository } from "./feriado.repository";
@@ -47,8 +43,6 @@ afterEach(async () => {
   await service.from("registros_auditoria").delete().in("alvo", [DATA, OUTRA]);
 });
 
-// Admin com senha provisória ainda válida e troca obrigatória pendente:
-// `meu_papel()` sozinho o deixava passar; as policies exigem `acesso_liberado()`.
 async function criarAdminEmPrimeiroAcesso(): Promise<{ id: string; email: string }> {
   const email = `teste-feriados-${crypto.randomUUID()}@rigonicontabil.local`;
   const { data, error } = await service.auth.admin.createUser({

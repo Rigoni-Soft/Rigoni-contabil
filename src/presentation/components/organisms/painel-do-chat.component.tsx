@@ -6,21 +6,13 @@ import { ID_DO_PAINEL_DE_ACOES } from "@/presentation/components/organisms/paine
 import { cn } from "@/presentation/lib/utils";
 
 type PainelDoChatProps = {
-  // `vazio`: nenhuma conversa aberta; `abrindo`/`erro`: a primeira leitura; `pronto`: o chat.
   estado: "vazio" | "abrindo" | "erro" | "pronto";
-  // "Voltar à lista", só em tela estreita.
   onVoltar: () => void;
-  // Em tela estreita as ações ficam depois do campo de resposta: com `comAcoes` há um atalho
-  // para elas no topo do chat (omitido quando a conversa não tem ações, ex.: encerrada).
   comAcoes?: boolean;
-  // Destino do foco quando a conversa abre.
   ref?: React.Ref<HTMLElement>;
-  // As regiões do chat (cabeçalho, mensagens, compositor), quando `pronto`.
   children?: React.ReactNode;
 };
 
-// O centro da tela Atendimento. Em tela estreita só aparece com conversa aberta; em tela larga
-// está sempre lá, com o convite quando não há conversa.
 export function PainelDoChat({
   estado,
   onVoltar,

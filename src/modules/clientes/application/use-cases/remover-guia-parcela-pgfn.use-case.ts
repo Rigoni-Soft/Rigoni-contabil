@@ -12,12 +12,9 @@ import { EstadoInconsistenteError } from "@/shared/errors/estado-inconsistente.e
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { ResultadoIncertoError } from "@/shared/errors/resultado-incerto.error";
-import { podeEditarCadastroOperacional } from "@/shared/kernel/papeis";
+import { podeOperarParcelamento } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Remove a guia ainda não enviada (o banco recusa a de competência já enviada). O objeto só é apagado
-// depois de o banco aceitar a remoção; falha ao apagá-lo deixa PDF órfão em bucket privado, sem
-// desfazer o que já foi removido.
 export class RemoverGuiaParcelaPgfn implements RemoverGuiaParcelaPgfnPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -28,10 +25,10 @@ export class RemoverGuiaParcelaPgfn implements RemoverGuiaParcelaPgfnPort {
 
   async execute(input: RemoverGuiaParcelaPgfnInput): Promise<Result<void, AppError>> {
     const ator = await this.sessao.usuarioAtual();
-    if (!ator || !podeEditarCadastroOperacional(ator.papel, ator.setor)) {
+    if (!ator || !podeOperarParcelamento(ator.papel, ator.setor)) {
       return err(
         new ForbiddenError(
-          "Só Admin, Líder ou Funcionário do Simples Nacional removem a guia da parcela.",
+          "Só Admin, Líder ou Funcionário do Simples Nacional ou do RH removem a guia da parcela.",
         ),
       );
     }
@@ -44,9 +41,6 @@ export class RemoverGuiaParcelaPgfn implements RemoverGuiaParcelaPgfnPort {
 
     const removida = await this.guias.remover(input.parcelamentoId, input.competencia);
     if (!removida.ok) {
-      // Resposta perdida não prova rollback, e a releitura vazia não prova remoção (a RLS pode ter
-      // escondido a guia, por exemplo numa troca de Responsável): nenhum objeto é apagado sem desfecho
-      // conhecido. Fica um PDF órfão no bucket privado, e quem remove confere a tela.
       if (!(removida.error instanceof ResultadoIncertoError)) return removida;
       return err(
         new EstadoInconsistenteError(

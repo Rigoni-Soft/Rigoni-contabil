@@ -1,7 +1,6 @@
 import { expect, test } from "./fixtures";
 import { login } from "./support/criar-cliente";
 
-// Data distante para não colidir com outros cenários.
 const DATA = "2031-03-17";
 
 test.describe("Feriados (Admin only)", () => {
@@ -10,7 +9,6 @@ test.describe("Feriados (Admin only)", () => {
     await expect(page).toHaveURL("/");
 
     await page.goto("/admin/feriados");
-    // Sobra de uma rodada que falhou no meio: limpa antes, senão o cadastro cai em "já existe".
     const sobra = page.getByRole("button", { name: "Remover feriado de 17/03/2031" });
     if (await sobra.count()) {
       await sobra.click();

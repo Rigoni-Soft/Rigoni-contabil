@@ -6,15 +6,14 @@ import type {
   ClientesParaParcelamentoPort,
 } from "@/modules/atendimento/application/ports/out/clientes-para-parcelamento.provider";
 import {
-  linhaDestinatarioSchema,
-  paraDestinatario,
-} from "@/modules/atendimento/infra/mappers/linha-destinatario.mapper";
+  linhaClienteDoJobSchema,
+  paraClienteDoJob,
+} from "@/modules/atendimento/infra/mappers/linha-cliente-do-job.mapper";
 import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { lerTodasAsPaginas, TAMANHO_DA_PAGINA } from "@/shared/kernel/paginacao-por-cursor";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
 export class SupabaseClientesParaParcelamentoGateway implements ClientesParaParcelamentoPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
@@ -25,7 +24,7 @@ export class SupabaseClientesParaParcelamentoGateway implements ClientesParaParc
           p_apos: apos,
           p_limite: TAMANHO_DA_PAGINA,
         });
-        const lidas = z.array(linhaDestinatarioSchema).safeParse(data);
+        const lidas = z.array(linhaClienteDoJobSchema).safeParse(data);
         return error || !lidas.success ? null : lidas.data;
       },
       (linha) => linha.cliente_id,
@@ -33,7 +32,7 @@ export class SupabaseClientesParaParcelamentoGateway implements ClientesParaParc
     if (!linhas) {
       return err(new ServicoExternoError("Falha ao ler os Clientes com Parcelamento pendente."));
     }
-    return ok(linhas.map(paraDestinatario));
+    return ok(linhas.map(paraClienteDoJob));
   }
 
   async reservar(clienteId: string): Promise<Result<string | null, AppError>> {

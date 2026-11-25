@@ -34,6 +34,8 @@ com a preferência de SO do visitante.
 | `secondary`, `muted`, `accent` | tons de papel/verde desaturados | idem | hierarquia secundária, hover |
 | `destructive` / `destructive-foreground` | `#e0968c` / `#2a0f0c` | `#7a2b2b` / `#f4f1e8` | erro/atenção — sempre com ícone, nunca só cor; também estado "falha" em listas/feeds |
 | `success` / `success-foreground` | `#d9bd7c` / `#2a1f0c` | `#96742f` / `#2a1f0c` | selo dourado "em dia" — reservado especificamente para as telas de status do Simples Nacional (#35–#37); não usar para resultado sucesso/falha genérico (isso é `primary`/`destructive`, ver Componentes → Indicadores de estado). Só em traço/ícone: no claro tem 3,8:1 sobre `background`, abaixo dos 4,5:1 de texto |
+| `warning` / `warning-foreground` | `#e6c35c` / `#2a1f0c` | `#d4a62a` / `#2a1f0c` | amarelo de atenção (tela do Cartão de ponto): botão "Limpar" e o tom de fundo de folga e feriado. Não é o dourado `success` do selo "em dia" do Simples Nacional. Texto escuro sobre o amarelo (≥7:1) nos dois temas |
+| `info` | `#8fb4d9` | `#2b5b8a` | azul informativo: só como tom de fundo suave (mistura de 11% com `card`), p.ex. a linha com hora extra no Cartão de ponto; sem `info-foreground`: o texto da linha segue a cor padrão (`foreground` sobre o fundo tingido: 9,4:1 no escuro, 13,0:1 no claro) |
 | `border` / `ring` | `#47453e` | tons de contorno derivados do verde | bordas decorativas, foco |
 | `input` | `#7a7765` | `#857d66` | contorno de campo, select, textarea, botão outline e painel de emoji: ≥3:1 sobre `background` e `card` nos dois temas (WCAG 1.4.11) |
 | `overlay` | `#0f0e0c` a 70% | `#16231f` a 55% | véu atrás de diálogos nativos (`popover`: imagem ampliada, prévia de documento; `<dialog>` modal: sino de avisos) — tinta de cada tema, não preto puro; só escurece o fundo, não carrega texto |
@@ -98,10 +100,17 @@ em monitores largos):
 - **Login e troca de senha**: ficam de fora da regra — `max-w-sm`/`max-w-md`,
   conteúdo único centralizado, por serem telas de entrada/bloqueio, não de
   trabalho. Decisão explícita do usuário: nunca ocupam a tela toda.
-- **Perfil** (`/perfil`, #56): `max-w-md`, como login/troca de senha; dados da conta em `<dl>` (rótulo
-  `muted-foreground` / valor `font-medium`), seguidos da seção "Trocar
+- **Perfil** (`/perfil`, #56): `max-w-md`, como login/troca de senha; a foto do avatar abre a tela, seguida dos dados da conta em `<dl>` (rótulo
+  `muted-foreground` / valor `font-medium`) e da seção "Trocar
   senha" separada por `border-t`. Sem cartão: são dois blocos de leitura e
-  formulário, não superfícies elevadas.
+  formulário, não superfícies elevadas. **Foto do avatar (#288):** todo usuário, de qualquer Papel (o Admin inclusive), vê a seção "Sua foto"
+  (`AvatarDaConta`, no topo, acima dos dados; o `border-t` fica no `<dl>`, que o separa da foto): prévia redonda de `size-20`
+  (`Miniatura`), o texto de transparência sempre à vista ("Sua foto fica guardada no sistema e só você a vê.
+  Remova quando quiser.", sem checkbox), a dica "JPEG, PNG ou WebP, até 5 MB." e o aviso de formato ou tamanho
+  como `AvisoDeStatus` de erro. Sem foto: "Escolher foto" (`BotaoDeArquivo`); com foto: "Trocar foto" e "Remover foto"
+  (contorno, só aparece com foto, apaga na hora). Escolher uma foto mostra a prévia recortada com "Salvar foto"
+  (foco automático) e "Cancelar" no lugar do seletor; em andamento os botões usam `aria-disabled`. Salvar,
+  cancelar e remover devolvem o foco ao "Escolher foto"/"Trocar foto", nunca ao `<body>`.
 - **Formulário de cadastro/edição** (cadastro de Cliente, de Líder/Funcionário,
   Feriados e edição do cadastro operacional `/clientes/[id]`): largura `cadastro`,
   `w-full max-w-4xl` (56 rem). **Decisão de 21/10/2026, revisa a de `w-[80%]`**: em monitor
@@ -130,7 +139,7 @@ em monitores largos):
 
 Formulário com elevação (edição do cadastro operacional do Simples Nacional, #34):
 cartão `rounded-lg border bg-card p-5 shadow-sm` dentro do container `cadastro`, em 4 colunas
-em tela larga (Forma de envio, Documento, DAS, Data de envio na mesma linha; ver
+em tela larga (Documento, DAS, Data de envio e Atividade do mês na mesma linha; ver
 "Cadastro de Cliente e documentos contratuais").
 
 Painel de filtro: campos em grid (`grid-cols-2 sm:grid-cols-4`), e as ações
@@ -183,7 +192,7 @@ Checkboxes/radios nativos (`src/app/globals.css`): `accent-color:
 var(--primary)` global — sem isso, o navegador pinta o azul padrão do SO,
 brigando com o verde-cheque do resto do produto. Primeiro uso real em
 `editar-cadastro-operacional-form.component.tsx` (#34: "Tem parcelamento",
-"Atividade do mês", "Padrão" de cada Contato); a regra é global porque
+"Atividade do mês"); a regra é global porque
 `accent-color` é herdado por elemento nativo, não por componente — qualquer
 `<input type="checkbox">`/`type="radio"` futuro herda o token automaticamente,
 sem precisar de classe.
@@ -203,7 +212,7 @@ sem precisar de classe.
   abaixo de `lg` a identidade e as ações quebram em duas linhas quando não cabem lado a lado, e
   dividem a linha quando cabem — Funcionário e Líder em tablet, #168; o Admin segue empilhado; o
   reflow a 320 px é preservado). **Abaixo de `sm` (celular, #168) o cabeçalho é uma barra de uma
-  linha (~70 px): inicial e nome truncados, o sino sempre à vista e o botão `Menu` (`popoverTarget`).
+  linha (~70 px): logo e nome truncados, o sino sempre à vista e o botão `Menu` (`popoverTarget`).
   As ações viram um menu — o mesmo painel com `popover="auto"` (Esc e clique fora fecham, o foco
   volta ao botão; o estado vai em `aria-expanded`, espelhando o evento `toggle`; sem fallback para
   navegador sem popover, como nos demais popovers do projeto), que de `sm` para cima perde a posição de camada e a moldura e volta a ser a linha
@@ -229,11 +238,21 @@ sem precisar de classe.
   documentados em #32.
 
   **Identidade do usuário no header (#56):** abaixo de `sm` o nome e o escopo
-  (`Papel · Setor: <rótulo>`) quebram linha em vez de truncar, e o avatar da
-  inicial (decorativo, `aria-hidden`) some para liberar largura — truncar
-  escondia o Setor do usuário no celular. De `sm` pra cima voltam o avatar e o
-  `truncate`. O Setor é sempre o rótulo legível (`SETOR_LABEL`, em
-  `shared/kernel/setores.ts`), nunca o slug.
+  (`Papel · Setor: <rótulo>`) quebram linha em vez de truncar — truncar
+  escondia o Setor do usuário no celular. De `sm` pra cima volta o
+  `truncate`. **Avatar-link (#265):** o avatar fica visível em todas as larguras e é um link para
+  `/` (que resolve a home do Papel), com `aria-label` e `title` "Ir para o início", foco visível,
+  borda `border-input` (3:1 nos dois temas: a logo é preta e sumiria no `bg-card` escuro), hover e pressionado só na opacidade da imagem (`hover:opacity-90`, `active:opacity-80`) e o mesmo alvo de toque das ações (`size-9`, `size-11` em toque). Não abre
+  menu; com a troca obrigatória de senha pendente o cabeçalho sai sem avatar. **Logo (#287):** o
+  avatar é a logo redonda (`Miniatura`, `alt=""` porque o link já tem `aria-label`, sem inicial de reserva):
+  a do Setor ou a do escritório, que é a do Admin e a de todo Setor sem logo (arquivos em `public/logos/`,
+  mapa em `shared/kernel/escopo-do-usuario.ts`). O Setor é sempre o rótulo legível, nunca o slug. **Foto (#288):**
+  quem enviou foto (qualquer Papel, o Admin inclusive) vê nela, no mesmo círculo, no lugar da logo (`/api/avatar?v=<atualizadoEm>`, rota
+  autenticada; `shared/kernel/avatar.ts`); ao remover, volta à logo.
+
+  **Voltar em Meu perfil:** o "Voltar" da tela leva à tela de onde o usuário veio (`router.back()`) quando o
+  referrer é do próprio sistema; chegando por favorito ou link externo, ou sem histórico, segue o link para
+  `/`. Ctrl/Cmd/Shift/Alt-clique e botão do meio abrem o link normalmente (nova aba).
 
   **Extensão (#72):** o link "Feriados" (ícone `CalendarOff`,
   só Admin, rota `/admin/feriados`) segue o mesmo padrão. A tela reutiliza
@@ -448,6 +467,44 @@ com `aria-label` numerado, botão "Adicionar contato" nas mesmas
 variante/tamanho. Segundo consumidor confirma que o padrão vale para
 qualquer lista dinâmica de campos, não só o par data+arquivo do #33.
 
+**Contato (ações da linha):** a linha tem dois modos. Só mostrando, "Editar contato N" (`outline`,
+`Pencil`) e, no contato salvo, a lixeira ("Remover contato N", `destructive`, `Trash2`). Editando (a linha
+nova já nasce assim), dois botões de ícone juntos (`gap-1`, `size-8`, 44 px em toque): "Salvar contato N"
+(`Check`, `primary`, o verde) grava aquele contato e o que ele recebe do Setor numa chamada só, e "Cancelar
+edição do contato N" (`X`, `destructive`, o vermelho) volta ao que estava (na linha nova, a descarta; sendo a
+única, só a esvazia). Os botões de ícone levam `title` igual ao `aria-label`, e o Salvar mostra um spinner e
+`aria-busy` enquanto grava. Ao concluir, o foco vai a um alvo estável da linha (o Editar, depois de salvar ou
+cancelar) e uma região `aria-live="polite"` oculta (`sr-only`) anuncia "Contato N salvo.", "Edição do
+contato N cancelada." ou "Contato N descartado."; a falha do servidor aparece sob a linha (`FieldError`,
+`role="alert"`). Linha em edição com algo digitado segura o Salvar do cadastro: "Salve ou cancele a edição do
+contato N para salvar o cadastro."
+
+**Contato de outro Setor:** a linha fica só de leitura (`readOnly`, não `disabled`: o valor volta intacto no Salvar do cadastro) com fundo neutro (`bg-muted`) e cursor comum, aplicados só dentro da linha de contato (o `Input` do sistema não muda: Empresa, CNPJ e os demais campos travados da tela seguem com a opacidade de desabilitado e o cursor `not-allowed`), sem asterisco e sem nota. A lixeira dele é "Deixar de usar o contato N" (abaixo). Só o Setor dono e o Admin editam. Ele só aparece na lista do Setor que o cadastrou ou escolheu; os dos outros Setores ficam fora da lista e entram pelo select "Contato já cadastrado" da linha nova. Os checkboxes de envio da linha seguem editáveis: marcar é do Setor de quem abre o cadastro.
+
+**Contato já cadastrado (`EscolhaDeContato`, molécula da linha nova):** na linha nova do Setor, quando outros Setores já cadastraram contatos neste Cliente, Nome, WhatsApp e E-mail são três seleções (`CampoDeOpcoes`, placeholder "Escolher contato"): cada uma lista o que esse campo tem nos contatos existentes e termina com "+ Cadastrar novo". Escolher um contato traz a linha dele para a lista, em edição, com os campos travados e os checkboxes para marcar; "Salvar" exige ao menos um envio (sem ele o contato não entra na lista do Setor) e "Cancelar" o devolve aos disponíveis. "+ Cadastrar novo" em qualquer um dos três troca os três por campos de texto, e o contato é cadastrado. Sem contatos de outros Setores, a linha nova já tem campos de texto.
+
+**Número já cadastrado:** na linha nova em campos de texto, ao sair do WhatsApp com um número que já é de outro contato do Cliente (a mesma chave do banco: dígitos sem o DDI 55; qualquer contato do formulário, até os escondidos de outros Setores), aparece sob a linha um `AvisoDeStatus` `atencao` legível (14 px, ícone e texto) ligado ao campo por `aria-describedby`: "Este número já é do contato Nome." com o botão "Usar este contato" (`outline`, 44 px em toque), que faz o mesmo que escolher o contato já cadastrado. Se o contato já está na lista, o aviso diz "...que já está na lista deste Setor." e não há botão. O aviso some quando o número muda ou fica vazio; o erro do banco no Salvar segue como rede de segurança.
+
+**Botões da linha, sempre em par e com a mesma forma e tamanho (`icon`, `size-8`, 44 px em toque):** o par positivo/negativo do ciclo de edição, "Salvar" (`primary`, verde, `Check`) e "Cancelar" (`destructive`, vermelho, `X`), e o par da visualização, "Editar" (`outline`, neutro, `Pencil`) e a lixeira (`destructive`, vermelha, `Trash2`). A cor segue a hierarquia do produto: verde para confirmar, neutro para abrir a edição, vermelho para o que descarta. No contato de outro dono a lixeira é "Deixar de usar o contato N" e não age na hora: abre sob a linha um `AvisoDeStatus` `atencao` legível, "Deixar de usar este contato? Os envios marcados aqui deixam de sair para ele; o contato segue com o dono e com os outros Setores.", com os botões "Deixar de usar" (`destructive`, `sm`) e "Manter" (`outline`, `sm`), 44 px em toque. O foco vai ao "Deixar de usar" ao abrir e volta à lixeira em "Manter"; confirmar tira os envios do Setor e o contato sai da lista dele, sem apagá-lo.
+
+**Contato (o que ele recebe, `EnviosDoContato`, molécula da linha):** dentro da moldura da linha, separado por uma borda de cima, o grupo
+"Envios do contato N" (`fieldset`, nomeado por `aria-labelledby`; o rótulo visível é "Recebe") e, editando, um `CaixaDeMarcacao` por tipo (`min-h-11` em toque): "Todos os
+envios" e o catálogo do Setor (SN: Lembrete de documento, DAS, Guia de parcelamento, Avisos; RH: Guia de
+parcelamento, Avisos). "Todos os envios" é o marcador geral: marcá-lo marca todos os outros, desmarcá-lo
+desmarca todos, desmarcar um dos outros o desmarca, e marcar o último que faltava o marca de volta. Quem
+tem Setor (Líder e Funcionário do SN e do RH) vê o grupo; o Admin não (não tem Setor e só cadastra contatos). Marcar ou desmarcar só muda a linha: os envios gravam
+junto com o contato no "Salvar contato N" (e "Cancelar" desfaz a marcação). Fora da edição os checkboxes não
+aparecem: o grupo mostra em texto o que o contato recebe ("DAS, Avisos"; "Todos os envios" quando é tudo;
+"nenhum envio" sem marca), já que checkbox `disabled` esmaecido não se lê. O canal do envio sai do
+contato: com um canal só, esse (sem campo); com os dois, o select **"Enviar por"** (`CampoDeOpcoes`,
+obrigatório, placeholder "Escolher", sem valor padrão: WhatsApp, E-mail, WhatsApp e E-mail) aparece ao lado
+dos checkboxes assim que há um envio marcado, vale para todos os envios do contato e o erro "Escolha por
+onde enviar a este contato." fica ligado ao select (`aria-invalid` e descrição). Fora da edição a linha
+mostra o texto "Enviar por: WhatsApp e E-mail" (ou "não escolhido" no dado antigo), sem select
+desabilitado nem esmaecido. Quando o contato apaga o número ou o
+e-mail que um envio usa, o `AvisoDeStatus` `atencao` (14 px) aparece na linha: "O contato deixou de ter o
+WhatsApp: os envios deste Setor não saem por ele."
+
 ### Campo obrigatório e máscara de entrada
 
 **`RequiredMark` (#33):** asterisco
@@ -460,10 +517,13 @@ precisa duplicar em texto). Um parágrafo no topo do formulário
 `<RequiredMark />` + `aria-required="true"` no input, em vez de confiar só
 na mensagem de erro do submit pra sinalizar isso.
 
-**Confirmado em #34:** os campos Nome e Telefone de cada Contato (únicos
-campos obrigatórios do cadastro operacional — os demais são `enum`/`select`
-com valor sempre presente ou opcionais) usam `<RequiredMark />` +
-`aria-required="true"`, mesmo padrão do #33.
+**Confirmado em #34:** o campo Nome de cada Contato (único campo
+obrigatório do cadastro operacional — os demais são `enum`/`select` com
+valor sempre presente ou opcionais) usa `<RequiredMark />` +
+`aria-required="true"`, mesmo padrão do #33. Telefone e E-mail são
+opcionais um a um, mas ao menos um dos dois é exigido (#290): a dica fica
+uma vez no cabeçalho "Contatos" e o erro, quando falta os dois, marca os
+dois campos.
 
 **Máscara de exibição (#33):** quando um campo tem um formato
 canônico bem definido (CNPJ: `00.000.000/0000-00`), a formatação acontece
@@ -508,6 +568,94 @@ outro"/"Finalizar".
 uma prop opcional `onCancelar`: quando informada (uso inline), "Cancelar"
 vira `Button` que fecha o painel e volta pro campo de busca; sem ela (uso
 em `/clientes/[id]`), continua `<Link href="/">`.
+
+### Tela de lista + formulário (quadro de funcionários do RH)
+
+Regra do dono do produto, a aplicar sem que seja pedida em toda tela que lista itens e os cadastra/edita
+na mesma tela (Quadro de funcionários da Folha de ponto é o primeiro consumidor):
+
+- **Cartão e topo.** Um cartão (`MOLDURA_DO_CARTAO`). Dentro, de cima para baixo: a `NotaDeObrigatorio`
+  (sempre a primeira coisa, acima até do título), o título da seção (com o botão "Novo …" à direita, no
+  molde do "Adicionar contato" do Cadastro: `ghost`, ícone `Plus`), o aviso de erro, os ajustes que valem
+  para o conjunto todo (ex.: "os empregados deste cliente são comissionados"), a lista, e por último o
+  formulário.
+- **Lista.** `ListaComDivisores`, o mesmo desenho da lista de clientes dos cards do dashboard
+  (`ListaDeClientes`): nome em destaque à esquerda (quebra dentro da moldura, nunca vaza), selos de estado
+  em texto de apoio abaixo do nome, ações à direita. O item escolhido fica com fundo `bg-accent/50`.
+- **Hierarquia de cor nas ações da linha.** Ação principal da linha (levar a outra tela, ex.: "Cartão de
+  ponto") = botão cheio na cor primária, texto sem seta (já é botão). Ação secundária (editar) = botão de
+  ícone só com contorno (`outline`, `icon`, lápis `Pencil`) com `aria-label` "Editar <nome>" ("Ver <nome>"
+  em leitura). Os dois nunca com a mesma aparência: ícone e texto lado a lado pareciam um só rótulo.
+- **Um formulário por vez.** O formulário de **novo** item é o padrão da tela. Editar um item o
+  **substitui** (os dois nunca aparecem juntos): bloco com "Editar" centralizado numa linha e o nome do item
+  abaixo. O botão "Novo …" do título só aparece durante a edição.
+- **Rodapé do formulário de edição**, lado a lado: "Salvar" (primário), a ação de atenção do item
+  (`destructive`, vermelho: ex. "Desligar da empresa"; o inverso, "Readmitir", em `default`) e
+  "Cancelar" (`outline`, neutro), que descarta a edição e volta ao formulário de novo item limpo. Aqui o
+  vermelho marca a ação de atenção sobre o item, não o Cancelar (exceção ao trio Salvar/Limpar/Cancelar
+  acima, que vale para edição de um registro inteiro).
+- **O formulário só pede o que o usuário decide.** Dado derivado por regra (ex.: a Jornada, que sai da
+  convenção e da legislação) não vira campo.
+- **Conteúdo de outra natureza vai para tela própria.** O Cartão de ponto de um empregado não se empilha
+  sob o quadro: abre por um botão da linha, numa tela com "Voltar" ao quadro.
+
+### Cartão de ponto: tabela no desenho da planilha
+
+O Cartão de ponto de um empregado (`/rh/folha-de-ponto/[cliente]/cartao/[empregado]`) copia a planilha do
+escritório (`PLANILHA CARTAO PONTO`, aba do funcionário): tabela com divisória em toda célula (`Tabela` com
+`grade`), cabeçalho de dois níveis (`agrupamento`: "Batidas", "Horas extras / Atrasos / Adicional noturno", "Horas extras por faixa"). **Sem linha Totais** no rodapé: a "Totalização do mês" abaixo da tabela já traz os mesmos números.
+Colunas, na ordem da planilha: Data (fixa), Dia semana, Entrada, Saída, Entrada, Saída, Extra entrada, Extra saída, H. Diária,
+Atrasos, Horas Extras, Adicional noturno (por extenso: a sigla A.N. não era clara), 1ª Faixa, 2ª Faixa e a coluna do botão Salvar, sem título visível (o botão já diz a função; o cabeçalho tem só texto para leitor de tela). Entrada, Saída e Extra são campos do dia (o Abono não é coluna: é o botão do dia de falta); o resto é calculado (nunca digitado). Acima da tabela: Empresa e Período (o mês). A carga horária por dia da semana
+não se exibe (não tem uso na tela). A tela mostra o **mês de trabalho inteiro**, de 28 a 31 dias, numa só tabela; a quinzena só
+importa na leitura da foto do cartão, não na exibição. Dia sem jornada marca "Folga" sob a data; dia com carga e sem batida, "Falta".
+
+- **Largura `ampla`:** a tabela de 16 colunas precisa caber inteira, sem rolagem horizontal; esta tela usa
+  `largura="ampla"` (`w-full max-w-screen-2xl`, a janela toda com teto em monitor muito largo), a `Tabela`
+  com `grade` tem respiro de 6 px por lado nas células e os campos de hora são estreitos (`w-[4.5rem]`, sem o
+  ícone do relógio do navegador). Em janela menor que ~1200 px a própria `Tabela` ainda rola, com a Data à vista.
+- **Título do cartão = só o nome do empregado.** A tela já se chama "Cartão de ponto" (cabeçalho); repetir
+  "Cartão de ponto de <nome>" no cartão era redundante.
+- **Tom da linha pelo estado do dia** (mistura suave com `card`, opaca para a primeira coluna fixa; o estado
+  também vem em texto sob a data, a cor nunca vai sozinha): **falta** = `destructive` (vermelho sutil, nota
+  "Falta"); **abono** = `info` (azul sutil, nota "Abonado", só em dia de trabalho: abono gravado num domingo ou feriado não pinta a linha, o dia segue folga); **hora extra** = `info` (azul, nota "Hora extra"); **folga ou feriado** = `warning` (amarelo, nota
+  "Folga" ou "Feriado"; feriado com hora extra fica azul, "Feriado · hora extra"); dia normal sem tom. Precedência:
+  falta, abono/hora extra, folga/feriado.
+- **Situação do dia** (decide o que a linha deixa digitar e o botão que mostra; calculada no presenter):
+  - **Cartão novo** (nunca salvo: sem a marca de "cartão iniciado" e sem nenhum dia com dado; mês ou empregado novo): todas as linhas abrem já **editáveis**, sem um
+    lápis por dia, e o dia útil vazio fica **em branco** (neutro, sem "Falta", sem Abonar). O "Salvar" da tabela
+    grava só os dias digitados e **inicia o cartão** (marca `rh_cartoes_iniciados`, mesmo sem nenhum horário): a
+    partir daí os dias úteis vazios viram falta, com o cartão já começado.
+  - **Faltas na Totalização:** num cartão novo (sem dados) a Totalização mostra 0 faltas, coerente com as linhas
+    neutras; os dias úteis vazios só contam como falta depois que o cartão é começado.
+  - **Falta** (dia útil vazio de um cartão já começado): horários **desabilitados** (evita lançar por engano),
+    botões lápis (única forma deliberada de lançar um horário) e "Abonar" (`warning`, um clique grava só o Abono).
+  - **Abonado** (abono sem batida, em dia de trabalho): horários desabilitados; o botão é "Desfazer abono", que volta a falta. Não há
+    coluna nem caixa "Abono": o abono é o botão. Abono de dia com batida (atraso abonado) segue gravado ao salvar.
+  - **Folga ou feriado** (sem jornada): como toda hora trabalhada nesses dias é hora extra, só as colunas
+    **Extra entrada/saída** ficam habilitadas (Entrada e Saída, desabilitadas), salvo se já houver batida salva.
+- **Ação por linha e ações da tabela.** Cada linha tem só um botão de ícone (lápis); abrir várias linhas ao
+  mesmo tempo é permitido. Entre a tabela e a Totalização fica a barra de ações, alinhada ao **fim da linha** (à direita), na hierarquia de
+  cor **verde / amarelo / vermelho**: **Salvar** (`default`, o verde da marca; grava todas as
+  linhas abertas, fica na tela e põe a Totalização em destaque, `border-primary` + fundo), **Limpar**
+  (`warning`, amarelo; esvazia os campos das linhas abertas, fica na tela; só vale ao salvar) e **Cancelar**
+  (`destructive`, vermelho; descarta e volta à
+  lista de empregados da empresa). Salvar e Limpar só ficam ativos com ao menos uma linha aberta. Sem
+  permissão de edição não há lápis nem barra.
+- **Baixar PDF.** Abaixo da "Totalização do mês" fica uma linha alinhada ao fim com o apoio "O PDF traz o que
+  está salvo, com a Totalização do mês." e o botão **Baixar PDF** (`outline`, ação secundária): é do Funcionário
+  do RH (Responsável do Cliente), e aparece também para o Líder e o Admin, que só leem o cartão. Durante a geração o rótulo vira "Gerando PDF…" e o botão fica em
+  `aria-disabled` (não some, o foco não se perde); o resultado ("PDF gerado. Confira o arquivo baixado." ou o erro)
+  vem num `AvisoDeStatus` logo abaixo. O PDF é gerado no servidor, A4 retrato, uma página por empregado e mês:
+  identificação, uma linha por dia, a Totalização num bloco de fundo e borda de destaque e, no pé, as duas linhas
+  de assinatura (responsável da empresa e empregado). Empregado desligado, sem movimento no mês ou cartão sem
+  nenhum apontamento não tem PDF a assinar: no lugar do botão fica só o motivo, em texto de apoio.
+- **Foco do teclado depois da ação.** Toda ação que faz o botão clicado sumir devolve o foco a um alvo estável da
+  mesma linha (`autoFocus` no botão que passa a existir): o lápis abre a edição no primeiro campo habilitado;
+  salvar, cancelar, abonar e desfazer abono levam o foco ao lápis (ou ao "Desfazer abono"). "Salvar" e "Limpar" da
+  tabela sem linha aberta usam `aria-disabled`, não `disabled`, para continuarem focáveis; "Limpar" não mexe no
+  foco. Vale para qualquer tela em que a ação troque os botões da linha.
+- **Um formulário por dia, fora da célula:** o `<form>` do dia fica na última célula e os campos das outras o
+  alcançam pelo atributo `form`; `new FormData(form)` já os traz.
 
 ### Autopreenchimento a partir de API pública
 
@@ -564,7 +712,7 @@ contexto da troca de tela.
 
 ### Resumo do setor (anéis de status, #36)
 
-**`ResumoSetorSn` / `ResumoSetorSnLista` (/simples-nacional):**
+**`ResumoSetorSn` / `ResumoSetorLista` (/simples-nacional):**
 11 cards fixos (invariante do mapper, ordem garantida por teste) divididos em
 dois grupos — "Documentos e DAS" (5) e "Parcelamento" (6) — cada card é um
 `Link` inteiro (não botão + link separados) pra
@@ -621,10 +769,10 @@ conteúdo da página — corrigido na revisão impeccable (era `<h2>` de
 quando ainda vivia embutido em `/` ao lado de outras seções).
 `ShellHeader` não tem heading próprio (mostra nome/papel de
 sessão, não título de página), então cada página de conteúdo é responsável
-pelo próprio `<h1>` — `ResumoSetorSnListaPage` (drill-down de
+pelo próprio `<h1>` — `ResumoSetorListaPage` (drill-down de
 bucket) já seguia essa regra desde a implementação original.
 
-**Lista de drill-down (`ResumoSetorSnLista`):** linhas simples
+**Lista de drill-down (`ResumoSetorLista`):** linhas simples
 (`divide-y` + borda, sem o tratamento de card elevado) — empresa em
 destaque, CNPJ mascarado abaixo em texto secundário, "Ver cadastro →" como
 affordance textual de navegação (não ícone sozinho). Cada linha leva pra
@@ -723,6 +871,195 @@ reenviar repete só a atribuição.
 **Rótulos de Setor/Regime:** slugs do banco nunca aparecem como texto de UI;
 usar `SETOR_LABEL` (`shared/kernel/setores.ts`) e `REGIME_LABEL`.
 `ThemeToggle` mostra o ícone do tema de destino (sol no dark, lua no light).
+
+### Aba RH e cadastro do Cliente no RH (#213)
+
+**Aba "RH" do `ShellNav`:** um chip como os demais Setores, com a rota vinda de
+`ROTA_POR_SETOR` (`shared/kernel/setores.ts`, o mesmo mapa que decide o destino
+de "/" para quem tem dashboard próprio); Setor sem tela segue desabilitado.
+
+**`ResumoSetorLista` / `ResumoSetorListaPage` atendem SN e RH:** a lista de
+drill-down e a tela são as mesmas; a página do Setor só informa a rota-base
+(`/clientes/resumo` ou `/rh/resumo`) e o destino do "Voltar".
+
+**`ComparativosRh`:** um único gráfico, "Clientes por Responsável", em
+`BarrasDeFatias` (as mesmas barras do 4º comparativo do SN), só para o Líder;
+o Funcionário do RH vê o resumo sem o acompanhamento dos colegas.
+
+**`EditarCadastroRhForm`:** o RH abre em `/clientes/[id]` a mesma tela "Editar
+cadastro operacional" do SN, com os dados do RH: o cabeçalho (empresa e CNPJ, sem o
+Regime), o Responsável do RH e o acompanhamento do mês acima do formulário, e no
+formulário os contatos, as observações gerais do RH e o cartão do documento
+contratual (só leitura). O que é do SN (DAS, atividade do mês, forma de envio) não
+aparece; a lista de Parcelamentos é a do SN (`ParcelamentosDoCadastro`, com a leitura do PDF e as guias da parcela), só com os do RH (#216). Edita o Responsável do RH do Cliente, o
+Líder do RH e o Admin; quem não edita vê a tela em leitura.
+
+### RH: acompanhamento mensal (#214, #215)
+
+O desenho segue o do SN: o dashboard do RH é uma grade de cards (`ResumoDoSetor`, um card por
+Serviço com os Clientes que faltam, mais "Tudo concluído"); o acompanhamento do Cliente fica no
+cadastro dele, em campos como o DAS do SN; o drill-down reusa `ListaDeClientes`. Nenhum desenho
+próprio do RH além do que está abaixo.
+
+**Rotas:** `/rh` (dashboard e comparativos), `/rh/resumo/[bucket]` (lista de um card),
+`/rh/funcionarios` (acompanhamento dos funcionários, Líder e Admin), `/rh/funcionarios/[id]` e
+`/rh/funcionarios/[id]/[servico]` (detalhe e lista de um Serviço), `/rh/servicos` (lista de Serviços,
+só o Líder) e `/clientes/[id]` (cadastro do Cliente no RH, com o acompanhamento do mês).
+
+**`NavegacaoDeMes` (molécula):** "Mês anterior", o mês e "Próximo mês", em `nav` com
+`aria-label="Mês do acompanhamento"`. Só texto e seta, sem botão: o link ativo é `primary`
+semibold; o avanço do mês corrente fica apagado (`muted-foreground`), sem link, e o leitor de tela
+ouve "indisponível: este é o mês corrente" (a cor carrega o estado, o texto dá o motivo). O mês
+fica no centro mesmo sem próximo; no celular vai para a linha de cima. Com `destaque`, é o
+cabeçalho de um cartão: faixa `bg-muted/50` com borda e o mês em `text-lg`. Dois usos: no
+acompanhamento dos funcionários (sem destaque, solto sobre a página) e na folha de ponto (o cartão),
+com destaque. O cadastro do Cliente não a usa: mostra sempre o mês corrente, como o DAS do SN.
+
+**Acompanhamento do mês no cadastro do Cliente (`AcompanhamentoDoClienteRh`):** um `Select` por
+Serviço, numa grade `1>2>4` com o `Label` em cima, como os campos do SN. O estado muda a cor do
+campo, nunca só ela: concluído em `success` (borda e fundo suaves), "Não se aplica" em borda
+tracejada e `muted`, pendente sem tratamento. Serviço que não aceita troca (o Holerite, do sistema)
+fica desabilitado e o motivo vai para o leitor de tela; um motivo que vale o cartão todo (cliente
+sem Responsável) aparece como texto de apoio visível. Erro vira `AvisoDeStatus` com ícone.
+
+**`AcompanhamentoDosFuncionarios` (organismo, `/rh/funcionarios`):** a visão do Líder e do Admin, de cima
+para baixo: `NavegacaoDeMes` solta; o cartão "Pontos por funcionário" (uma barra por Funcionário, o
+nome é link para o detalhe, "x de y" à direita, e a nota de que um ponto é um Cliente com todos os
+serviços concluídos); o cartão "Clientes que faltam por serviço" (`Tabela` com o Funcionário na
+coluna fixa e um número por serviço, cada um um link para a lista das empresas); e a seção "Sem
+responsável" com `ListaDeClientes`. Cada seção só aparece se tem o que mostrar.
+
+**`DetalheDoFuncionarioRh` (organismo, `/rh/funcionarios/[id]`):** o detalhe de um Funcionário. Título
+"nome: x% em mês (pontos de atribuídos)"; "Pendente por serviço" (um `h3` por serviço, com a
+contagem, e `ListaDeClientes` abaixo); o cartão "Evolução" (o percentual de cada mês anterior, um
+por linha); e "Mais atrasados" (os Clientes e há quantos meses pendem, no `detalhes` do
+`ListaDeClientes`). Estado vazio dito em texto ("Tudo concluído neste mês.", "Sem meses anteriores
+para comparar.", "Nenhum cliente atrasado.").
+
+**`ResponsavelSomenteLeitura`:** o mesmo campo "Responsável" do SN em `Input` desabilitado, para
+quem não atribui (Funcionário, Admin).
+
+**`ObservacoesDoRh`:** só na tela completa do Admin, que vê o SN e o RH. É a seção "RH" abaixo do
+formulário do SN, com o `Textarea` e o botão "Salvar observações do RH" próprios: salva à parte,
+sem tocar nos dados do SN. O RH no cadastro dele usa o campo dentro do `EditarCadastroRhForm`.
+
+**Menu de configuração do Setor:** a engrenagem no extremo direito do `ShellNav`, só para quem
+configura o Setor (o Líder do RH, com "Serviços do acompanhamento"); sem itens, sem engrenagem.
+`MenuSuspenso` (`ui/`, porque precisa de evento) é um `<details>` nativo: abre pelo botão, fecha
+pelo botão, com Esc (o foco volta ao botão) ou ao navegar; não fecha ao clicar fora. O botão tem
+36 px (44 px em toque) e o nome vem do `rotulo`, já que o ícone é o único conteúdo visível.
+
+**`ServicosDoAcompanhamento`:** em `/rh/servicos`, os Serviços numa lista em moldura (um por
+linha, em `ListaComDivisores`, com "Renomear" e "Desativar"), o formulário "Novo serviço" abaixo.
+Desativar pede confirmação na própria linha (`ConfirmacaoEmLinha`: a pergunta, "Confirmar" destrutivo
+e "Cancelar" com o foco, o gesto seguro); o erro da ação vem em `AvisoDeStatus`. O Holerite, do
+sistema, não tem ação.
+
+**Folha de ponto do RH (`/rh/folha-de-ponto/[clienteId]`):** abre pela lista dos clientes do RH
+(`ListaDeClientes` com a ação "Abrir folha →") e empilha o `QuadroDeFuncionarios` e o `CartaoDePonto`,
+na largura `cadastro` e sem a barra de Setores, como a edição do cadastro operacional: cada bloco é
+um cartão com a moldura guilhochê (`rc-guilloche-frame rounded-lg border border-border bg-card p-5
+shadow-sm`) e os campos seguem o formulário (rótulo visível por campo, `CampoDeTexto`, malha `1>2>4`).
+
+**`QuadroDeFuncionarios` (organismo):** os empregados do Cliente como botões de link (o escolhido em
+`default`, os demais em `outline`), com selos de texto ao lado ("comissionado", "inativo", "sem movimento
+no mês"); o padrão de comissionados do Cliente; o formulário "Novo empregado" e o "Corrigir" do
+escolhido, na malha `1>2>4` (Nome em 2 colunas, a marca "comissionado" nas outras 2 e uma Jornada
+`type="time"` por dia, de domingo a sábado), com a `NotaDeObrigatorio` no cartão e o botão em tamanho
+padrão; "Sem movimento no mês" e "Inativar empregado" ao fim. O escolhido leva `aria-current`. O erro do cadastro aparece abaixo do formulário "Novo empregado",
+ligado ao campo Nome, e o formulário só é limpo no sucesso. Em leitura (Líder, Admin ou outro
+Responsável) só a lista e os dados aparecem, sem formulário nem botão de escrita.
+
+A tela do quadro abre com a `NavegacaoDeMes` em destaque (Mês anterior, o mês, Próximo mês; sem próximo no mês corrente), logo acima do formulário de leitura: o mês de referência da leitura é o que se vê, e trocá-lo não exige mexer na URL.
+
+**`LeituraDeCartao` (organismo):** formulário "Ler foto do cartão de ponto", num `CartaoDaTela` acima do
+`QuadroDeFuncionarios` (só o Responsável do RH o recebe): `NotaDeObrigatorio`, o texto de apoio (a foto vira o
+cartão da quinzena, não é guardada, confira depois), o `CampoDeOpcoes` "Quinzena" na malha `1>2>4` e o
+`CampoDeArquivo` (JPEG ou PNG de até 4 MB, dito antes de escolher). O botão "Ler cartão" usa `aria-disabled` enquanto
+lê ("Lendo o cartão…") e o foco não sai dele; o erro da foto (falta ou mais de 4 MB) vai no próprio `CampoDeArquivo` (`aria-invalid` e `FieldError`) e a falha
+da leitura mostra o `AvisoDeStatus` de erro mandando digitar à mão, preservando a foto escolhida; o sucesso mostra o resumo ("Erick (cadastrado no quadro): 3 dias lidos, 1 falta anotada.
+Confira o cartão.") em `AvisoDeStatus` de sucesso e limpa a foto sem remontar o formulário (o foco fica no botão). Sem tela de confirmação.
+
+**`PainelModal` (molécula):** a casca dos painéis modais: um `<dialog>` (`SUPERFICIE_DE_PAINEL`, `w-[min(92vw,32rem)]`,
+`max-h-[80dvh]`, `closedby="any"`: o Container o abre com `showModal`, foco preso, Esc e clique no véu fecham) com uma
+linha de cabeçalho (título `subtitulo` em `h2` que nomeia o diálogo, e o botão fechar "X" fantasma, redondo, com nome
+acessível pedido) e o corpo como filhos, que trazem o próprio espaçamento e rolagem. Use em qualquer painel que abra sobre
+a tela (hoje o sino de avisos e a leitura de atestado); não use para confirmação curta, que é `ConfirmacaoEmLinha`.
+
+**`LeituraDeAtestado` (organismo):** o botão de contorno "Ler atestado" no rodapé do `CartaoDePonto` (à esquerda do
+"Salvar", só quando o cartão é editável) que abre um `PainelModal` com o título "Ler atestado ou declaração". O corpo tem o
+texto de apoio (de quem são os dias, o que cada documento abona, que o nome precisa ser o do empregado e o cartão do mês
+estar iniciado, que foto e CID não são guardados), um `CampoDeArquivo` (JPEG ou PNG de até 4 MB) e os botões "Abonar pelo
+atestado" (`aria-disabled` e "Lendo o atestado…" enquanto lê) e "Cancelar" (`destructive`, como no trio de formulário). Sucesso fecha a modal, recarrega a planilha e mostra o resumo ("1 dia abonado pelo
+atestado. Confira o cartão.") no rodapé do cartão; erro (foto, nome que não confere, nada a abonar, leitura que falhou) mantém a
+modal aberta com o motivo (no campo, se for da foto; senão em `AvisoDeStatus` de erro) e a planilha fica como estava.
+
+**`CartaoDePonto` (organismo):** o cartão de um empregado no mês inteiro, de cima para baixo: título, Empresa e
+Período, `NavegacaoDeMes` com `destaque`, um aviso de apoio quando só se lê, a tabela (um dia por linha,
+`LinhaDoCartaoDePonto`), a barra de ações da tabela (Salvar, Limpar, Cancelar) e a `TotalizacaoDoPonto`. Ver
+"Cartão de ponto: tabela no desenho da planilha" abaixo.
+
+**`LinhaDoCartaoDePonto` (molécula):** um dia do cartão como linha da `Tabela`. Fora da edição os horários ficam
+`readOnly` e a ação da linha é um só botão de ícone, o lápis ("Editar seg 16/11"). Em edição os campos destravam
+e as ações viram dois botões de ícone: ✓ Salvar ("Salvar seg 16/11") e ✕ Cancelar ("Cancelar edição de seg
+16/11"), que descarta o digitado e devolve a linha ao estado de antes, com o lápis de volta.
+
+**`TotalizacaoDoPonto` (molécula):** a Totalização como lista de definição numa grade `2>4`: rótulo em
+`apoio` e valor em `subtitulo` (horas como "8h45", dias como "1 dia"). Só mostra, nunca recebe digitação.
+
+**Convenção coletiva do RH (`/rh/folha-de-ponto/[clienteId]/convencao`):** abre pelo link "Convenção
+coletiva →" no topo da Folha de ponto e empilha, na largura `cadastro` e sem a barra de Setores (como a
+Folha de ponto), o `HistoricoDeConvencoes`, o `EnvioDeConvencao` (só Líder do RH e Admin), as
+`RegrasAplicadas` da convenção escolhida e os `AjustesDoClienteNaConvencao`, cada um num `CartaoDaTela`
+(molécula: a `Pilha` com a moldura guilhochê, para a page só passar o conteúdo), como os blocos da edição do
+cadastro operacional.
+
+**`HistoricoDeConvencoes` (organismo):** as convenções do Cliente como botões de link ("Sindicato ·
+vigência"; a que está em tela em `default` e com `aria-current`, as demais em `outline`), com o nome do
+arquivo e a data do envio em `nota`. A de vigência mais recente vem primeiro; as anteriores seguem
+guardadas e cada uma abre as suas regras (`?convencao=`). Sem convenção, o texto convida a enviar (quem
+pode) ou diz quem envia (quem só lê).
+
+**`EnvioDeConvencao` (organismo):** formulário "Enviar ou renovar a convenção" com um campo só, o `CampoDeArquivo` (PDF de até 4 MB, dito
+antes de escolher): o sindicato e a vigência saem do PDF, na leitura, e não se digitam (sem `NotaDeObrigatorio`). Enquanto lê, o botão fica desabilitado e diz "Lendo a convenção…" (a extração roda uma vez,
+no envio); todo erro vai no próprio `CampoDeArquivo` (`aria-invalid` e `aria-describedby`) e leva o foco a ele, o formulário fica `aria-busy` e só é limpo no sucesso. Quem só lê não
+o recebe.
+
+**`RegrasAplicadas` (organismo):** a tela de leitura das regras: uma `Tabela` com um parâmetro por linha
+(o rótulo fixo à esquerda) e as colunas "Na convenção", "Na legislação", "Diferença" e "Cláusula" (a
+cláusula e o trecho citado entre aspas, em `nota`). O que a convenção não trouxe, ou o domínio recusou,
+fica "Não aplicada" em `apoio`, com "vale a legislação" na diferença e, se o modelo chegou a propô-lo, o
+motivo da recusa ("Recusada: …"). Nunca recebe digitação: não há aprovação manual.
+
+**`AjustesDoClienteNaConvencao` (organismo):** os interruptores do Cliente (`CaixaDeMarcacao` "Banco de
+horas", desligado por padrão, e "Trabalho aos domingos") e, só havendo mais de uma convenção, um
+`CampoSelect` por empregado ativo com o sindicato que ele segue ("Sem escolha (a única do cliente)" é o
+vazio). Cada mudança grava na hora, com "Salvando…" em `nota` (`role="status"`) enquanto grava e alvos de marcação de 44 px. Quem não é o Responsável do RH do Cliente vê tudo desabilitado e a
+nota "Só o Responsável do RH deste cliente altera estes ajustes".
+
+**`ListaDeClientes` (molécula):** a lista de drill-down: `ListaComDivisores` com `LinhaDeCliente`
+(empresa em destaque, CNPJ mascarado, "Ver cadastro →" ou a `acao` da tela, como "Abrir folha →") e `detalhes` opcional por Cliente (ex.:
+"3 meses", os selos de Parcelamento do SN). Cada linha usa `content-visibility: auto`, para as listas
+de centenas de Clientes. É a única lista de empresas do sistema: as do SN e do RH
+(`ResumoSetorLista`), as de um Serviço que falta e as do detalhe do Funcionário a usam; não montar a
+linha à mão.
+
+**`CelulaDeTabela`, `CabecalhoDeColuna` e `Tabela`:** ganharam `fixa` (primeira coluna `sticky`,
+nomeia a linha com `<th scope="row">`), `numerica` (à direita, também no cabeçalho), `legenda`
+(`<caption class="sr-only">`, e a região rolável ganha nome e foco para rolar com o teclado) e
+`semMoldura` (dentro de um cartão, que já tem a borda). O cabeçalho da tabela passou a `bg-muted`.
+
+**Nota de campos obrigatórios:** `NotaDeObrigatorio` é sempre o primeiro bloco do formulário,
+antes do mês e do cabeçalho; só aparece para quem edita.
+
+**Cadastro do RH e cadastro do SN:** os dois montam o cartão pelo mesmo organismo
+(`CartaoDoCadastro`: moldura guilhochê, nota de obrigatórios, mês, cabeçalho com Responsável,
+acompanhamento, campos, ações, erro e sucesso); só os campos do meio mudam. Um terceiro cadastro
+(outro Setor) reusa o cartão em vez de copiar o formulário.
+
+**`FalhaDeCarga`:** aviso de erro lido pelo leitor de tela e o link "Tentar
+novamente" para a própria rota. O `<h1>` da tela de falha diz o que houve
+("Não foi possível carregar o cliente"), não só o nome da tela.
 
 ### Lista de usuários e desativação inline (#58)
 
@@ -844,6 +1181,21 @@ Desenho de chat (WhatsApp/Messenger), decisão do usuário (2026-10-08):
   transferência em `Textarea` baixo. Em janela baixa o painel
   rola por dentro. Transferido, o painel troca tudo por um aviso e a tela
   sai da conversa.
+- **Contato do cliente** (`PainelDeContatoUra`, entre os serviços e a transferência, separado por
+  `border-t`): só para o dono do Atendimento da Recepção cujo número a URA não achou como contato. Fechado,
+  é a frase "Este número não é contato de nenhum Cliente." e o botão cheio "Cadastrar como contato deste
+  Cliente". Abre em dois passos no próprio painel, porque o CNPJ da URA é só sugestão: (1) campo "CNPJ do
+  Cliente" já preenchido com o CNPJ que a URA colheu (a ajuda "Sugerido pela URA. Confira antes de
+  cadastrar." só aparece com sugestão) e "Buscar Cliente"; (2) a linha "Cliente: empresa · CNPJ" com
+  "Trocar Cliente" em contorno, "Nome" obrigatório, "E-mail (opcional)" com a ajuda do WhatsApp do
+  atendimento (que não se edita) e "Cadastrar contato". Cada passo traz "Cancelar" em `destructive`. O foco
+  vai ao campo do passo que abre (o botão que o abriu sumiu), volta ao "Cadastrar como contato deste
+  Cliente" ao cancelar e vai ao aviso ao concluir (`tabIndex` -1, só por código), e o botão ocupado fica
+  `aria-disabled`. "Trocar Cliente" devolve o CNPJ que acabou de ser confirmado, sem a ajuda da URA. O
+  resultado é um `AvisoDeStatus` `legivel` (14 px, a Recepção age em cima dele): criado e "já é o contato X"
+  em sucesso e concluem (o botão some); número de outro Cliente e e-mail repetido em erro, com o formulário
+  aberto para trocar o Cliente. Só o erro que é do campo o marca `aria-invalid`: o do CNPJ na busca e o de
+  e-mail repetido no e-mail; "número de outro Cliente" não é de campo nenhum.
 - **Encerrar atendimento** (no fim do `PainelDeAcoes`, separado por `border-t`):
   botão `outline`; o primeiro clique só abre a confirmação (`role="alertdialog"`
   com o aviso de que o cliente será avisado) com "Confirmar encerramento"
@@ -1070,7 +1422,7 @@ fixos, campo travado em cor plena, diálogo e lista das alterações); onde há 
   1440 px com nome de empresa de 250+ caracteres e emoji: sem rolagem horizontal no cadastro nem na
   edição.
 - **Editar cadastro operacional em 4 colunas**: cabeçalho (Empresa, CNPJ, Regime, Responsável),
-  cartão do documento, e Forma de envio, Documento recebido, DAS, Data de envio na mesma linha;
+  cartão do documento, e Documento recebido, DAS, Data de envio na mesma linha (a forma de envio é o canal de cada destino);
   parcelamento e atividade do mês em 2 colunas cada; Contatos, Observações e as ações na linha
   toda. Abaixo de `lg`, 2 colunas; no celular, 1.
 - **Navegação por abas (`ShellNav`)**: só a aba da tela aberta ganha o destaque cheio e

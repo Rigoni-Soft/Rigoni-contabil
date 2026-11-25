@@ -23,7 +23,6 @@ const ATENDIMENTO: AtendimentoEmAndamento = {
   chave: "61988887777",
 };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
-// Primeira página de um ogg com Opus / com Vorbis (o que a conferência de codec lê).
 const comCabecalho = (marca: string, tamanho: number) => {
   const bytes = new Uint8Array(tamanho);
   bytes.set(Uint8Array.from(marca, (c) => c.charCodeAt(0)));
@@ -41,13 +40,10 @@ type Opcoes = {
   falhaEnvio?: boolean;
   falhaRegistro?: boolean;
   falhaFinalizar?: boolean;
-  // Caminhos que outra finalização já reservou, ou que uma Mensagem do histórico já referencia.
   jaReservados?: string[];
   veredito?: "registrada" | "encerrada" | "sem_autoridade";
   falhaConversao?: boolean;
-  // Primeiros bytes do objeto subido em partes (por padrão, ogg com Opus).
   cabecalho?: Uint8Array;
-  // O que o Storage tem do objeto que o navegador subiu em partes (null: não existe).
   objeto?: { tipoMime: string; tamanho: number } | null;
 };
 
@@ -543,7 +539,6 @@ describe("EnviarAnexoAoCliente", () => {
         expect(ok1.ok).toBe(true);
         expect(primeira.reservas.has(GUARDADO.caminho)).toBe(true);
 
-        // Mesma reserva, estado compartilhado: a segunda vê o objeto já consumido.
         const segunda = montar({ objeto: NO_STORAGE, jaReservados: [...primeira.reservas] });
         const r2 = await segunda.caso.execute({ atendimentoId: "at-1", guardado: GUARDADO });
         expect(r2.ok).toBe(false);

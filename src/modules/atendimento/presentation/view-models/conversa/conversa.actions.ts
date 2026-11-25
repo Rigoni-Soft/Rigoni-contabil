@@ -3,6 +3,8 @@
 import { z } from "zod";
 
 import {
+  makeBuscarClienteParaContatoUra,
+  makeCadastrarContatoUra,
   makeEncerrarAtendimento,
   makeEnviarAnexoAoCliente,
   makeEnviarDocumentoAoCliente,
@@ -12,6 +14,10 @@ import {
   makeTransferirAtendimento,
 } from "@/main/atendimento.factory";
 import type {
+  ClienteParaConfirmar,
+  ResultadoCadastroContatoUra,
+} from "@/modules/atendimento/application/ports/in/cadastrar-contato-ura.provider";
+import type {
   ConversaVista,
   MensagemVista,
   MensagensAnterioresVista,
@@ -19,6 +25,8 @@ import type {
 import type { TransferenciaConcluida } from "@/modules/atendimento/application/ports/in/transferir-atendimento.provider";
 import {
   atendimentoIdSchema,
+  buscarClienteParaContatoSchema,
+  cadastrarContatoUraSchema,
   enviarAnexoGuardadoSchema,
   enviarDocumentoSchema,
   enviarMensagemSchema,
@@ -99,6 +107,26 @@ export async function encerrarAtendimentoAction(
   return toActionResult(await encerrar.execute({ atendimentoId: parsed.data }));
 }
 
+export async function buscarClienteParaContatoUraAction(
+  input: unknown,
+): Promise<ActionResult<ClienteParaConfirmar>> {
+  const parsed = buscarClienteParaContatoSchema.safeParse(input);
+  if (!parsed.success) return entradaInvalida(parsed.error);
+
+  const buscar = await makeBuscarClienteParaContatoUra();
+  return toActionResult(await buscar.execute(parsed.data));
+}
+
+export async function cadastrarContatoUraAction(
+  input: unknown,
+): Promise<ActionResult<ResultadoCadastroContatoUra>> {
+  const parsed = cadastrarContatoUraSchema.safeParse(input);
+  if (!parsed.success) return entradaInvalida(parsed.error);
+
+  const cadastrar = await makeCadastrarContatoUra();
+  return toActionResult(await cadastrar.execute(parsed.data));
+}
+
 export async function enviarMensagemAction(input: unknown): Promise<ActionResult<void>> {
   const parsed = enviarMensagemSchema.safeParse(input);
   if (!parsed.success) return entradaInvalida(parsed.error);
@@ -115,8 +143,6 @@ export async function reagirAMensagemAction(input: unknown): Promise<ActionResul
   return toActionResult(await reagir.execute(parsed.data));
 }
 
-// O navegador já subiu o objeto em partes direto ao Storage (o corpo de uma Server Action não passa
-// de 4,5 MB na Vercel); aqui chegam só o caminho, o nome, a legenda e a miniatura (até 256 KB).
 export async function enviarAnexoGuardadoAction(formData: FormData): Promise<ActionResult<void>> {
   const parsed = enviarAnexoGuardadoSchema.safeParse({
     atendimentoId: formData.get("atendimentoId"),

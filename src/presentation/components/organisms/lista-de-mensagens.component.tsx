@@ -26,7 +26,6 @@ type MensagemView = {
   } | null;
 };
 
-// Reação a Mensagens do cliente: estado, refs e envio vêm do Container.
 type ReacaoProps = {
   ativa: boolean;
   abertaId: string | null;
@@ -42,8 +41,6 @@ type ReacaoProps = {
   aoEscolher: (mensagemId: string, emoji: string) => void;
 };
 
-// Arrastar e soltar arquivo sobre a conversa: `arrastando` acende a moldura; `ligacoes` vêm do Container.
-// Sem `ligacoes` a lista não aceita soltar.
 type ArrasteProps = {
   arrastando: boolean;
   ligacoes?: Pick<
@@ -52,8 +49,6 @@ type ArrasteProps = {
   >;
 };
 
-// Histórico anterior ao que a conversa mostra: a lista abre nas mais recentes e o restante vem sob
-// demanda (o Container carrega).
 type AnterioresProps = {
   disponivel: boolean;
   carregando: boolean;
@@ -64,7 +59,6 @@ type AnterioresProps = {
 type ListaDeMensagensProps = {
   mensagens: MensagemView[];
   anteriores?: AnterioresProps;
-  // Botão de visualizar Word/Excel de um anexo: o Container o monta (lê o arquivo no navegador).
   previaDoAnexo?: (anexo: {
     nome: string;
     urlVisualizacao: string;
@@ -75,7 +69,6 @@ type ListaDeMensagensProps = {
   arraste?: ArrasteProps;
 };
 
-// Word e Excel ganham o botão de visualizar que o Container fornece; os demais não.
 function previaDoAnexoDe(
   painelId: string,
   anexo: NonNullable<MensagemView["anexo"]>,
@@ -91,9 +84,6 @@ function previaDoAnexoDe(
   });
 }
 
-// Em tela larga é a única parte da página que rola. O rolador é col-reverse com a lista dentro em
-// ordem cronológica: o scroll nasce no fim (nas últimas mensagens) sem JavaScript e o DOM segue a
-// ordem de leitura. role="log" anuncia a mensagem nova ao leitor de tela.
 export function ListaDeMensagens({
   mensagens,
   anteriores,
@@ -102,7 +92,6 @@ export function ListaDeMensagens({
   arraste,
 }: ListaDeMensagensProps) {
   return (
-    // O erro de reação fica fora do rolador (col-reverse o jogaria para o topo, fora de vista).
     <Pilha espaco="campo" className="relative min-h-0 lg:flex-1" {...arraste?.ligacoes}>
       {arraste?.arrastando && <SobreposicaoDeSoltar />}
       <Linha

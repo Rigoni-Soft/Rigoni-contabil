@@ -30,7 +30,6 @@ export class ListarAtendimentosDaEquipe implements ListarAtendimentosDaEquipePor
 
     const atendimentos = await this.repositorio.emAndamentoDoSetor(setor);
     if (!atendimentos.ok) return atendimentos;
-    // Os do próprio usuário já estão na aba dele.
     return ok(
       atendimentos.value
         .filter((a) => a.funcionarioId !== ator.id)

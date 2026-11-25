@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 
+import { cadastroOperacionalDeTeste } from "../../../../../../test-support/cadastro-de-teste";
 import { BuscarClienteContainer } from "./buscar-cliente.container";
 
 const routerRefresh = jest.fn();
@@ -25,26 +26,8 @@ jest.mock("@/main/clientes.factory", () => ({
   makeEditarCadastroOperacionalCliente: () => ({ execute: editarExecuteMock }),
 }));
 
-const CADASTRO: CadastroOperacionalClienteDto = {
-  id: "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d",
-  empresa: "Padaria Pão Quente Ltda",
-  cnpj: "11444777000161",
-  regime: "simples_nacional",
-  formaEnvio: "whatsapp",
-  contatos: [],
-  documentoObrigatorio: null,
-  dasStatus: null,
-  dataEnvioDas: null,
-  parcelamentos: [],
-  observacoesGerais: "",
-  atividadeMes: { industria: false, comercio: false, servico: false },
-  responsavelId: null,
-  responsavelNome: null,
-};
+const CADASTRO: CadastroOperacionalClienteDto = cadastroOperacionalDeTeste();
 
-// Sem retry: com fake timers, o backoff de retry do React Query enfileira
-// setTimeout extras que os testes não avançam, travando o findBy.
-// Padrão: Funcionário do Simples Nacional (edita no painel embutido); o Admin vai à tela própria.
 function renderComQueryClient(papel = "funcionario", setor = "simples_nacional") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -195,7 +178,7 @@ describe("BuscarClienteContainer", () => {
     await usuario.click(await screen.findByText(CADASTRO.empresa));
 
     expect(carregarCadastroOperacionalActionMock).toHaveBeenCalledWith(CADASTRO.id);
-    expect(await screen.findByLabelText(/forma de envio/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/documento recebido/i)).toBeInTheDocument();
   });
 
   it("Admin, ao escolher um Cliente, vai à tela própria dele em vez do painel embutido", async () => {
@@ -214,7 +197,25 @@ describe("BuscarClienteContainer", () => {
 
     expect(routerPush).toHaveBeenCalledWith(`/clientes/${CADASTRO.id}`);
     expect(carregarCadastroOperacionalActionMock).not.toHaveBeenCalled();
-    expect(screen.queryByLabelText(/forma de envio/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/documento recebido/i)).not.toBeInTheDocument();
+  });
+
+  it("o RH, ao escolher um Cliente, vai à tela dele (o cadastro do RH), voltando para o dashboard do RH", async () => {
+    buscarClientesActionMock.mockResolvedValue({
+      ok: true,
+      data: [{ id: CADASTRO.id, empresa: CADASTRO.empresa, cnpj: CADASTRO.cnpj }],
+    });
+    const usuario = userEvent.setup({ delay: null });
+    renderComQueryClient("funcionario", "rh");
+
+    await usuario.type(screen.getByLabelText(/empresa ou cnpj/i), "Pão");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    await usuario.click(await screen.findByText(CADASTRO.empresa));
+
+    expect(routerPush).toHaveBeenCalledWith(`/clientes/${CADASTRO.id}?voltarPara=/rh`);
+    expect(carregarCadastroOperacionalActionMock).not.toHaveBeenCalled();
   });
 
   it("o campo de busca é um combobox acessível ligado à lista de sugestões", async () => {
@@ -262,7 +263,7 @@ describe("BuscarClienteContainer", () => {
     await usuario.keyboard("{Enter}");
 
     expect(carregarCadastroOperacionalActionMock).toHaveBeenCalledWith(CADASTRO.id);
-    expect(await screen.findByLabelText(/forma de envio/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/documento recebido/i)).toBeInTheDocument();
   });
 
   it("selecionar um cliente move o foco pro título do painel", async () => {
@@ -298,16 +299,14 @@ describe("BuscarClienteContainer", () => {
       jest.advanceTimersByTime(300);
     });
     await usuario.click(await screen.findByText(CADASTRO.empresa));
-    await screen.findByLabelText(/forma de envio/i);
+    await screen.findByLabelText(/documento recebido/i);
 
     await usuario.click(screen.getByRole("button", { name: "Cancelar" }));
 
     expect(screen.getByLabelText(/empresa ou cnpj/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/forma de envio/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/documento recebido/i)).not.toBeInTheDocument();
   });
 
-  // Salvar precisa fechar o painel (volta pra busca) e atualizar os dados da página — se esta busca
-  // estiver embutida no resumo do setor, os cards refletem a mudança na hora.
   it("salvar fecha o painel, volta pro campo de busca e atualiza a página (router.refresh)", async () => {
     buscarClientesActionMock.mockResolvedValue({
       ok: true,
@@ -323,12 +322,12 @@ describe("BuscarClienteContainer", () => {
       jest.advanceTimersByTime(300);
     });
     await usuario.click(await screen.findByText(CADASTRO.empresa));
-    await screen.findByLabelText(/forma de envio/i);
+    await screen.findByLabelText(/documento recebido/i);
 
     await usuario.click(screen.getByRole("button", { name: "Salvar" }));
 
     expect(await screen.findByLabelText(/empresa ou cnpj/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/forma de envio/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/documento recebido/i)).not.toBeInTheDocument();
     expect(routerRefresh).toHaveBeenCalled();
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
 
@@ -13,49 +13,43 @@ import {
 import type { DocumentoContratualVisivelDto } from "@/modules/clientes/application/ports/in/documentos-contratuais-cliente.provider";
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { REGIME_LABEL, regimeTemCadastroOperacionalSn } from "@/shared/kernel/regimes";
+import { SETOR_SN } from "@/shared/kernel/setores";
 
-import { AnexarGuiaParcelaPgfnContainer } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
+import { guiasDaParcela } from "../anexar-guia-parcela-pgfn/anexar-guia-parcela-pgfn.container";
 import { DocumentoContratualDoClienteContainer } from "../visualizar-documento-contratual/documento-contratual-do-cliente.container";
 import {
   contatoNovo,
   descartarLinhasEmBranco,
-  leituraDaLinha,
   nomeResponsavelAtual,
   OPCOES_DOCUMENTO,
-  OPCOES_FORMA_ENVIO,
   opcoesDeDas,
   opcoesResponsavel,
   parcelamentoNovo,
   reposicionarErros,
-  resumoDoAcordo,
 } from "./editar-cadastro-operacional.presenter";
 import { editarCadastroOperacionalFormSchema } from "./editar-cadastro-operacional.schema";
 import { useResponsaveisElegiveis } from "./responsaveis.queries";
-import { useLeituraDoPdf } from "./use-leitura-do-pdf.hook";
+import { contatosIniciais } from "./tipos-de-envio.presenter";
+import { useContatosDoCadastro } from "./use-contatos-do-cadastro.hook";
+import { useParcelamentosDoCadastro } from "./use-parcelamentos-do-cadastro.hook";
 import { useSalvarCadastroOperacional } from "./use-salvar-cadastro-operacional.hook";
 
 type Props = {
   dados: CadastroOperacionalClienteDto | null;
   readOnly: boolean;
-  // Só o Líder do SN, neste cadastro (os outros Setores têm o bloco próprio): troca o Select de Responsável editável.
+  ator: { papel: string; setor: string };
   podeAtribuirResponsavel?: boolean;
   onCancelar?: () => void;
-  // Depois de salvar com sucesso, o painel precisa fechar/voltar: painel embutido no dashboard
-  // (busca do /simples-nacional) fecha de volta pra busca e atualiza os cards; tela própria
-  // (/clientes/[id]) navega de volta pra onde a lista do bucket (ou o próprio dashboard) ficou.
-  // Os dois destinos são exclusivos: união discriminada por `tipo`.
   aoSalvar?: { tipo: "fechar"; executar: () => void } | { tipo: "voltar"; href: string };
-  // Carga inicial do servidor (tela própria); no painel embutido da busca vem vazia e o botão lê por action.
   documentosContratuais?: DocumentoContratualVisivelDto[];
-  // Só o Admin na tela própria: o botão de anexar fica no cartão do documento.
   podeAnexar?: boolean;
-  // Nº da alteração do aviso por onde se chegou: o cartão do documento a abre e destaca o botão.
   alteracaoEmFoco?: number;
 };
 
 export function EditarCadastroOperacionalContainer({
   dados,
   readOnly,
+  ator,
   podeAtribuirResponsavel = false,
   onCancelar,
   aoSalvar,
@@ -63,21 +57,21 @@ export function EditarCadastroOperacionalContainer({
   podeAnexar,
   alteracaoEmFoco,
 }: Props) {
-  // Falso no servidor e na hidratação; verdadeiro assim que o cliente assume (snapshots do React).
   const hidratado = useSyncExternalStore(
     () => () => undefined,
     () => true,
     () => false,
   );
-  // Extraído pra reusar no reset() do botão "Limpar" — reverte pro que veio
-  // do servidor, não esvazia campos (formaEnvio é enum obrigatório, sem opção
-  // em branco no Select; "limpar" um form de edição significa desfazer, não zerar).
+  const admin = ator.papel === "admin";
   const valoresIniciais = dados
     ? {
         formaEnvio:
           (dados.formaEnvio as EditarCadastroOperacionalFormValues["formaEnvio"]) ?? "whatsapp",
-        // Seção sem registros abre com uma linha em branco (descartada se ninguém a tocar).
-        contatos: dados.contatos.length || readOnly ? dados.contatos : [contatoNovo(true)],
+        contatos: contatosIniciais(dados.contatos, dados.destinos, {
+          verTodos: admin || readOnly,
+          setor: SETOR_SN,
+          somenteLeitura: readOnly,
+        }),
         documentoObrigatorio:
           dados.documentoObrigatorio as EditarCadastroOperacionalFormValues["documentoObrigatorio"],
         dasStatus: dados.dasStatus as EditarCadastroOperacionalFormValues["dasStatus"],
@@ -90,17 +84,7 @@ export function EditarCadastroOperacionalContainer({
       }
     : undefined;
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    reset,
-    getValues,
-    setValue,
-    setError,
-    formState: { errors },
-  } = useForm<EditarCadastroOperacionalFormValues>({
-    // Valida sem as linhas em branco; o que sai daqui (inclusive para o submit) já vem sem elas.
+  const form = useForm<EditarCadastroOperacionalFormValues>({
     resolver: async (valores, contexto, opcoes) => {
       const semBranco = descartarLinhasEmBranco(valores);
       const resultado = await zodResolver(editarCadastroOperacionalFormSchema)(
@@ -126,34 +110,46 @@ export function EditarCadastroOperacionalContainer({
     },
     defaultValues: valoresIniciais,
   });
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    getValues,
+    setValue,
+    setError,
+    formState: { errors },
+  } = form;
 
-  // Lido no render, sem assinar o campo: o que a tela exibe (resumo, selo, quitado, nome do PDF) só
-  // muda quando uma linha entra ou sai (`parcelamentoCampos` re-renderiza), não a cada tecla.
-  const parcelamentos = (getValues("parcelamentos") ?? dados?.parcelamentos ?? []).map((p) => ({
-    ...p,
-    acordoResumo: resumoDoAcordo(p.acordo),
-  }));
-  // Lista de Funcionários só é buscada quando o Líder abre o Select.
   const [listaAberta, setListaAberta] = useState(false);
   const elegiveis = useResponsaveisElegiveis(podeAtribuirResponsavel && listaAberta);
   const { fields, append, remove } = useFieldArray({ control, name: "contatos" });
-  const parcelamentoCampos = useFieldArray({ control, name: "parcelamentos" });
-  // A leitura do PDF termina depois de a lista poder ter mudado: acha a linha pelo id, no momento.
-  const camposAtuais = useRef(parcelamentoCampos.fields);
-  useEffect(() => {
-    camposAtuais.current = parcelamentoCampos.fields;
+  const linhasDeContato = useContatosDoCadastro({
+    clienteId: dados?.id ?? "",
+    form,
+    campos: fields,
+    remover: remove,
+    destinos: dados?.destinos ?? [],
+    tiposDeEnvio: dados?.tiposDeEnvio ?? [],
+    setorDoCadastro: SETOR_SN,
+    admin,
+    verTodos: admin || readOnly,
   });
-  const leitura = useLeituraDoPdf(dados?.id ?? "", setValue, (id) =>
-    camposAtuais.current.findIndex((campo) => campo.id === id),
-  );
+  const parcelamentos = useParcelamentosDoCadastro({
+    clienteId: dados?.id ?? "",
+    setor: "simples_nacional",
+    salvos: dados?.parcelamentos ?? [],
+    control,
+    getValues,
+    setValue,
+  });
 
   const { salvar, pendente, erroServidor, sucesso, limparMensagens } = useSalvarCadastroOperacional(
     {
       dados,
       podeAtribuirResponsavel,
       aoSalvar,
-      getValues,
-      setValue,
+      salvarParcelamentos: parcelamentos.salvar,
       setError,
     },
   );
@@ -161,7 +157,7 @@ export function EditarCadastroOperacionalContainer({
 
   const aoLimpar = () => {
     reset(valoresIniciais);
-    leitura.esquecerTodas();
+    parcelamentos.esquecerLeituras();
     limparMensagens();
   };
 
@@ -170,7 +166,6 @@ export function EditarCadastroOperacionalContainer({
   }
 
   if (!regimeTemCadastroOperacionalSn(dados.regime)) {
-    // Documento jurídico não depende do cadastro SN: Admin ainda abre e anexa em Lucro Presumido/Real.
     return (
       <Pilha espaco={6}>
         <Texto variante="apoio" role="status">
@@ -204,10 +199,8 @@ export function EditarCadastroOperacionalContainer({
         estadoLista: elegiveis.isError ? "erro" : elegiveis.isLoading ? "carregando" : "ok",
         onTentarNovamente: () => void elegiveis.refetch(),
       }}
-      parcelamentos={parcelamentos}
       dasEnviadoPeloSistema={dados?.dasStatus === "enviado"}
       opcoes={{
-        formaEnvio: OPCOES_FORMA_ENVIO,
         documento: OPCOES_DOCUMENTO,
         das: opcoesDeDas(dados.dasStatus === "enviado"),
       }}
@@ -215,29 +208,17 @@ export function EditarCadastroOperacionalContainer({
       sucesso={sucesso}
       oculto={!hidratado}
       contatos={fields}
-      onAdicionarContato={() => append(contatoNovo(fields.length === 0))}
-      onRemoverContato={remove}
-      parcelamentoCampos={parcelamentoCampos.fields}
-      onAdicionarParcelamento={() => parcelamentoCampos.append(parcelamentoNovo())}
-      onRemoverParcelamento={(indice) => {
-        void leitura.ler(parcelamentoCampos.fields[indice].id, undefined); // esquece a leitura da linha
-        parcelamentoCampos.remove(indice);
-      }}
-      leituras={Object.fromEntries(
-        Object.entries(leitura.leituras).map(([id, estado]) => [id, leituraDaLinha(estado)]),
-      )}
-      onArquivoEscolhido={(indice, arquivo) =>
-        void leitura.ler(parcelamentoCampos.fields[indice].id, arquivo)
-      }
+      onAdicionarContato={() => append(contatoNovo())}
+      linhasDeContato={linhasDeContato}
+      parcelamentoCampos={parcelamentos.parcelamentoCampos}
+      parcelamentos={parcelamentos.parcelamentos}
+      onAdicionarParcelamento={parcelamentos.onAdicionarParcelamento}
+      onRemoverParcelamento={parcelamentos.onRemoverParcelamento}
+      leituras={parcelamentos.leituras}
+      onArquivoEscolhido={parcelamentos.onArquivoEscolhido}
       onLimpar={aoLimpar}
       onCancelar={onCancelar}
-      guiasDaParcela={(parcelamentoId, codigo, interno) => (
-        <AnexarGuiaParcelaPgfnContainer
-          parcelamentoId={parcelamentoId}
-          codigo={codigo}
-          interno={interno}
-        />
-      )}
+      guiasDaParcela={guiasDaParcela}
       documentoContratual={
         <DocumentoContratualDoClienteContainer
           clienteId={dados.id}

@@ -44,8 +44,6 @@ describe("ComparativosSn", () => {
     const parc = screen.getByRole("group", { name: "Status do parcelamento" });
     expect(parc.querySelectorAll(".bg-success")).toHaveLength(1);
     expect(parc.querySelectorAll(".bg-destructive")).toHaveLength(1);
-    // O DAS também: pendente vermelho e "Pronto" (esperando envio) dourado, distintos de "Enviada"
-    // (verde) no donut.
     const das = screen.getByRole("group", { name: "Status do DAS" });
     expect(das.querySelectorAll(".bg-destructive")).toHaveLength(1);
     expect(das.querySelectorAll(".bg-success")).toHaveLength(1);

@@ -1,0 +1,84 @@
+"use client";
+
+import { useOptimistic, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+
+import {
+  AcompanhamentoDoClienteRh,
+  type EstadoDoServico,
+  type Servico,
+} from "@/presentation/components/organisms/acompanhamento-do-cliente-rh.component";
+import { mensagemDaFalha } from "@/presentation/lib/mensagem-da-falha";
+import type { ActionResult } from "@/shared/dtos/action-result.dto";
+
+import {
+  definirServicoAplicavelAction,
+  marcarServicoAction,
+} from "./acompanhamento-mensal.actions";
+import { passosDaTroca } from "./acompanhamento-mensal.presenter";
+
+type Props = {
+  clienteId: string;
+  competencia: string;
+  servicos: Servico[];
+  aviso?: string;
+};
+
+export function AcompanhamentoDoClienteContainer({
+  clienteId,
+  competencia,
+  servicos,
+  aviso,
+}: Props) {
+  const router = useRouter();
+  const [exibidos, escolher] = useOptimistic(
+    servicos,
+    (atual, t: { servicoId: string; para: EstadoDoServico }) =>
+      atual.map((s) => (s.servicoId === t.servicoId ? { ...s, estado: t.para } : s)),
+  );
+  const [pendente, iniciar] = useTransition();
+  const [erro, setErro] = useState<string>();
+
+  const trocar = async (
+    servicoId: string,
+    de: EstadoDoServico,
+    para: EstadoDoServico,
+  ): Promise<ActionResult<void>> => {
+    for (const passo of passosDaTroca(de, para)) {
+      const resultado =
+        passo.tipo === "marcar"
+          ? await marcarServicoAction({ clienteId, servicoId, competencia, concluido: passo.valor })
+          : await definirServicoAplicavelAction({
+              clienteId,
+              servicoId,
+              competencia,
+              escopo: passo.escopo,
+            });
+      if (!resultado.ok) return resultado;
+    }
+    return { ok: true, data: undefined };
+  };
+
+  return (
+    <AcompanhamentoDoClienteRh
+      aviso={aviso}
+      servicos={exibidos}
+      pendente={pendente}
+      erro={erro}
+      onTrocar={(servicoId, de, para) =>
+        iniciar(async () => {
+          setErro(undefined);
+          escolher({ servicoId, para });
+          try {
+            const resultado = await trocar(servicoId, de, para);
+            if (!resultado.ok) setErro(resultado.error.message);
+          } catch (erro) {
+            console.error("Falha ao marcar o serviço do acompanhamento", erro);
+            setErro(mensagemDaFalha(erro));
+          }
+          router.refresh();
+        })
+      }
+    />
+  );
+}

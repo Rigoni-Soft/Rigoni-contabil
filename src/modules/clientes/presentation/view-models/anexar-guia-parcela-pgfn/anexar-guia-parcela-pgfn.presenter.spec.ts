@@ -24,7 +24,6 @@ it("idDaGuia junta o prefixo da região e a competência", () => {
 });
 
 describe("competenciaEmFalta", () => {
-  // 27/10/2026 em São Paulo: mês corrente 202610.
   const agora = new Date("2026-10-27T15:00:00Z");
   const guia = (competencia: string) => ({
     competencia,

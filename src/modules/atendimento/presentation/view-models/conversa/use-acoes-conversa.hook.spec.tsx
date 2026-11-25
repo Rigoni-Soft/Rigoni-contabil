@@ -14,7 +14,6 @@ import { useAcoesConversa } from "./use-acoes-conversa.hook";
 const push = jest.fn();
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
-// conversa.queries invalida as chaves da Fila e dos Meus atendimentos: importa os módulos delas.
 jest.mock("@/main/client/upload-de-anexo.factory", () => ({ makeUploadDeAnexo: jest.fn() }));
 jest.mock("../fila/fila.actions", () => ({ listarFilaAction: jest.fn() }));
 jest.mock("../meus-atendimentos/meus-atendimentos.actions", () => ({
@@ -38,6 +37,7 @@ const CONVERSA: ConversaVista = {
   atendimentoId: "at-1",
   encerrado: false,
   podeAtender: true,
+  podeCadastrarContato: false,
   telefone: "5561988887777",
   contato: { contatoNome: "Maria", empresa: "Padaria Ltda", cnpj: "11444777000161" },
   clienteVinculado: true,
@@ -80,6 +80,13 @@ describe("useAcoesConversa", () => {
     expect(result.current.visivel).toBe(true);
     expect(result.current.servicos.map((s) => s.valor)).toEqual(["contrato", "alteracao:3"]);
     expect(result.current.setoresDestino.map((s) => s.rotulo)).toEqual(["Recepção", "Tributário"]);
+  });
+
+  it("expõe se a Recepção pode cadastrar o número como contato", () => {
+    expect(renderizar().result.current.podeCadastrarContato).toBe(false);
+    expect(
+      renderizar({ ...CONVERSA, podeCadastrarContato: true }).result.current.podeCadastrarContato,
+    ).toBe(true);
   });
 
   it("encerrado não mostra ações", () => {

@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 
 import { ComparativosSn } from "@/presentation/components/organisms/comparativos-sn.component";
-import { ResumoSetorSn } from "@/presentation/components/organisms/resumo-setor-sn.component";
-import { ResumoSetorSnPage } from "@/presentation/components/pages/resumo-setor-sn.page";
+import { ResumoDoSetor } from "@/presentation/components/organisms/resumo-do-setor.component";
+import { ResumoDoSetorPage } from "@/presentation/components/pages/resumo-do-setor.page";
+import { ERRO_CARREGAR_RESUMO_SETOR } from "@/presentation/lib/erro-resumo-setor";
 import {
   carregarSetoresDaNavegacao,
   exigirSessao,
@@ -11,14 +12,13 @@ import { ShellNavContainer } from "@/modules/atendimento/presentation/view-model
 import { CabecalhoDoShellContainer } from "@/modules/clientes/presentation/view-models/avisos-cadastro/cabecalho-do-shell.container";
 import { BuscarClienteContainer } from "@/modules/clientes/presentation/view-models/buscar-cliente/buscar-cliente.container";
 import { carregarResumoSetorSn } from "@/modules/clientes/presentation/view-models/resumo-setor-sn/resumo-setor-sn.server";
-import { podeVerDashboardSn } from "@/shared/kernel/papeis";
+import { podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
+import { ROTA_SN, SETOR_SN } from "@/shared/kernel/setores";
 
 export default async function Page() {
   const sessao = await exigirSessao();
 
-  // Admin vê (acesso de suporte a qualquer setor, mesmo raciocínio de
-  // podeEditarCadastroOperacional); qualquer outro setor fora do SN não.
-  if (!podeVerDashboardSn(sessao.papel, sessao.setor)) redirect("/");
+  if (!podeVerDashboardDoSetor(sessao.papel, sessao.setor, SETOR_SN)) redirect("/");
 
   const [setores, resumo] = await Promise.all([
     carregarSetoresDaNavegacao(),
@@ -26,14 +26,17 @@ export default async function Page() {
   ]);
 
   return (
-    <ResumoSetorSnPage
+    <ResumoDoSetorPage
       header={<CabecalhoDoShellContainer sessao={sessao} />}
-      nav={<ShellNavContainer setores={setores} rotaAtual="/simples-nacional" />}
-      erro={resumo.ok ? undefined : "Falha ao carregar o resumo do setor. Tente novamente."}
+      nav={<ShellNavContainer setores={setores} rotaAtual={ROTA_SN} />}
+      erro={resumo.ok ? undefined : ERRO_CARREGAR_RESUMO_SETOR}
+      tentarNovamenteHref={ROTA_SN}
       resumo={
         resumo.ok && (
-          <ResumoSetorSn
+          <ResumoDoSetor
             cards={resumo.value.cards}
+            grupos={resumo.value.grupos}
+            hrefBase="/clientes/resumo"
             totalClientes={resumo.value.totalClientes}
             busca={<BuscarClienteContainer papel={sessao.papel} setor={sessao.setor} apenasSnMei />}
           />

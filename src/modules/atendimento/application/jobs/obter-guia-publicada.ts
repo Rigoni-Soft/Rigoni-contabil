@@ -15,13 +15,10 @@ type Pedido<T> = {
   esperaEntreTentativasMs: number;
   clienteId: string;
   tipo: TipoGuia;
-  // O que o template exige da guia; erro aqui não publica nada.
   extrair: (guia: GuiaFiscal) => Result<T, AppError>;
   chave: ChaveGuia;
 };
 
-// Busca a guia no provedor fiscal, confere o que o template exige (`extrair`) e a publica. Falha
-// do serviço externo repete antes de devolver o erro.
 export function obterGuiaPublicada<T>({
   guias,
   publicadas,

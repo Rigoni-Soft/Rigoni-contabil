@@ -7,10 +7,6 @@ import {
 } from "@/modules/atendimento/presentation/view-models/conversa/conversa.store";
 import { ANEXO_MINIATURA_LADO, validarAnexo } from "@/shared/kernel/anexo";
 
-// O arquivo escolhido e ainda não enviado (estado do cliente, em `conversa.store.ts`). O servidor
-// confere tipo e tamanho de novo; aqui só se antecipa a mensagem.
-// `limparAoDesmontar`: quem envia o arquivo (o campo de resposta) solta a prévia e libera o blob ao
-// sair da tela; as outras regiões só leem ou depositam.
 export function useAnexoPendente(atendimentoId: string, { limparAoDesmontar = false } = {}) {
   const estado = useConversaStore((s) => s.anexosPendentes[atendimentoId] ?? ANEXO_PENDENTE_VAZIO);
   const trocarAnexoPendente = useConversaStore((s) => s.trocarAnexoPendente);

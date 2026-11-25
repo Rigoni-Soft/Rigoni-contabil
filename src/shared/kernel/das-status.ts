@@ -1,4 +1,3 @@
-// Status do DAS (Documento de Arrecadação do Simples Nacional) do Cliente.
 export const DAS_STATUSES = ["pendente", "pronto", "enviado", "sem_movimento"] as const;
 export type DasStatusValor = (typeof DAS_STATUSES)[number];
 

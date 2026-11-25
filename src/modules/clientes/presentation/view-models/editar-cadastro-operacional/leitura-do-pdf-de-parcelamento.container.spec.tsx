@@ -5,13 +5,13 @@ import userEvent from "@testing-library/user-event";
 import type { CadastroOperacionalClienteDto } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 import { ok } from "@/shared/kernel/result";
 
+import { cadastroOperacionalDeTeste } from "../../../../../../test-support/cadastro-de-teste";
 import { EditarCadastroOperacionalContainer } from "./editar-cadastro-operacional.container";
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }),
 }));
 
-// A action tem teste próprio; aqui a tela é testada contra o contrato dela (jsdom não tem File#arrayBuffer).
 const lerMock = jest.fn();
 jest.mock("./ler-pdf-de-parcelamento.actions", () => ({
   lerPdfDeParcelamentoAction: (...args: unknown[]) => lerMock(...args),
@@ -29,22 +29,14 @@ jest.mock("@/main/clientes.factory", () => ({
   makeObterLinkDocumentoContratual: () => ({ execute: jest.fn() }),
 }));
 
-const dados: CadastroOperacionalClienteDto = {
-  id: "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d",
-  empresa: "Padaria Pão Quente Ltda",
-  cnpj: "11444777000161",
-  regime: "simples_nacional",
-  formaEnvio: "whatsapp",
-  contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", padrao: true }],
+const ADMIN = { papel: "admin", setor: "administrativo" };
+
+const dados: CadastroOperacionalClienteDto = cadastroOperacionalDeTeste({
+  contatos: [{ id: "c1", nome: "Maria", telefone: "11999990000", email: "" }],
   documentoObrigatorio: "positivo",
   dasStatus: "pronto",
-  dataEnvioDas: null,
-  parcelamentos: [],
-  observacoesGerais: "",
   atividadeMes: { industria: false, comercio: true, servico: false },
-  responsavelId: null,
-  responsavelNome: null,
-};
+});
 
 const PARCELAMENTO_ID = "5b1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7e";
 const okAction = <T,>(data: T) => ({ ok: true as const, data });
@@ -55,13 +47,12 @@ function render() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return renderRtl(
     <QueryClientProvider client={client}>
-      <EditarCadastroOperacionalContainer dados={dados} readOnly={false} />
+      <EditarCadastroOperacionalContainer dados={dados} ator={ADMIN} readOnly={false} />
     </QueryClientProvider>,
   );
 }
 
 async function anexarPdfNoParcelamentoNovo(usuario: ReturnType<typeof userEvent.setup>) {
-  // Cliente sem Parcelamentos já abre com uma linha em branco: o PDF vai nela.
   await usuario.upload(screen.getByLabelText(/pdf do acordo/i), pdf);
 }
 
@@ -97,7 +88,6 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
     );
 
     expect(await screen.findByText("Sugerido pelo PDF: confira")).toBeInTheDocument();
-    // O estado da leitura é a descrição dos campos sugeridos (o leitor de tela sabe que são sugestão).
     expect(screen.getByLabelText(/código/i)).toHaveAccessibleDescription(
       "Sugerido pelo PDF: confira",
     );
@@ -244,7 +234,6 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
       expect(
         await screen.findByText(/Parcelamento foi salvo, mas a guia não foi anexada/),
       ).toBeInTheDocument();
-      // O motivo vem no aviso do formulário, com o caminho certo: anexar na região "Guias da parcela".
       expect(screen.getByText(/O CNPJ da guia é de outra empresa\./)).toBeInTheDocument();
       expect(salvarParcelamentosMock).toHaveBeenCalledTimes(1);
     });
@@ -279,7 +268,6 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
       const guia = new File([new Uint8Array([1])], "guia.pdf", { type: "application/pdf" });
       const usuario = userEvent.setup();
       render();
-      // A primeira linha (a que o cliente sem Parcelamentos já abre) fica vazia; o acordo vai na segunda.
       await usuario.click(screen.getByRole("button", { name: /adicionar parcelamento/i }));
       await usuario.upload(screen.getAllByLabelText(/pdf do acordo/i)[1], pdf);
       await usuario.upload(await screen.findByLabelText(/pdf da guia \(opcional\)/i), guia);
@@ -327,7 +315,6 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
       expect(await screen.findByRole("alert")).toHaveTextContent(
         "O CNPJ do PDF é diferente do CNPJ do Cliente. Confira se anexou o PDF certo.",
       );
-      // O estado da leitura continua dizendo só o que foi sugerido.
       expect(screen.getByText("Sugerido pelo PDF: confira")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /salvar/i })).toBeEnabled();
     });
@@ -459,7 +446,6 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
       expect(screen.getByRole("button", { name: /salvar/i })).not.toHaveAttribute("aria-disabled");
       await act(async () => terminar(comAcordo));
       expect(screen.queryByText(/PGFN · 5 parcelas/)).not.toBeInTheDocument();
-      // A linha volta ao estado de nascença: em branco, sem a sugestão da resposta tardia.
       expect(screen.getByLabelText(/código/i)).toHaveValue("");
     });
 
@@ -470,7 +456,6 @@ describe("Leitura do PDF de parcelamento no Editar cliente", () => {
       await anexarPdfNoParcelamentoNovo(usuario);
       await screen.findByText("Lendo o PDF…");
 
-      // Num <input> o Enter envia o formulário (no textarea seria só uma quebra de linha).
       await usuario.type(screen.getByDisplayValue("Maria"), "{Enter}");
 
       expect(editarMock).not.toHaveBeenCalled();

@@ -1,124 +1,46 @@
 ---
 name: test-setup-jest-playwright
-description: Instala e configura Jest, React Testing Library, Supertest e Playwright num projeto Next.js já criado, com os sufixos e projetos exigidos por testes.md deste time (*.spec.ts unitário/componente, *.test.ts integração — inclui webhook com Supertest —, *.e2e.ts Playwright) e o limiar de cobertura. Use quando o usuário pedir para configurar testes, adicionar Playwright/RTL/Supertest, ou citar testes.md.
+description: Instala e configura Jest, React Testing Library, Supertest e Playwright num projeto Next.js já criado, copiando os arquivos em uso no repositório (templates/config e templates/tests), com os sufixos de docs/testes.md (*.spec unitário/componente, *.test integração, *.e2e Playwright) e o limiar de cobertura. Use quando o usuário pedir para configurar testes ou citar testes.md.
 ---
 
-# Jest + RTL + Supertest + Playwright (testes.md)
+# Jest + RTL + Supertest + Playwright
 
-Pressupõe um projeto Next.js com `src/` e alias `@/*` já existente (veja a skill `next-project-init` se ainda não existir). Fonte das regras: `docs/testes.md` deste time, seções 6 e 7. Se o arquivo existir no projeto, leia-o antes de aplicar; ele tem prioridade sobre o texto fixo aqui se algo divergir.
+Pressupõe projeto Next.js com `src/` e alias `@/*`. **O repositório manda:** copie de `../fullstack-next-bootstrap/templates/`; se divergir de `docs/testes.md`, atualize o doc.
 
 ## 1. Instalar
 
 ```bash
-yarn add -D jest @types/jest jest-environment-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom @testing-library/user-event
-yarn add -D supertest @types/supertest
-yarn add -D @playwright/test
+yarn add -D jest @types/jest jest-environment-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom @testing-library/user-event supertest @types/supertest @playwright/test
 yarn playwright install chromium
 ```
 
-Supertest só entra nos testes de integração do handler de webhook (testes.md, seção 4.2) — não é um nível à parte, é uma ferramenta usada dentro do nível de integração.
+Supertest só entra nos testes de integração de webhook (testes.md 4.2), não é um nível à parte.
 
-`jest-environment-jsdom`, `@testing-library/dom`, `@testing-library/jest-dom` e `@testing-library/user-event` são decisão desta skill: dependências auxiliares que o Jest com jsdom e a RTL exigem na prática, mas que o documento não cita.
+## 2. `tsconfig.json`
 
-## 2. `tsconfig.json`: tipos do Jest
+Acrescente em `compilerOptions.types`, sem sobrescrever o resto: `["jest", "node"]`.
 
-Acrescente à chave `compilerOptions.types` existente, sem sobrescrever o resto do arquivo:
+## 3. Copiar
 
-```json
-{ "compilerOptions": { "types": ["jest", "node"] } }
-```
+| De `templates/` | Para |
+|---|---|
+| `config/jest.config.mjs`, `config/jest.setup.ts` | raiz (projetos `unit` e `integration`, cobertura 90/90/90/85) |
+| `config/playwright.config.ts` | raiz |
+| `tests/exigir-supabase-local.ts`, `tests/admin-supabase-local.ts` | `test-support/` (trava suíte destrutiva fora do Supabase local) |
+| `tests/bypass.setup.ts` | `e2e/` (só se o preview da Vercel tiver Deployment Protection) |
 
-## 3. `jest.config.mjs` (testes.md, seção 7.2, com `next/jest` — decisão desta skill)
+Blocos do `playwright.config.ts` que são **do produto atual**, remova se não se aplicam: `globalSetup` (limpeza de clientes E2E), `permissions/launchOptions` do microfone, `extraHTTPHeaders` com `E2E_ADAPTER_SECRET`.
 
-Sufixos e projetos são do documento: `*.spec.ts(x)` para unitário/componente, `*.test.ts` para integração (webhook incluso).
-
-```js
-import nextJest from "next/jest.js";
-
-const criarConfig = nextJest({ dir: "./" });
-
-const ignorar = ["/node_modules/", "/e2e/"]; // e2e/ é do Playwright
-
-const comum = {
-  moduleNameMapper: { "^@/(.*)$": "<rootDir>/src/$1" },
-  testPathIgnorePatterns: ignorar,
-};
-
-export default async () => ({
-  projects: [
-    await criarConfig({
-      ...comum,
-      displayName: "unit", // unitário e componente
-      testMatch: ["**/*.spec.{ts,tsx}"],
-      testEnvironment: "jsdom",
-      setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
-    })(),
-    await criarConfig({
-      ...comum,
-      displayName: "integration", // integração (inclui os de webhook com Supertest)
-      testMatch: ["**/*.test.ts"],
-      testEnvironment: "node",
-    })(),
-  ],
-  collectCoverageFrom: [
-    "src/**/*.{ts,tsx}",
-    "!src/**/*.d.ts",
-    "!src/**/*.{spec,test}.{ts,tsx}",
-    "!src/presentation/components/ui/**", // shadcn: não é testado (testes.md, seção 3)
-    "!src/app/**",
-    "!src/main/**",
-  ],
-  coverageThreshold: {
-    global: { statements: 90, lines: 90, functions: 90, branches: 85 }, // testes.md, seção 6
-  },
-});
-```
-
-`jest.setup.ts`:
-```ts
-import "@testing-library/jest-dom";
-```
-
-O `next/jest`, o `testEnvironment` por projeto, o alias `@/` e a lista de exclusões de cobertura são decisão desta skill; os `testMatch`, o `ignorar` e os números de cobertura são literais do documento.
-
-## 4. `playwright.config.ts` (testes.md, seção 7.2, literal)
-
-```ts
-import { defineConfig } from "@playwright/test";
-
-export default defineConfig({
-  testDir: "e2e",
-  testMatch: "**/*.e2e.ts", // o padrão do Playwright (test|spec) não pega *.e2e.ts
-});
-```
+## 4. Scripts
 
 ```bash
-node -e "require('fs').appendFileSync('.gitignore', '\n# playwright\n/test-results/\n/playwright-report/\n/blob-report/\n/playwright/.cache/\n')"
+npm pkg set "scripts.test=jest --selectProjects unit" "scripts.test:int=jest --selectProjects integration --runInBand" "scripts.test:e2e=playwright test" "scripts.test:e2e:diff=playwright test --only-changed=develop" "scripts.test:cov=jest --coverage"
 ```
 
-## 5. Scripts no `package.json`
+`test:e2e:diff` precisa do histórico da base (`develop`): clone completo no CI.
 
-Os quatro primeiros são literais do documento; `test:cov` é decisão desta skill para medir a cobertura da seção 6.
+## 5. Conferir
 
-```bash
-npm pkg set "scripts.test=jest --selectProjects unit"
-npm pkg set "scripts.test:int=jest --selectProjects integration"
-npm pkg set "scripts.test:e2e=playwright test"
-npm pkg set "scripts.test:e2e:diff=playwright test --only-changed=develop"
-npm pkg set "scripts.test:cov=jest --coverage"
-```
+`yarn test` e `yarn test:int` (sem arquivos de teste ainda, "no tests found" conta como sucesso: o que vale é a config carregar). `test:e2e` só depois de existir um `*.e2e.ts`.
 
-`test:e2e:diff` precisa do histórico do branch base (`develop`) disponível — clone completo no CI, não raso.
-
-## O que este documento não configura
-
-As regras de processo (TDD obrigatório, definição de pronto, o que não é permitido num teste — seções 1 e 6 de `testes.md`) não são configuráveis em arquivo. Se o usuário pedir para "aplicar" essas regras, elas valem como orientação de como escrever os testes, não como algo que esta skill instala.
-
-## 6. Conferir
-
-```bash
-yarn test
-yarn test:int
-```
-
-(`test:e2e` e `test:e2e:diff` só fazem sentido depois que houver pelo menos um `*.e2e.ts` em `e2e/`.)
+As regras de processo (TDD, definição de pronto, o que não se testa) são orientação de escrita, não algo que esta skill instala.

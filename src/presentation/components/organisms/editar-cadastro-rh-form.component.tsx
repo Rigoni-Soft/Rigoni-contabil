@@ -1,0 +1,123 @@
+import { type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
+
+import { AvisoDeStatus } from "@/presentation/components/atoms/aviso-de-status.component";
+import { Pilha } from "@/presentation/components/atoms/caixa.component";
+import { FieldError } from "@/presentation/components/atoms/field-error.component";
+import { AcoesDoFormulario } from "@/presentation/components/molecules/acoes-do-formulario.component";
+import { Label } from "@/presentation/components/ui/label";
+import { Textarea } from "@/presentation/components/ui/textarea";
+
+import type { CabecalhoCliente } from "./cabecalho-do-cadastro.component";
+import { CartaoDoCadastro } from "./cartao-do-cadastro.component";
+import { ContatosDoCadastro, type AcoesDasLinhasDeContato } from "./contatos-do-cadastro.component";
+import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
+import {
+  motivoDeLeituraEmAndamento,
+  ParcelamentosDoCadastro,
+  type ParcelamentosProps,
+} from "./parcelamentos-do-cadastro.component";
+
+type EditarCadastroRhFormProps = ParcelamentosProps & {
+  cabecalho: CabecalhoCliente;
+  register: UseFormRegister<EditarCadastroOperacionalFormValues>;
+  control: Control<EditarCadastroOperacionalFormValues>;
+  errors: FieldErrors<EditarCadastroOperacionalFormValues>;
+  onSubmit: React.FormEventHandler<HTMLFormElement>;
+  pendente: boolean;
+  readOnly: boolean;
+  erroServidor?: string;
+  sucesso?: boolean;
+  oculto?: boolean;
+  contatos: { id: string }[];
+  onAdicionarContato: () => void;
+  linhasDeContato: AcoesDasLinhasDeContato;
+  onLimpar: () => void;
+  documentoContratual?: React.ReactNode;
+  responsavel?: React.ReactNode;
+  acompanhamento?: React.ReactNode;
+};
+
+export function EditarCadastroRhForm({
+  cabecalho,
+  register,
+  control,
+  errors,
+  onSubmit,
+  pendente,
+  readOnly,
+  erroServidor,
+  sucesso,
+  oculto,
+  contatos,
+  onAdicionarContato,
+  linhasDeContato,
+  parcelamentos,
+  parcelamentoCampos,
+  onAdicionarParcelamento,
+  onRemoverParcelamento,
+  leituras,
+  onArquivoEscolhido,
+  guiasDaParcela,
+  onLimpar,
+  documentoContratual,
+  responsavel,
+  acompanhamento,
+}: EditarCadastroRhFormProps) {
+  return (
+    <CartaoDoCadastro
+      cabecalho={cabecalho}
+      onSubmit={onSubmit}
+      pendente={pendente}
+      readOnly={readOnly}
+      oculto={oculto}
+      documentoContratual={documentoContratual}
+      responsavel={responsavel}
+      acompanhamento={acompanhamento}
+      acoes={
+        <AcoesDoFormulario
+          pendente={pendente}
+          motivoDoBloqueio={
+            motivoDeLeituraEmAndamento(leituras) ?? linhasDeContato.motivoDoBloqueio
+          }
+          onLimpar={onLimpar}
+        />
+      }
+      erroServidor={erroServidor}
+      sucesso={
+        sucesso && <AvisoDeStatus tipo="sucesso" legivel texto="Cadastro do RH atualizado." />
+      }
+    >
+      <ContatosDoCadastro
+        register={register}
+        control={control}
+        errors={errors}
+        readOnly={readOnly}
+        contatos={contatos}
+        onAdicionar={onAdicionarContato}
+        linhas={linhasDeContato}
+      />
+
+      <ParcelamentosDoCadastro
+        register={register}
+        control={control}
+        errors={errors}
+        readOnly={readOnly}
+        parcelamentos={parcelamentos}
+        parcelamentoCampos={parcelamentoCampos}
+        onAdicionar={onAdicionarParcelamento}
+        onRemover={onRemoverParcelamento}
+        leituras={leituras}
+        onArquivoEscolhido={onArquivoEscolhido}
+        guiasDaParcela={guiasDaParcela}
+      />
+
+      <Pilha espaco={1} className="sm:col-span-2 lg:col-span-4">
+        <Label htmlFor="observacoesGerais">Observações gerais do RH</Label>
+        <Textarea id="observacoesGerais" {...register("observacoesGerais")} rows={3} />
+        {errors.observacoesGerais?.message && (
+          <FieldError>{errors.observacoesGerais.message}</FieldError>
+        )}
+      </Pilha>
+    </CartaoDoCadastro>
+  );
+}
