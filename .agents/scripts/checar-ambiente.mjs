@@ -51,7 +51,7 @@ for (const [tipo, usados] of [["secret", usaSecrets], ["variable", usaVars]]) {
 marca("AVISO", "variáveis dos ambientes da Vercel não verificadas (Vercel CLI ausente): conferir à mão");
 
 // 3. Segredos no diff (linhas adicionadas desde a base)
-const diff = sh("git", ["diff", "-U0", `${base}..HEAD`, "--", ".", ":!*.lock", ":!*.pdf", ":!supabase/arquivos-seed", ":!.claude/scripts/checar-ambiente.mjs", ":!.agents/scripts/checar-ambiente.mjs"]);
+const diff = sh("git", ["diff", "-U0", `${base}..HEAD`, "--", ".", ":!*.lock", ":!*.pdf", ":!supabase/arquivos-seed"]);
 const adicionadas = diff.split("\n").filter((l) => l.startsWith("+") && !l.startsWith("+++"));
 const demo = (jwt) => {
   try {
@@ -64,7 +64,8 @@ const suspeitas = [];
 for (const l of adicionadas) {
   for (const jwt of l.match(/eyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{10,}/g) ?? []) if (!demo(jwt)) suspeitas.push(["JWT que não é a chave demo do Supabase", l]);
   if (/-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(l)) suspeitas.push(["chave privada", l]);
-  if (/\b(sk_live_|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{30,})/.test(l)) suspeitas.push(["token de provedor", l]);
+  // O "_" do prefixo Stripe fica entre colchetes: o padrão, escrito aqui, não casa consigo mesmo e o script segue sob varredura
+  if (/\b(sk_live[_]|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{30,})/.test(l)) suspeitas.push(["token de provedor", l]);
   if (/NEXT_PUBLIC_[A-Z0-9_]*(SECRET|SERVICE_ROLE|PRIVATE|TOKEN)/.test(l)) suspeitas.push(["variável pública com nome de segredo", l]);
 }
 if (suspeitas.length) for (const [tipo, l] of suspeitas.slice(0, 20)) marca("FALHA", `${tipo} no diff: ${l.slice(0, 90)}`);
