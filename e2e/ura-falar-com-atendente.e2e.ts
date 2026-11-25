@@ -11,7 +11,7 @@ const admin = adminLocal();
 const TELEFONE = "61955573091";
 const CLIENTE = crypto.randomUUID();
 const CNPJ = `8${Date.now()}`.slice(0, 14);
-const OPCAO_ATENDENTE = "5";
+const OPCAO_ATENDENTE = "4";
 
 let sequencia = 0;
 
