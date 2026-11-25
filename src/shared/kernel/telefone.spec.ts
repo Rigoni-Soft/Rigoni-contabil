@@ -1,4 +1,34 @@
-import { chaveDoTelefone, soDigitosNacionais, telefoneAceito, telefoneTemDdd } from "./telefone";
+import {
+  chaveDoTelefone,
+  semNonoDigito,
+  soDigitosNacionais,
+  telefoneAceito,
+  telefoneTemDdd,
+} from "./telefone";
+
+describe("semNonoDigito", () => {
+  it.each([
+    ["5545998480998", "554598480998"],
+    ["554598480998", "554598480998"],
+    ["554533221100", "554533221100"],
+    ["11912345678", "11912345678"],
+  ])("%s vira %s", (entrada, esperado) => {
+    expect(semNonoDigito(entrada)).toBe(esperado);
+  });
+});
+
+describe("soDigitosNacionais devolve o 9º dígito que o WhatsApp tira", () => {
+  it.each([
+    ["5545998480998", "45998480998"],
+    ["554598480998", "45998480998"],
+    ["4598480998", "45998480998"],
+    ["(45) 9848-0998", "45998480998"],
+    ["554533221100", "4533221100"],
+    ["4533221100", "4533221100"],
+  ])("%s vira %s", (entrada, esperado) => {
+    expect(soDigitosNacionais(entrada)).toBe(esperado);
+  });
+});
 
 describe("soDigitosNacionais", () => {
   it("devolve só os dígitos, sem o DDI 55 quando há mais de 11", () => {

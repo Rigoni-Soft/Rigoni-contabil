@@ -10,6 +10,7 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
+import { semNonoDigito } from "@/shared/kernel/telefone";
 
 import {
   envelope,
@@ -19,7 +20,7 @@ import {
   type ParteCorpo,
 } from "./corpo-cloud-api.gateway";
 
-const VERSAO_API = "v21.0";
+const VERSAO_API = "v23.0";
 const TIMEOUT_MS = 10_000;
 
 export class EnvioMensagemWhatsappGateway implements EnvioMensagemPort {
@@ -62,7 +63,7 @@ export class EnvioMensagemWhatsappGateway implements EnvioMensagemPort {
   }
 
   private async enviarParte(parte: ParteCorpo): Promise<Result<void, AppError>> {
-    const corpo = JSON.stringify(envelope(parte));
+    const corpo = JSON.stringify(envelope({ ...parte, to: semNonoDigito(parte.to) }));
     const resposta = await this.chamar("/messages", { "Content-Type": "application/json" }, corpo);
     return resposta.ok ? ok(undefined) : resposta;
   }

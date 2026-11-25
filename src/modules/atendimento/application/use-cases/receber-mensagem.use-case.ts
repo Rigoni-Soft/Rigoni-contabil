@@ -61,7 +61,6 @@ const OPCOES_MENU: { rotulo: string; guia?: TipoGuia }[] = [
   { rotulo: "Contrato social e alterações" },
   { rotulo: ROTULO_GUIA.das, guia: "das" },
   { rotulo: ROTULO_GUIA.parcelamento, guia: "parcelamento" },
-  { rotulo: ROTULO_GUIA.cnd, guia: "cnd" },
   { rotulo: "Falar com atendente" },
 ];
 const OPCAO_ATENDENTE = OPCOES_MENU.length;

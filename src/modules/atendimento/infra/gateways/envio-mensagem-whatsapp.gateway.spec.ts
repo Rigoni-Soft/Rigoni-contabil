@@ -21,17 +21,28 @@ describe("EnvioMensagemWhatsappGateway", () => {
 
     const { url, init, corpo } = chamada(http);
     expect(r.ok).toBe(true);
-    expect(url).toBe("https://graph.facebook.com/v21.0/123/messages");
+    expect(url).toBe("https://graph.facebook.com/v23.0/123/messages");
     expect(init.headers).toMatchObject({ Authorization: "Bearer tok" });
     expect(corpo).toEqual({
       messaging_product: "whatsapp",
       recipient_type: "individual",
-      to: "5511999990000",
+      to: "551199990000",
       type: "text",
       text: { body: "oi" },
     });
   });
 
+  it("tira o 9º dígito do celular só no envio; fixo e número sem 9 seguem como estão", async () => {
+    for (const [entrada, esperado] of [
+      ["5545998480998", "554598480998"],
+      ["554598480998", "554598480998"],
+      ["554533221100", "554533221100"],
+    ]) {
+      const http = responde(200);
+      await gateway(http).enviar({ telefone: entrada, texto: "oi" });
+      expect(chamada(http).corpo).toMatchObject({ to: esperado });
+    }
+  });
   it("documento por url vai como link", async () => {
     const http = responde(200);
     await gateway(http).enviarDocumento({
@@ -54,7 +65,7 @@ describe("EnvioMensagemWhatsappGateway", () => {
     });
 
     expect(r.ok).toBe(true);
-    expect((http.mock.calls[0] as unknown[])[0]).toBe("https://graph.facebook.com/v21.0/123/media");
+    expect((http.mock.calls[0] as unknown[])[0]).toBe("https://graph.facebook.com/v23.0/123/media");
     expect(chamada(http, 1).corpo.document).toEqual({ id: "m1", filename: "g.pdf" });
   });
 

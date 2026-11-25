@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 export const APP_DIR = "src/app";
 
-export const PAGINAS_PUBLICAS = new Set(["login/page.tsx"]);
+export const PAGINAS_PUBLICAS = new Set(["login/page.tsx", "privacidade/page.tsx"]);
 
 const CHAMA_GUARDA_DE_SESSAO = /(exigirSessao|validarSessao)[(]/;
 

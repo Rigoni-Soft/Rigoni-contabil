@@ -242,9 +242,10 @@ describe("ReceberMensagem", () => {
     expect(enviadas[0].telefone).toBe("5511912345678");
     expect(enviadas[0].texto).toContain("Ana");
     expect(enviadas[0].texto).toContain("Padaria Pão Quente");
-    for (const opcao of ["Contrato social", "imposto", "parcelamento", "CND", "atendente"]) {
+    for (const opcao of ["Contrato social", "imposto", "parcelamento", "atendente"]) {
       expect(enviadas[0].texto).toContain(opcao);
     }
+    expect(enviadas[0].texto).not.toContain("CND");
   });
 
   it("opção 3 (parcelamento) segue o processo do job: delega ao caso do parcelamento, sem buscar a guia direto", async () => {
@@ -262,7 +263,7 @@ describe("ReceberMensagem", () => {
     const r = await caso.execute({ telefone: "11912345678", texto: "3" });
     expect(r.ok).toBe(true);
     expect(enviadas[0].texto).toContain("autorização");
-    expect(enviadas[0].texto).toContain("*5*");
+    expect(enviadas[0].texto).toContain("*4*");
   });
 
   it.each([new ServicoExternoError("fora do ar"), "lanca" as const])(
@@ -277,7 +278,7 @@ describe("ReceberMensagem", () => {
     },
   );
 
-  it("opção 4 do menu entrega o PDF de CND do Cliente do contato", async () => {
+  it.skip("opção 4 do menu entrega o PDF de CND do Cliente do contato", async () => {
     const { caso, enviadas, documentosEnviados, guiasBuscadas } = montar();
     const r = await caso.execute({ telefone: "5511912345678", texto: "4" });
     expect(r.ok).toBe(true);
@@ -303,7 +304,7 @@ describe("ReceberMensagem", () => {
     const r = await caso.execute({ telefone: "11912345678", texto: "2" });
     expect(r.ok).toBe(true);
     expect(enviadas[0].texto).toContain("autorização");
-    expect(enviadas[0].texto).toContain("*5*");
+    expect(enviadas[0].texto).toContain("*4*");
   });
 
   it.each([new ServicoExternoError("fora do ar"), "lanca" as const])(
@@ -314,12 +315,12 @@ describe("ReceberMensagem", () => {
       const r = await caso.execute({ telefone: "11912345678", texto: "2" });
       expect(r.ok).toBe(true);
       expect(enviadas[0].texto).toContain("agora");
-      expect(enviadas[0].texto).toContain("*5*");
+      expect(enviadas[0].texto).toContain("*4*");
       expect(log).toHaveBeenCalledTimes(1);
     },
   );
 
-  it("guia sem autorização vigente avisa o contato e oferece o atendente", async () => {
+  it.skip("guia sem autorização vigente avisa o contato e oferece o atendente", async () => {
     const { caso, enviadas, documentosEnviados } = montar({
       guiaFalha: new ForbiddenError("sem autorização"),
     });
@@ -327,10 +328,10 @@ describe("ReceberMensagem", () => {
     expect(r.ok).toBe(true);
     expect(documentosEnviados).toHaveLength(0);
     expect(enviadas[0].texto).toContain("autorização");
-    expect(enviadas[0].texto).toContain("*5*");
+    expect(enviadas[0].texto).toContain("*4*");
   });
 
-  it.each([
+  it.skip.each([
     new ServicoExternoError("fora do ar"),
     new NotFoundError("sem cliente"),
     "lanca" as const,
@@ -343,12 +344,12 @@ describe("ReceberMensagem", () => {
       expect(r.ok).toBe(true);
       expect(documentosEnviados).toHaveLength(0);
       expect(enviadas[0].texto).toContain("agora");
-      expect(enviadas[0].texto).toContain("*5*");
+      expect(enviadas[0].texto).toContain("*4*");
       expect(log).toHaveBeenCalledTimes(1);
     },
   );
 
-  it("falha ao enviar o PDF devolve erro para a Meta reenviar", async () => {
+  it.skip("falha ao enviar o PDF devolve erro para a Meta reenviar", async () => {
     const { caso } = montar({ envioFalha: true });
     const r = await caso.execute({ telefone: "11912345678", texto: "4" });
     expect(r).toEqual({ ok: false, error: expect.any(ServicoExternoError) });
@@ -432,7 +433,7 @@ describe("ReceberMensagem — fora do expediente (#72)", () => {
       documentos: [CONTRATO],
     });
     await caso.execute({ telefone: FONE, texto: "1" });
-    await caso.execute({ telefone: FONE, texto: "5" });
+    await caso.execute({ telefone: FONE, texto: "4" });
     expect(buscados).toHaveLength(0);
     expect(gravadas).toHaveLength(0);
     expect(sessoes.size).toBe(0);
@@ -455,7 +456,7 @@ describe("ReceberMensagem — fora do expediente (#72)", () => {
       contato: null,
       cnpjsCadastrados: [],
     });
-    for (const texto of ["5", "sim", "xx", "yy", "zz", CNPJ_DESCONHECIDO, CNPJ_DESCONHECIDO]) {
+    for (const texto of ["4", "sim", "xx", "yy", "zz", CNPJ_DESCONHECIDO, CNPJ_DESCONHECIDO]) {
       await caso.execute({ telefone: FONE, texto });
     }
     expect(enviadas).toHaveLength(7);
@@ -481,7 +482,7 @@ describe("ReceberMensagem — fora do expediente (#72)", () => {
     ]);
 
     const abertura = montar();
-    await abertura.caso.execute({ telefone: FONE, texto: "5" });
+    await abertura.caso.execute({ telefone: FONE, texto: "4" });
     await abertura.caso.execute({ telefone: FONE, texto: "0", id: "wamid.ABERTURA" });
     expect(abertura.abertos[0].mensagens[0]).toMatchObject({
       autor: "contato",
@@ -1082,7 +1083,7 @@ describe("ReceberMensagem — opção falar com atendente: lista de setores", ()
   const CHAVE = "11912345678";
   type Caso = ReturnType<typeof montar>["caso"];
   const dizerAna = (caso: Caso, texto: string) => caso.execute({ telefone: TEL, texto });
-  const pedir = (caso: Caso) => dizerAna(caso, " 5 ");
+  const pedir = (caso: Caso) => dizerAna(caso, " 4 ");
 
   it("a opção abre a lista de setores paginada, sem abrir Atendimento", async () => {
     const { caso, abertos, enviadas, sessoes } = montar();
@@ -1140,7 +1141,7 @@ describe("ReceberMensagem — opção falar com atendente: lista de setores", ()
     const { caso, enviadas } = montar();
     await dizerAna(caso, "oi");
     const linhas = enviadas[0].texto.split("\n");
-    expect(linhas[linhas.length - 1]).toBe("5 - Falar com atendente");
+    expect(linhas[linhas.length - 1]).toBe("4 - Falar com atendente");
   });
 
   it("Cliente fora do Simples Nacional/MEI não vê o Simples Nacional na lista", async () => {
@@ -1290,7 +1291,7 @@ describe("ReceberMensagem — opção falar com atendente: lista de setores", ()
     await pedir(caso);
     await dizerAna(caso, "mais");
 
-    await dizerAna(caso, "5");
+    await dizerAna(caso, "4");
 
     expect(abertos).toHaveLength(0);
   });
@@ -1318,12 +1319,12 @@ describe("ReceberMensagem — opção falar com atendente: lista de setores", ()
   });
 
   it("sem sessão (expirada), o dígito volta a ser opção do menu", async () => {
-    const { caso, abertos, guiasBuscadas } = montar();
+    const { caso, abertos, dasPedidos } = montar();
 
-    await dizerAna(caso, "4");
+    await dizerAna(caso, "2");
 
     expect(abertos).toHaveLength(0);
-    expect(guiasBuscadas).toEqual([{ clienteId: "cliente-1", tipo: "cnd" }]);
+    expect(dasPedidos).toEqual([{ clienteId: "cliente-1", telefone: TEL }]);
   });
 
   it("falha ao consultar o regime devolve o erro, sem sessão nem Atendimento", async () => {
@@ -1357,7 +1358,7 @@ describe("ReceberMensagem — resumo e CNPJ do Atendimento aberto pela URA (#46)
 
   it("setor escolhido na lista: resumo do pedido, sem CNPJ informado", async () => {
     const { caso, abertos } = montar();
-    await caso.execute({ telefone: "5511912345678", texto: "5" });
+    await caso.execute({ telefone: "5511912345678", texto: "4" });
     await caso.execute({ telefone: "5511912345678", texto: "2" });
     expect(abertos[0].resumo).toBe("Cliente pediu o setor Tributário pelo menu da URA.");
     expect(abertos[0].cnpjInformado).toBeUndefined();
