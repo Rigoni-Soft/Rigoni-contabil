@@ -1,7 +1,8 @@
 -- Reconcilia o histórico de migrations da produção com o baseline (d69d065f).
 -- Só mexe em supabase_migrations.schema_migrations: nenhuma tabela de negócio é tocada,
 -- nenhum dado é apagado. Rode uma vez, no SQL Editor do projeto, antes do db push.
--- Aborta sem alterar nada se o histórico não for exatamente o das 43 migrations antigas.
+-- Aborta sem alterar nada se faltar qualquer uma das 43 migrations antigas ou se houver outra versão que não seja posterior ao baseline.
+-- Versões posteriores ao baseline já registradas são preservadas.
 
 do $$
 declare
@@ -51,13 +52,15 @@ declare
     '20261029150000'
   ];
   presentes int;
-  total int;
+  estranhas int;
 begin
   select count(*) into presentes from supabase_migrations.schema_migrations where version = any (antigas);
-  select count(*) into total from supabase_migrations.schema_migrations;
+  -- Fora das 43 antigas só se aceita versão posterior ao baseline (já aplicada depois dele); o baseline em si não pode estar lá.
+  select count(*) into estranhas from supabase_migrations.schema_migrations
+    where version <> all (antigas) and version <= '20261030090000';
 
-  if presentes <> 43 or total <> 43 then
-    raise exception 'histórico inesperado: % das 43 antigas presentes, % versões no total. Nada foi alterado.', presentes, total;
+  if presentes <> 43 or estranhas <> 0 then
+    raise exception 'histórico inesperado: % das 43 antigas presentes, % versões fora delas e não posteriores ao baseline. Nada foi alterado.', presentes, estranhas;
   end if;
 
   delete from supabase_migrations.schema_migrations where version = any (antigas);

@@ -16,9 +16,9 @@ A prova acima é local: não vale para um remoto. O `reconciliar-baseline.sql` s
    - `npx supabase db dump --linked -f remoto.sql` (só o schema; não use `--data-only`).
    - Na máquina local: `npx supabase db reset` e `npx supabase db dump --local -f baseline.sql`, com a árvore só até o baseline (sem as migrations posteriores a `20261030090000`).
    - Compare `remoto.sql` com `baseline.sql` cobrindo tipos/enums, funções, triggers, policies, grants, índices e buckets (`storage.buckets`). Tolera-se só comentário e ordem de `GRANT`. Qualquer outra diferença bloqueia o passo 4: corrija o remoto ou o baseline e registre a decisão.
-4. SQL Editor do projeto: rode `docs/deploy/reconciliar-baseline.sql`. O script só troca linhas de `supabase_migrations.schema_migrations`; nenhum dado de negócio é alterado ou apagado. Ele aborta sem mudar nada se o histórico não for exatamente o das 43 antigas.
-5. A saída deve listar só `20261030090000`.
-6. `npx supabase db push --dry-run`: devem aparecer só as migrations posteriores ao baseline (`20261030120000` em diante). Revise o plano; qualquer outra coisa interrompe aqui.
+4. SQL Editor do projeto: rode `docs/deploy/reconciliar-baseline.sql`. O script só troca linhas de `supabase_migrations.schema_migrations`; nenhum dado de negócio é alterado ou apagado. Ele aborta sem mudar nada se faltar qualquer uma das 43 antigas ou se houver versão que não seja posterior ao baseline; versões posteriores já registradas são preservadas.
+5. A saída deve listar `20261030090000` e, se houver, as versões posteriores já aplicadas.
+6. `npx supabase db push --dry-run`: devem aparecer só as migrations posteriores ao baseline (`20261030120000` em diante) que ainda não estão no histórico. Revise o plano; qualquer outra coisa interrompe aqui.
 7. `npx supabase db push`.
 
 Guarde, por ambiente, o resultado dos passos 2, 3 e 6 (listagem, diff e plano do dry-run) na PR ou no ticket do deploy.
