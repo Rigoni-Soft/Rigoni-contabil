@@ -75,7 +75,7 @@ export function PainelDeServicos({
                 variant="outline"
                 size="sm"
                 className={CLASSE_SERVICO}
-                disabled={enviando}
+                disabled={enviando || valor === "cnd"}
                 onClick={() => onEnviarServico(valor)}
               >
                 <Icone aria-hidden="true" />

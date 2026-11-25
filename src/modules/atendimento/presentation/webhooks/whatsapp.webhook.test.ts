@@ -225,8 +225,8 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
     ]);
   });
 
-  it("opção 5 do menu (falar com atendente) mostra a lista de setores, e o número escolhido encaminha ao setor", async () => {
-    const r = await enviar(notificacao([texto("5"), texto("2")]));
+  it("opção 4 do menu (falar com atendente) mostra a lista de setores, e o número escolhido encaminha ao setor", async () => {
+    const r = await enviar(notificacao([texto("4"), texto("2")]));
     expect(r.status).toBe(200);
     expect(envio.enviadas).toHaveLength(3);
     expect(envio.enviadas[0].texto).toContain("Com qual setor você quer falar?");
@@ -234,7 +234,7 @@ describe("POST /api/webhooks/whatsapp (notificação)", () => {
   });
 
   it("na lista de setores, '0' encaminha o contato reconhecido à recepção", async () => {
-    const r = await enviar(notificacao([texto("5"), texto("0")]));
+    const r = await enviar(notificacao([texto("4"), texto("0")]));
     expect(r.status).toBe(200);
     expect(envio.enviadas).toHaveLength(3);
     expect(envio.enviadas[1].texto).toContain("recepção");

@@ -102,6 +102,11 @@ Onde vive: uc/executar-lembretes-parcelamento-pgfn.use-case.ts:DIAS_DO_JOB, Exec
 `caminho` da guia confirmada é o PDF no bucket dos acordos; na entregue, é o PDF do envio aceito (null: registro anterior ao caminho guardado). O PDF vem sempre do banco, nunca do provedor fiscal, e o caminho de outro Cliente é recusado. A reserva guarda a versão listada para a primeira entrega: enquanto durar, troca e remoção são recusadas; devolve o token do dono, null se a guia mudou ou outra tentativa a detém. Liberar com token alheio ou vencido não tem efeito.
 Onde vive: ports/guias-pgfn.provider.ts:GuiaPgfnConfirmada, GuiaPgfnEntregue, ler, reservar, liberar.
 
+## CND desativada até a liberação do escritório
+
+A CND não aparece no menu da URA (por isso "Falar com atendente" é a opção 4), o botão fica desabilitado no painel de serviços e o servidor recusa a entrega com "A CND ainda não está liberada.". Para religar: devolver a opção `ROTULO_GUIA.cnd` ao `OPCOES_MENU`, tirar o guard em `prepararGuia` e o `|| valor === "cnd"` do painel.
+Onde vive: uc/receber-mensagem.use-case.ts:OPCOES_MENU, uc/enviar-documento-ao-cliente.use-case.ts:prepararGuia, presentation/components/organisms/painel-de-servicos.component.tsx.
+
 ## Feriado
 
 Só o Admin cadastra. A data tem de ser ISO real (rejeita 2026-02-30) e a descrição, de 1 a 200 caracteres após trim. A auditoria (`feriado.cadastrar`) nasce no banco, na mesma transação do INSERT.

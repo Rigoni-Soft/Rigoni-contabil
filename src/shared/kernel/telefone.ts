@@ -1,9 +1,16 @@
 export const soDigitos = (telefone: string) => telefone.replace(/\D/g, "");
 
+const CELULAR_SEM_NONO_DIGITO = /^(\d{2})([6-9]\d{7})$/;
+const CELULAR_COM_DDI_E_NONO_DIGITO = /^(55\d{2})9(\d{8})$/;
+
 export function soDigitosNacionais(telefone: string): string {
   const digitos = soDigitos(telefone);
-  return digitos.length > 11 && digitos.startsWith("55") ? digitos.slice(2) : digitos;
+  const nacional = digitos.length > 11 && digitos.startsWith("55") ? digitos.slice(2) : digitos;
+  return nacional.replace(CELULAR_SEM_NONO_DIGITO, "$19$2");
 }
+
+export const semNonoDigito = (telefoneComDdi: string): string =>
+  telefoneComDdi.replace(CELULAR_COM_DDI_E_NONO_DIGITO, "$1$2");
 
 export const chaveDoTelefone = (telefone: string): string | null =>
   soDigitosNacionais(telefone) || null;
