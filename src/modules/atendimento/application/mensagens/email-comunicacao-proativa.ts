@@ -32,7 +32,7 @@ function conteudoDe(c: ComunicacaoProativa): Conteudo {
         titulo: "Documentos fiscais pendentes",
         paragrafos: [
           `Ainda não recebemos os documentos fiscais de ${c.empresa} referentes a este mês.`,
-          "Poderia nos enviar assim que possível, para não atrasarmos a apuração do Simples Nacional?",
+          "Poderia nos enviar assim que possível, para não atrasarmos a apuração?",
         ],
         detalhes: [{ rotulo: "Empresa", valor: c.empresa }],
         anexo: false,
@@ -99,7 +99,7 @@ ${detalhes.map(linhaDeDetalhe).join("\n")}
 </table>
 ${aviso}
 </td></tr>
-<tr><td style="padding:16px 24px;border-top:1px solid ${COR_BORDA};font-size:12px;line-height:1.5;color:${COR_TEXTO_SECUNDARIO};">Rigoni Contábil · Simples Nacional<br>Esta é uma mensagem automática. Por favor, não responda este e-mail.</td></tr>
+<tr><td style="padding:16px 24px;border-top:1px solid ${COR_BORDA};font-size:12px;line-height:1.5;color:${COR_TEXTO_SECUNDARIO};">Rigoni Contábil<br>Esta é uma mensagem automática. Por favor, não responda este e-mail.</td></tr>
 </table>
 </td></tr>
 </table>
