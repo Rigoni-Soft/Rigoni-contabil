@@ -8,10 +8,14 @@ const SCRIPTS = [".claude/scripts/checar-ambiente.mjs", ".agents/scripts/checar-
 const TOKEN_SINTETICO = `const chave = "${"sk_live"}_${"a".repeat(24)}";\n`;
 
 const git = (cwd: string, ...args: string[]) =>
-  execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", ...args], {
-    cwd,
-    encoding: "utf8",
-  });
+  execFileSync(
+    "git",
+    ["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", ...args],
+    {
+      cwd,
+      encoding: "utf8",
+    },
+  );
 
 // Repositório descartável com a base já commitada; o caso adiciona um arquivo e roda o scanner contra ela.
 const rodarScanner = (scriptDoRepo: string, conteudoAdicionado: string | null) => {
