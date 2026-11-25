@@ -31,6 +31,17 @@ describe("EnvioEmailSmtpGateway", () => {
     expect(msg.text).toMatch(/não responda este e-mail/);
   });
 
+  it("manda o html quando o e-mail tem um e não o inventa quando não tem", async () => {
+    const sendMail = jest.fn().mockResolvedValue({});
+    const gateway = new EnvioEmailSmtpGateway(CONFIG, { sendMail });
+
+    await gateway.enviar({ ...EMAIL, html: "<p>Oi</p>" });
+    await gateway.enviar(EMAIL);
+
+    expect(sendMail.mock.calls[0][0].html).toBe("<p>Oi</p>");
+    expect(sendMail.mock.calls[1][0]).not.toHaveProperty("html");
+  });
+
   it("sem anexo não manda attachments", async () => {
     const sendMail = jest.fn().mockResolvedValue({});
 

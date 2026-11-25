@@ -47,6 +47,7 @@ export class EnvioEmailSmtpGateway implements EnvioEmailPort {
         to: email.para,
         subject: email.assunto,
         text: email.texto + AVISO_NAO_RESPONDER,
+        ...(email.html && { html: email.html }),
         ...(email.anexo && {
           attachments: [{ filename: email.anexo.nomeArquivo, path: email.anexo.url }],
         }),

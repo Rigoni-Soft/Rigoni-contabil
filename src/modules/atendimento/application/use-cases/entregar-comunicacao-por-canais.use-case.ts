@@ -3,6 +3,7 @@ import {
   montarAssuntoEmail,
   montarTextoLivre,
 } from "@/modules/atendimento/application/mensagens/comunicacao-proativa";
+import { montarEmailHtml } from "@/modules/atendimento/application/mensagens/email-comunicacao-proativa";
 import type {
   ComunicacaoEntregue,
   EntregarComunicacaoInput,
@@ -102,6 +103,7 @@ export class EntregarComunicacaoPorCanais implements EntregarComunicacaoPorCanai
           para: destinatario,
           assunto: `${montarAssuntoEmail(personalizada)} — ${cliente.empresa}`,
           texto: montarTextoLivre(personalizada),
+          html: montarEmailHtml(personalizada),
           anexo: guiaDe(personalizada),
         }),
       TENTATIVAS,
