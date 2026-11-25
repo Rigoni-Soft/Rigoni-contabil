@@ -5,6 +5,7 @@ export type EmailParaEnvio = {
   para: string;
   assunto: string;
   texto: string;
+  html?: string;
   anexo?: { url: string; nomeArquivo: string };
 };
 
