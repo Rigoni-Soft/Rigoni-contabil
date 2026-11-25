@@ -6,16 +6,12 @@ import { FORMAS_ENVIO } from "@/shared/kernel/forma-envio";
 import { SETORES } from "@/shared/kernel/setores";
 import { telefoneAceito } from "@/shared/kernel/telefone";
 
-// O contato do Cliente: o mesmo no cadastro do SN e no do RH.
 export const contatoSchema = z
   .object({
     id: z.string().optional(),
     nome: z.string().trim().min(1, "obrigatório"),
     telefone: z.string(),
-    // O número como veio do banco: o DDD só é cobrado de número novo ou trocado.
     telefoneOriginal: z.string().optional(),
-    // Setor dono do contato (null = Admin): a tela deixa em leitura o que é de outro Setor. Nunca vai
-    // ao banco: só o dono e o Admin gravam, e quem decide é a RLS.
     donoSetor: z.string().nullable().optional(),
     email: z
       .string()
@@ -49,24 +45,22 @@ export const editarCadastroOperacionalSchema = z.object({
   }),
 });
 
-// Teto de 4,5 MB do corpo de uma Server Action na Vercel (ADR 0007): 4 MB deixa folga para o resto.
-// ponytail: o bucket aceita 10 MiB; acima de 4 MB o upload em partes direto ao Storage (ADR 0007)
-// exigiria política de usuário no bucket, que este ticket proíbe.
-const LIMITE_PDF_BYTES = 4 * 1024 * 1024;
+const LIMITE_DE_PDFS_POR_ACTION_EM_BYTES = 4 * 1024 * 1024;
 const pdfDoAcordo = z
   .instanceof(File, { message: "Anexe o PDF do parcelamento" })
   .refine((arquivo) => arquivo.type === "application/pdf", "Envie um arquivo PDF")
-  .refine((arquivo) => arquivo.size <= LIMITE_PDF_BYTES, "O arquivo passa de 4 MB");
+  .refine(
+    (arquivo) => arquivo.size <= LIMITE_DE_PDFS_POR_ACTION_EM_BYTES,
+    "O arquivo passa de 4 MB",
+  );
 
-// O teto de 4,5 MB é do corpo inteiro da Server Action, não de cada PDF: a soma dos anexos novos cabe nele.
 const somaDosPdfsCabe = (parcelamentos: { arquivo?: File }[]) =>
-  parcelamentos.reduce((total, p) => total + (p.arquivo?.size ?? 0), 0) <= LIMITE_PDF_BYTES;
+  parcelamentos.reduce((total, p) => total + (p.arquivo?.size ?? 0), 0) <=
+  LIMITE_DE_PDFS_POR_ACTION_EM_BYTES;
 const MENSAGEM_SOMA_DOS_PDFS = "Os PDFs novos somam mais de 4 MB. Salve alguns de cada vez.";
 
-// Leitura do PDF na tela: o arquivo, com as mesmas regras do anexo, e o Cliente (para conferir o CNPJ).
 export const lerPdfDeParcelamentoSchema = z.object({ clienteId: z.guid(), arquivo: pdfDoAcordo });
 
-// Dados do acordo lidos do PDF (informativos; o domínio revalida cada campo ao salvar).
 const acordoDoPdf = z.object({
   origem: z.enum(["receita_federal", "pgfn"]).nullable(),
   totalDeParcelas: z.number().nullable(),
@@ -79,10 +73,8 @@ const parcelasRestantes = z
   .int("número inteiro")
   .min(1, "Informe 1 ou mais parcelas");
 
-// Opcional: em branco, o sistema gera um código (PARC-XXXXXXXX) ao salvar.
 const codigoDoParcelamento = z.string().trim().max(60, "máximo 60 caracteres");
 
-// Parcelamentos vão por Server Action própria (têm arquivo): o cadastro operacional não os carrega.
 export const salvarParcelamentosSchema = z.object({
   clienteId: z.guid(),
   setor: z.enum(SETORES),
@@ -91,7 +83,6 @@ export const salvarParcelamentosSchema = z.object({
       z.object({
         id: z.guid().optional(),
         codigo: codigoDoParcelamento,
-        // 0 vem do quitado, que volta intacto; o mínimo de 1 nos demais é do caso de uso e do banco.
         parcelasRestantes: z.number().int("número inteiro").min(0),
         interno: z.boolean(),
         arquivo: pdfDoAcordo.optional(),
@@ -101,8 +92,7 @@ export const salvarParcelamentosSchema = z.object({
     .refine(somaDosPdfsCabe, MENSAGEM_SOMA_DOS_PDFS),
 });
 
-// Linha do formulário: além do que se grava, traz o que a tela só exibe (selo, quitado, nome do PDF).
-export const parcelamentoFormSchema = z
+const parcelamentoFormSchema = z
   .object({
     id: z.string().optional(),
     codigo: codigoDoParcelamento,
@@ -113,12 +103,10 @@ export const parcelamentoFormSchema = z
     enviadoNoMes: z.boolean(),
     arquivoNome: z.string(),
     arquivo: z.instanceof(File).optional(),
-    // Primeira guia do Parcelamento PGFN novo: sobe por Server Action própria, depois de salvar.
     guia: pdfDoAcordo.optional(),
     acordo: acordoDoPdf.optional(),
   })
   .superRefine((p, ctx) => {
-    // Mesmas regras da Server Action; quitado não se edita (o zero é do sistema) e o PDF só vale no novo.
     const regras = [
       ...(p.quitado
         ? []
@@ -133,34 +121,21 @@ export const parcelamentoFormSchema = z
   });
 export type ParcelamentoFormValues = z.infer<typeof parcelamentoFormSchema>;
 
-// A lista de linhas do formulário (SN e RH): cada linha válida e os PDFs novos cabendo juntos no corpo da chamada.
 export const parcelamentosFormSchema = z
   .array(parcelamentoFormSchema)
   .refine(somaDosPdfsCabe, MENSAGEM_SOMA_DOS_PDFS);
 
-export type EditarCadastroOperacionalInput = z.infer<typeof editarCadastroOperacionalSchema>;
-
-// clienteId nunca é digitado pelo Funcionário — vem do parâmetro da rota (Container injeta antes de
-// chamar a Server Action). Removê-lo do resolver do formulário evita depender de um input escondido
-// só pra carregar um valor que o React Hook Form já não precisa validar no cliente. responsavelId
-// vai por outra Server Action (só o Líder do SN atribui) — aqui só viaja no formulário; o schema da
-// action de edição o descarta.
 export const editarCadastroOperacionalFormSchema = editarCadastroOperacionalSchema
   .omit({ clienteId: true })
   .extend({
     responsavelId: z.string(),
     parcelamentos: parcelamentosFormSchema,
   });
-// `telefoneOriginal` viaja nos valores (vem do banco nos valores iniciais) mas não é campo do formulário:
-// fora do tipo, o RHF não ganha mais um caminho (`contatos.N.telefoneOriginal`) e os hooks de Control seguem compatíveis.
 type ValoresDoSchema = z.infer<typeof editarCadastroOperacionalFormSchema>;
 export type EditarCadastroOperacionalFormValues = Omit<ValoresDoSchema, "contatos"> & {
-  // `tipos` (o que o contato recebe do Setor) é estado da linha: grava por ação própria e nunca vai no payload do cadastro.
   contatos: (Omit<ValoresDoSchema["contatos"][number], "telefoneOriginal"> & {
     tipos?: string[];
-    // Por onde o Setor envia ao contato com os dois canais ("" = não escolhido); também grava com os `tipos`.
     canal?: string;
-    // Os Setores que usam o contato (vem do servidor): decide quem o vê na lista do Setor.
     setores?: readonly string[];
   })[];
 };

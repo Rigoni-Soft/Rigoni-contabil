@@ -31,7 +31,6 @@ const dasSchema = z
   })
   .nullable();
 
-// Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
 export class SupabaseClientesParaLembreteGateway implements ClientesParaLembretePort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 

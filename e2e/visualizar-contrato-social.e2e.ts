@@ -36,7 +36,6 @@ test.describe("Visualizar contrato social e alterações (#140)", () => {
     await entrarEm(page, "funcionario.sn@rigonicontabil.local", "func123");
     await abrirCliente(page, empresa);
     await expect(page.getByText("Contrato social", { exact: true }).first()).toBeVisible();
-    // O arquivo é baixado/visualizado na nova aba: o que se confere é a requisição ao link assinado.
     const [requisicao] = await Promise.all([
       page
         .context()

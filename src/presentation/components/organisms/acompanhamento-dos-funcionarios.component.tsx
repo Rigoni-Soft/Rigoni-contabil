@@ -12,14 +12,13 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { ListaDeClientes } from "@/presentation/components/molecules/lista-de-clientes.component";
 import { NavegacaoDeMes } from "@/presentation/components/molecules/navegacao-de-mes.component";
 
-export type FuncionarioDoGrafico = {
+type FuncionarioDoGrafico = {
   id: string;
   nome: string;
   atribuidos: number;
   pontos: number;
   percentual: number;
   href: string;
-  // `href`: a lista das empresas que faltam naquele serviço para este funcionário.
   faltam: {
     servicoId: string;
     nome: string;
@@ -34,11 +33,9 @@ type Props = {
   anteriorHref: string;
   proximoHref?: string;
   funcionarios: FuncionarioDoGrafico[];
-  // `href`: o cadastro operacional do cliente, para atribuir o Responsável.
   semResponsavel: { clienteId: string; empresa: string; cnpj: string; href: string }[];
 };
 
-// Pontos x clientes atribuídos por Funcionário e, logo abaixo, quantos clientes faltam em cada serviço.
 export function AcompanhamentoDosFuncionarios({
   rotuloMes,
   anteriorHref,

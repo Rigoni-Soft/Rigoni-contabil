@@ -11,7 +11,7 @@ import { useGuiasDaParcela } from "./use-guias-da-parcela.hook";
 
 type Props = { parcelamentoId: string; codigo: string; interno: boolean };
 
-export function AnexarGuiaParcelaPgfnContainer({ parcelamentoId, codigo, interno }: Props) {
+function AnexarGuiaParcelaPgfnContainer({ parcelamentoId, codigo, interno }: Props) {
   const prefixo = `guias-${parcelamentoId}`;
   const guias = useGuiasDaParcela(parcelamentoId, prefixo);
 
@@ -37,7 +37,6 @@ export function AnexarGuiaParcelaPgfnContainer({ parcelamentoId, codigo, interno
   );
 }
 
-// O slot `guiasDaParcela` das Views de cadastro: a região de guias de cada Parcelamento PGFN salvo.
 export const guiasDaParcela = (parcelamentoId: string, codigo: string, interno: boolean) => (
   <AnexarGuiaParcelaPgfnContainer
     parcelamentoId={parcelamentoId}

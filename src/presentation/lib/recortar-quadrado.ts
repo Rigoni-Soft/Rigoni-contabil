@@ -1,7 +1,5 @@
-// Recorta o quadrado central de uma imagem e a reduz a `lado`×`lado` em WebP, no navegador (sem
-// dependência). O canvas regrava a imagem, então o EXIF (local, data, aparelho) não sai com ela;
-// `from-image` aplica a orientação do EXIF antes de recortar, para a foto de celular não sair deitada.
-// Lança se o navegador não decodifica a imagem ou não grava WebP: quem chama avisa o usuário.
+const QUALIDADE_DO_WEBP = 0.85;
+
 export async function recortarQuadrado(arquivo: File, lado: number): Promise<Blob> {
   const imagem = await createImageBitmap(arquivo, { imageOrientation: "from-image" });
   try {
@@ -26,7 +24,7 @@ export async function recortarQuadrado(arquivo: File, lado: number): Promise<Blo
       tela.toBlob(
         (blob) => (blob ? resolver(blob) : rejeitar(new Error("WebP indisponível"))),
         "image/webp",
-        0.85,
+        QUALIDADE_DO_WEBP,
       ),
     );
   } finally {

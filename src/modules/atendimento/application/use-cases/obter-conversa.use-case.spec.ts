@@ -73,7 +73,6 @@ const COM_ANEXO: ConversaLida = {
 };
 const FUNCIONARIO: AtorSessaoDto = { id: "func-1", papel: "funcionario", setor: "contabil" };
 
-// Fake parcial de uma porta: só os métodos que o caso de uso chama neste teste.
 const fake = <T>(parcial: Partial<T>) => parcial as T;
 
 function montar(
@@ -143,7 +142,6 @@ function montar(
   };
 }
 
-// O mesmo caso de uso, com o Storage trocável para o teste de falha dos links.
 function montarComFalhaDeLinks() {
   const anexos = fake<AnexosAtendimentoPort>({ linksTemporarios: async () => ok({}) });
   const repo = fake<AtendimentoRepositoryPort>({
@@ -249,7 +247,6 @@ describe("ObterConversa", () => {
         telefone: "5561988887777",
         contato: CONTATO,
         clienteVinculado: true,
-        // O id do provedor não vai à tela: só se a Mensagem do cliente aceita reação.
         mensagens: [
           expect.objectContaining({ reagivel: true }),
           expect.objectContaining({ reagivel: false }),

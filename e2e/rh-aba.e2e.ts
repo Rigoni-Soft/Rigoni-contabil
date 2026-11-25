@@ -2,8 +2,6 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, login } from "./support/criar-cliente";
 
-// Aba do RH: o Líder acha todo Cliente e atribui, troca e remove o Responsável do RH; o Admin acha todo Cliente; o Funcionário acha só o atribuído a
-// ele, vê o cadastro do RH e tem no resumo só os dele; funcionário de outro Setor volta para o início.
 const admin = adminLocal();
 const SUFIXO = `${Date.now()}`.slice(-6);
 const EMPRESA = `RH Aba E2E ${SUFIXO} Ltda`;
@@ -33,7 +31,6 @@ test.describe("Aba RH: busca ampla e Responsável do RH (#213)", () => {
     if (criado.error) throw criado.error;
   });
 
-  // Cada teste parte sem Responsável do RH.
   test.beforeEach(async () => {
     await admin.from("cliente_responsaveis").delete().eq("cliente_id", clienteId).eq("setor", "rh");
   });
@@ -64,7 +61,6 @@ test.describe("Aba RH: busca ampla e Responsável do RH (#213)", () => {
 
     await login(page, "funcionario.rh@rigonicontabil.local", "func123");
     await expect(page).toHaveURL("/rh");
-    // O Funcionário não vê o comparativo por Responsável nem os clientes sem Responsável.
     await expect(page.getByText("Clientes por Responsável")).toHaveCount(0);
     await expect(page.getByText("Sem responsável")).toHaveCount(0);
 

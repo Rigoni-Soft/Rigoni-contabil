@@ -11,26 +11,16 @@ type CartaoDoCadastroProps = {
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   pendente: boolean;
   readOnly: boolean;
-  // Até hidratar, os campos (não controlados) ainda não têm os valores: oculto sem sair do layout.
   oculto?: boolean;
-  // Cartão do documento contratual com "Abrir em nova aba" (só leitura); ausente = ator sem acesso.
   documentoContratual?: React.ReactNode;
-  // O Responsável do Setor: um campo do cabeçalho, na mesma coluna em todo Setor.
   responsavel?: React.ReactNode;
-  // Os serviços do mês: uma seção do cartão, depois do cabeçalho.
   acompanhamento?: React.ReactNode;
-  // Botões do formulário; ausente quando só se lê.
   acoes?: React.ReactNode;
   erroServidor?: string;
-  // O aviso de sucesso já montado, ou ausente.
   sucesso?: React.ReactNode;
-  // Os campos do Setor: itens da grade de 4 colunas do fieldset.
   children: React.ReactNode;
 };
 
-// O cartão do cadastro operacional de qualquer Setor: moldura guilhochê, nota de obrigatórios,
-// cabeçalho com o Responsável, acompanhamento, os campos do Setor, as ações e o resultado. Só os campos
-// do meio mudam de um Setor para outro.
 export function CartaoDoCadastro({
   cabecalho,
   onSubmit,

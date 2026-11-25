@@ -1,16 +1,13 @@
-// yarn check:actions  →  falha se uma Server Action (`*.actions.ts`) não valida a entrada com Zod
-// (docs/arquitetura.md, 3.13 passo 1 e 4.8): importa o `*.schema` do ViewModel ou o próprio `zod`.
-// Quem não recebe entrada do cliente fica na lista abaixo, com o motivo.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 export const ROOT = "src";
 
-// Sem entrada vinda do cliente: nada a validar.
-export const SEM_ENTRADA = new Set([
-  "src/presentation/view-models/shell/logout.actions.ts", // só encerra a sessão
-  "src/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.actions.ts",
-]);
+const SO_ENCERRA_A_SESSAO = "src/presentation/view-models/shell/logout.actions.ts";
+const NAO_RECEBE_DADO_DO_CLIENTE =
+  "src/modules/atendimento/presentation/view-models/meus-atendimentos/meus-atendimentos.actions.ts";
+
+export const SEM_ENTRADA = new Set([SO_ENCERRA_A_SESSAO, NAO_RECEBE_DADO_DO_CLIENTE]);
 
 const ACTIONS = /\.actions\.ts$/;
 const VALIDA = /from "zod"|\.schema"/;

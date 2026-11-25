@@ -6,7 +6,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 import { ExecutarLembretesParcelamentoPgfn } from "./executar-lembretes-parcelamento-pgfn.use-case";
 
-// 10/10/2026 08:00 em São Paulo (sábado: o job roda também em fim de semana).
 const diaDoJob = new Date("2026-10-10T11:00:00Z");
 
 const cliente = (extra: Partial<ClienteComParcelamentoPgfn> = {}): ClienteComParcelamentoPgfn => ({

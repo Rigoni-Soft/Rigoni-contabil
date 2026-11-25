@@ -3,7 +3,6 @@ import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from "pdf
 import type { DocumentoDoCartaoDto } from "@/modules/rh/application/dtos/documento-do-cartao.dto";
 import type { GeradorDePdfDoCartaoPort } from "@/modules/rh/application/ports/out/gerador-de-pdf-do-cartao.provider";
 
-// A4 em pontos, retrato: o mês inteiro (28 a 31 linhas), a Totalização e as duas assinaturas cabem numa página.
 const LARGURA = 595.28;
 const ALTURA = 841.89;
 const MARGEM = 36;
@@ -26,8 +25,6 @@ const COLUNAS = [
   { titulo: "Situação", largura: UTIL - 364 },
 ];
 
-// Gera o PDF individual do Cartão de ponto: identificação, um dia por linha, a Totalização do mês em destaque e as
-// linhas de assinatura física. Só desenha o que o DTO já traz em texto.
 export class PdfLibGeradorDoCartaoGateway implements GeradorDePdfDoCartaoPort {
   async gerar(documento: DocumentoDoCartaoDto): Promise<Uint8Array> {
     const pdf = await PDFDocument.create();
@@ -84,7 +81,6 @@ export class PdfLibGeradorDoCartaoGateway implements GeradorDePdfDoCartaoPort {
     });
   }
 
-  // O bloco que a pessoa confere antes de assinar: fundo azul claro, borda e valores em negrito.
   private totalizacao(pincel: Pincel, documento: DocumentoDoCartaoDto, topo: number) {
     const linhas = Math.ceil(documento.totalizacao.length / 2);
     const alturaDoBloco = 24 + linhas * 16;
@@ -112,9 +108,7 @@ export class PdfLibGeradorDoCartaoGateway implements GeradorDePdfDoCartaoPort {
   }
 }
 
-// Desenha com a origem no canto superior esquerdo (o pdf-lib mede de baixo para cima).
 class Pincel {
-  // Os caracteres que cada fonte codifica, calculados uma vez (o texto é desenhado centenas de vezes por PDF).
   private readonly aceitosNormal: Set<number>;
   private readonly aceitosNegrito: Set<number>;
 
@@ -127,8 +121,6 @@ class Pincel {
     this.aceitosNegrito = new Set(negrito.getCharacterSet());
   }
 
-  // A Helvetica padrão só codifica WinAnsi: o que ela não tem vira "?" (nome com emoji ou outro alfabeto não derruba
-  // o PDF) e o texto que passa da largura útil é cortado com reticências.
   texto(texto: string, x: number, baseline: number, tamanho: number, negrito = false) {
     const fonte = negrito ? this.negrito : this.normal;
     const aceitos = negrito ? this.aceitosNegrito : this.aceitosNormal;

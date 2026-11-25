@@ -26,12 +26,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const MANUAL = "Não foi possível ler o cartão. Digite os horários à mão.";
 
-// Lê a foto do cartão de uma quinzena pelo leitor (visão atrás da porta neutra) e valida a leitura no
-// domínio; falha ou leitura reprovada = digitação manual, sem gravar nada. Quem não está no
-// Quadro é cadastrado pelo nome do cartão, com a Jornada deduzida do padrão das batidas; o empregado já
-// cadastrado mantém a sua. Ler só preenche: o dia que já tem batida, extra ou abono (digitado ou vindo de
-// atestado) não é tocado, e o dia em branco não apaga nada. A quinzena entra numa transação só. A imagem só
-// passa por aqui: não é guardada.
 export class LerCartaoDePonto extends LerDeFoto implements LerCartaoDePontoPort {
   constructor(
     sessao: SessaoPort,
@@ -89,7 +83,6 @@ export class LerCartaoDePonto extends LerDeFoto implements LerCartaoDePontoPort 
       cadastrado: empregado.value.cadastrado,
       dias: gravar.length,
       mantidos,
-      // Falta em dia que o RH já preencheu é mantida e não conta: o resumo só fala do que a leitura anotou.
       faltas: valida.faltas.filter((data) => !datasComDado.has(data)).length,
       abonos: gravar.filter((d) => d.abono).length,
     });

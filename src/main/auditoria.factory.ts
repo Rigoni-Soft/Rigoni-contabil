@@ -22,10 +22,6 @@ import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories
 
 const errosUsuarios = new ConsoleRegistroDeErrosGateway();
 
-// Adapta a sessão do módulo usuarios à porta própria da auditoria (arquitetura.md, seção 3.11):
-// só o `main` enxerga os dois módulos. Monta o ObterSessao direto (não chama
-// usuarios.factory) pra não criar import circular entre as duas factories,
-// já que usuarios.factory também precisa desta (makeRegistrarAcao).
 function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   const obterSessao = new ObterSessao(
     new SupabaseSessaoGateway(supabase),
@@ -35,10 +31,6 @@ function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   return { usuarioAtual: () => obterSessao.execute() };
 }
 
-// Client service_role, não o da sessão do usuário: a RPC registrar_acao_auditoria só aceita
-// service_role (migration 20260924190000_usuarios_e_auditoria.sql), justamente pra um usuário comum
-// não conseguir chamá-la direto e fabricar eventos. Mesmo padrão do SupabaseAuthAdminGateway
-// (ADR 0001): privilégio elevado confinado a um único ponto.
 export async function makeRegistrarAcao(): Promise<RegistrarAcaoPort> {
   return new RegistrarAcao(new SupabaseRegistroAcaoRepository(createSupabaseAdmin()));
 }
@@ -51,9 +43,6 @@ export async function makeListarRegistros(): Promise<ListarRegistrosPort> {
   );
 }
 
-// Adapta a porta IN RegistrarAcao às portas próprias de auditoria de atendimento e clientes
-// (arquitetura.md, seção 3.11). Best-effort: falha ao auditar vai pro registro de erros e não derruba
-// a ação principal.
 export function auditoriaBestEffort(erros: RegistroDeErrosPort) {
   return {
     registrar: async (input: RegistrarAcaoInput): Promise<void> => {

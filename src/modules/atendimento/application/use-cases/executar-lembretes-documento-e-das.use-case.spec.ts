@@ -15,7 +15,6 @@ import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-cas
 import { ExecutarLembretesDocumentoEDas } from "./executar-lembretes-documento-e-das.use-case";
 import { ObterGuiaDasParaEnvio } from "./obter-guia-das-para-envio.use-case";
 
-// 05/10/2026 09:00 em São Paulo.
 const diaDoJob = new Date("2026-10-05T12:00:00Z");
 const telefone = "5511912345678";
 
@@ -30,7 +29,6 @@ function cliente(extra: Partial<ClienteParaLembrete> = {}): ClienteParaLembrete 
   };
 }
 
-// Destino do Simples Nacional já resolvido: o Contato "Ângela" pelo WhatsApp, a menos que o teste diga outro.
 function destino(extra: Partial<DestinoDeEnvio> = {}): DestinoDeEnvio {
   return {
     contatoNome: "Ângela",
@@ -60,15 +58,12 @@ function montar(
     buscar?: () => Promise<Result<GuiaFiscal, AppError>>;
     falhas?: Record<string, number>;
     reservar?: Result<string | null, AppError>;
-    // Por Cliente: sobrepõe `reservar` (um Cliente com a reserva ocupada ao lado de outro livre).
     reservarPor?: Record<string, Result<string | null, AppError>>;
     concluir?: Result<boolean, AppError>;
     liberar?: Result<void, AppError>;
     resolver?: Result<void, AppError>;
     gravacao?: Result<void, AppError>;
-    // Destinos do Setor por Cliente (todos os tipos); sem entrada, o WhatsApp da Ângela.
     destinos?: Record<string, DestinoDeEnvio[]>;
-    // Destinos por tipo de envio, antes dos do Cliente (o tipo específico vale só para ele).
     destinosPorTipo?: Partial<Record<TipoDeEnvio, DestinoDeEnvio[]>>;
     erroDosDestinos?: AppError;
   } = {},
@@ -79,7 +74,6 @@ function montar(
   const alertas: AlertaSetor[] = [];
   const marcados: [string, string][] = [];
   const liberados: [string, string][] = [];
-  // Quantos envios (WhatsApp + e-mail) já tinham saído quando cada conclusão foi pedida.
   const entregasAoConcluir: number[] = [];
   const resolvidos: { desde: Date; ids: string[] }[] = [];
   const buscar = jest.fn(opcoes.buscar ?? (async () => ok(guiaOk)));
@@ -530,7 +524,6 @@ describe("ExecutarLembretesDocumentoEDas", () => {
       { reservarPor: { ocupado: ok(null) } },
     );
     const resultado = await job.execute();
-    // O lembrete do Cliente ocupado saiu, mas a tarefa do DAS não foi reavaliada: ele fica de fora.
     expect(envio.templatesEnviados.map((t) => t.nome).sort()).toEqual([
       "envio_guia_das",
       "lembrete_documento_obrigatorio",

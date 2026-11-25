@@ -7,7 +7,6 @@ import { Button } from "@/presentation/components/ui/button";
 import { SEM_RESPONSAVEL_LABEL } from "@/shared/kernel/papeis";
 
 type ResponsavelDoSetorProps = {
-  // Nome do Setor do Líder, no texto de apoio.
   setor: string;
   valor: string;
   opcoes: { id: string; nome: string }[];
@@ -16,16 +15,13 @@ type ResponsavelDoSetorProps = {
   estadoLista: "ok" | "carregando" | "erro";
   onTentarNovamente: () => void;
   onSalvar: () => void;
-  // Só habilita quando a escolha difere do Responsável salvo.
   alterado: boolean;
   pendente: boolean;
   erro?: string;
   salvo?: boolean;
-  // Dentro do cartão do cadastro (RH), onde o texto de apoio do bloco avulso não cabe.
   embutido?: boolean;
 };
 
-// Responsável do Cliente no Setor do Líder, fora do Simples Nacional (que o tem no cadastro).
 export function ResponsavelDoSetor({
   setor,
   valor,

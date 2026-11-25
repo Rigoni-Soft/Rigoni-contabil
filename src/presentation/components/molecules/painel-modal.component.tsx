@@ -8,21 +8,14 @@ import { SUPERFICIE_DE_PAINEL } from "@/presentation/lib/superficie-de-painel";
 import { cn } from "@/presentation/lib/utils";
 
 type Props = {
-  // Id do <dialog> (e base do id do título); único na página. O Container o abre com showModal.
   painelId: string;
   titulo: string;
-  // Nome acessível do X de fechar.
   rotuloDoFechar: string;
   aoFechar: () => void;
-  // Trabalho em andamento (ex.: leitura de foto): a modal não fecha por Esc, véu nem X, para o resultado ou o erro
-  // não cair numa modal fechada. Quem usa também ignora o `aoFechar` nesse estado.
   bloqueado?: boolean;
-  // O corpo (já com o próprio espaçamento e rolagem) abaixo do cabeçalho.
   children: ReactNode;
 };
 
-// A casca dos painéis modais (sino de avisos, leitura de atestado): <dialog> com título, X de fechar e clique
-// no véu fechando (nativo: sem suporte, Esc e o X seguem valendo). `bloqueado` segura os três.
 export function PainelModal({
   painelId,
   titulo,

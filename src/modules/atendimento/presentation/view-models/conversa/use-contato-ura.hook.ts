@@ -17,8 +17,6 @@ function fechaPainel(resultado: ResultadoCadastroContatoUra | undefined) {
   return resultado?.status === "criado" || resultado?.status === "existente";
 }
 
-// "Cadastrar como contato deste Cliente": confirma o Cliente (passo 1) e cadastra o número (passo 2).
-// Criado e já existente concluem; número em outro Cliente e e-mail repetido avisam e deixam trocar o Cliente.
 export function useContatoUra(atendimentoId: string) {
   const [etapa, setEtapa] = useState<Etapa>("fechado");
   const [cliente, setCliente] = useState<ClienteParaConfirmar | undefined>();
@@ -27,8 +25,6 @@ export function useContatoUra(atendimentoId: string) {
   const cadastro = useCadastrarContatoUraMutation(atendimentoId);
 
   const concluido = fechaPainel(resultado);
-  // Foco depois da ação (DESIGN.md): concluir tira o formulário da tela e o foco vai ao aviso; cancelar
-  // devolve o foco ao botão que volta a existir.
   const refDoAviso = useRef<HTMLParagraphElement>(null);
   const [focoNoBotao, setFocoNoBotao] = useState(false);
 

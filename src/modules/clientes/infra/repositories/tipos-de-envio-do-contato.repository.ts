@@ -10,8 +10,6 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import type { FormaEnvioValor } from "@/shared/kernel/forma-envio";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// `definir_tipos_de_envio_do_contato` troca os tipos que o Setor de quem chama define para o Contato; o
-// Setor e a permissão vêm do banco (RLS), nunca do chamador, e o canal sai do próprio Contato.
 export class SupabaseTiposDeEnvioDoContatoRepository implements TiposDeEnvioDoContatoRepository {
   constructor(
     private readonly supabase: SupabaseClient,
@@ -34,11 +32,9 @@ export class SupabaseTiposDeEnvioDoContatoRepository implements TiposDeEnvioDoCo
     if (error.code === "42501") {
       return err(new ForbiddenError("Sem permissão para definir os envios deste Cliente."));
     }
-    // Contato com os dois canais sem o canal escolhido.
     if (error.code === "22023" && error.message.includes("Escolha o canal")) {
       return err(new ValidationError("Escolha por onde enviar ao contato."));
     }
-    // Contato de outro Cliente ou tipo fora do catálogo do Setor (chave estrangeira).
     if (error.code === "22023" || error.code === "23503") {
       return err(new ValidationError("Contato ou tipo de envio inválido. Atualize a página."));
     }

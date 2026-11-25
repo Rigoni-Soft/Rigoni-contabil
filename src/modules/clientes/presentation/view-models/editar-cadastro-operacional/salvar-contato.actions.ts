@@ -13,7 +13,6 @@ const salvarContatoSchema = z.object({
   contato: contatoSchema,
 });
 
-// O "Salvar" da linha do contato: grava só esse contato, sem esperar o botão Salvar do cadastro.
 export async function salvarContatoAction(input: unknown): Promise<ActionResult<{ id: string }>> {
   const parsed = salvarContatoSchema.safeParse(input);
   if (!parsed.success) {

@@ -14,7 +14,6 @@ import { configuracoesDoRh } from "@/modules/rh/presentation/view-models/resumo-
 import { podeVerAcompanhamentoRh } from "@/shared/kernel/papeis";
 import { ROTA_RH, ROTA_RH_FOLHA_DE_PONTO } from "@/shared/kernel/setores";
 
-// Os clientes do RH (o Funcionário vê os dele; o Líder e o Admin, todos): cada um abre a Folha de ponto.
 export default async function Page() {
   const sessao = await exigirSessao();
   if (!podeVerAcompanhamentoRh(sessao.papel, sessao.setor)) redirect("/");
@@ -41,11 +40,11 @@ export default async function Page() {
       conteudo={
         acompanhamento.ok && (
           <ListaDeClientes
-            clientes={acompanhamento.value.linhas.map((l) => ({
-              clienteId: l.clienteId,
-              empresa: l.empresa,
-              cnpj: l.cnpj,
-              href: hrefDaFolha(l.clienteId, {}),
+            clientes={acompanhamento.value.linhas.map((linha) => ({
+              clienteId: linha.clienteId,
+              empresa: linha.empresa,
+              cnpj: linha.cnpj,
+              href: hrefDaFolha(linha.clienteId, {}),
               acao: "Abrir folha →",
             }))}
           />

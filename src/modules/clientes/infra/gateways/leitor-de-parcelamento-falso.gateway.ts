@@ -3,24 +3,31 @@ import type {
   LeituraDeParcelamento,
 } from "@/modules/clientes/application/ports/out/leitor-de-parcelamento.provider";
 
-// Adapter falso e determinístico (padrão em dev, CI e Preview; nenhum teste chama a API). Os
-// marcadores no texto do PDF escolhem o cenário: `[leitor:falha]` não lê, `[leitor:sem-codigo]` lê
-// só a quantidade (como o Recibo de Adesão da Receita), `[leitor:cnpj-outro]` lê o CNPJ de outra
-// empresa; sem marcador, lê sempre o mesmo código, quantidade e dados do acordo (sem CNPJ).
+const MARCADOR_DE_FALHA = "[leitor:falha]";
+const MARCADOR_SEM_CODIGO = "[leitor:sem-codigo]";
+const MARCADOR_DE_CNPJ_DE_OUTRA_EMPRESA = "[leitor:cnpj-outro]";
+const CNPJ_DE_OUTRA_EMPRESA = "10.690.529/0001-38";
+const CODIGO_FALSO = "FALSO-123456";
+const PARCELAS_DO_PGFN_FALSO = 12;
+const PARCELAS_DA_RECEITA_FALSA = 7;
+const VALOR_DA_PARCELA_FALSA_CENTAVOS = 31620;
+const DATA_DE_ADESAO_FALSA = "2026-08-27";
+
 export class LeitorDeParcelamentoFalsoGateway implements LeitorDeParcelamentoPort {
   async ler(pdf: Uint8Array): Promise<LeituraDeParcelamento> {
     const texto = Buffer.from(pdf).toString("latin1");
-    if (texto.includes("[leitor:falha]")) return { lido: false, motivo: "ilegivel" };
-    const semCodigo = texto.includes("[leitor:sem-codigo]");
+    if (texto.includes(MARCADOR_DE_FALHA)) return { lido: false, motivo: "ilegivel" };
+    const semCodigo = texto.includes(MARCADOR_SEM_CODIGO);
+    const parcelas = semCodigo ? PARCELAS_DA_RECEITA_FALSA : PARCELAS_DO_PGFN_FALSO;
     return {
       lido: true,
-      codigo: semCodigo ? null : "FALSO-123456",
-      quantidadeDeParcelas: semCodigo ? 7 : 12,
-      cnpj: texto.includes("[leitor:cnpj-outro]") ? "10.690.529/0001-38" : null,
+      codigo: semCodigo ? null : CODIGO_FALSO,
+      quantidadeDeParcelas: parcelas,
+      cnpj: texto.includes(MARCADOR_DE_CNPJ_DE_OUTRA_EMPRESA) ? CNPJ_DE_OUTRA_EMPRESA : null,
       origem: semCodigo ? "receita_federal" : "pgfn",
-      totalDeParcelas: semCodigo ? 7 : 12,
-      valorDaParcelaCentavos: 31620,
-      dataDeAdesao: "2026-08-27",
+      totalDeParcelas: parcelas,
+      valorDaParcelaCentavos: VALOR_DA_PARCELA_FALSA_CENTAVOS,
+      dataDeAdesao: DATA_DE_ADESAO_FALSA,
     };
   }
 }

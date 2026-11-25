@@ -20,7 +20,7 @@ const CRED = {
   },
 };
 const CLIENTE = "11444777000161";
-const AGORA = () => new Date("2026-01-15T15:00:00Z"); // janeiro: mês anterior = dezembro
+const AGORA = () => new Date("2026-01-15T15:00:00Z");
 
 const PEDIDO = { regime: "simples_nacional" as const, ignorar: [] as string[] };
 
@@ -81,8 +81,6 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
     const lista = (...parcelas: [number, number][]) =>
       envelope({ listaParcela: parcelas.map(([parcela, valor]) => ({ parcela, valor })) });
     const pdf = envelope({ docArrecadacaoPdfB64: "JVBERg==" });
-    // Respostas gravadas do Integra-Parcelamento (docs/pesquisa/serpro-guia-parcelamento.md): a
-    // mensagem de negócio vem em `mensagens[].codigo`.
     const recusa = (er: string, status = 400) => ({
       status,
       corpo: JSON.stringify({ mensagens: [{ codigo: `[Aviso-PARCSN-${er}]`, texto: "..." }] }),
@@ -112,7 +110,7 @@ describe("ObrigacoesFiscaisSerproGateway", () => {
           },
         ],
       });
-      expect(http).toHaveBeenCalledTimes(4); // token + lista + 2 guias
+      expect(http).toHaveBeenCalledTimes(4);
       expect([1, 2, 3].map((n) => servico(http, n))).toEqual([
         "PARCELASPARAGERAR162",
         "GERARDAS161",

@@ -25,7 +25,6 @@ export function useAnexarAlteracaoContratual(
   const queryClient = useQueryClient();
   const [pendente, setPendente] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
-  // Confirmação que sobrevive ao fechamento do diálogo: quem anexou precisa ouvir/ver que deu certo.
   const [sucesso, setSucesso] = useState<string | undefined>();
   const {
     register,
@@ -41,8 +40,6 @@ export function useAnexarAlteracaoContratual(
   const [numero, data] = useWatch({ control, name: ["numero", "data"] });
   const numeros = alteracoesDaLista(documentos).map((a) => a.numero);
 
-  // Sugere o nº só com o campo vazio (nunca pisa no que o Admin digitou) e já valida o arquivo:
-  // grande demais ou de outro tipo é recusado na escolha, não só ao enviar.
   const aoEscolherArquivo = (arquivo: File | undefined) => {
     if (!arquivo) return;
     if (!Number.isInteger(getValues("numero"))) {
@@ -51,14 +48,12 @@ export function useAnexarAlteracaoContratual(
     void trigger("arquivo");
   };
 
-  // Fechar (Esc, fora, X) descarta o rascunho e o erro: reabrir começa limpo.
   const aoFechar = () => {
     reset();
     setErroServidor(undefined);
   };
 
   const onSubmit = handleSubmit(async (valores) => {
-    // Antes de subir o arquivo: a lista carregada já recusa o nº repetido.
     const repetido = erroDeDuplicidade(valores.numero, numeros);
     if (repetido) {
       setError("numero", { message: repetido });

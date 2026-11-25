@@ -1,8 +1,3 @@
-/**
- * Bucket privado `avatares` e coluna `perfis.avatar_atualizado_em` (ADR 0012, ADR 0008): o bucket aceita só
- * `image/webp` de até 256 KB; nenhuma sessão de usuário escreve no bucket nem na coluna; o servidor
- * (service role) escreve nos dois. Requer `npx supabase start` local com migrations e seed aplicados.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { Client } from "pg";
 
@@ -36,7 +31,6 @@ async function sessao(email: string, senha: string): Promise<SupabaseClient> {
   return cliente;
 }
 
-// WebP mínimo: o bucket confere o tipo declarado no envio, não os bytes.
 const webp = (bytes: number) => Buffer.alloc(bytes, 1);
 
 async function enviarComoServidor(nome: string, conteudo: Buffer, contentType: string) {
@@ -149,8 +143,6 @@ describe("perfis.avatar_atualizado_em", () => {
       .select("avatar_atualizado_em")
       .eq("id", FUNCIONARIO_SN_ID)
       .single();
-    // `perfis` não tem policy de UPDATE para `authenticated`: o RLS filtra a linha (0 afetadas, sem erro) e o
-    // gatilho nem dispara. O ramo UPDATE do gatilho é provado no teste de SQL direto mais abaixo.
     const escrita = await cliente
       .from("perfis")
       .update({ avatar_atualizado_em: new Date().toISOString() })
@@ -176,8 +168,6 @@ describe("perfis.avatar_atualizado_em", () => {
     expect(await avatarDe(FUNCIONARIO_SN_ID)).toBeNull();
   });
 
-  // O RLS corta o UPDATE de sessão antes do gatilho; aqui a linha chega a ele (conexão do dono da tabela,
-  // que não sofre RLS) com o JWT de um usuário, para provar a defesa em profundidade do ramo UPDATE.
   it("o gatilho recusa o UPDATE da coluna com sessão de usuário e deixa passar sem sessão", async () => {
     const c = new Client({ connectionString: DATABASE_URL });
     await c.connect();

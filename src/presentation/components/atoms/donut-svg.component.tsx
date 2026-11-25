@@ -4,7 +4,6 @@ import type { Fatia } from "@/presentation/lib/fatia-de-grafico";
 const RAIO = 40;
 const CIRCUNFERENCIA = 2 * Math.PI * RAIO;
 
-// Donut de fatias com o total no centro. Decorativo: a legenda traz rótulo e número.
 export function DonutSvg({ fatias }: { fatias: Fatia[] }) {
   const total = fatias.reduce((soma, f) => soma + f.quantidade, 0);
   return (

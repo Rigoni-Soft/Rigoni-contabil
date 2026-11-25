@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// Depois de a tela se atualizar, o foco vai a um alvo estável (o botão que sumiu não pode deixar o foco no
-// <body>). O alvo novo só existe depois da renderização: o foco fica pendente até o elemento aparecer.
 export function useFocoPendente() {
   const alvo = useRef<string | null>(null);
   const [, renderizar] = useState(0);

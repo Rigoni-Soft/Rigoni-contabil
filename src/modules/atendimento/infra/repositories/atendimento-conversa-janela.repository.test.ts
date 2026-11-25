@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) da leitura da conversa por janela.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { CONVERSA_JANELA_MENSAGENS } from "@/modules/atendimento/domain/services/janela-da-conversa.service";
@@ -19,8 +15,6 @@ const repositorio = new SupabaseAtendimentoRepository(admin);
 const TELEFONES = ["61955572001", "61955572002", "61955572003", "61955572004"];
 const INICIO = Date.parse("2026-09-01T12:00:00Z");
 
-// `total` Mensagens do cliente, uma por segundo; as `empatadas` últimas partilham o mesmo instante
-// (o cursor desempata pelo id). Devolve o Atendimento e as Mensagens na ordem da conversa.
 async function conversaCom(telefone: string, total: number, empatadas = 0) {
   const aberto = await repositorio.abrir({
     telefone,
@@ -45,12 +39,10 @@ async function conversaCom(telefone: string, total: number, empatadas = 0) {
     const { error } = await admin.from("mensagens").insert(linhas.slice(i, i + 500));
     if (error) throw error;
   }
-  // Ordem da conversa: data e, no empate, id.
   linhas.sort((a, b) => a.criado_em.localeCompare(b.criado_em) || a.id.localeCompare(b.id));
   return { atendimentoId, textos: linhas.map((l) => l.texto), ids: linhas.map((l) => l.id) };
 }
 
-// Lê a janela e depois o histórico inteiro, página a página, pelo cursor da mensagem mais antiga.
 async function lerTudo(atendimentoId: string) {
   const primeira = await repositorio.conversa(atendimentoId);
   if (!primeira.ok || !primeira.value) throw new Error("conversa não lida");

@@ -21,28 +21,19 @@ import { MOLDURA_DO_CARTAO } from "@/presentation/lib/moldura-do-cartao";
 
 type Props = {
   empregado: string;
-  // O botão "Ler atestado" (com a modal dele), à esquerda do Salvar; só vem quando o cartão é editável.
   acaoDeAtestado?: React.ReactNode;
   empresa: string;
   rotuloMes: string;
   mesAnteriorHref: string;
   proximoMesHref?: string;
   linhas: LinhaDoCartao[];
-  // Os dias abertos para digitar (um lápis clicado): data "AAAA-MM-DD".
   diasEmEdicao: string[];
-  // Dias cujos campos o "Limpar" da tabela esvaziou.
   diasLimpos: string[];
-  // A linha que acabou de ter uma ação (editar, salvar, cancelar, abonar): leva o foco do teclado.
   focoNoDia?: string;
-  // Sobe quando o dia é cancelado ou limpo: a linha recomeça (remonta) dos valores salvos ou vazios.
   versoes: Record<string, number>;
-  // Para onde "Cancelar" leva: a lista de empregados da empresa.
   listaHref: string;
-  // Logo depois do "Salvar" da tabela: a Totalização ganha destaque.
   totalizacaoDestacada: boolean;
-  // Cartão ainda não iniciado: quem só lê vê que as faltas só contam depois que o Responsável o salva.
   cartaoNovo: boolean;
-  // Resultado do "Salvar" da tabela (várias linhas de uma vez).
   avisoGeral?: AvisoDoDia;
   onEditarDia: (data: string) => void;
   onAbonarDia: (data: string) => void;
@@ -50,25 +41,19 @@ type Props = {
   onCancelarDia: (data: string) => void;
   onSalvarTabela: () => void;
   onLimparTabela: () => void;
-  // "Baixar PDF": o PDF individual do mês, para a assinatura física; quem lê o cartão também baixa.
   onBaixarPdf: () => void;
   baixandoPdf: boolean;
   avisoDoPdf?: AvisoDoDia;
-  // Por que não há PDF (empregado desligado, sem movimento no mês ou sem apontamento): troca o botão pelo texto.
   motivoSemPdf?: string;
   totalizacao: ItemDaTotalizacao[];
-  // Quando a Totalização usou a legislação por falta de convenção vigente.
   avisoDaTotalizacao?: string;
   editavel: boolean;
   pendente: boolean;
-  // Resultado do último "Salvar", mostrado na linha do dia a que se refere.
   aviso?: AvisoDoDia & { data: string };
-  // Troca com o empregado escolhido: os campos de cada dia recomeçam dos valores dele.
   empregadoId: string;
   onSalvarDia: (data: string, campos: FormData) => void;
 };
 
-// O Cartão de ponto de um empregado no mês inteiro (28 a 31 dias), com a Totalização logo abaixo (a que vai para o PDF).
 export function CartaoDePonto({
   empregado,
   acaoDeAtestado,
@@ -103,8 +88,6 @@ export function CartaoDePonto({
   empregadoId,
   onSalvarDia,
 }: Props) {
-  // Sem linha aberta, Salvar e Limpar ficam inativos mas focáveis (aria-disabled): depois do Salvar da tabela o
-  // foco não cai no <body>.
   const semLinhaAberta = diasEmEdicao.length === 0;
   return (
     <Pilha
@@ -174,7 +157,6 @@ export function CartaoDePonto({
             <CabecalhoDeColuna numerica>1ª Faixa</CabecalhoDeColuna>
             <CabecalhoDeColuna numerica>2ª Faixa</CabecalhoDeColuna>
             <CabecalhoDeColuna>
-              {/* O botão já diz o que faz: a coluna fica sem título visível. */}
               <Texto como="span" variante="somenteLeitor">
                 Salvar o dia
               </Texto>
@@ -204,7 +186,6 @@ export function CartaoDePonto({
         <Pilha espaco={2}>
           <Linha espaco={3} quebra alinhar="centro" justificar="fim">
             {acaoDeAtestado}
-            {/* Salva as linhas abertas e fica na tela, com a Totalização em destaque. */}
             <Button
               type="button"
               disabled={pendente}
@@ -214,7 +195,6 @@ export function CartaoDePonto({
             >
               Salvar
             </Button>
-            {/* Esvazia os campos das linhas abertas e fica na tela (só vale ao salvar). */}
             <Button
               type="button"
               variant="warning"
@@ -225,7 +205,6 @@ export function CartaoDePonto({
             >
               Limpar
             </Button>
-            {/* Descarta o que foi digitado e volta à lista de empregados da empresa. */}
             <LinkDeAcao href={listaHref} variant="destructive">
               Cancelar
             </LinkDeAcao>
@@ -245,7 +224,6 @@ export function CartaoDePonto({
         destaque={totalizacaoDestacada}
       />
       {motivoSemPdf ? (
-        // Desligado, sem movimento no mês ou sem apontamento: não há cartão para assinar, então nenhum botão.
         <Texto variante="apoio">{motivoSemPdf}</Texto>
       ) : (
         <Pilha espaco={2}>
@@ -253,7 +231,6 @@ export function CartaoDePonto({
             <Texto id="apoio-do-pdf" variante="apoio">
               O PDF traz o que está salvo, com a Totalização do mês.
             </Texto>
-            {/* O botão fica na tela depois do clique: aria-disabled mantém o foco nele durante a geração. */}
             <Button
               type="button"
               variant="outline"

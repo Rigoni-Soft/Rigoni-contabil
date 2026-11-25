@@ -12,7 +12,6 @@ const CONTATOS = [
 ];
 
 type Linhas = React.ComponentProps<typeof ContatosDoCadastro>["linhas"];
-// As fixtures são estreitas (`() => boolean`); cada teste troca só o que precisa.
 const comLinhas = (troca: Partial<Linhas>): Linhas => ({ ...LINHAS_DE_CONTATO_DE_TESTE, ...troca });
 
 function Montado({

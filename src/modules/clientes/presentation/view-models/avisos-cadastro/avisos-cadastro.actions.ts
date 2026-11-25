@@ -11,7 +11,6 @@ import type { PaginaAvisosCadastro } from "@/modules/clientes/application/dtos/a
 import type { ActionResult } from "@/shared/dtos/action-result.dto";
 import { toActionResult } from "@/shared/kernel/to-action-result";
 
-// guid, não uuid: ids do seed não são v4 (mesmo motivo de atribuir-responsavel.actions).
 const cursorSchema = z
   .object({
     visto: z.boolean(),
@@ -20,7 +19,6 @@ const cursorSchema = z
   })
   .nullish();
 
-// Server Action é endpoint público (arquitetura.md §3.13): o cursor é validado mesmo vindo da UI.
 export async function listarAvisosCadastroAction(
   cursor: unknown,
 ): Promise<ActionResult<PaginaAvisosCadastro>> {

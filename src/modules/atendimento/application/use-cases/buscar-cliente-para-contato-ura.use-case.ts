@@ -15,8 +15,6 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { cnpjValido, normalizarCnpj } from "@/shared/kernel/cnpj";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// A Recepção confirma o Cliente pelo CNPJ (o da URA é só sugestão) antes de cadastrar o contato.
-// Só quem pode cadastrar consulta: a Recepção enxerga os Clientes, mas este caminho não é uma busca geral.
 export class BuscarClienteParaContatoUra implements BuscarClienteParaContatoUraPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -45,12 +43,9 @@ export class BuscarClienteParaContatoUra implements BuscarClienteParaContatoUraP
     const cliente = await this.contatos.clientePorCnpj(normalizado);
     if (!cliente.ok) return cliente;
 
-    // Atendimento já ligado a um Cliente só cadastra contato nesse Cliente (o banco confere de novo).
     const doAtendimento = encontrado.value.clienteId;
     const outroCliente =
       cliente.value !== null && doAtendimento !== null && cliente.value.id !== doAtendimento;
-    // Toda busca de quem pode cadastrar fica na trilha: o service_role lê qualquer Cliente por CNPJ,
-    // e a busca repetida CNPJ a CNPJ (a carteira inteira) tem de aparecer na auditoria.
     await this.auditoria.registrar({
       ator: ator.id,
       setor: ator.setor,

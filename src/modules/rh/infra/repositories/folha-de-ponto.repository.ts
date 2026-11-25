@@ -40,8 +40,6 @@ import { SETOR_RH } from "@/shared/kernel/setores";
 const FALHA_GRAVAR = "Não foi possível salvar. Tente novamente.";
 const FALHA_LER = "Não foi possível carregar a Folha de ponto.";
 
-// O banco (RLS + gatilhos) é a última barreira: quem não é o Responsável do RH do Cliente recebe 42501 (ou
-// nenhuma linha afetada); as regras de dado levantam exceções nomeadas.
 export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
   constructor(
     private readonly supabase: SupabaseClient,
@@ -97,7 +95,6 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
     clienteId: string,
     competencia: string,
   ): Promise<Result<string[], AppError>> {
-    // A RLS recorta pelo Cliente do empregado; o filtro por competência é do mês pedido.
     const { data, error } = await this.supabase
       .from("rh_empregado_sem_movimento")
       .select("empregado_id, rh_empregados!inner(cliente_id)")
@@ -241,8 +238,6 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
     return this.resultado(error);
   }
 
-  // Uma chamada, uma transação: a função SQL marca o cartão e grava os dias, e o erro de qualquer dia desfaz
-  // tudo. Roda como o ator (security invoker): RLS e gatilhos valem como no `salvarDia`.
   async gravarCartao(
     empregadoId: string,
     competencia: string,
@@ -256,8 +251,6 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
     return this.resultado(error);
   }
 
-  // Uma chamada, uma transação: a função SQL marca Abono em cada data (batidas e Extra do dia ficam) e o erro de
-  // qualquer uma desfaz tudo. Não mexe na marca de cartão iniciado.
   async abonarDias(empregadoId: string, datas: string[]): Promise<Result<void, AppError>> {
     const { error } = await this.supabase.rpc("rh_abonar_dias", {
       p_empregado_id: empregadoId,
@@ -335,7 +328,6 @@ export class SupabaseFolhaDePontoRepository implements FolhaDePontoRepository {
     return this.resultadoComLinhas(error, data);
   }
 
-  // A RLS esconde a linha de quem não pode: o UPDATE não dá erro, só não afeta nada.
   private resultadoComLinhas(
     error: PostgrestError | null,
     linhas: unknown[] | null,

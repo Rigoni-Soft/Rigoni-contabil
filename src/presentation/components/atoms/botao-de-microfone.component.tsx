@@ -4,16 +4,12 @@ import { Button } from "@/presentation/components/ui/button";
 
 type BotaoDeMicrofoneProps = {
   disabled?: boolean;
-  // Por que não dá para gravar (navegador sem suporte, página sem HTTPS): vira a dica do botão.
   motivo?: string;
-  // Id do texto que escreve o motivo, para o leitor de tela ligá-lo ao botão desligado.
   motivoId?: string;
-  // Ao montar, recebe o foco: o botão que o usuário acionou saiu da tela durante a gravação.
   focarAoMontar?: boolean;
   onClick: () => void;
 };
 
-// Alvo de 44 px (DESIGN.md), mesmo desenho do clipe e do emoji.
 export function BotaoDeMicrofone({
   disabled,
   motivo,

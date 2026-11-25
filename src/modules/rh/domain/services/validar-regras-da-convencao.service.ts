@@ -15,7 +15,6 @@ import {
 } from "@/shared/kernel/regras-da-convencao";
 import { TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
 
-// O que o modelo de linguagem devolve: tudo não confiável até passar por aqui.
 export type RegraCandidata = {
   chave: string;
   valor: unknown;
@@ -25,10 +24,9 @@ export type RegraCandidata = {
 
 const MAXIMO_TRECHO = 2000;
 const MAXIMO_PERCENTUAL = 300;
-const MINUTOS_NA_SEMANA = 7 * 1440;
+const MINUTOS_NO_DIA = 24 * 60;
+const MINUTOS_NA_SEMANA = 7 * MINUTOS_NO_DIA;
 
-// A decisão é determinística e sem o modelo: cada parâmetro precisa citar a cláusula, trazer o número no
-// trecho citado e respeitar o piso da legislação; o resto é rejeitado e fica "não aplicada" (vale a lei).
 export function validarRegrasDaConvencao(candidatas: RegraCandidata[]): RegrasDaConvencao {
   const aplicadas: RegraAplicada[] = [];
   const rejeitadas: RegraRejeitada[] = [];
@@ -110,17 +108,14 @@ function ehNumerica(chave: ChaveDeRegra): chave is ChaveNumerica {
 function numeroValido(chave: ChaveNumerica, valor: unknown): valor is number {
   if (typeof valor !== "number" || !Number.isFinite(valor) || valor <= 0) return false;
   if (REFERENCIA_DA_LEGISLACAO[chave].unidade === "percentual") return valor <= MAXIMO_PERCENTUAL;
-  const maximo = chave === "jornada_semanal" ? MINUTOS_NA_SEMANA : 1440;
+  const maximo = chave === "jornada_semanal" ? MINUTOS_NA_SEMANA : MINUTOS_NO_DIA;
   return Number.isInteger(valor) && valor <= maximo;
 }
 
-// Os números escritos no trecho, com vírgula ou ponto decimal ("55,5" vale 55.5).
 function numerosDe(trecho: string): number[] {
   return (trecho.match(/\d+(?:[.,]\d+)?/g) ?? []).map((n) => Number(n.replace(",", ".")));
 }
 
-// Tempo em minutos confere se o trecho traz os minutos, as horas cheias ("2 horas", "08:00") ou o par
-// hora e minuto ("7h20"). Tempo por extenso ("duas horas") não confere: a regra cai em "não aplicada".
 function tempoNoTrecho(minutos: number, trecho: string): boolean {
   const numeros = numerosDe(trecho);
   const horas = Math.floor(minutos / 60);
@@ -135,7 +130,6 @@ function tempoNoTrecho(minutos: number, trecho: string): boolean {
 function dataValida(data: string): boolean {
   const partes = /^(\d{2})\/(\d{2})$/.exec(data);
   if (!partes) return false;
-  // 2024 é bissexto: 29/02 existe como data fixa de calendário.
   return dataIsoValida(`2024-${partes[2]}-${partes[1]}`);
 }
 
@@ -176,7 +170,6 @@ function datasEspeciais(valor: unknown): DataEspecial[] | null {
         comissionado > MAXIMO_PERCENTUAL)
     )
       return null;
-    // O percentual do comissionado fica fora do piso: é o que a convenção paga em troca da comissão.
     datas.push({
       descricao: campos.descricao.trim(),
       data,

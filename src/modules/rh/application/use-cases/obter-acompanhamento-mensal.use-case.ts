@@ -14,8 +14,6 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { podeMarcarAcompanhamentoRh, podeVerAcompanhamentoRh } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// A tabela do RH: uma linha por Cliente com Responsável do RH, uma coluna por Serviço do mês. O Funcionário
-// vê só os seus; o Líder e o Admin, todos. Mês sem marcação é pendente. A RLS repete o recorte.
 export class ObterAcompanhamentoMensal implements ObterAcompanhamentoMensalPort {
   constructor(
     private readonly sessao: SessaoPort,

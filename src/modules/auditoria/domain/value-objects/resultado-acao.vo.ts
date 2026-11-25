@@ -1,8 +1,6 @@
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// "falha_compensacao": a própria compensação/rollback falhou — conta pode ter
-// ficado órfã, distinto de uma falha comum.
 export const RESULTADOS_ACAO = ["sucesso", "falha", "falha_compensacao"] as const;
 export type ResultadoAcaoValor = (typeof RESULTADOS_ACAO)[number];
 

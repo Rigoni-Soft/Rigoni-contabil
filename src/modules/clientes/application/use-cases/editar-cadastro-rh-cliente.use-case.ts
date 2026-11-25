@@ -10,9 +10,6 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { podeEditarCadastroRh } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Edita o que é do RH no cadastro do Cliente: as observações gerais do RH e os contatos (de todos os
-// Setores). O que é do SN (DAS, atividade, forma de envio) não passa por aqui. Quem pode, por Cliente
-// (o Responsável do RH, o Líder do RH ou o Admin), o banco confere.
 export class EditarCadastroRhCliente implements EditarCadastroRhClientePort {
   constructor(
     private readonly sessao: SessaoPort,

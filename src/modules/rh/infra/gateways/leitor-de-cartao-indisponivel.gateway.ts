@@ -5,7 +5,6 @@ import type {
   LeituraBruta,
 } from "@/modules/rh/application/ports/out/leitor-de-cartao.provider";
 
-// Sem leitor configurado: toda foto cai na digitação manual, em vez de gravar um cartão inventado.
 export class LeitorDeCartaoIndisponivelGateway implements LeitorDeCartaoPort, LeitorDeAtestadoPort {
   async ler(): Promise<LeituraBruta> {
     return { lido: false };

@@ -2,7 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { SupabaseGuiaPublicadaGateway } from "./supabase-guia-publicada.gateway";
 
-// Storage em memória: upload não sobrescreve (409), remove apaga, a assinatura pode falhar.
 function montar(assinaturaFalha: () => boolean) {
   const objetos = new Map<string, Buffer>();
   const bucket = {
@@ -18,7 +17,6 @@ function montar(assinaturaFalha: () => boolean) {
         ? { data: null, error: { message: "falha temporária" } }
         : { data: { signedUrl: `https://storage.test/${caminho}` }, error: null },
     ),
-    // Na ordem de criação, como o `sortBy: created_at asc` do Storage.
     list: jest.fn(async (pasta: string) => ({
       data: [...objetos.keys()]
         .filter((c) => c.startsWith(`${pasta}/`))
@@ -68,7 +66,6 @@ describe("SupabaseGuiaPublicadaGateway", () => {
     expect((await gateway.publicar("c1", guia("B"), acordo)).ok).toBe(false);
     expect((await gateway.publicar("c1", guia("B"), acordo)).ok).toBe(false);
 
-    // B fica no Storage (a assinatura é recuperável) e A nunca é sobrescrita.
     expect([...objetos.values()].map((b) => b.toString()).sort()).toEqual(["A", "B"]);
     falha = false;
     const b = await gateway.publicar("c1", guia("B"), acordo);
@@ -77,7 +74,7 @@ describe("SupabaseGuiaPublicadaGateway", () => {
   });
 
   it("assinatura que falha não apaga o objeto: outra tentativa com os mesmos bytes pode tê-lo aceito", async () => {
-    const assinaturas = [true, false]; // a primeira falha, a segunda funciona
+    const assinaturas = [true, false];
     const { gateway, objetos, bucket } = montar(() => assinaturas.shift() ?? false);
     const [t1, t2] = await Promise.all([
       gateway.publicar("c1", guia("X"), acordo),
@@ -133,5 +130,14 @@ describe("SupabaseGuiaPublicadaGateway", () => {
 
     expect(bucket.remove).not.toHaveBeenCalled();
     expect(objetos.size).toBe(2);
+  });
+
+  it("nunca assina o caminho de outro Cliente nem um caminho com ..", async () => {
+    const { gateway, bucket } = montar(() => false);
+
+    expect((await gateway.reencontrar("c1", "c2/acordo/202610-abc.pdf")).ok).toBe(false);
+    expect((await gateway.reencontrar("c1", "c1/../c2/acordo/202610-abc.pdf")).ok).toBe(false);
+    expect((await gateway.reencontrar("c1", "c1/acordo/202610-abc.pdf")).ok).toBe(true);
+    expect(bucket.createSignedUrl).toHaveBeenCalledTimes(1);
   });
 });

@@ -13,7 +13,6 @@ import { cn } from "@/presentation/lib/utils";
 import { hojeIso } from "@/shared/kernel/mes-atual";
 import { AJUDA_NUMERO_ALTERACAO, NUMERO_MAXIMO } from "@/shared/kernel/numero-alteracao";
 
-// Função estável: o ref não é refeito a cada render.
 const marcarFocoInicial = (painel: HTMLElement | null) => painel?.setAttribute("autofocus", "");
 
 type Valores = { numero: number; data: string; arquivo: File };
@@ -26,18 +25,12 @@ type AlteracoesContratuaisProps = {
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   pendente: boolean;
   erroServidor?: string;
-  // Confirmação exibida depois que o diálogo fecha.
   sucesso?: string;
-  // Esc, clique fora ou X: descarta rascunho e erro.
   aoFechar: () => void;
-  // Alerta não bloqueante (nº × data).
   aviso?: string;
   aoEscolherArquivo: (arquivo: File | undefined) => void;
 };
 
-// Admin em /clientes/[id], fora do formulário do cadastro operacional (sem <form> aninhado): o diálogo
-// (popover nativo) de anexar, aberto pelo botão "Anexar alteração" que fica ao lado de "Abrir em nova
-// aba" (BotaoAnexarAlteracao), pelo id do painel; mais a confirmação depois de anexar.
 export function AlteracoesContratuais({
   painelId,
   register,
@@ -52,7 +45,6 @@ export function AlteracoesContratuais({
   aoEscolherArquivo,
 }: AlteracoesContratuaisProps) {
   return (
-    // `contents`: sem caixa própria, para o espaço do diálogo fechado não abrir vão acima do formulário.
     <Caixa className="contents">
       {sucesso && <AvisoDeStatus tipo="sucesso" texto={sucesso} className="mb-4 text-sm" />}
 
@@ -60,7 +52,6 @@ export function AlteracoesContratuais({
         espaco={4}
         id={painelId}
         popover="auto"
-        // Foco inicial no diálogo ao abrir (atributo nativo, como em VisualizarDocumentoContratual).
         tabIndex={-1}
         ref={marcarFocoInicial}
         onToggle={(evento) => {
@@ -70,7 +61,6 @@ export function AlteracoesContratuais({
         aria-labelledby={`${painelId}-titulo`}
         className={cn(SUPERFICIE_DE_PAINEL, "max-h-[90dvh] w-[min(92vw,28rem)] overflow-auto")}
       >
-        {/* Sem padding próprio: o cabeçalho fixo e o formulário trazem o deles. */}
         <Linha
           alinhar="centro"
           justificar="entre"

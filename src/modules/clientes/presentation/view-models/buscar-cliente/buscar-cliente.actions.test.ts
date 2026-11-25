@@ -1,7 +1,3 @@
-/**
- * Integração presentation ↔ application: o `main` é substituído por uma
- * composição com portas OUT falsas (testes.md, seção 3), sem tocar Supabase real.
- */
 import { ok } from "@/shared/kernel/result";
 
 import { buscarClientesAction, carregarCadastroOperacionalAction } from "./buscar-cliente.actions";

@@ -17,7 +17,6 @@ export function LogoutButton({ formAction, pendente, erro }: LogoutButtonProps) 
       espaco={2}
       como="form"
       action={formAction}
-      // No menu do celular o botão ocupa a largura toda, como os demais itens.
       className="max-sm:flex-col max-sm:items-stretch"
     >
       {erro && (

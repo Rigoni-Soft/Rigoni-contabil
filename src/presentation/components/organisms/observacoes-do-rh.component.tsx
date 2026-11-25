@@ -15,8 +15,6 @@ type ObservacoesDoRhProps = {
   sucesso?: boolean;
 };
 
-// As observações gerais do RH na tela completa do Admin, que vê o SN e o RH: salvam à parte, sem tocar
-// nos dados do SN.
 export function ObservacoesDoRh({
   valor,
   onMudar,

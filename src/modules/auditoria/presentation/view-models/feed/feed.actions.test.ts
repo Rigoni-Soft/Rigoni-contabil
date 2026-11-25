@@ -1,7 +1,3 @@
-/**
- * Integração presentation ↔ application: o `main` é substituído por uma
- * composição com portas OUT falsas (testes.md, seção 3), sem tocar Supabase real.
- */
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok } from "@/shared/kernel/result";
 
@@ -24,7 +20,6 @@ describe("listarRegistrosAction (integração)", () => {
     expect(executeMock).not.toHaveBeenCalled();
   });
 
-  // Ator não-UUID rejeitado antes de chegar no caso de uso/repositório.
   it("devolve VALIDATION_ERROR sem chamar o caso de uso quando o ator não é UUID", async () => {
     const resultado = await listarRegistrosAction({ ator: "joão" });
 

@@ -24,7 +24,6 @@ const estadoDoServico = (c: {
 const plural = (n: number, singular: string, plural: string) =>
   `${n} ${n === 1 ? singular : plural}`;
 
-// "Cadastrados x cartões feitos" do cliente, o que falta para o Holerite. Sem empregados, não há Holerite.
 export function resumoDoHolerite(h: HoleriteDaLinhaDto): string {
   if (h.cadastrados === 0) return "Sem empregados cadastrados: não há Holerite a cumprir.";
   const { exigidos } = h;
@@ -35,8 +34,6 @@ export function resumoDoHolerite(h: HoleriteDaLinhaDto): string {
 export type PassoDaTroca =
   { tipo: "marcar"; valor: boolean } | { tipo: "aplicar"; escopo: EscopoDoAplica };
 
-// "Se aplica" e "concluído" são dois dados; trocar o estado da célula é desmarcar antes de dispensar
-// e voltar a aplicar antes de marcar, para nunca ficar concluído num serviço que não se aplica.
 export function passosDaTroca(de: EstadoDoServico, para: EstadoDoServico): PassoDaTroca[] {
   if (de === para) return [];
   const passos: PassoDaTroca[] = [];
@@ -53,9 +50,6 @@ export function passosDaTroca(de: EstadoDoServico, para: EstadoDoServico): Passo
   return passos;
 }
 
-// Os serviços do mês de um Cliente, na ordem das colunas. Sem linha na vista (sem Responsável do RH), todos
-// aparecem pendentes e bloqueados, com `aviso`: o Líder vê o que acompanhará e atribui o Responsável.
-// O texto é neutro porque "sem linha" também cobre cliente de outro Funcionário.
 const AVISO_SEM_VISTA =
   "Este cliente não está na sua vista do RH. Só o Responsável marca; o Líder atribui o Responsável no cadastro.";
 export function servicosDoCliente(dto: AcompanhamentoMensalDto, clienteId: string) {
@@ -77,7 +71,6 @@ export function servicosDoCliente(dto: AcompanhamentoMensalDto, clienteId: strin
     nome: dto.servicos.find((s) => s.id === c.servicoId)?.nome ?? "",
     estado: estadoDoServico(c),
     bloqueio: bloqueioDe(c.servicoId),
-    // O Holerite mostra empregados cadastrados x cartões feitos, na própria linha dele.
     detalhe: linha && sistema.has(c.servicoId) ? resumoDoHolerite(linha.holerite) : undefined,
   }));
   return { servicos, aviso: linha ? undefined : AVISO_SEM_VISTA };

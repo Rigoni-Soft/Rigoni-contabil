@@ -1,6 +1,3 @@
-// yarn check:rotas  →  falha se existir `route.ts` em src/app fora das exceções de docs/arquitetura.md
-// (premissa 1 e seção 3.13): webhooks de terceiros, jobs agendados e a leitura da foto do avatar (ADR 0012).
-// Toda outra comunicação cliente→servidor é Server Action.
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 

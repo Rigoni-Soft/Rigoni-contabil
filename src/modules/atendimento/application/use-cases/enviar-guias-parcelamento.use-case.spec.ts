@@ -18,7 +18,6 @@ import { EntregarComunicacaoPorCanais } from "./entregar-comunicacao-por-canais.
 import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-case";
 import { EnviarGuiasParcelamento } from "./enviar-guias-parcelamento.use-case";
 
-// 22/10/2026 09:00 em São Paulo.
 const agora = new Date("2026-10-22T12:00:00Z");
 const telefone = "5511912345678";
 const telefoneFinanceiro = "5511900001111";
@@ -28,7 +27,6 @@ const cliente: ClienteParaParcelamento = {
   empresa: "3A Construções",
 };
 
-// Destino de guia de parcelamento: o Contato "Ângela" pelo WhatsApp, salvo se o teste disser outro.
 const destino = (extra: Partial<DestinoDeEnvio> = {}): DestinoDeEnvio => ({
   contatoNome: "Ângela",
   telefone,
@@ -65,21 +63,15 @@ function montar(
   opcoes: {
     guias?: () => Promise<Result<GuiaFiscal[], AppError>>;
     registrar?: (id: string, parcela: string) => Promise<Result<EnvioRegistrado, AppError>>;
-    // Guias já entregues a acordos do Cliente (inclusive quitados).
     entregues?: GuiaEntregue[];
-    // Telefone do financeiro; null = não configurado.
     financeiro?: string | null;
     cnpj?: () => Promise<Result<CadastroFiscalCliente, AppError>>;
-    // Parcelamentos PGFN em aberto com as guias confirmadas.
     pgfn?: Result<ParcelamentoPgfn[], AppError>;
     lerFalha?: boolean;
     reservaNegada?: boolean;
-    // Parcela cuja publicação falha.
     publicarFalha?: string;
-    // Destinos de guia de parcelamento por Setor; Setor ausente = o WhatsApp da Ângela.
     destinos?: Partial<Record<SetorSlug, DestinoDeEnvio[]>>;
     erroDosDestinos?: AppError;
-    // Erro de leitura só nos Destinos destes Setores.
     erroDosDestinosDoSetor?: Partial<Record<SetorSlug, AppError>>;
   } = {},
 ) {
@@ -760,7 +752,6 @@ describe("EnviarGuiasParcelamento", () => {
     ]);
     expect(envio.templatesEnviados).toHaveLength(1);
     expect(registrados).toEqual([["a", "202610"]]);
-    // A entrega recusada (202609) fica publicada, mas só a aceita grava o caminho no registro.
     expect(caminhos).toEqual(["c1/a/202610-hash.pdf"]);
   });
 
@@ -902,7 +893,6 @@ describe("EnviarGuiasParcelamento", () => {
   });
 
   it("a mesma guia reemitida na rodada seguinte não migra para outro acordo de mesmo valor", async () => {
-    // a recebeu 202610 e b não; o provedor devolve o mesmo PDF (não se sabe de quem é).
     const { nucleo, envio, registrados } = montar(
       ok([parcelamento("a", { parcelasEnviadas: ["202610"] }), parcelamento("b")]),
       { guias: async () => ok([guia("202610", 10_000)]) },
@@ -918,7 +908,6 @@ describe("EnviarGuiasParcelamento", () => {
   });
 
   it("guia de acordo já quitado, reemitida, não vai ao único acordo que sobrou", async () => {
-    // a quitou depois de receber 202610 e saiu da lista; b é o único em aberto.
     const { nucleo, envio, registrados } = montar(ok([parcelamento("b")]), {
       guias: async () => ok([guia("202610", 10_000)]),
       entregues: [
@@ -934,8 +923,6 @@ describe("EnviarGuiasParcelamento", () => {
   });
 
   it("guia reemitida de acordo de valor maior, só com valor corrigido, não vai ao de valor menor", async () => {
-    // a (R$ 300) já recebeu 202610 e está em aberto; a reemissão vem com juros e b (R$ 100) é
-    // candidato a ela: o grupo de maior valor é o de a, que já recebeu, então nada se atribui.
     const { nucleo, registrados } = montar(
       ok([
         parcelamento("a", { valorParcelaCentavos: 30_000, parcelasEnviadas: ["202610"] }),
@@ -1014,7 +1001,6 @@ describe("EnviarGuiasParcelamento", () => {
       expect(lidos).toEqual([]);
       expect(registrados).toEqual([]);
       expect(envio.templatesEnviados).toHaveLength(0);
-      // Quem não adquiriu a reserva não libera a de outra tentativa.
       expect(liberadas).toEqual([]);
     });
 

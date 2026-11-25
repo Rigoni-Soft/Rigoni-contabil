@@ -28,19 +28,15 @@ export function recusa(campo: "arquivo" | "legenda", mensagem: string) {
 
 type FormatoAudio = "nativo" | "converter";
 
-// O que a entrada é depois de conferida, antes de qualquer I/O (a confirmação de quem pode agir vem
-// entre as duas etapas, no caso de uso).
 export type AnexoConferido =
   | { origem: "memoria"; arquivo: ArquivoAnexo; tipo: TipoAnexoMensagem; formato?: FormatoAudio }
   | { origem: "storage"; guardado: { caminho: string; nome: string }; legenda?: string };
 
-// O que vai ser entregue e registrado: o objeto já no Storage.
 export type AnexoPreparado = {
   tipo: TipoAnexoMensagem;
   caminho: string;
   nome: string;
   tamanho: number;
-  // Objeto do navegador que esta tentativa reservou: quem falhar depois o remove e libera a reserva.
   reserva?: string;
 };
 
@@ -58,7 +54,6 @@ function validar(
   return v.erro !== undefined ? recusa("arquivo", v.erro) : ok({ tipo: v.tipo });
 }
 
-// Só o ogg depende do codec (a Meta aceita Opus, e o MIME não diz qual é); mp4 passa.
 function oggSemOpus(tipoMime: string, inicio: Uint8Array): boolean {
   return normalizarMime(tipoMime) === AUDIO_MIME_OGG && !ehOggOpus(inicio);
 }
@@ -70,17 +65,16 @@ function legendaRecusada(legenda: string | undefined, tipo: TipoAnexoMensagem) {
     : null;
 }
 
-// Põe o anexo no estado em que pode ser entregue: tipo e tamanho conferidos, áudio no formato que o
-// provedor aceita (ogg/opus ou mp4; webm é convertido) e o objeto no Storage. Duas origens: os bytes
-// vêm no pedido, ou o navegador já subiu o objeto em partes (docs/adr/0007) e aqui ele é conferido de
-// novo pelo que o Storage tem.
+function semExtensao(nome: string): string {
+  return nome.replace(/\.[^.]+$/, "");
+}
+
 export class PrepararAnexoParaEnvio {
   constructor(
     private readonly anexos: AnexosAtendimentoPort,
     private readonly conversor: ConversorDeAudioPort,
   ) {}
 
-  // Sem I/O: o que dá para recusar antes de tocar o banco.
   conferir(entrada: EntradaEnviarAnexo): Result<AnexoConferido, AppError> {
     if ("guardado" in entrada) {
       return ok({ origem: "storage", guardado: entrada.guardado, legenda: entrada.legenda });
@@ -121,8 +115,6 @@ export class PrepararAnexoParaEnvio {
     });
   }
 
-  // Confere a pasta, o tipo, o tamanho e o codec que o Storage tem e, se for webm, converte e troca
-  // pelo ogg. Objeto recusado sai do Storage: não serve a ninguém.
   private async doStorage(
     atendimentoId: string,
     { caminho, nome }: { caminho: string; nome: string },
@@ -131,8 +123,6 @@ export class PrepararAnexoParaEnvio {
     if (!caminho.startsWith(`${atendimentoId}/`)) {
       return err(new ForbiddenError("Você não pode enviar arquivos neste Atendimento."));
     }
-    // Posse antes de qualquer outra coisa: um objeto já finalizado (ou em finalização) não é desta
-    // tentativa, então é recusado SEM tocar nele; a compensação nunca remove arquivo do histórico.
     const reservado = await this.anexos.reservar(caminho, atendimentoId);
     if (!reservado.ok) return reservado;
     if (!reservado.value) return recusa("arquivo", "Este arquivo já foi enviado.");
@@ -160,7 +150,6 @@ export class PrepararAnexoParaEnvio {
     const convertido = bytes.ok
       ? await this.formatar({ nome, tipoMime, conteudo: bytes.value }, formato)
       : bytes;
-    // O original (webm) sai de qualquer jeito; o navegador ainda tem a gravação para tentar de novo.
     await this.anexos.remover(caminho);
     await this.anexos.liberarReserva(caminho);
     if (!convertido.ok) return convertido;
@@ -174,15 +163,12 @@ export class PrepararAnexoParaEnvio {
     });
   }
 
-  // Recusado pelo que o Storage tem: o objeto não serve a ninguém e sai.
   private async descartar(caminho: string, erro: Result<never, AppError>) {
     await this.anexos.remover(caminho);
     await this.anexos.liberarReserva(caminho);
     return erro;
   }
 
-  // Áudio aceito como está só perde os parâmetros do MIME ("audio/ogg;codecs=opus" vira
-  // "audio/ogg"); webm passa pelo conversor.
   private async formatar(
     arquivo: ArquivoAnexo,
     formato: FormatoAudio | undefined,
@@ -194,7 +180,7 @@ export class PrepararAnexoParaEnvio {
     const convertido = await this.conversor.paraOggOpus(arquivo.conteudo);
     if (!convertido.ok) return convertido;
     return ok({
-      nome: arquivo.nome.replace(/\.[^.]+$/, "") + ".ogg",
+      nome: `${semExtensao(arquivo.nome)}.ogg`,
       tipoMime: AUDIO_MIME_OGG,
       conteudo: convertido.value,
     });

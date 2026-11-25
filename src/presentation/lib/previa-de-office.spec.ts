@@ -6,7 +6,6 @@ import { join } from "node:path";
 
 import { docxParaHtml, xlsxParaTabela } from "./previa-de-office";
 
-// O navegador usa o build `mammoth.browser` (lê `arrayBuffer`); o do Node só lê arquivo/buffer.
 jest.mock("mammoth", () => jest.requireActual("mammoth/mammoth.browser"));
 
 const arquivo = (nome: string) => {

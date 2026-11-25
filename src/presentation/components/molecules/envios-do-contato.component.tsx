@@ -5,13 +5,10 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { CampoDeOpcoes } from "@/presentation/components/molecules/campo-de-opcoes.component";
 import { TIPO_TODOS_OS_ENVIOS } from "@/shared/kernel/tipo-de-envio";
 
-// O que o contato recebe do Setor de quem edita (checkboxes da linha); só o Setor vê o que marcou.
 export type EnviosDaLinha = {
   opcoes: { valor: string; rotulo: string }[];
   marcados: string[];
-  // O canal que o envio usa e o contato deixou de ter.
   aviso?: string;
-  // "Enviar por": só o contato com os dois canais e envios marcados; sem valor padrão ("" = não escolhido).
   canal?: {
     opcoes: readonly { valor: string; rotulo: string }[];
     valor: string;
@@ -25,7 +22,6 @@ type EnviosDoContatoProps = {
   indice: number;
   numero: number;
   envios: EnviosDaLinha;
-  // Editando: os checkboxes e o "Enviar por"; fora disso, o que o contato recebe escrito em texto.
   editando: boolean;
 };
 
@@ -34,7 +30,6 @@ function rotuloDoCanal({ opcoes, valor }: NonNullable<EnviosDaLinha["canal"]>): 
   return escolhida ? escolhida.rotulo : "não escolhido";
 }
 
-// "Todos os envios" já diz tudo: os tipos marcados junto dele não se repetem.
 function enviosEmTexto({ opcoes, marcados }: EnviosDaLinha): string {
   if (marcados.length === 0) return "nenhum envio";
   const rotulos = opcoes.filter((opcao) => marcados.includes(opcao.valor));
@@ -42,11 +37,8 @@ function enviosEmTexto({ opcoes, marcados }: EnviosDaLinha): string {
   return todos ? todos.rotulo : rotulos.map((r) => r.rotulo).join(", ");
 }
 
-// O grupo "Envios do contato N": o que o contato recebe do Setor (e, com os dois canais, por onde). Editando,
-// checkboxes; fora da edição, a mesma informação em texto (checkbox esmaecido não se lê).
 export function EnviosDoContato({ indice, numero, envios, editando }: EnviosDoContatoProps) {
   const idDoRotulo = `contatos.${indice}.envios-rotulo`;
-  // O aviso de canal perdido descreve o grupo e o "Enviar por": quem navega por controles também o ouve.
   const idDoAviso = envios.aviso ? `contatos.${indice}.envios-aviso` : undefined;
   return (
     <Caixa

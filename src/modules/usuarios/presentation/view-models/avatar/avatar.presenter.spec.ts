@@ -1,4 +1,4 @@
-import { avisoDaFoto, imagemDoAvatar, LIMITE_DA_FOTO_BYTES } from "./avatar.presenter";
+import { avisoDaFoto, imagemDoAvatar, LIMITE_DA_FOTO_ENVIADA_BYTES } from "./avatar.presenter";
 
 describe("imagemDoAvatar", () => {
   it("sem foto, usa a logo e diz que não há foto", () => {
@@ -26,7 +26,7 @@ describe("avisoDaFoto", () => {
   });
 
   it("aceita exatamente 5 MB", () => {
-    expect(avisoDaFoto({ type: "image/png", size: LIMITE_DA_FOTO_BYTES })).toBeUndefined();
+    expect(avisoDaFoto({ type: "image/png", size: LIMITE_DA_FOTO_ENVIADA_BYTES })).toBeUndefined();
   });
 
   it.each(["image/gif", "image/svg+xml", "application/pdf", ""])("avisa do formato %p", (type) => {
@@ -34,6 +34,8 @@ describe("avisoDaFoto", () => {
   });
 
   it("avisa do tamanho acima de 5 MB", () => {
-    expect(avisoDaFoto({ type: "image/jpeg", size: LIMITE_DA_FOTO_BYTES + 1 })).toMatch(/5 MB/);
+    expect(avisoDaFoto({ type: "image/jpeg", size: LIMITE_DA_FOTO_ENVIADA_BYTES + 1 })).toMatch(
+      /5 MB/,
+    );
   });
 });

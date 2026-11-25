@@ -2,8 +2,6 @@ import { LeitorDeParcelamentoTextoGateway } from "./leitor-de-parcelamento-texto
 
 const PDF = new Uint8Array([0x25, 0x50, 0x44, 0x46]);
 
-// Textos sintéticos no formato que a extração devolve dos dois modelos reais (espaços normalizados,
-// dados inventados): nenhum PDF real vai para o repositório.
 const RECIBO_RECEITA = (extra = { demais: "Valor das demais parcelas: R$ 316,20 " }) =>
   "MINISTÉRIO DA FAZENDA Secretaria da Receita Federal do Brasil RECIBO DE ADESÃO AO PARCELAMENTO " +
   "DO SIMPLES NACIONAL Nome Empresarial: EMPRESA TESTE LTDA CNPJ: 11.444.777/0001-61 " +

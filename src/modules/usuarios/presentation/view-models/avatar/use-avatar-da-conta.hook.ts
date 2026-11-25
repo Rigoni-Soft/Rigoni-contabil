@@ -18,8 +18,6 @@ export function useAvatarDaConta() {
   const [erro, setErro] = useState<string | undefined>();
   const devolverFoco = useRef(false);
 
-  // Salvar, cancelar e remover fazem o botão clicado sumir: o foco vai ao "Escolher foto", que existe
-  // nos dois estados, e nunca cai no <body> (DESIGN.md, "Foco do teclado depois da ação").
   useEffect(() => {
     if (!devolverFoco.current) return;
     devolverFoco.current = false;
@@ -33,7 +31,6 @@ export function useAvatarDaConta() {
   }, [previa]);
 
   const aoEscolher = async (arquivo: File) => {
-    // `aria-disabled` não impede o seletor por teclado: com ação em curso a escolha é ignorada.
     if (acao) return;
     setErro(undefined);
     const aviso = avisoDaFoto(arquivo);
@@ -57,7 +54,6 @@ export function useAvatarDaConta() {
     fazer: () => Promise<ActionResult<unknown>>,
     falha: string,
   ) => {
-    // `aria-disabled` não impede o teclado: com ação em curso, salvar e remover são ignorados.
     if (acao) return;
     setAcao(emCurso);
     setErro(undefined);

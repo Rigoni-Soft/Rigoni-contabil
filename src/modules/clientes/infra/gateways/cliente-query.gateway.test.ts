@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) para o read model do cadastro operacional.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
@@ -28,8 +24,6 @@ const comoFuncionario2SN = () =>
 
 const FUNCIONARIO_SN_ID = "22222222-2222-2222-2222-222222222222";
 
-// CNPJ único e válido (timestamp + contador, dígitos verificadores mod 11)
-// — evita colisão de unique constraint quando mais de um teste cria cliente.
 const PESOS_PRIMEIRO_DIGITO = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
 const PESOS_SEGUNDO_DIGITO = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
 let contadorCnpj = 0;
@@ -71,7 +65,6 @@ async function criarClienteComContratoSocial(
   return construido.value;
 }
 
-// CNPJs fixos desta suíte, reservados para teste: removidos antes e depois (nunca um DELETE amplo).
 const CNPJS_DA_SUITE = ["11444777000676"] as const;
 beforeAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
 afterAll(() => removerClientesDeTeste(CNPJS_DA_SUITE));
@@ -186,7 +179,6 @@ describe("SupabaseClienteQueryGateway.buscarPorTermo (#35, integração)", () =>
     if (resultado.ok) expect(resultado.value.some((s) => s.id === cliente.id)).toBe(true);
   });
 
-  // Admin (ou qualquer busca fora do dashboard do SN) precisa achar Cliente de qualquer Regime.
   it("com apenasSnMei=false, encontra Cliente de Lucro Presumido/Real também", async () => {
     const admin = await comoAdmin();
     const empresa = "Padaria Busca Geral Presumido Ltda";
@@ -265,7 +257,7 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
     expect(error).toBeNull();
     const envios = await servidor.from("cliente_parcelamento_envios").insert([
       { parcelamento_id: ids.enviado, parcela: mesAtual().replace("-", "") },
-      { parcelamento_id: ids.interno, parcela: "200001" }, // parcela de outro mês não conta
+      { parcelamento_id: ids.interno, parcela: "200001" },
     ]);
     expect(envios.error).toBeNull();
 
@@ -295,7 +287,6 @@ describe("SupabaseClienteQueryGateway.listarResumoOperacional (#36, integração
       "Resumo Sem Atividade Ltda",
       cnpjUnico(),
     );
-    // Mesma fonte de verdade do produto (America/Sao_Paulo): UTC erra o mês nas últimas horas do dia 1.
     const anoMes = primeiroDiaDoMesAtual();
     const { error } = await admin.from("cliente_atividades_mensais").insert({
       id: crypto.randomUUID(),

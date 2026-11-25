@@ -8,8 +8,6 @@ import { toActionResult } from "@/shared/kernel/to-action-result";
 
 import { enviarAvatarSchema } from "./avatar.schema";
 
-// O arquivo chega em um FormData (campo `foto`): a imagem já vem recortada e em WebP do navegador, e o
-// caso de uso confere os bytes e o tamanho de novo (o servidor não confia no que o cliente diz).
 export async function enviarAvatarAction(
   formData: FormData,
 ): Promise<ActionResult<{ avatarAtualizadoEm: string }>> {

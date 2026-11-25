@@ -14,8 +14,11 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Bucket privado dos acordos, onde a guia anexada fica guardada.
-const BUCKET = "parcelamentos-clientes";
+const BUCKET_DOS_ACORDOS = "parcelamentos-clientes";
+
+function guiaPertenceAoCliente(clienteId: string, caminho: string): boolean {
+  return caminho.startsWith(`${clienteId}/guias-pgfn/`) && !caminho.includes("..");
+}
 
 const linhaSchema = z.array(
   parcelamentoSchema.extend({
@@ -30,7 +33,6 @@ const linhaSchema = z.array(
   }),
 );
 
-// Usa o client service_role (docs/adr/0001): o job não tem sessão de usuário.
 export class SupabaseGuiasPgfnGateway implements GuiasPgfnPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
@@ -61,11 +63,12 @@ export class SupabaseGuiasPgfnGateway implements GuiasPgfnPort {
   }
 
   async ler(clienteId: string, caminho: string): Promise<Result<string, AppError>> {
-    // A guia nasce em `${clienteId}/guias-pgfn/...`: a de outro Cliente nunca é lida.
-    if (!caminho.startsWith(`${clienteId}/guias-pgfn/`) || caminho.includes("..")) {
+    if (!guiaPertenceAoCliente(clienteId, caminho)) {
       return err(new ServicoExternoError("Guia não pertence ao cliente."));
     }
-    const { data, error } = await this.supabaseAdmin.storage.from(BUCKET).download(caminho);
+    const { data, error } = await this.supabaseAdmin.storage
+      .from(BUCKET_DOS_ACORDOS)
+      .download(caminho);
     if (error || !data) return err(new ServicoExternoError("Falha ao ler a guia do parcelamento."));
     return ok(Buffer.from(await data.arrayBuffer()).toString("base64"));
   }

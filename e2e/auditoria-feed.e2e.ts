@@ -4,10 +4,6 @@ import { login } from "./support/criar-cliente";
 
 const admin = adminLocal();
 
-// Locators presos ao alvo do seed ("funcionario.sn@..."/"CNPJ de teste"), não a
-// textos genéricos como "usuario.criar": outros e2e (ex.: cadastro-usuario)
-// também gravam auditoria de verdade e duplicariam um texto solto.
-
 function linhaSucessoSeed(page: import("@playwright/test").Page) {
   return page.getByRole("row").filter({ hasText: "funcionario.sn@rigonicontabil.local" });
 }
@@ -17,8 +13,6 @@ function linhaFalhaSeed(page: import("@playwright/test").Page) {
 }
 
 test.describe("Feed de auditoria (Admin only)", () => {
-  // O feed mostra só os 50 registros mais recentes: com o uso, as outras suítes empurram os dois do
-  // seed para fora. Rejuvenescê-los mantém o teste independente do que rodou antes.
   test.beforeEach(async () => {
     const { error } = await admin
       .from("registros_auditoria")
@@ -40,7 +34,6 @@ test.describe("Feed de auditoria (Admin only)", () => {
 
   test("Funcionário é redirecionado pra fora do feed de auditoria", async ({ page }) => {
     await login(page, "funcionario.sn@rigonicontabil.local", "func123");
-    // Simples Nacional é a página principal do próprio setor.
     await expect(page).toHaveURL("/simples-nacional");
 
     await page.goto("/admin/auditoria");

@@ -1,9 +1,3 @@
-/**
- * Integração infra ↔ Supabase: o cadastro do Cliente no RH. O Responsável do RH, o Líder do RH e o Admin
- * gravam observações do RH e contatos (de qualquer Regime) pela função `editar_cadastro_rh_cliente`;
- * quem não é do RH ou não é o Responsável do Cliente é recusado; as observações de um Setor não vazam
- * para outro. Requer `npx supabase start` com migrations + seed aplicados.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
@@ -41,7 +35,6 @@ const salvar = (supabase: SupabaseClient, observacoes = "Folha no 5º dia útil.
 beforeAll(async () => {
   await removerClientesDeTeste([CNPJ]);
   clienteId = crypto.randomUUID();
-  // Lucro presumido: sem cadastro operacional do SN; contatos e observações do RH valem do mesmo jeito.
   const cliente = await servico
     .from("clientes")
     .insert({ id: clienteId, empresa: "RH Cadastro Ltda", cnpj: CNPJ, regime: "lucro_presumido" });

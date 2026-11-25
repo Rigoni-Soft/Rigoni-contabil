@@ -7,15 +7,10 @@ type LinhaDeClienteProps = {
   href: string;
   empresa: string;
   cnpj: string;
-  // Informação extra do Cliente na lista (ex.: parcelamentos). Fica abaixo da linha, fora do link: o
-  // nome acessível do link continua sendo só empresa e CNPJ, e a lista interna mantém a navegação.
-  // O anel de foco do link fica por dentro da linha (não invade os detalhes nem é cortado).
   detalhes?: React.ReactNode;
-  // Texto de ação à direita da linha ("Ver cadastro →" quando a lista leva ao cadastro).
   acao?: string;
 };
 
-// Cliente em lista: leva ao cadastro operacional dele.
 export function LinhaDeCliente({
   href,
   empresa,

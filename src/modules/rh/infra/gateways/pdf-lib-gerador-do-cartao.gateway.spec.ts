@@ -42,8 +42,6 @@ const DOCUMENTO: DocumentoDoCartaoDto = {
   avisoDaTotalizacao: "Sem convenção coletiva vigente em parte do mês.",
 };
 
-// O texto da primeira página: o pdf-lib grava cada texto como `<hex> Tj` em WinAnsi (igual ao latin1 nos acentos).
-// O unpdf não roda no Jest (import dinâmico do PDF.js), então o conteúdo é lido direto do fluxo da página.
 async function textoDo(pdf: Uint8Array): Promise<string> {
   const documento = await PDFDocument.load(pdf);
   const conteudo = documento.getPage(0).node.Contents();
@@ -110,7 +108,6 @@ describe("PdfLibGeradorDoCartaoGateway", () => {
     );
 
     const linha = texto.split("\n").find((t) => t.startsWith("Empresa: "));
-    // As reticências são 0x85 em WinAnsi (o helper de teste lê os bytes como latin1).
     expect(linha).toMatch(/\u0085$/);
     expect(linha!.length).toBeLessThan(longo.length);
   });

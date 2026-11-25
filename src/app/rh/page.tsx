@@ -24,21 +24,16 @@ import {
 import { podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
 import { ROTA_RH, ROTA_RH_FOLHA_DE_PONTO, SETOR_RH } from "@/shared/kernel/setores";
 
-// ponytail: montagem repetida de app/simples-nacional/page.tsx; extrair no 3º Setor com resumo.
 export default async function Page() {
   const sessao = await exigirSessao();
 
-  // Admin vê (suporte a qualquer setor); funcionário de outro setor volta para o início.
   if (!podeVerDashboardDoSetor(sessao.papel, sessao.setor, SETOR_RH)) redirect("/");
 
-  // ponytail: este carregamento repete o de app/rh/resumo/[bucket]; sem lugar para dividir (app só tem
-  // arquivos do Next e as camadas não se importam), junta-se na página.
   const [setores, base, mensal] = await Promise.all([
     carregarSetoresDaNavegacao(),
     carregarResumoSetorRh(),
     carregarAcompanhamentoMensal(),
   ]);
-  // Se o acompanhamento falhar, o dashboard segue só com o Parcelamento e avisa.
   const resumo = base.ok
     ? {
         ok: true as const,

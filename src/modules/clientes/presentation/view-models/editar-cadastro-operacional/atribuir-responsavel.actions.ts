@@ -12,8 +12,6 @@ import { toActionResult } from "@/shared/kernel/to-action-result";
 
 const schema = z.object({
   clienteId: z.string().uuid(),
-  // guid, não uuid: ids do seed (2222…, 8888…) não são v4/variante válida e o
-  // z.uuid() os recusava com "Dados inválidos".
   responsavelId: z.guid().nullable(),
 });
 

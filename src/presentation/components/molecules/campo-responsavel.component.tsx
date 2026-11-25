@@ -9,19 +9,15 @@ import { Select } from "@/presentation/components/ui/select";
 type CampoResponsavelProps = {
   editavel: boolean;
   nomeAtual: string;
-  // Só o modo editável usa o que vem abaixo; o somente leitura passa `editavel={false}` e `nomeAtual`.
   opcoes?: { id: string; nome: string }[];
   semResponsavel?: string;
-  // A lista carrega só quando o Select é aberto; "erro" tem saída própria (tentar de novo).
   estadoLista?: "ok" | "carregando" | "erro";
   onAbrir?: () => void;
   onTentarNovamente?: () => void;
-  // Props do <select> (o `register` do formulário, já resolvido por quem monta).
   select?: React.ComponentProps<"select">;
   desabilitado?: boolean;
 };
 
-// Responsável pelo Cliente: só o Líder do setor edita (Select); os demais veem o nome.
 export function CampoResponsavel({
   editavel,
   nomeAtual,
@@ -37,7 +33,13 @@ export function CampoResponsavel({
     <Pilha espaco={1}>
       <Label htmlFor="responsavelId">Responsável</Label>
       {editavel ? (
-        <Select id="responsavelId" disabled={desabilitado} {...select} onFocus={onAbrir}>
+        <Select
+          id="responsavelId"
+          disabled={desabilitado}
+          aria-describedby={estadoLista === "erro" ? "responsavelId-erro" : undefined}
+          {...select}
+          onFocus={onAbrir}
+        >
           <Opcao value="">{semResponsavel}</Opcao>
           {estadoLista === "carregando" && <Opcao disabled>Carregando…</Opcao>}
           {opcoes.map((opcao) => (
@@ -51,7 +53,9 @@ export function CampoResponsavel({
       )}
       {estadoLista === "erro" && (
         <Linha alinhar="centro" quebra className="gap-x-2">
-          <FieldError>Não foi possível carregar a lista de Funcionários.</FieldError>
+          <FieldError id="responsavelId-erro">
+            Não foi possível carregar a lista de Funcionários.
+          </FieldError>
           <Button type="button" variant="ghost" size="sm" onClick={onTentarNovamente}>
             Tentar de novo
           </Button>

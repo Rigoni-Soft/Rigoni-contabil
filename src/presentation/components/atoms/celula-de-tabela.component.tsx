@@ -1,11 +1,8 @@
 import { cn } from "@/presentation/lib/utils";
 
 type CelulaDeTabelaProps = {
-  // Célula de campo ou valor curto: menos respiro vertical. O horizontal é da tabela (`grade` o reduz).
   compacta?: boolean;
-  // Data/hora e números ficam em uma linha só e alinhados à direita (tabular-nums).
   numerica?: boolean;
-  // Primeira coluna: fica à vista na rolagem horizontal e nomeia a linha (<th scope="row">).
   fixa?: boolean;
   children: React.ReactNode;
 };
@@ -40,10 +37,8 @@ export function CabecalhoDeColuna({
   children,
 }: {
   centro?: boolean;
-  // Cabeçalho de grupo: cobre várias colunas (linha `agrupamento` da Tabela).
   colSpan?: number;
   fixa?: boolean;
-  // O cabeçalho acompanha o alinhamento à direita das células numéricas.
   numerica?: boolean;
   children: React.ReactNode;
 }) {
@@ -63,7 +58,6 @@ export function CabecalhoDeColuna({
   );
 }
 
-// Tabela com rolagem horizontal própria (a moldura não estoura a tela estreita).
 export function Tabela({
   colunas,
   legenda,
@@ -73,19 +67,14 @@ export function Tabela({
   children,
 }: {
   colunas: React.ReactNode;
-  // Estilo planilha: divisória em toda célula e respiro menor (cabe mais coluna sem rolar).
   grade?: boolean;
-  // Linha de cabeçalhos de grupo acima das colunas (CabecalhoDeColuna com `colSpan`).
   agrupamento?: React.ReactNode;
-  // Nome da tabela para leitor de tela.
   legenda?: string;
-  // Dentro de um cartão, que já tem a moldura.
   semMoldura?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div
-      // Região rolável: com legenda ganha nome e foco, para o teclado rolar a tabela.
       {...(legenda && { role: "region", "aria-label": legenda, tabIndex: 0 })}
       className={cn(
         "overflow-x-auto bg-card focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
@@ -110,8 +99,6 @@ export function Tabela({
   );
 }
 
-// Tom de fundo da linha (estado do dia, na planilha do cartão): tinta suave misturada ao cartão, opaca para a
-// primeira coluna fixa não deixar o texto passar por baixo na rolagem.
 const TOM = {
   alerta: "bg-[color-mix(in_oklab,var(--destructive)_9%,var(--card))]",
   atencao: "bg-[color-mix(in_oklab,var(--warning)_16%,var(--card))]",

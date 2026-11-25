@@ -12,9 +12,6 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, type Result } from "@/shared/kernel/result";
 
-// O "Salvar" do cartão de um mês, mesmo sem nenhum horário digitado, marca o cartão como iniciado: dali em
-// diante os dias úteis sem batida são falta (antes, o cartão é novo e os dias vazios ainda não contam). A
-// marca não se desfaz e é idempotente.
 export class IniciarCartaoDoPonto extends EscreverPonto implements IniciarCartaoDoPontoPort {
   constructor(
     sessao: SessaoPort,

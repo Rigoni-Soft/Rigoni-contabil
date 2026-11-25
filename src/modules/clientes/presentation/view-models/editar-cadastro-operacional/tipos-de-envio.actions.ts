@@ -8,7 +8,6 @@ import { toActionResult } from "@/shared/kernel/to-action-result";
 
 import { definirTiposSchema } from "./tipos-de-envio.schema";
 
-// O que o contato recebe (os checkboxes da linha): grava na hora, sem esperar o Salvar do cadastro.
 export async function definirTiposDoContatoAction(input: unknown): Promise<ActionResult<void>> {
   const parsed = definirTiposSchema.safeParse(input);
   if (!parsed.success) {

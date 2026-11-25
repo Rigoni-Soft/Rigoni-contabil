@@ -1,4 +1,3 @@
-/** Garante que o checker pega route.ts fora das exceções e deixa passar as três permitidas. */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

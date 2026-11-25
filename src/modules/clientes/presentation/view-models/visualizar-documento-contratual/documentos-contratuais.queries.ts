@@ -5,14 +5,11 @@ import type { DocumentoContratualVisivelDto } from "@/modules/clientes/applicati
 
 import { listarDocumentosContratuaisAction } from "./visualizar-documento-contratual.actions";
 
+const DOCUMENTOS_FRESCOS_POR_MS = 60_000;
+
 export const chaveDocumentosContratuais = (clienteId: string) =>
   ["clientes", "documentos-contratuais", clienteId] as const;
 
-// `iniciais` vem do loader do servidor (tela própria); sem ele (cliente aberto na busca, já no
-// navegador) a lista é lida por Server Action. `alteracaoEmFoco` (nº do aviso): com a lista em cache
-// ainda "fresca" a carga nova do servidor não a substitui, então a alteração pedida pode faltar só
-// no cache. Nesse caso a lista é relida uma vez por Cliente+nº antes de concluir que ela não existe;
-// `confirmando` segura a tela até lá, para não oferecer o link de outro documento.
 export function useDocumentosContratuais(
   clienteId: string,
   iniciais?: DocumentoContratualVisivelDto[],
@@ -26,7 +23,7 @@ export function useDocumentosContratuais(
       return resultado.data;
     },
     initialData: iniciais,
-    staleTime: 60_000,
+    staleTime: DOCUMENTOS_FRESCOS_POR_MS,
   });
 
   const { data, refetch } = query;

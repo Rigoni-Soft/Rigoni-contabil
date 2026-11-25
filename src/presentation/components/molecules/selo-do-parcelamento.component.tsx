@@ -5,9 +5,6 @@ import { cn } from "@/presentation/lib/utils";
 
 export type SeloDoParcelamento = "quitado" | "enviado" | "pendente";
 
-// Estado de resultado: ícone + texto + cor, nunca só cor (DESIGN.md "Indicadores de estado"). Enviado
-// é `primary` (o dourado `success` é do selo "em dia" das telas de status do Simples Nacional);
-// pendente e quitado ficam neutros, sem o vermelho de falha.
 const SELO: Record<SeloDoParcelamento, { rotulo: string; classes: string; Icone?: LucideIcon }> = {
   quitado: { rotulo: "Quitado", classes: "border-border text-muted-foreground" },
   enviado: {

@@ -4,10 +4,8 @@ import { Button } from "@/presentation/components/ui/button";
 
 type PainelDoClienteProps = {
   titulo: string;
-  // O foco vai para o título ao abrir o painel (quem usa teclado/leitor de tela não perde o contexto).
   tituloRef: React.Ref<HTMLElement>;
   onNovaBusca: () => void;
-  // Formulário do cadastro operacional (slot: é um Container).
   children: React.ReactNode;
 };
 

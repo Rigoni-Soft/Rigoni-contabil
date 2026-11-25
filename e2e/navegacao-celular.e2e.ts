@@ -1,8 +1,6 @@
 import { expect, test } from "./fixtures";
 import { login } from "./support/criar-cliente";
 
-// No celular (abaixo de 640 px) o cabeçalho é uma barra de uma linha: nome, sino e o botão Menu, que
-// abre Perfil, tema, Sair (e as ações do Admin). O Admin troca os chips de Setor por um seletor.
 const FUNCIONARIO = ["funcionario2.financeiro@rigonicontabil.local", "func123"] as const;
 const LIDER = ["lider.contabil@rigonicontabil.local", "lider123"] as const;
 const ADMIN = ["admin@rigonicontabil.local", "admin123"] as const;
@@ -26,7 +24,6 @@ test.describe("Navegação no celular", () => {
     await expect(page.getByRole("link", { name: "Meu perfil" })).toContainText("Meu perfil");
     await expect(page.getByRole("button", { name: /Mudar para tema/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sair" })).toBeVisible();
-    // Funcionário não cadastra ninguém: sem os links de cadastro.
     await expect(page.getByRole("link", { name: /Cadastrar/ })).toHaveCount(0);
 
     await page.keyboard.press("Escape");
@@ -34,7 +31,6 @@ test.describe("Navegação no celular", () => {
     await expect(menu).toBeFocused();
     await expect(menu).toHaveAttribute("aria-expanded", "false");
 
-    // O sino fica fora do menu, sempre à vista.
     await expect(page.getByRole("button", { name: /Avisos/ })).toBeVisible();
     const altura = await page.evaluate(
       () => document.querySelector("header")!.getBoundingClientRect().height,
@@ -62,10 +58,8 @@ test.describe("Navegação no celular", () => {
 
     const seletor = page.getByRole("combobox", { name: "Ir para o Setor" });
     await expect(seletor).toBeVisible();
-    // Em "/" nenhum Setor está aberto: o seletor mostra o título, não o primeiro Setor.
     await expect(seletor).toHaveValue("");
     await expect(seletor.locator("option:checked")).toHaveText("Setor");
-    // Os chips de Setor somem no celular; Atendimento segue à vista.
     await expect(page.getByRole("link", { name: "Simples Nacional", exact: true })).toBeHidden();
     await expect(page.getByRole("link", { name: "Atendimento", exact: true })).toBeVisible();
 

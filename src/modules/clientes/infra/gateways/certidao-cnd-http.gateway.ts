@@ -16,7 +16,6 @@ const cndSchema = z.object({
   validade: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
-// Fala `GET /clientes/{cnpj}/cnd` do contrato neutro (o mock de `mock-api/` em dev).
 export class CertidaoCndHttpGateway implements CertidaoCndPort {
   constructor(
     private readonly baseUrl: string,

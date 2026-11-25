@@ -1,8 +1,5 @@
 import { normalizarCnpj } from "@/shared/kernel/cnpj";
 
-// Máscara de exibição (00.000.000/0000-00) — puramente visual, aplicada
-// progressivamente enquanto o usuário digita. Preserva letras (CNPJ
-// alfanumérico); quem valida é `cnpjValido` (shared/kernel) e o domain.
 export function formatarCnpj(entrada: string): string {
   const caracteres = normalizarCnpj(entrada).slice(0, 14);
 

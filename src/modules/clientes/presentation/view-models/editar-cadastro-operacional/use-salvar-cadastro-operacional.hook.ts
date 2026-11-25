@@ -19,15 +19,13 @@ type Params = {
   dados: CadastroOperacionalClienteDto | null;
   podeAtribuirResponsavel: boolean;
   aoSalvar?: { tipo: "fechar"; executar: () => void } | { tipo: "voltar"; href: string };
-  // Salva os Parcelamentos do Setor (useParcelamentosDoCadastro); devolve o erro que interrompe, se houver.
   salvarParcelamentos: (valores: Valores) => Promise<string | undefined>;
   setError: UseFormSetError<Valores>;
 };
 
+const ETAPA_DO_CADASTRO = null;
 const ETAPA_RESPONSAVEL = "atribuir o Responsável";
 
-// Saga de salvar: cadastro, depois Parcelamentos (e suas guias), depois Responsável. Cada passo devolve a
-// mensagem de erro que interrompe a saga, ou undefined para seguir.
 export function useSalvarCadastroOperacional({
   dados,
   podeAtribuirResponsavel,
@@ -39,9 +37,6 @@ export function useSalvarCadastroOperacional({
   const [pendente, setPendente] = useState(false);
   const [erroServidor, setErroServidor] = useState<string | undefined>();
   const [sucesso, setSucesso] = useState(false);
-  // Depois de salvar o cadastro e falhar só a atribuição, guarda o que foi persistido (campos sem o
-  // Responsável); reenviar o mesmo formulário repete só a atribuição. Se a pessoa mexer em outro
-  // campo, o retrato muda e o salvamento completo volta.
   const [cadastroSalvo, setCadastroSalvo] = useState<string | null>(null);
 
   const limparMensagens = () => {
@@ -60,7 +55,6 @@ export function useSalvarCadastroOperacional({
       clienteId: cliente.id,
       responsavelId: valores.responsavelId || null,
     });
-    // O cadastro já foi salvo; reenviar o formulário repete só a atribuição.
     return atribuicao.ok
       ? undefined
       : `Os dados foram salvos, mas não foi possível atribuir o Responsável. ${atribuicao.error.message}`;
@@ -80,14 +74,11 @@ export function useSalvarCadastroOperacional({
     if (!dados) return;
     setPendente(true);
     limparMensagens();
-    // try/finally: rejeição de transporte da Server Action não pode deixar o botão preso em "Salvando…".
     try {
-      // O Responsável é salvo à parte: fica fora do retrato que decide se o cadastro mudou.
       const cadastro = semChaves(valores, "responsavelId", "parcelamentos");
       const retrato = JSON.stringify(cadastro);
       if (cadastroSalvo !== retrato) {
-        // `cadastro`, sem os Parcelamentos: os PDFs não podem viajar nesta chamada (teto de corpo da Vercel).
-        const resultado = await naEtapa(null, () =>
+        const resultado = await naEtapa(ETAPA_DO_CADASTRO, () =>
           editarCadastroOperacionalAction({ ...cadastro, clienteId: dados.id }),
         );
         if (!resultado.ok) {
@@ -100,8 +91,6 @@ export function useSalvarCadastroOperacional({
           return;
         }
       }
-      // O retrato é guardado assim que o cadastro persiste, antes da atribuição, para valer também
-      // quando a atribuição rejeita por erro de transporte.
       setCadastroSalvo(retrato);
 
       const erroParcelamentos = await salvarParcelamentos(valores);

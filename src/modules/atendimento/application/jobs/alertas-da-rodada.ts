@@ -11,21 +11,14 @@ import type { Result } from "@/shared/kernel/result";
 import { SETOR_LABEL, SETOR_SN, type SetorSlug } from "@/shared/kernel/setores";
 import type { TipoDeEnvio } from "@/shared/kernel/tipo-de-envio";
 
-// O rótulo que entra na frase "sem meio de envio para ...".
 const ROTULO_DO_ENVIO: Record<TipoDeEnvio, string> = {
   lembrete_documento: "o lembrete de documento",
   das: "o DAS",
   guia_parcelamento: "a guia de parcelamento",
 };
 
-// Diferença tolerada entre o relógio do servidor e o do banco ao resolver alertas.
 const FOLGA_RELOGIO_MS = 60_000;
 
-// O que aconteceu com uma tarefa do Cliente numa rodada de job: se saiu e o que o setor precisa
-// saber.
-// `naoReavaliado`: a tarefa não pôde ser reavaliada nesta rodada (outra tentativa vigente a tem
-// reservada, resultado ainda incerto). Quem tem isso não entra na resolução de alertas: um alerta
-// anterior só se resolve depois de a condição ser de fato reavaliada.
 export type Andamento = {
   enviado: boolean;
   ocorrencias: OcorrenciaDeEntrega[];
@@ -34,8 +27,7 @@ export type Andamento = {
 
 export const SEM_ANDAMENTO: Andamento = { enviado: false, ocorrencias: [] };
 
-// Reserva ocupada: a tarefa existe e segue com a tentativa de antes, sem ocorrência nova.
-export const RESERVA_OCUPADA: Andamento = {
+const RESERVA_OCUPADA: Andamento = {
   enviado: false,
   ocorrencias: [],
   naoReavaliado: true,
@@ -46,7 +38,6 @@ export const comOcorrencia = (tipo: TipoAlertaSetor, mensagem: string): Andament
   ocorrencias: [{ tipo, mensagem }],
 });
 
-// A ocorrência sem setor passa a ser do `setor` dado (a que já tem setor o mantém).
 export const noSetor = (andamento: Andamento, setor: SetorSlug): Andamento => ({
   ...andamento,
   ocorrencias: andamento.ocorrencias.map((o) => ({ ...o, setor: o.setor ?? setor })),
@@ -54,8 +45,6 @@ export const noSetor = (andamento: Andamento, setor: SetorSlug): Andamento => ({
 
 export const falha = (mensagem: string) => comOcorrencia("falha_envio", mensagem);
 
-// Sem para quem enviar não vale buscar a guia nem reivindicar a tarefa: o Setor dono do envio é avisado
-// de que o Cliente está sem meio de envio para aquele tipo.
 export const semDestinatario = (empresa: string, setor: SetorSlug, tipo: TipoDeEnvio) =>
   noSetor(
     comOcorrencia(
@@ -66,23 +55,13 @@ export const semDestinatario = (empresa: string, setor: SetorSlug, tipo: TipoDeE
   );
 
 type Etapas = {
-  // "DAS de 3A": a tarefa do Cliente, para as mensagens.
   descricao: string;
-  // Reserva a entrega e devolve o token da tentativa; null se outra tentativa vigente já a tem ou o
-  // cadastro deixou de estar elegível (outro job ou o Funcionário tratou a tarefa).
   reservar: () => Promise<Result<string | null, AppError>>;
   entregar: () => Promise<Andamento>;
-  // Registra o aceite no cadastro, só com a posse da reserva. false: a posse se perdeu ou o
-  // Funcionário já havia mexido.
   concluir: (token: string) => Promise<Result<boolean, AppError>>;
-  // A entrega falhou sem aceite: devolve a reserva para a próxima rodada.
   liberar: (token: string) => Promise<Result<void, AppError>>;
 };
 
-// Reserva, entrega e só então conclui. O cadastro nunca afirma uma entrega que não ocorreu: queda ou
-// exceção entre a reserva e a conclusão deixam o cadastro como estava e a reserva expira (retomada
-// na rodada seguinte). Conclusão e liberação provam a posse pelo token: uma tentativa antiga não
-// sobrescreve a mais recente. Resultado incerto (a entrega pode ter saído) não é liberado.
 export async function entregarComReserva({
   descricao,
   reservar,
@@ -92,9 +71,6 @@ export async function entregarComReserva({
 }: Etapas): Promise<Andamento> {
   const reserva = await reservar();
   if (!reserva.ok) return falha(`${descricao}: ${reserva.error.message}`);
-  // Outra tentativa vigente (resultado ainda incerto) ou o cadastro deixou de estar elegível entre a
-  // leitura e agora. Em nenhum dos dois casos a condição foi reavaliada aqui: não conta como
-  // "regularizado" para os alertas; a rodada seguinte relê o Cliente e decide.
   if (reserva.value === null) return RESERVA_OCUPADA;
   const token = reserva.value;
 
@@ -125,8 +101,6 @@ export async function entregarComReserva({
 
 type ChaveDoAlerta = { setor: SetorSlug; tipo: TipoAlertaSetor };
 
-// Um alerta por Setor e tipo do Cliente: as mensagens do mesmo setor e tipo (ex.: falha do lembrete
-// e da guia) se juntam, em vez de a segunda ser descartada. Sem setor, o alerta é do Simples Nacional.
 function agruparPorSetorETipo(
   ocorrencias: OcorrenciaDeEntrega[],
 ): { chave: ChaveDoAlerta; mensagens: string[] }[] {
@@ -140,7 +114,6 @@ function agruparPorSetorETipo(
   return [...grupos.values()];
 }
 
-// Grava as ocorrências do Cliente como alertas do Setor dono de cada uma.
 async function levantarAlertas(
   alertas: AlertaSetorPort,
   clienteId: string,
@@ -159,11 +132,7 @@ async function levantarAlertas(
   return { gravados, naoGravados: grupos.length - gravados };
 }
 
-// Alerta que o job não renovou nesta rodada deixou de valer, mas só para os Clientes que ela
-// reavaliou: um Cliente não lido, ou com a tarefa reservada por outra tentativa, não teve a
-// condição reavaliada. Com alerta que não pôde ser gravado a rodada não sabe o que renovou, então
-// não resolve nada.
-async function resolverNaoRenovados(
+async function resolverNaoRenovadosContandoFalha(
   alertas: AlertaSetorPort,
   agora: Date,
   clienteIds: string[],
@@ -177,9 +146,6 @@ async function resolverNaoRenovados(
   return resolvidos.ok ? 0 : 1;
 }
 
-// Processa cada Cliente em sequência (um que falha não impede os demais), grava os alertas das
-// ocorrências dele e, ao fim, resolve os que a rodada não renovou entre os Clientes avaliados. `falhas` soma os envios que
-// falharam e as gravações/resoluções de alerta que não foram feitas.
 export async function executarRodada<C extends { clienteId: string }>(
   alertas: AlertaSetorPort,
   agora: Date,
@@ -191,7 +157,6 @@ export async function executarRodada<C extends { clienteId: string }>(
   let naoGravadosTotal = 0;
   let falhas = 0;
   for (const cliente of clientes) {
-    // Um Cliente que lança não derruba os seguintes.
     const feito = await processar(cliente).catch(() => [
       falha(`Cliente ${cliente.clienteId}: erro inesperado ao processar a rodada.`),
     ]);
@@ -206,17 +171,15 @@ export async function executarRodada<C extends { clienteId: string }>(
     gravadosTotal += gravados;
     naoGravadosTotal += naoGravados;
   }
-  // Só os Clientes cujas tarefas foram todas reavaliadas: um Cliente com reserva ocupada mantém os
-  // alertas dele até a condição ser reavaliada (inclusive os da tarefa vizinha, que dividem o tipo).
   const avaliados = clientes
     .filter((_, i) => !andamentos[i].some((andamento) => andamento.naoReavaliado))
     .map((cliente) => cliente.clienteId);
   falhas +=
-    naoGravadosTotal + (await resolverNaoRenovados(alertas, agora, avaliados, naoGravadosTotal));
+    naoGravadosTotal +
+    (await resolverNaoRenovadosContandoFalha(alertas, agora, avaliados, naoGravadosTotal));
   return { andamentos, alertas: gravadosTotal, falhas };
 }
 
-// O resultado da entrega por canais como andamento do Cliente.
 export function paraAndamento(
   entrega: Result<ComunicacaoEntregue, AppError>,
   empresa: string,

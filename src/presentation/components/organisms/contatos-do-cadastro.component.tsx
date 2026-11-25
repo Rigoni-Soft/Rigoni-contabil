@@ -17,41 +17,30 @@ import { formatarTelefone } from "@/presentation/lib/telefone-mask";
 
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
 
-// O que cada linha de contato faz (montado no Container): editar, salvar e cancelar a linha, e o que ela
-// mostra de si. Linha sem `id` é nova e já nasce em edição.
+const CARACTERE_INVISIVEL = "\u200B";
+
+const avisoDeVezImpar = (vez: number | undefined) => (vez ?? 0) % 2 === 1;
+
 export type AcoesDasLinhasDeContato = {
   editando: (indice: number) => boolean;
   salvo: (indice: number) => boolean;
   salvando: number | null;
-  // Contato de outro Setor: nome, WhatsApp e e-mail só de leitura (os envios seguem do Setor).
   camposTravados: (indice: number) => boolean;
-  // Nome da lixeira quando o contato é de outro dono ("Deixar de usar…"); sem texto, "Remover contato N".
   rotuloDaLixeira: (indice: number) => string | undefined;
-  // O dono remove o contato (o Salvar do cadastro persiste); quem só o usa abre a pergunta "Deixar de usar?".
   onRemover: (indice: number) => void;
-  // A pergunta aberta pela lixeira do contato de outro dono; deixar de usar só acontece ao confirmar.
   confirmacaoDeRemocao: (indice: number) => ConfirmacaoDeRemocao | undefined;
-  // O que o contato recebe do Setor; ausente quando o ator não define envios (Admin).
   envios: (indice: number) => EnviosDaLinha | undefined;
-  // Linha nova do Setor: os contatos de outros Setores que ele pode escolher em vez de digitar um novo.
   existentes: (indice: number) => ExistentesDaLinha | undefined;
-  // Linha nova: o aviso de que o número digitado já é de um contato do Cliente (com "Usar este contato" quando
-  // ele está fora da lista), conferido ao sair do WhatsApp.
   numeroRepetido: (indice: number) => NumeroRepetidoDaLinha | undefined;
   onSairDoTelefone: (indice: number) => void;
-  // Contato de outro Setor que o Setor ainda não usa não aparece na lista; a numeração só conta os visíveis.
   visivel: (indice: number) => boolean;
   numero: (indice: number) => number;
-  // Confirmação dita ao leitor de tela ("Contato 1 salvo."), já que salvar só troca os botões.
   aviso?: string;
-  // Muda a cada anúncio: a região aria-live segue montada e a vez ímpar acrescenta um caractere invisível,
-  // para o leitor de tela anunciar de novo a mesma frase repetida.
   avisoVez?: number;
   erroDaLinha: (indice: number) => string | undefined;
   onEditar: (indice: number) => void;
   onSalvar: (indice: number) => void;
   onCancelar: (indice: number) => void;
-  // Enquanto uma linha está em edição, o Salvar do cadastro espera (senão o que se digitou nela, e os envios, se perderia).
   motivoDoBloqueio?: string;
 };
 
@@ -60,7 +49,6 @@ type ContatosDoCadastroProps = {
   control: Control<EditarCadastroOperacionalFormValues>;
   errors: FieldErrors<EditarCadastroOperacionalFormValues>;
   readOnly: boolean;
-  // Lista de campos do useFieldArray, montada no Container (View burra: sem hooks).
   contatos: { id: string }[];
   onAdicionar: () => void;
   linhas: AcoesDasLinhasDeContato;
@@ -142,7 +130,7 @@ export function ContatosDoCadastro({
       )}
       <Texto variante="nota" aria-live="polite" className="sr-only">
         {linhas.aviso}
-        {(linhas.avisoVez ?? 0) % 2 === 1 && "​"}
+        {avisoDeVezImpar(linhas.avisoVez) && CARACTERE_INVISIVEL}
       </Texto>
       {errors.contatos && typeof errors.contatos.message === "string" && (
         <FieldError>{errors.contatos.message}</FieldError>

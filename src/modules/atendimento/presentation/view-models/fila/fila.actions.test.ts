@@ -1,7 +1,3 @@
-/**
- * Integração presentation ↔ application: o `main` é substituído por uma composição com portas
- * OUT falsas (testes.md, seção 3), sem tocar Supabase real.
- */
 import { ConflictError } from "@/shared/errors/conflict.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok } from "@/shared/kernel/result";

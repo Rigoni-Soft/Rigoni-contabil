@@ -12,19 +12,15 @@ type CampoDeOpcoesProps = React.ComponentProps<"select"> & {
   rotulo: string;
   opcoes: readonly { valor: string; rotulo: string }[];
   obrigatorio?: boolean;
-  // Primeira opção, de valor "". Desabilitada quando a escolha é obrigatória ("Selecione").
   placeholder?: string;
   placeholderDesabilitado?: boolean;
   erro?: string;
   aviso?: string;
-  // Dica fixa sob o campo (por que está travado); ligada ao select por aria-describedby.
   ajuda?: string;
-  // Classes do contêiner e do <select> (campo travado mantém a cor plena, por exemplo).
   className?: string;
   classeDoSelect?: string;
 };
 
-// Rótulo visível + select de opções + erro, sobre o `Select` do ui/.
 export function CampoDeOpcoes({
   id,
   rotulo,

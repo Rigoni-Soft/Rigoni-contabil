@@ -10,8 +10,6 @@ import { CabecalhoConversaContainer } from "@/modules/atendimento/presentation/v
 import { CompositorConversaContainer } from "@/modules/atendimento/presentation/view-models/conversa/compositor-conversa.container";
 import { MensagensConversaContainer } from "@/modules/atendimento/presentation/view-models/conversa/mensagens-conversa.container";
 
-// O chat da conversa aberta, no centro. Reaproveita as regiões da conversa; a
-// conversa em si vem da mesma leitura que as ações usam (uma consulta só).
 export function ChatCentralContainer() {
   const { abertoId, fecharConversa } = useAtendimentoCentralStore();
   const aberta = useConversaAberta(abertoId);
@@ -27,7 +25,6 @@ export function ChatCentralContainer() {
       comAcoes={aberta.data?.encerrado === false}
     >
       {abertoId !== null && aberta.data && (
-        // `key`: trocar de conversa recomeça o estado local (rascunho, emoji, gravação).
         <Fragment key={abertoId}>
           <CabecalhoConversaContainer atendimentoId={abertoId} initialData={aberta.data} />
           <MensagensConversaContainer atendimentoId={abertoId} initialData={aberta.data} />

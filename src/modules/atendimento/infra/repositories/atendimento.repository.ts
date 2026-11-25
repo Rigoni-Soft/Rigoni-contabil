@@ -55,7 +55,9 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import type { SetorSlug } from "@/shared/kernel/setores";
 
-// Os quatro campos do anexo nascem juntos (CHECK da tabela).
+const COLUNAS_DA_MENSAGEM =
+  "id, autor, texto, criado_em, id_externo, reacao, entrega, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor)";
+
 function paraMensagemLida(m: z.infer<typeof mensagemDaConversaRowSchema>): MensagemLida {
   return {
     id: m.id,
@@ -79,7 +81,6 @@ function paraMensagemLida(m: z.infer<typeof mensagemDaConversaRowSchema>): Mensa
   };
 }
 
-// Usa o client service_role (docs/adr/0001); a tabela não tem policy para usuário logado.
 export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort {
   constructor(private readonly supabaseAdmin: SupabaseClient) {}
 
@@ -115,7 +116,6 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     chave: string,
     idExterno: string | undefined,
   ): Promise<Result<{ atendimentoId: string; jaRegistrada: boolean } | null, AppError>> {
-    // Mesmo critério da RPC de anexar: o Atendimento em andamento mais novo do número.
     const atendimento = await this.supabaseAdmin
       .from("atendimentos")
       .select("id")
@@ -195,7 +195,6 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
       ? null
       : (linha.cliente_responsaveis.find((r) => r.setor === setorDestino)?.responsavel_id ?? null);
     if (!responsavelId) return ok({ regime: linha.regime, responsavelId: null });
-    // Responsável desativado não recebe: o Atendimento cai no Líder.
     const ativo = await this.supabaseAdmin
       .from("perfis")
       .select("id")
@@ -206,7 +205,6 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     return ok({ regime: linha.regime, responsavelId: ativo.data ? responsavelId : null });
   }
 
-  // Cada Setor tem um só Líder (regra de domínio); se o banco devolver dois, falha em vez de escolher.
   async liderDoSetor(setor: SetorSlug): Promise<Result<string | null, AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("perfis")
@@ -322,7 +320,6 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     return this.emAndamento("setor", setor);
   }
 
-  // Em atendimento (com dono), pelo dono ou pelo Setor, do assumido há mais tempo ao mais recente.
   private async emAndamento(
     coluna: "funcionario_id" | "setor",
     valor: string,
@@ -344,7 +341,6 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const nomes = await Promise.all(
       linhas.map((linha) => this.nomeDoContato(linha.cliente_id, linha.chave_telefone)),
     );
-    // O nome é enfeite do painel: se a busca de um Contato falhar, o Atendimento aparece sem nome.
     return ok(
       linhas.map((linha, i) => ({
         id: linha.id,
@@ -352,7 +348,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
         funcionarioNome: linha.dono?.nome ?? null,
         telefone: linha.telefone,
         criadoEm: linha.criado_em,
-        contato: dadosDoContato(linha.clientes, nomes[i]?.ok ? nomes[i].value : null),
+        contato: dadosDoContato(linha.clientes, nomeOuNenhum(nomes[i])),
         ultimaMensagem: linha.mensagens[0]
           ? {
               autor: linha.mensagens[0].autor,
@@ -365,7 +361,6 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     );
   }
 
-  // Quem escreve é o Contato cujo número bate com o do Atendimento, achado pela função única do banco.
   private async nomeDoContato(
     clienteId: string | null,
     chave: string,
@@ -383,11 +378,9 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
       .select(
-        "id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, resumo_ura, cnpj_informado, clientes(empresa, cnpj), mensagens(id, autor, texto, criado_em, id_externo, reacao, entrega, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor)), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))",
+        `id, status, setor, funcionario_id, cliente_id, telefone, chave_telefone, resumo_ura, cnpj_informado, clientes(empresa, cnpj), mensagens(${COLUNAS_DA_MENSAGEM}), transferencias(setor_origem, resumo, origem:perfis!funcionario_origem_id(nome))`,
       )
       .eq("id", atendimentoId)
-      // As mais recentes primeiro e uma a mais que a janela (diz se há histórico); a ordem
-      // cronológica volta em memória.
       .order("criado_em", { referencedTable: "mensagens", ascending: false })
       .order("id", { referencedTable: "mensagens", ascending: false })
       .limit(CONVERSA_JANELA_MENSAGENS + 1, { referencedTable: "mensagens" })
@@ -432,19 +425,11 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     antes: CursorDaConversa,
     limite: number,
   ): Promise<Result<MensagensAnteriores | null, AppError>> {
-    // Estritamente antes do cursor: data menor, ou a mesma data com id menor.
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
-      .select(
-        "setor, funcionario_id, mensagens(id, autor, texto, criado_em, id_externo, reacao, entrega, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor))",
-      )
+      .select(`setor, funcionario_id, mensagens(${COLUNAS_DA_MENSAGEM})`)
       .eq("id", atendimentoId)
-      .or(
-        `criado_em.lt."${antes.criadoEm}",and(criado_em.eq."${antes.criadoEm}",id.lt.${antes.id})`,
-        {
-          referencedTable: "mensagens",
-        },
-      )
+      .or(filtroDeMensagensEstritamenteAnterioresA(antes), { referencedTable: "mensagens" })
       .order("criado_em", { referencedTable: "mensagens", ascending: false })
       .order("id", { referencedTable: "mensagens", ascending: false })
       .limit(limite + 1, { referencedTable: "mensagens" })
@@ -466,9 +451,7 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
   ): Promise<Result<MensagensPorId | null, AppError>> {
     const { data, error } = await this.supabaseAdmin
       .from("atendimentos")
-      .select(
-        "setor, funcionario_id, mensagens(id, autor, texto, criado_em, id_externo, reacao, entrega, anexo_tipo, anexo_nome, anexo_caminho, anexo_tamanho, anexo_miniatura_caminho, perfis(nome, setor))",
-      )
+      .select(`setor, funcionario_id, mensagens(${COLUNAS_DA_MENSAGEM})`)
       .eq("id", atendimentoId)
       .in("mensagens.id", ids)
       .maybeSingle();
@@ -539,6 +522,15 @@ export class SupabaseAtendimentoRepository implements AtendimentoRepositoryPort 
     if (error) return err(new ServicoExternoError("Falha ao registrar a reação."));
     return ok(undefined);
   }
+}
+
+function filtroDeMensagensEstritamenteAnterioresA(cursor: CursorDaConversa): string {
+  const { criadoEm, id } = cursor;
+  return `criado_em.lt."${criadoEm}",and(criado_em.eq."${criadoEm}",id.lt.${id})`;
+}
+
+function nomeOuNenhum(nome: Result<string | null, AppError> | undefined): string | null {
+  return nome?.ok ? nome.value : null;
 }
 
 type ClienteEmbutido = z.infer<typeof atendimentoDoFuncionarioRowSchema>["clientes"];

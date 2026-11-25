@@ -11,7 +11,6 @@ const FOTO = new File([new Uint8Array([0xff, 0xd8])], "atestado-medico-2.jpeg", 
 });
 
 function montar(aoAbonar = jest.fn()) {
-  // O jsdom não implementa showModal/close do <dialog>: marca o atributo `open` como o navegador faria.
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute("open", "");
   };

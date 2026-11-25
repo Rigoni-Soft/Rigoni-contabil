@@ -32,7 +32,6 @@ export class DesativarUsuario implements DesativarUsuarioPort {
     const ator = await exigirAdmin(this.sessao, this.usuarios, "Só Admin desativa usuários.");
     if (!ator.ok) return ator;
 
-    // Admin nunca é desativado pela UI (nem o próprio): só Líder/Funcionário.
     if (usuarioId === ator.value.id) {
       return err(new ForbiddenError("Você não pode desativar a própria conta."));
     }
@@ -43,14 +42,9 @@ export class DesativarUsuario implements DesativarUsuarioPort {
       return err(new ForbiddenError("Só Líder ou Funcionário podem ser desativados."));
     }
 
-    // Marca + audita primeiro (transação única, idempotente): a partir daqui o app
-    // já barra login e sessão. O ban no Auth e o apagar da foto vêm depois; repetir a ação
-    // completa é seguro (refaz só o que falta, nada duplica).
     const desativado = await this.desativacao.desativar(alvo.value.id, ator.value.id);
     if (!desativado.ok) return desativado;
 
-    // As duas etapas rodam sempre: a falha de uma não impede a outra (a foto é dado pessoal e não
-    // espera um ban que falhou). O que falhar deixa a conta como "conclusão pendente" na lista.
     const pendencias: string[] = [];
     const bloqueio = await this.concluirBloqueio(alvo.value);
     if (!bloqueio.ok) pendencias.push("o bloqueio da conta falhou");
@@ -58,8 +52,6 @@ export class DesativarUsuario implements DesativarUsuarioPort {
     if (!foto.ok) pendencias.push("a foto não foi apagada");
     if (pendencias.length === 0) return ok(undefined);
 
-    // O usuário JÁ está desativado e auditado (a RLS já nega o acesso); só uma etapa de conclusão
-    // falhou. Não apresenta isso como falha total (mesmo padrão do EstadoInconsistenteError).
     return err(
       new EstadoInconsistenteError(
         `Usuário desativado, mas ${pendencias.join(" e ")}. Ele segue na lista como conclusão pendente: repita a desativação por lá.`,
@@ -68,7 +60,6 @@ export class DesativarUsuario implements DesativarUsuarioPort {
     );
   }
 
-  // `banido_em` registra a confirmação do Auth: com ela a etapa já está feita e não se repete.
   private async concluirBloqueio(alvo: Usuario): Promise<Result<void, AppError>> {
     if (alvo.bloqueioConfirmado()) return ok(undefined);
     const banido = await this.authAdmin.banirConta(alvo.id);
@@ -82,12 +73,10 @@ export class DesativarUsuario implements DesativarUsuarioPort {
     return registrado;
   }
 
-  // O objeto sai antes de a coluna ser zerada: se apagar falhar a coluna continua preenchida, que é
-  // o marcador da pendência (ADR 0012). Apagar é idempotente e roda mesmo com a coluna nula (um envio
-  // concorrente pode ter gravado o objeto depois da leitura do alvo).
   private async apagarFoto(alvo: Usuario): Promise<Result<void, AppError>> {
     const apagada = await this.armazenamento.apagar(alvo.id);
-    if (apagada.ok && !alvo.temAvatar()) return apagada;
+    const nadaMaisParaZerar = apagada.ok && !alvo.temAvatar();
+    if (nadaMaisParaZerar) return apagada;
     const zerada = apagada.ok ? await this.marca.definir(alvo.id, null) : apagada;
     if (!zerada.ok) {
       this.erros.registrar(

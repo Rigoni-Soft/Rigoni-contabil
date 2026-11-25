@@ -33,10 +33,6 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { ehResponsavelRhDoCliente, podeVerAcompanhamentoRh } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// A Folha de ponto de um Cliente: o quadro, o cartão do mês do empregado escolhido e a Totalização
-// dele pela convenção vigente em cada dia do cartão (a legislação onde nenhuma vale). O Admin e o Líder do
-// RH leem; o Funcionário, só os Clientes de que é Responsável (a RLS repete o recorte: cliente fora da vista
-// do ator some).
 export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -64,7 +60,6 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
     if (!quadro.ok) return quadro;
     const { base, empregados } = quadro.value;
 
-    // Sem empregado pedido o quadro abre no formulário "Novo empregado": nada é escolhido por padrão.
     if (!input.empregadoId) return ok({ ...base, selecionado: null });
     const escolhido = empregados.find((e) => e.id === input.empregadoId);
     if (!escolhido) return err(new NotFoundError("Empregado não encontrado."));
@@ -145,7 +140,6 @@ export class ObterFolhaDePonto implements ObterFolhaDePontoPort {
     const lancadoEm = new Map(lancados.value.map((d) => [d.data, d]));
     const feriadoEm = new Set(feriados.value);
 
-    // Só avisa quando um dia com lançamento ficou sem convenção: dia vazio não muda com ela.
     const semConvencao = datas.some(
       (data) => !convencaoDe.get(data) && (lancadoEm.get(data) || feriadoEm.has(data)),
     );

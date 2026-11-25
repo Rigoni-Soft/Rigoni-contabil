@@ -27,11 +27,7 @@ type CriarUsuarioFormProps = {
   pendente: boolean;
   erroServidor?: string;
   criado?: ContaCriada;
-  // Chamado ao clicar "Cadastrar outro" na tela de confirmação — quem monta a
-  // página decide o que isso significa (aqui: limpar o formulário e continuar).
   onCadastrarNovo: () => void;
-  // Escopado por RBAC em quem monta a página (Admin vê tudo, Líder de setor só o
-  // próprio Setor) — o formulário só reflete o que já é permitido, não decide.
   papeisDisponiveis: PapelCadastravel[];
   setoresDisponiveis: readonly string[];
 };
@@ -47,8 +43,6 @@ export function CriarUsuarioForm({
   papeisDisponiveis,
   setoresDisponiveis,
 }: CriarUsuarioFormProps) {
-  // Quando só há 1 opção possível (Líder de setor: só "funcionario" no próprio
-  // Setor), não faz sentido pedir pra escolher — já vem selecionado e travado.
   const papelUnico = opcaoUnica(papeisDisponiveis);
   const setorUnico = opcaoUnica(setoresDisponiveis);
 
@@ -79,8 +73,6 @@ export function CriarUsuarioForm({
 
   return (
     <Pilha espaco="formulario" como="form" onSubmit={onSubmit} noValidate>
-      {/* Nome/E-mail/Papel/Setor cabem lado a lado — 2 colunas aproveita melhor
-          a largura do formulário (80% da tela) do que empilhar tudo numa coluna só. */}
       <Grade colunas="1>2" espaco={5}>
         <CampoDeTexto id="nome" rotulo="Nome" erro={errors.nome?.message} {...register("nome")} />
         <CampoDeTexto

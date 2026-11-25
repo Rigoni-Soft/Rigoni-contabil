@@ -9,8 +9,6 @@ import type { AppError } from "@/shared/errors/app.error";
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Salva um contato do Cliente direto na tabela, pelo "Salvar" da linha. Quem pode editar (o Setor dono
-// ou o Admin) o banco confere; aqui só se exige sessão e se valida o contato.
 export class SalvarContatoDoCliente implements SalvarContatoDoClientePort {
   constructor(
     private readonly sessao: SessaoPort,

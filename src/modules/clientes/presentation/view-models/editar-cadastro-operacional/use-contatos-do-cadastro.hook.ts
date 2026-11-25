@@ -32,46 +32,28 @@ import { useGravarContatoDaLinha } from "./use-gravar-contato-da-linha.hook";
 type Parametros = {
   clienteId: string;
   form: UseFormReturn<EditarCadastroOperacionalFormValues>;
-  // Os campos do useFieldArray (a chave de cada linha) e a remoção da linha nova que se cancela.
   campos: { id: string }[];
   remover: (indice: number) => void;
-  // Os Destinos do Setor como vieram do servidor (para o aviso de canal perdido) e o catálogo de tipos.
   destinos: { contatoId: string; tipo: string | null; canal: string }[];
   tiposDeEnvio: { slug: string; rotulo: string }[];
-  // O Setor da tela e quem a abriu: o Admin não tem Setor (só cadastra contatos); o Setor marca o que cada
-  // contato recebe dele (também nos de outros donos) e edita só os contatos que cadastrou.
   setorDoCadastro: string;
   admin: boolean;
-  // Admin e quem só visualiza veem todos os contatos; o Setor vê os que cadastrou ou escolheu, e escolhe os
-  // demais ao adicionar um contato.
   verTodos: boolean;
 };
 
-// O que a tela guarda de cada linha, pela chave dela (o id do useFieldArray, que não muda quando outra linha sai).
 type EstadoDaLinha = {
-  // Sem valor, vale o padrão: nova = em edição, salva = só mostrando.
   aberta?: boolean;
-  // Contato de outro Setor trazido pelo "contato já cadastrado": "novo" até o Setor salvar os envios (cancelar o
-  // devolve à lista dos disponíveis), "salvo" depois.
   adotado?: "novo" | "salvo";
-  // Contato de outro Setor que o Setor deixou de usar: sai da lista agora (o servidor tirou os envios dele).
   dispensado?: boolean;
-  // A lixeira perguntou "Deixar de usar?" e espera a resposta.
   confirmando?: boolean;
-  // Linha nova em que se escolheu "Cadastrar novo": os campos são de texto em vez de seleções.
   novo?: boolean;
-  // O Salvar foi recusado por falta do canal (contato com os dois canais e envios marcados).
   semCanal?: boolean;
-  // O número (chave) na última vez em que se saiu do WhatsApp da linha nova: o aviso de número repetido só vale
-  // para esse número e some quando ele muda.
   verificado?: string;
 };
 
 const TEXTO_DA_CONFIRMACAO =
   "Deixar de usar este contato? Os envios marcados aqui deixam de sair para ele; o contato segue com o dono e com os outros Setores.";
 
-// As linhas de contato do cadastro: cada uma vê (Editar e Lixeira) ou edita (Salvar e Cancelar) o contato e
-// o que ele recebe do Setor, numa gravação só. Linha nova já nasce em edição; as demais abrem no lápis.
 export function useContatosDoCadastro({
   clienteId,
   form,
@@ -112,7 +94,6 @@ export function useContatosDoCadastro({
     if (linha.dispensado) return false;
     return Boolean(linha.adotado) || contatoDoSetor(contato, setorDoCadastro);
   };
-  // A numeração é a da tela: contato escondido não conta.
   const numero = (indice: number) =>
     contatos.slice(0, indice + 1).filter((_, i) => visivel(i)).length;
   const fechar = (indice: number) => {
@@ -128,8 +109,6 @@ export function useContatosDoCadastro({
     focar(editavel(indice) ? `contatos.${indice}.nome` : `contatos.${indice}.tipo-todos`);
   };
 
-  // A pergunta da lixeira do contato que o Setor só usa (é de outro dono); a resposta "Deixar de usar" tira os
-  // envios do Setor e o contato sai da lista dele; o contato segue com o dono e com os outros Setores.
   const deixarDeUsar = async (indice: number) => {
     const id = getValues(`contatos.${indice}.id`);
     if (salvando !== null || !id) return;
@@ -163,14 +142,12 @@ export function useContatosDoCadastro({
     setValue(`contatos.${indice}.tipos`, antes.tipos);
     setValue(`contatos.${indice}.canal`, antes.canal);
     fechar(indice);
-    // O contato escolhido e ainda não salvo volta à lista dos disponíveis.
     const devolver = daLinha(chaveDe(indice)).adotado === "novo";
     alterar(chaveDe(indice), devolver ? { adotado: undefined } : {});
     anunciar(`Edição do contato ${numero(indice)} cancelada.`);
     focar(`contatos.${indice}.editar`);
   };
 
-  // Linha nova: some, a menos que seja a única visível (aí só esvazia).
   const descartarLinhaNova = (indice: number) => {
     const visiveis = contatos.filter((_, i) => visivel(i)).length;
     if (visiveis > 1) remover(indice);
@@ -190,7 +167,6 @@ export function useContatosDoCadastro({
     descartarLinhaNova(indice);
   };
 
-  // Marca no formulário os campos recusados pela validação; devolve se a linha passou.
   const camposValidos = (indice: number, contato: ValoresDaLinha) => {
     const problemas = problemasDosCampos(contato);
     problemas.forEach(({ campo, mensagem }, posicao) =>
@@ -203,8 +179,6 @@ export function useContatosDoCadastro({
     return problemas.length === 0;
   };
 
-  // O contato acabou de ser gravado (agora tem id): a linha segue em edição se só os envios falharem, e o que já
-  // está gravado não se regrava se a pessoa tentar de novo.
   const registrarContatoGravado = (
     indice: number,
     contato: ValoresDaLinha,
@@ -230,7 +204,6 @@ export function useContatosDoCadastro({
 
   const gravar = async (indice: number, contato: ValoresDaLinha, tipos: string[]) => {
     const antes = instantaneos.current[chaveDe(indice)];
-    // O contato com os dois canais e envios marcados precisa dizer por onde enviar (sem padrão).
     const exigeCanal = !admin && tipos.length > 0 && temOsDoisCanais(contato);
     setSalvando(indice);
     try {
@@ -262,7 +235,6 @@ export function useContatosDoCadastro({
     if (editavel(indice) && !camposValidos(indice, contato)) return;
 
     const tipos = tiposDa(indice);
-    // Contato de outro Setor escolhido agora: sem ao menos um envio ele não entra na lista do Setor.
     if (daLinha(chave).adotado === "novo" && tipos.length === 0) {
       return setFalha({ indice, mensagem: "Marque ao menos um envio para usar este contato." });
     }
@@ -273,13 +245,10 @@ export function useContatosDoCadastro({
     await gravar(indice, contato, tipos);
   };
 
-  // Os contatos de outros Setores que este ainda não usa: o que a linha nova oferece escolher.
   const disponiveis = contatos.flatMap((contato, indice) =>
     contato.id && !visivel(indice) ? [{ indice, contato, id: contato.id }] : [],
   );
 
-  // Escolher um contato já cadastrado: ele entra na lista, em edição, para o Setor marcar os envios; a linha em
-  // branco de onde se escolheu sai.
   const onEscolherExistente = (indiceDaLinha: number, contatoId: string) => {
     const alvo = disponiveis.find((d) => d.id === contatoId);
     if (!alvo) return;
@@ -293,7 +262,6 @@ export function useContatosDoCadastro({
     focar(`contatos.${novoIndice}.tipo-todos`);
   };
 
-  // Ao sair do WhatsApp da linha nova: confere se o número já é de um contato do Cliente.
   const onSairDoTelefone = (indice: number) => {
     const contato = getValues(`contatos.${indice}`);
     if (!contato || salvo(indice)) return;
@@ -312,7 +280,6 @@ export function useContatosDoCadastro({
     });
   };
 
-  // O Admin não escolhe contato de outro Setor: vê todos.
   const existentes = (indice: number) => {
     if (admin || salvo(indice)) return undefined;
     return existentesDaLinha({
@@ -324,7 +291,6 @@ export function useContatosDoCadastro({
     });
   };
 
-  // Só o Setor tem os checkboxes (o Admin não define o que cada Setor envia).
   const envios = (indice: number) => {
     const contato = contatos[indice];
     if (admin || !contato) return undefined;
@@ -349,8 +315,6 @@ export function useContatosDoCadastro({
     });
   };
 
-  // Linha em edição (com algo nela) segura o Salvar do cadastro: o que se digitou ou marcou ali só vale com o
-  // Salvar da própria linha. A linha nova em branco, que ninguém tocou, não segura.
   const abertaComConteudo = contatos.findIndex(
     (contato, indice) =>
       visivel(indice) && editando(indice) && (salvo(indice) || !emBranco(contato)),

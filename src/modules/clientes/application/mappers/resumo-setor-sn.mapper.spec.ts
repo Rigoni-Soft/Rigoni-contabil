@@ -32,10 +32,8 @@ function quantidade(cards: ReturnType<typeof classificarResumoSetorSn>, id: stri
   return cards.find((c) => c.id === id)?.quantidade;
 }
 
-// 2026-10-28 e 2026-10-29, meio-dia em São Paulo: antes e depois da última rodada do job.
 const DIA_28 = new Date("2026-10-28T15:00:00Z");
 const DIA_29 = new Date("2026-10-29T15:00:00Z");
-// Fevereiro de 2026 tem 28 dias: o dia 29 não existe.
 const FEV_27 = new Date("2026-02-27T15:00:00Z");
 const FEV_28 = new Date("2026-02-28T15:00:00Z");
 
@@ -104,8 +102,6 @@ describe("classificarResumoSetorSn", () => {
     );
 
     expect(quantidade(cards, "sem_documento")).toBe(1);
-    // Sem documento recebido, a DAS pendente não conta como "DAS pendente"
-    // (já coberto pelo card "Sem documento").
     expect(quantidade(cards, "das_pendente")).toBe(0);
   });
 
@@ -186,7 +182,6 @@ describe("classificarResumoSetorSn", () => {
             ],
           }),
           linha({
-            // o quitado sem envio não segura o Cliente em "enviado"
             clienteId: "enviado-com-quitado",
             parcelamentos: [
               parcelamento({ enviadoNoMes: true }),
@@ -206,17 +201,14 @@ describe("classificarResumoSetorSn", () => {
     it("o interno segue o mesmo fluxo dos demais: conta em pendente, atraso e enviado", () => {
       const cards = classificarResumoSetorSn(
         [
-          // só interno, sem envio: pendente (e atraso no dia 29), como qualquer parcelamento
           linha({
             clienteId: "so-interno-pendente",
             parcelamentos: [parcelamento({ interno: true })],
           }),
-          // só interno, já enviado ao financeiro: enviado
           linha({
             clienteId: "so-interno-enviado",
             parcelamentos: [parcelamento({ interno: true, enviadoNoMes: true })],
           }),
-          // comum enviado + interno sem envio: o interno ainda segura o Cliente em pendente
           linha({
             clienteId: "comum-enviado-interno-pendente",
             parcelamentos: [
@@ -359,7 +351,6 @@ describe("classificarResumoSetorSn", () => {
         classificarResumoSetorSn([], agora).find((c) => c.id === "parcelamento_pendente_atraso")!
           .mensagemVazia;
 
-      // A regra (dia 29) já está na descrição acima da lista: a mensagem não a repete.
       expect(vazia(DIA_28)).toBe("Nenhum cliente em atraso por enquanto.");
       expect(vazia(DIA_29)).toMatch(/enviad/);
       expect(vazia(DIA_29)).not.toMatch(/por enquanto/);

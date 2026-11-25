@@ -5,7 +5,6 @@ import type { SetorSlug } from "@/shared/kernel/setores";
 
 export type AtendimentoDaEquipeVisto = AtendimentoVisto & { donoNome: string | null };
 
-// Leitura de supervisão: os Atendimentos dos outros no Setor. Só Líder do Setor e Admin.
 export interface ListarAtendimentosDaEquipePort {
   execute(input: { setor: SetorSlug }): Promise<Result<AtendimentoDaEquipeVisto[], AppError>>;
 }

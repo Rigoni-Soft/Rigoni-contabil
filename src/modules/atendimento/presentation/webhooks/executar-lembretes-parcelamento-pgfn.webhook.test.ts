@@ -1,8 +1,5 @@
 import { GET, POST } from "./executar-lembretes-parcelamento-pgfn.webhook";
 
-/**
- * Job de lembretes PGFN: autenticar não basta, a flag manda.
- */
 const executar = jest.fn();
 let ativa = false;
 let autorizado = true;

@@ -29,15 +29,12 @@ export class RemoverAvatar implements RemoverAvatarPort {
     if (!ator.ok) return ator;
     const usuario = ator.value;
 
-    // O objeto sai antes da coluna: se apagar falhar a coluna segue preenchida e a ação se repete.
-    // Apagar é idempotente e roda mesmo sem foto na coluna: limpa um objeto órfão.
     const apagada = await this.armazenamento.apagar(usuario.id);
     if (!apagada.ok) {
       await this.auditar(usuario, "falha");
       return apagada;
     }
 
-    // Sem foto na coluna, não há o que zerar nem auditar.
     if (!usuario.temAvatar()) return ok(undefined);
 
     const zerada = await this.marca.definir(usuario.id, null);

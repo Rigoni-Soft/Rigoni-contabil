@@ -8,7 +8,6 @@ import { TituloDoGrupo } from "@/presentation/components/atoms/titulo-de-grupo.c
 import { CampoSelect } from "@/presentation/components/molecules/campo-select.component";
 import { Button } from "@/presentation/components/ui/button";
 
-// Guias e CND vêm do provedor fiscal, não da lista do Cliente: o `valor` é o tipo da guia.
 const GUIAS = [
   { valor: "das", rotulo: "Guia de imposto", Icone: Receipt },
   { valor: "parcelamento", rotulo: "Guia de parcelamento", Icone: CalendarClock },
@@ -26,7 +25,6 @@ type PainelDeServicosProps = {
   aviso?: { tipo: "erro" | "sucesso"; texto: string };
 };
 
-// Os mesmos serviços do menu da URA, a um clique.
 export function PainelDeServicos({
   semCliente,
   servicos,
@@ -37,8 +35,6 @@ export function PainelDeServicos({
   const contrato = servicos.find((servico) => servico.grupo === "contrato");
   const alteracoes = servicos.filter((servico) => servico.grupo === "alteracao");
 
-  // Logo abaixo dos botões (e acima do formulário da alteração): perto de quem foi clicado, e
-  // dentro da área visível mesmo quando o painel rola por dentro.
   const feedback = (
     <>
       {enviando && (

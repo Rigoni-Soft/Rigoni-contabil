@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-// Uma mensagem da notificação da Cloud API, só o que o sistema lê. Objetos de mídia são tolerantes:
-// um campo faltando não derruba a notificação inteira (a Meta reenviaria por dias).
 const midiaSchema = z.object({
   id: z.string().optional(),
   mime_type: z.string().optional(),
@@ -31,8 +29,6 @@ export type MensagemClassificada =
       legenda?: string;
     };
 
-// Texto e áudio/imagem/documento têm tratamento próprio; o resto (vídeo, figurinha, localização...)
-// segue como texto vazio, que reabre o menu. Id vazio não é identificador.
 export function classificarMensagem(mensagem: MensagemDaNotificacao): MensagemClassificada {
   const id = mensagem.id || undefined;
   const telefone = mensagem.from;

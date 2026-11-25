@@ -5,7 +5,6 @@ import { Button } from "@/presentation/components/ui/button";
 
 type Props = {
   arquivo?: File;
-  // Muda quando o envio dá certo: o formulário é remontado e o que foi escolhido some.
   chave: number;
   pendente: boolean;
   erro?: string;
@@ -13,8 +12,6 @@ type Props = {
   onEnviar: () => void;
 };
 
-// Sobe ou renova a Convenção coletiva do Cliente: só o PDF. O sindicato, a vigência e as regras saem dele, na
-// leitura que roda uma vez, ao enviar; as regras valem sem aprovação.
 export function EnvioDeConvencao({ arquivo, chave, pendente, erro, onArquivo, onEnviar }: Props) {
   return (
     <Caixa

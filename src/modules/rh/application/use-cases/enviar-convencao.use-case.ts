@@ -25,14 +25,9 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 import { NOME_DO_ARQUIVO_MAXIMO } from "@/shared/kernel/texto";
 
 const ACAO = "rh.convencao.enviar";
-// O limite do bucket: o servidor barra antes de gastar armazenamento e extração.
 const MAXIMO_BYTES = 10 * 1024 * 1024;
-const ASSINATURA_PDF = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
+const ASSINATURA_PDF = [0x25, 0x50, 0x44, 0x46, 0x2d];
 
-// Sobe a convenção do Cliente: guarda o PDF, extrai uma vez as regras (modelo atrás da porta neutra),
-// valida cada parâmetro no domínio e grava o conjunto versionado. Sem aprovação manual: o que passa vale
-// e o que não passa fica "não aplicada" (vale a legislação). Só o Líder do RH e o Admin; o banco repete
-// a regra (RLS) e audita o sucesso na mesma transação; aqui, a auditoria da tentativa recusada.
 export class EnviarConvencao implements EnviarConvencaoPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -65,8 +60,6 @@ export class EnviarConvencao implements EnviarConvencaoPort {
     const arquivo = validarArquivo(input.arquivo);
     if (!arquivo.ok) return arquivo;
 
-    // Extrai antes de guardar: o PDF de uma convenção recusada nunca chega ao armazenamento. O extrator real
-    // chama um modelo de linguagem (rede, tempo esgotado) e pode lançar.
     let extracao: ExtracaoDeRegras;
     try {
       extracao = await this.extrator.extrair(input.arquivo.bytes);
@@ -101,7 +94,6 @@ export class EnviarConvencao implements EnviarConvencaoPort {
     return ok(undefined);
   }
 
-  // O PDF solto não tem convenção: se a remoção falha, fica órfão no bucket e vira registro para o suporte.
   private async removerOrfao(caminho: string): Promise<void> {
     const removido = await this.armazenamento.remover(caminho);
     if (!removido.ok)
@@ -130,7 +122,6 @@ function identificar(
 ): Result<{ sindicato: string; vigenciaInicio: string; vigenciaFim: string }, ValidationError> {
   const sindicato = validarSindicato(extracao.sindicato);
   const { vigenciaInicio, vigenciaFim } = extracao;
-  // Duas mensagens: quem envia precisa saber o que o leitor não achou no PDF.
   if (!sindicato.ok) {
     return err(new ValidationError("Não foi possível identificar o sindicato no PDF."));
   }

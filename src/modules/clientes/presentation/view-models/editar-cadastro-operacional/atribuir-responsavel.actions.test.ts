@@ -1,7 +1,3 @@
-/**
- * Integração presentation ↔ application: o `main` é substituído por uma composição com casos de
- * uso falsos (testes.md, seção 3), sem tocar Supabase.
- */
 import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { err, ok } from "@/shared/kernel/result";
 
@@ -19,7 +15,6 @@ jest.mock("@/main/clientes.factory", () => ({
 }));
 
 const CLIENTE_ID = "c1c1c1c1-c1c1-4c1c-8c1c-c1c1c1c1c1c1";
-// id do seed: não é v4, só passa em z.guid()
 const RESPONSAVEL_ID = "22222222-2222-2222-2222-222222222222";
 
 describe("atribuir-responsavel.actions (integração)", () => {

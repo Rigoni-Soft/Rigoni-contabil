@@ -16,8 +16,6 @@ import { Label } from "@/presentation/components/ui/label";
 
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
 
-// Linha da lista de Parcelamentos: o que se edita (código, restantes, interno, PDF novo) e o que a
-// tela só exibe (selo do mês, quitado, nome do PDF gravado, se há envio).
 export type ParcelamentoLinha = {
   id?: string;
   codigo: string;
@@ -28,9 +26,7 @@ export type ParcelamentoLinha = {
   enviadoNoMes: boolean;
   arquivoNome: string;
   arquivo?: File;
-  // Primeira guia do mês (só no Parcelamento PGFN novo); sobe depois de salvar.
   guia?: File;
-  // Dados lidos do PDF; o Container os resume numa linha (`acordoResumo`) para exibir.
   acordo?: {
     origem: "receita_federal" | "pgfn" | null;
     totalDeParcelas: number | null;
@@ -40,31 +36,22 @@ export type ParcelamentoLinha = {
   acordoResumo?: string;
 };
 
-// Estado da leitura do PDF numa linha nova (só exibição; quem lê é o Container, e o texto já vem pronto).
 export type LeituraDaLinha = {
   estado: EstadoDeLeitura;
   texto: string;
-  // O CNPJ lido do PDF é de outra empresa: alerta próprio, sem bloquear.
   cnpjDivergente?: boolean;
 };
 
-// O que um formulário de Setor repassa à lista de Parcelamentos (os nomes que o Container recebe do hook).
 export type ParcelamentosProps = {
-  // Linhas atuais do formulário (acompanham a edição): resumo "Sim (n)", selo e nome do PDF.
   parcelamentos: ParcelamentoLinha[];
   parcelamentoCampos: { id: string }[];
   onAdicionarParcelamento: () => void;
   onRemoverParcelamento: (indice: number) => void;
-  // Leitura do PDF por linha (chave = id do campo do useFieldArray). Com leitura em andamento o
-  // Salvar fica desabilitado; o PDF escolhido (ou removido) volta ao Container para ser lido.
   leituras: Record<string, LeituraDaLinha>;
   onArquivoEscolhido: (indice: number, arquivo: File | undefined) => void;
-  // Guias mensais de um Parcelamento PGFN já salvo: o Container monta a região (ela tem estado próprio).
-  // `codigo` nomeia a região de cada Parcelamento para o leitor de tela.
   guiasDaParcela?: (parcelamentoId: string, codigo: string, interno: boolean) => React.ReactNode;
 };
 
-// Por que o Salvar fica bloqueado enquanto algum PDF ainda é lido.
 export function motivoDeLeituraEmAndamento(
   leituras: Record<string, LeituraDaLinha>,
 ): string | undefined {
@@ -73,7 +60,6 @@ export function motivoDeLeituraEmAndamento(
     : undefined;
 }
 
-// Linha ainda não salva não tem status do mês: sem selo.
 function seloDoParcelamento(p: ParcelamentoLinha): SeloDoParcelamento | undefined {
   if (!p.id) return undefined;
   if (p.quitado) return "quitado";
@@ -85,17 +71,12 @@ type ParcelamentosDoCadastroProps = {
   control: Control<EditarCadastroOperacionalFormValues>;
   errors: FieldErrors<EditarCadastroOperacionalFormValues>;
   readOnly: boolean;
-  // Linhas atuais do formulário (acompanham a edição): resumo "Sim (n)", selo e nome do PDF.
   parcelamentos: ParcelamentoLinha[];
   parcelamentoCampos: { id: string }[];
   onAdicionar: () => void;
   onRemover: (indice: number) => void;
-  // Leitura do PDF por linha (chave = id do campo do useFieldArray).
   leituras: Record<string, LeituraDaLinha>;
-  // O PDF escolhido (ou removido) volta ao Container para ser lido.
   onArquivoEscolhido: (indice: number, arquivo: File | undefined) => void;
-  // Guias mensais de um Parcelamento PGFN já salvo: o Container monta a região (ela tem estado próprio).
-  // `codigo` nomeia a região de cada Parcelamento para o leitor de tela.
   guiasDaParcela?: (parcelamentoId: string, codigo: string, interno: boolean) => React.ReactNode;
 };
 
@@ -123,7 +104,6 @@ export function ParcelamentosDoCadastro({
           </Button>
         )}
       </Linha>
-      {/* Resumo derivado: só conta o que já foi salvo (linha com id), nunca o que está sendo digitado. */}
       <Texto variante="corpo" role="status">
         Tem parcelamento:{" "}
         {parcelamentos.some((p) => p.id)
@@ -132,8 +112,9 @@ export function ParcelamentosDoCadastro({
       </Texto>
       {parcelamentos.map((atual, indice) => {
         const erros = errors.parcelamentos?.[indice];
+        const quitadoOuPgfnCadastrado =
+          atual.quitado || (Boolean(atual.id) && atual.acordo?.origem === "pgfn");
         const leitura = leituras[parcelamentoCampos[indice].id];
-        // O estado da leitura descreve os campos que ela preencheu (sugestão a conferir).
         const descricaoDaLeitura = leitura
           ? { "aria-describedby": `parcelamentos-${indice}-leitura` }
           : undefined;
@@ -151,12 +132,7 @@ export function ParcelamentosDoCadastro({
             erroCodigo={erros?.codigo?.message}
             erroParcelas={erros?.parcelasRestantes?.message}
             selo={seloDoParcelamento(atual)}
-            // Quitado e PGFN cadastrado não se editam (o PGFN só ganha guias): o servidor ignora o que vier.
-            desabilitado={
-              atual.quitado ||
-              (Boolean(atual.id) && atual.acordo?.origem === "pgfn") ||
-              leitura?.estado === "lendo"
-            }
+            desabilitado={quitadoOuPgfnCadastrado || leitura?.estado === "lendo"}
             onRemover={readOnly || atual.temEnvio ? undefined : () => onRemover(indice)}
             bloqueadoPorEnvio={!readOnly && atual.temEnvio}
             guias={
@@ -236,7 +212,6 @@ export function ParcelamentosDoCadastro({
           />
         );
       })}
-      {/* Erro da lista (ex.: soma dos PDFs): o resolver o entrega em `message` ou em `root`. */}
       {(errors.parcelamentos?.root?.message ?? errors.parcelamentos?.message) && (
         <FieldError>
           {errors.parcelamentos?.root?.message ?? errors.parcelamentos?.message}

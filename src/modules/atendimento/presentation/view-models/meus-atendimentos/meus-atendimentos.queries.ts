@@ -7,8 +7,6 @@ export const meusAtendimentosKeys = {
   lista: () => ["atendimento", "meus"] as const,
 };
 
-// ponytail: polling a cada 15 s; um Atendimento novo aparece em até esse tempo. Realtime
-// (`*.realtime.ts`, arquitetura.md 4.2) quando o tempo de espera incomodar.
 const INTERVALO_MS = 15_000;
 
 export function useMeusAtendimentosQuery(habilitado: boolean, initialData?: AtendimentoVisto[]) {
@@ -23,7 +21,6 @@ export function useMeusAtendimentosQuery(habilitado: boolean, initialData?: Aten
     enabled: habilitado,
     refetchInterval: INTERVALO_MS,
     staleTime: INTERVALO_MS,
-    // Sessão expirada não melhora tentando de novo; o próximo ciclo tenta outra vez.
     retry: false,
   });
 }

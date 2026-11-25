@@ -1,7 +1,3 @@
-/**
- * Prova de segurança de dados da limpeza das suítes de integração: ela
- * apaga só os CNPJs que recebe, nunca um Cliente que não é da suíte. Requer Supabase local.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { removerClientesDeTeste } from "./clientes-de-teste";
@@ -37,7 +33,6 @@ describe("removerClientesDeTeste", () => {
     expect(await existe(DA_SUITE)).toBe(false);
     expect(await existe(ALHEIO)).toBe(true);
 
-    // De novo (execução seguinte): continua sem tocar no alheio e sem falhar com a suíte já limpa.
     await removerClientesDeTeste([DA_SUITE]);
     expect(await existe(ALHEIO)).toBe(true);
   });

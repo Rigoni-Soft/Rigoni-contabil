@@ -14,8 +14,6 @@ export type ConvencaoDoHistorico = {
 
 type Props = { itens: ConvencaoDoHistorico[]; podeEnviar: boolean };
 
-// As convenções do Cliente, a de vigência mais recente primeiro; as anteriores seguem guardadas. Cada uma abre
-// as suas regras aplicadas (a que está em tela leva `aria-current`).
 export function HistoricoDeConvencoes({ itens, podeEnviar }: Props) {
   return (
     <Pilha como="section" espaco={3} aria-label="Histórico de convenções">

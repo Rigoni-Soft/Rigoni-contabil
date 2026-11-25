@@ -21,8 +21,9 @@ class PersistenciaError extends AppError {
   readonly code = "PERSISTENCIA_ERROR";
 }
 
-// Sem resposta (status 0) ou gateway/timeout (502-504): o banco pode ter confirmado a transação.
 const semDesfechoConhecido = (status: number) => status === 0 || status >= 502;
+
+const PG_VIOLACAO_DE_CHECK = "23514";
 
 export class SupabaseClienteParcelamentoRepository implements ClienteParcelamentoRepository {
   constructor(
@@ -68,8 +69,7 @@ export class SupabaseClienteParcelamentoRepository implements ClienteParcelament
       }
       return err(
         new PersistenciaError(
-          // Gatilhos do banco recusam com 23514 e mensagem em português, própria para o usuário.
-          error.code === "23514"
+          error.code === PG_VIOLACAO_DE_CHECK
             ? error.message
             : "Não foi possível salvar os Parcelamentos. Tente novamente.",
         ),

@@ -3,13 +3,9 @@ import { BOTAO_OCUPADO } from "@/presentation/lib/botao-ocupado";
 import { cn } from "@/presentation/lib/utils";
 
 type BotaoDaGuiaProps = Omit<React.ComponentProps<typeof Button>, "type" | "size"> & {
-  // Outra ação em curso: o botão segue focável (aria-disabled), mas não age; quem decide o que
-  // fazer com o clique é o chamador.
   ocupado?: boolean;
 };
 
-// Botão pequeno das ações de uma guia: alvo de 44 px (com mouse, área invisível `before:`) e
-// aria-disabled em vez de `disabled`, para o foco não se perder durante uma ação em curso.
 export function BotaoDaGuia({ ocupado, className, ...props }: BotaoDaGuiaProps) {
   return (
     <Button

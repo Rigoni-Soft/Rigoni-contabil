@@ -6,12 +6,9 @@ type ResumoSetorListaPageProps = {
   header: React.ReactNode;
   titulo: string;
   descricao?: string;
-  // Sem lista (falha de leitura) a tela mostra o `erro`.
   lista?: React.ReactNode;
   erro?: string;
-  // A própria rota: com o `erro`, a tela oferece recarregá-la.
   tentarNovamenteHref?: string;
-  // O resumo do Setor de onde a lista saiu.
   voltarHref: string;
 };
 

@@ -93,8 +93,6 @@ describe("ObterSessao", () => {
     expect(resultado).toBeNull();
   });
 
-  // Login só checava o vencimento ao entrar; uma sessão aberta antes dele seguia
-  // válida depois. Toda página passa por carregarSessao() → aqui.
   it("devolve null quando a senha provisória da sessão já venceu, mesmo com sessão ativa", async () => {
     const sessao = new SessaoFalsa();
     sessao.id = "11111111-1111-1111-1111-111111111111" as UsuarioId;
@@ -106,7 +104,6 @@ describe("ObterSessao", () => {
     expect(resultado).toBeNull();
   });
 
-  // Soft delete — sessão aberta antes da desativação para de valer na próxima página.
   it("devolve null quando o usuário foi desativado, mesmo com sessão ativa", async () => {
     const sessao = new SessaoFalsa();
     sessao.id = "11111111-1111-1111-1111-111111111111" as UsuarioId;

@@ -13,8 +13,6 @@ const ID_DO_ARQUIVO = "convencao-arquivo";
 
 type Props = { clienteId: string };
 
-// Sobe a convenção: confere o que o navegador alcança, envia o PDF e recarrega a tela com o histórico e as
-// regras novas. Só o sucesso limpa o formulário; a recusa preserva o que foi digitado.
 export function EnvioDeConvencaoContainer({ clienteId }: Props) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -22,7 +20,6 @@ export function EnvioDeConvencaoContainer({ clienteId }: Props) {
   const [erro, setErro] = useState<string>();
   const [chave, setChave] = useState(0);
 
-  // O erro é do campo do PDF: o foco vai a ele, para o teclado e o leitor de tela ouvirem a mensagem.
   useEffect(() => {
     if (erro) document.getElementById(ID_DO_ARQUIVO)?.focus();
   }, [erro]);

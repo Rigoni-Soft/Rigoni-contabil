@@ -1,9 +1,3 @@
-/**
- * Integração direto pela Data API (PostgREST). Prova o que o banco entrega a
- * quem ignora a aplicação e o ban do Auth: um JWT emitido ANTES da desativação,
- * e o Responsável por Cliente depois de desativação/promoção. Requer
- * `npx supabase start` com migrations + seed.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import type { UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
@@ -129,8 +123,6 @@ describe("desativação: JWT já emitido perde o acesso no banco (ponto A)", () 
     expect(antesLeitura.data?.map((c) => c.id)).toContain(clienteId);
     expect(antesEdicao.data).toHaveLength(1);
 
-    // Só a desativação no banco: sem ban no Auth, o JWT segue válido — é a
-    // barreira de RLS que precisa negar sozinha.
     expect((await desativacao.desativar(funcionario.id, ADMIN_ID)).ok).toBe(true);
 
     const depoisLeitura = await comoFuncionario.from("clientes_basico").select("id");
@@ -156,8 +148,6 @@ describe("desativação: JWT já emitido perde o acesso no banco (ponto A)", () 
   });
 
   it("Líder com JWT antigo deixa de ver perfis do Setor e Clientes", async () => {
-    // Desativar um Líder do seed contaminaria os demais testes: a prova usa um
-    // Líder temporário num Setor sem Líder no seed.
     const email = `teste-${crypto.randomUUID()}@rigonicontabil.local`;
     const { data } = await admin.auth.admin.createUser({
       email,
@@ -186,7 +176,6 @@ describe("desativação: JWT já emitido perde o acesso no banco (ponto A)", () 
     const depois = await comoLider.from("perfis").select("id").eq("id", colega.id);
     const proprio = await comoLider.from("perfis").select("id").eq("id", lider);
     expect(depois.data).toEqual([]);
-    // A conta ainda lê só o próprio perfil (necessário ao fluxo de sessão).
     expect(proprio.data).toHaveLength(1);
   });
 });
@@ -238,9 +227,6 @@ describe("desativação: Responsável por Cliente (ponto B)", () => {
     expect((await responsavelDe(clienteId))?.responsavel_id).toBe(dono.id);
   });
 
-  // Desativação segura o perfil FOR UPDATE e o trigger de elegibilidade lê FOR SHARE:
-  // a atribuição concorrente espera e reavalia. A promoção (ponto C) usa o mesmo
-  // mecanismo; o Setor SN já tem Líder, então a corrida testável é com a desativação.
   it("desativação e reatribuição concorrentes nunca deixam um inativo como Responsável", async () => {
     for (let rodada = 0; rodada < 5; rodada++) {
       const alvo = await criarFuncionarioSN();
@@ -271,8 +257,6 @@ describe("promoção de Funcionário Responsável (ponto C)", () => {
 
   it("recusa enquanto houver Cliente atribuído, sem mutação parcial nem auditoria; libera depois de redistribuir", async () => {
     const funcionario = await criarFuncionarioSN();
-    // O seed já tem Líder no SN: a promoção só prova a regra do Responsável se o
-    // Setor estiver livre, então o Funcionário muda de Setor depois de atribuído.
     const clienteId = await criarCliente(funcionario.id);
     await admin.from("perfis").update({ setor: "recepcao" }).eq("id", funcionario.id);
 

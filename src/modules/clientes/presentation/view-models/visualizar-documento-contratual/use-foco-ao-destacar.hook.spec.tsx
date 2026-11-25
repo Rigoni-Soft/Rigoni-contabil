@@ -16,8 +16,6 @@ function Tela({ destacar, destino = "c1:2" }: { destacar: boolean; destino?: str
 
 const alvo = () => document.querySelectorAll("button")[1];
 
-// Navegador: focus() num elemento oculto (visibility: hidden) não faz nada. `ocultoAte` conta as
-// chamadas que não pegam, como as da hidratação lenta.
 function focoQueNaoPegaAte(ocultoAte: number) {
   const original = HTMLElement.prototype.focus;
   let chamadas = 0;

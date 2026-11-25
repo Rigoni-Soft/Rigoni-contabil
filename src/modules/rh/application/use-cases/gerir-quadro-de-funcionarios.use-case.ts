@@ -23,9 +23,6 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { ehResponsavelRhDoCliente } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Só o Funcionário do RH que é Responsável do Cliente grava na Folha de ponto (quadro e cartão); o Líder
-// e o Admin leem. O banco repete a regra (RLS) e audita o sucesso na mesma transação; aqui, a primeira
-// barreira e a auditoria da tentativa recusada.
 export abstract class EscreverPonto {
   constructor(
     protected readonly sessao: SessaoPort,
@@ -56,7 +53,6 @@ export abstract class EscreverPonto {
     return ok(ator);
   }
 
-  // Empregado fora da vista do ator = inexistente.
   protected async autorizarPorEmpregado(
     empregadoId: string,
     acao: string = this.acao,
@@ -83,7 +79,6 @@ export class CadastrarEmpregado extends EscreverPonto implements CadastrarEmpreg
     const ator = await this.autorizar(input.clienteId);
     if (!ator.ok) return ator;
 
-    // A marca nasce do padrão do Cliente; o Funcionário a muda por empregado depois.
     let comissionado = input.comissionado;
     if (comissionado === undefined) {
       const padrao = await this.repositorio.buscarPadraoComissionados(input.clienteId);
@@ -125,7 +120,6 @@ export class DefinirEmpregadoAtivo extends EscreverPonto implements DefinirEmpre
   }
 
   async execute(input: DefinirEmpregadoAtivoInput): Promise<Result<void, AppError>> {
-    // A recusa leva a mesma ação que o gatilho do banco grava no sucesso.
     const acao = input.ativo ? "rh.empregado.reativar" : "rh.empregado.inativar";
     const autorizado = await this.autorizarPorEmpregado(input.empregadoId, acao);
     if (!autorizado.ok) return autorizado;

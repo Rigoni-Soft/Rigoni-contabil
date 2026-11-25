@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase: acompanhamento mensal do RH. RLS por setor (o Funcionário marca só
- * os seus clientes; Líder e Admin leem todos), serviço desativado que preserva os meses anteriores, Holerite
- * do sistema e auditoria na mesma transação. Requer `npx supabase start` com migrations + seed aplicados.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { Client } from "pg";
 
@@ -54,7 +49,6 @@ async function apagarServicosDeTeste() {
   await servico.from("rh_servicos_acompanhamento").delete().like("nome", `${PREFIXO}%`);
 }
 
-// O banco local pode ter outros clientes do RH (teste manual): cada asserção olha só os do teste.
 type Lista = Awaited<ReturnType<SupabaseAcompanhamentoRepository["listarClientes"]>>;
 const dosTestes = (r: Lista, cnpjs = [CNPJ_A, CNPJ_B]) =>
   r.ok ? r.value.filter((c) => cnpjs.includes(c.cnpj)) : [];
@@ -384,7 +378,6 @@ describe("Acompanhamento mensal do RH (integração)", () => {
       marcado_por: FUNCIONARIO_RH_ID,
     });
     expect(cliente.error ?? marcacao.error).toBeNull();
-    // Nenhum caminho da API apaga Cliente; o gatilho roda como o Admin (auth.uid() não nulo) numa conexão direta.
     const db = new Client({ connectionString: DATABASE_URL });
     await db.connect();
     try {
@@ -437,7 +430,6 @@ describe("Acompanhamento mensal do RH (integração)", () => {
     const dia = (n: number) => `${MES.slice(0, 7)}-${String(n).padStart(2, "0")}`;
     const batida = [{ entrada: 480, saida: 1020 }];
     const dias = [
-      // Ana: dois dias, em dias diferentes do mês. Bia: nenhum. Dani (inativa): dois dias, mas não conta.
       ...[3, 20].map((n) => ({ empregado_id: id("Ana"), data: dia(n), batidas: batida })),
     ];
     expect((await servico.from("rh_ponto_dias").insert(dias)).error).toBeNull();
@@ -447,7 +439,6 @@ describe("Acompanhamento mensal do RH (integração)", () => {
       doClienteA(await repo.listarClientes(MES, FUNCIONARIO_RH_ID))?.holerite;
     expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 0, cartoes: 1 });
 
-    // Caio sem movimento sai da conta; um dia salvo na Bia (cartão incompleto) já fecha o mês.
     await servico
       .from("rh_empregado_sem_movimento")
       .insert({ empregado_id: id("Caio"), competencia: MES });
@@ -457,11 +448,9 @@ describe("Acompanhamento mensal do RH (integração)", () => {
       .insert({ empregado_id: id("Bia"), data: dia(3), batidas: batida });
     expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 1, cartoes: 2 });
 
-    // Apagar o único dia da Bia reabre o cartão dela.
     await servico.from("rh_ponto_dias").delete().eq("empregado_id", id("Bia")).eq("data", dia(3));
     expect(await contagem()).toEqual({ cadastrados: 3, semMovimento: 1, cartoes: 1 });
 
-    // Outro mês não herda os cartões, e quem não é o Responsável não enxerga os empregados do cliente.
     const outroMes = mesVizinho(MES.slice(0, 7), -1) + "-01";
     const anterior = doClienteA(await repo.listarClientes(outroMes, FUNCIONARIO_RH_ID));
     expect(anterior?.holerite).toEqual({ cadastrados: 3, semMovimento: 0, cartoes: 0 });

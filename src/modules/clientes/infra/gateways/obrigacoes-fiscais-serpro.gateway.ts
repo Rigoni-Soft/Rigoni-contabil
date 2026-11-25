@@ -16,33 +16,27 @@ import { ServicoExternoError } from "@/shared/errors/servico-externo.error";
 import { hojeIso, mesAnterior } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Adapter do Integra Contador (docs/pesquisa/serpro-api.md) para o contrato neutro. Só este
-// arquivo conhece o Serpro; falha de rede, status ou formato vira ServicoExternoError.
-
 const TIMEOUT_MS = 15_000;
-const CNPJ = 2; // tipo de identificador do Serpro
+const TIPO_DE_IDENTIFICADOR_CNPJ_NO_SERPRO = 2;
+const MARGEM_DE_RENOVACAO_DO_TOKEN_EM_SEGUNDOS = 60;
+const STATUS_SEM_DADOS = [204, 404];
 
-// Serviços do parcelamento ordinário (PARC), o único contínuo; PERT e RELP estão fechados a novas
-// adesões. `consulta` lista as parcelas, `emissao` emite a guia.
 type ServicosDoParcelamento = { sistema: string; consulta: string; emissao: string };
 const PARCELAMENTO_POR_REGIME: Record<RegimeParcelamento, ServicosDoParcelamento> = {
   simples_nacional: { sistema: "PARCSN", consulta: "PARCELASPARAGERAR162", emissao: "GERARDAS161" },
   mei: { sistema: "PARCMEI", consulta: "PARCELASPARAGERAR202", emissao: "GERARDAS201" },
 };
 
-// Mensagens de negócio do Integra-Parcelamento (docs/pesquisa/serpro-guia-parcelamento.md).
-// `sem_guias`: não há o que emitir para o CNPJ; `parcela_indisponivel`: só aquela parcela não sai
-// agora. Qualquer outra falha é indisponibilidade (ou falta de autorização).
 type Recusa = "sem_guias" | "parcela_indisponivel";
 const RECUSA_POR_MENSAGEM: Record<string, Recusa> = {
-  ER_E001: "sem_guias", // não há parcelamento ativo
-  ER_N003: "sem_guias", // sem saldo devedor
-  ER_N008: "sem_guias", // sem parcelas para emissão
-  ER_N005: "parcela_indisponivel", // parcela do mês só emitível a partir de certo dia
-  ER_N006: "parcela_indisponivel", // parcela inexistente, já paga ou de mês futuro
+  ER_E001: "sem_guias",
+  ER_N003: "sem_guias",
+  ER_N008: "sem_guias",
+  ER_N005: "parcela_indisponivel",
+  ER_N006: "parcela_indisponivel",
 };
 
-export type RespostaHttp = { status: number; corpo: string };
+type RespostaHttp = { status: number; corpo: string };
 export type RequisicaoHttp = {
   url: string;
   headers: Record<string, string>;
@@ -52,8 +46,6 @@ export type RequisicaoHttp = {
 };
 export type TransporteHttp = (req: RequisicaoHttp) => Promise<RespostaHttp>;
 
-// Trial (demonstração): token fixo, sem autenticar, sem certificado. Produção: OAuth2 com
-// Consumer Key/Secret e o e-CNPJ do escritório. As URLs vêm do ambiente (src/main).
 export type CredenciaisSerpro = {
   urlAutenticacao: string;
   urlBase: string;
@@ -99,7 +91,6 @@ const tokenSchema = z.object({
   expires_in: z.number(),
 });
 
-// `dados` chega como JSON em string; aceita um objeto ou uma lista de um objeto.
 const umOuLista = <S extends z.ZodType>(s: S) =>
   z.union([s, z.array(s).min(1)]).transform((v) => (Array.isArray(v) ? v[0] : v));
 
@@ -152,11 +143,6 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
     });
   }
 
-  // Parcelamento ordinário do regime do Cliente: lista as parcelas emitíveis (1 consulta) e emite
-  // uma guia por parcela, menos as de `ignorar`. A emissão só aceita a parcela (não escolhe o
-  // parcelamento), então a atribuição ao parcelamento do Cliente é de quem chama. Direto, sem
-  // pré-consulta de autorização: ela só é consultada se nada vier, para classificar a falha. Queda
-  // no meio devolve as guias já baixadas (pagas); as outras vêm na rodada seguinte.
   async buscarGuiasParcelamento(
     cnpj: string,
     { regime, ignorar }: PedidoGuiasParcelamento,
@@ -198,7 +184,6 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
     }
   }
 
-  // A recusa de negócio indicada vira `quandoRecusa`; qualquer outra falha segue lançando.
   private async comRecusa<T>(recusa: Recusa, quandoRecusa: T, fn: () => Promise<T>): Promise<T> {
     try {
       return await fn();
@@ -208,14 +193,13 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
     }
   }
 
-  // Integra-Procurações: há procuração do Cliente ao escritório com validade a vencer?
   async consultarAutorizacao(cnpj: string): Promise<Result<AutorizacaoDto, AppError>> {
     return this.executar(async () => {
       const dados = await this.chamar("Consultar", cnpj, "PROCURACOES", "OBTERPROCURACAO41", "1", {
         outorgante: cnpj,
-        tipoOutorgante: String(CNPJ),
+        tipoOutorgante: String(TIPO_DE_IDENTIFICADOR_CNPJ_NO_SERPRO),
         outorgado: this.cred.cnpjEscritorio,
-        tipoOutorgado: String(CNPJ),
+        tipoOutorgado: String(TIPO_DE_IDENTIFICADOR_CNPJ_NO_SERPRO),
       });
       const hoje = hojeIso(this.agora()).replaceAll("-", "");
       const vigentes = procuracoesSchema
@@ -255,16 +239,14 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
     });
     if (r.status !== 200) throw new ErroSerpro(`Autenticação no Serpro respondeu ${r.status}.`);
     const t = tokenSchema.parse(JSON.parse(r.corpo));
-    // Margem de 60 s para o token não vencer no meio da chamada.
     this.token = {
       access: t.access_token,
       jwt: t.jwt_token,
-      expiraEm: Date.now() + (t.expires_in - 60) * 1000,
+      expiraEm: Date.now() + (t.expires_in - MARGEM_DE_RENOVACAO_DO_TOKEN_EM_SEGUNDOS) * 1000,
     };
     return this.token;
   }
 
-  // Devolve o `dados` já parseado; `null` quando o Serpro responde sem dados (204/404).
   private async chamar(
     operacao: "Emitir" | "Consultar",
     contribuinte: string,
@@ -275,7 +257,10 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
     repetirSe401 = true,
   ): Promise<unknown> {
     const { access, jwt } = await this.autenticar();
-    const escritorio = { numero: this.cred.cnpjEscritorio, tipo: CNPJ };
+    const escritorio = {
+      numero: this.cred.cnpjEscritorio,
+      tipo: TIPO_DE_IDENTIFICADOR_CNPJ_NO_SERPRO,
+    };
     const r = await this.http({
       url: `${this.cred.urlBase}/${operacao}`,
       headers: {
@@ -286,7 +271,7 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
       corpo: JSON.stringify({
         contratante: escritorio,
         autorPedidoDados: escritorio,
-        contribuinte: { numero: contribuinte, tipo: CNPJ },
+        contribuinte: { numero: contribuinte, tipo: TIPO_DE_IDENTIFICADOR_CNPJ_NO_SERPRO },
         pedidoDados: { idSistema, idServico, versaoSistema, dados: JSON.stringify(dados) },
       }),
     });
@@ -294,7 +279,7 @@ export class ObrigacoesFiscaisSerproGateway implements ObrigacoesFiscaisPort {
       this.token = null;
       return this.chamar(operacao, contribuinte, idSistema, idServico, versaoSistema, dados, false);
     }
-    if (r.status === 204 || r.status === 404) return null;
+    if (STATUS_SEM_DADOS.includes(r.status)) return null;
     if (r.status !== 200) {
       throw new ErroSerpro(`Serviço fiscal respondeu ${r.status}.`, recusaDaResposta(r.corpo));
     }

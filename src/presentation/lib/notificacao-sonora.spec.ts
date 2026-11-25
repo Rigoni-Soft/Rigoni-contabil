@@ -1,6 +1,5 @@
 import type * as Modulo from "./notificacao-sonora";
 
-// O contexto de áudio fica guardado no módulo: cada teste carrega uma cópia nova.
 function carregar(): typeof Modulo {
   let modulo!: typeof Modulo;
   jest.isolateModules(() => {

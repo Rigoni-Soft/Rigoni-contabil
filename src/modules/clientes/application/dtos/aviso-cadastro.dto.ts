@@ -5,15 +5,12 @@ export type AvisoCadastroDto = {
   tipo: TipoAvisoCadastro;
   clienteId: string;
   alteracaoId: string | null;
-  // Nº da alteração do aviso: o Líder e o Responsável não leem a tabela, então o nº viaja no aviso.
   alteracaoNumero: number | null;
-  // Texto do alerta que gerou o aviso (só o "sem meio de envio" o leva; os outros montam o título pelo tipo).
   mensagem: string | null;
   criadoEm: string;
   vistoEm: string | null;
 };
 
-// Posição do último item da página: a lista é ordenada por (visto, criado_em desc, id desc).
 export type CursorAvisoCadastro = { visto: boolean; criadoEm: string; id: string };
 
 export type PaginaAvisosCadastro = {

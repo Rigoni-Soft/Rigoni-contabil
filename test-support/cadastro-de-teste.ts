@@ -3,8 +3,6 @@ import type {
   CadastroRhClienteDto,
 } from "@/modules/clientes/application/ports/out/cliente-query.provider";
 
-// DTOs do cadastro do Cliente para os specs: um campo novo no DTO se acrescenta aqui, num lugar só, e os
-// testes dizem só o que importa para eles. Dados fictícios (LGPD).
 export const CLIENTE_DE_TESTE_ID = "9f1c9c6e-9d1a-4c9a-8b1e-2e2a4a5b6c7d";
 
 export function cadastroOperacionalDeTeste(

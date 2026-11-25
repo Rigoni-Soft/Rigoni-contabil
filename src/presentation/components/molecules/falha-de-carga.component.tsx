@@ -4,11 +4,9 @@ import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.compone
 
 type FalhaDeCargaProps = {
   texto: string;
-  // A própria rota: com ela, a tela oferece recarregá-la.
   tentarNovamenteHref?: string;
 };
 
-// Falha de leitura de uma tela: o aviso (lido por leitor de tela) e o caminho para tentar de novo.
 export function FalhaDeCarga({ texto, tentarNovamenteHref }: FalhaDeCargaProps) {
   return (
     <Pilha espaco={3}>

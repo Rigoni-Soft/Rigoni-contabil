@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase: Folha de ponto do RH. RLS por setor (o Funcionário escreve só nos seus
- * clientes; Líder e Admin leem), cartão só de empregado ativo, dado mínimo (só nome, Jornada, batidas, marca e
- * Abono) e auditoria na mesma transação. Requer `npx supabase start` com migrations + seed aplicados.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";
@@ -236,7 +231,6 @@ describe("Folha de ponto do RH (integração)", () => {
     expect([marcou.ok, repetiu.ok]).toEqual([true, true]);
     expect(depois.ok && depois.value).toBe(true);
     expect(outroMes.ok && outroMes.value).toBe(false);
-    // Só uma marca e uma auditoria (a repetição não escreve de novo).
     expect(await auditorias("rh.ponto.iniciar-cartao", `${CNPJ_A} Hugo 2026-11`)).toHaveLength(1);
   });
 
@@ -282,7 +276,6 @@ describe("Folha de ponto do RH (integração)", () => {
 
     const falhou = await repo.gravarCartao(id, "2026-11-01", [
       { data: "2026-11-02", batidas: [PAR], extra: null, abono: false },
-      // Saída fora do dia: o CHECK recusa e a transação volta atrás.
       { data: "2026-11-03", batidas: [{ entrada: 480, saida: 2000 }], extra: null, abono: false },
     ]);
 
@@ -319,7 +312,6 @@ describe("Folha de ponto do RH (integração)", () => {
       { data: "2026-11-02", batidas: [], extra: null, abono: true },
     ]);
 
-    // O que a leitura faz: lista o que existe e grava só os dias que ainda não têm dado.
     const existentes = await repo.listarDias(id, "2026-11-02", "2026-11-03");
     const comDado = new Set(existentes.ok ? existentes.value.map((d) => d.data) : []);
     const lidos = [
@@ -345,7 +337,6 @@ describe("Folha de ponto do RH (integração)", () => {
     const digitado = { data: "2026-11-02", batidas: [PAR], extra: null, abono: false };
     await repo.salvarDia(id, digitado);
 
-    // A leitura listou o dia como vazio, o RH digitou na janela, e a gravação chega depois.
     const gravou = await repo.gravarCartao(id, "2026-11-01", [
       { data: "2026-11-02", batidas: [], extra: null, abono: true },
       { data: "2026-11-03", batidas: [PAR], extra: null, abono: false },

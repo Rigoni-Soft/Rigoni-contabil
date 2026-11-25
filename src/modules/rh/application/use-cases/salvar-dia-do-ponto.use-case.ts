@@ -14,7 +14,6 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { dataIsoValida } from "@/shared/kernel/data-iso";
 import { err, type Result } from "@/shared/kernel/result";
 
-// Um dia do Cartão de ponto: até 4 pares de batida, a coluna Extra e a sinalização de Abono.
 export class SalvarDiaDoPonto extends EscreverPonto implements SalvarDiaDoPontoPort {
   constructor(
     sessao: SessaoPort,
@@ -29,7 +28,6 @@ export class SalvarDiaDoPonto extends EscreverPonto implements SalvarDiaDoPontoP
     if (!dataIsoValida(input.data)) {
       return err(new ValidationError("Data inválida.", { data: ["Data inválida"] }));
     }
-    // Como no IniciarCartaoDoPonto: não há cartão de mês que ainda não começou (o dia futuro do mês corrente vale).
     const competencia = Competencia.criar(input.data.slice(0, 7));
     if (!competencia.ok) return competencia;
     if (competencia.value.ehFutura(this.relogio.agora())) {

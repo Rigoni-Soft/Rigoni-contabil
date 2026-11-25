@@ -41,7 +41,6 @@ class QueryFalsa implements Partial<ClienteQueryPort> {
   > {
     return ok(this.cliente);
   }
-  // Responsável atual do Cliente no Setor do Líder.
   doSetor: ResponsavelOpcaoDto | null = null;
   setoresListados: string[] = [];
   async listarResponsaveisElegiveis(

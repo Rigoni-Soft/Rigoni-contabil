@@ -3,15 +3,12 @@
 import { cn } from "@/presentation/lib/utils";
 
 type MenuSuspensoProps = {
-  // Nome do botão para leitor de tela; o `icone` é o único conteúdo visível dele.
   rotulo: string;
   icone: React.ReactNode;
   className?: string;
   children: React.ReactNode;
 };
 
-// ponytail: <details> nativo: fecha pelo botão, com Esc (o foco volta ao botão) ou ao navegar; fechar ao
-// clicar fora pede um popover com posição própria.
 export function MenuSuspenso({ rotulo, icone, className, children }: MenuSuspensoProps) {
   return (
     <details

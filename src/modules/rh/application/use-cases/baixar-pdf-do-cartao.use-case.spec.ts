@@ -79,7 +79,6 @@ const FOLHA: FolhaDePontoDto = {
 function montar(opcoes: {
   ator?: AtorSessaoDto | null;
   folha?: unknown;
-  // true: o gerador lança um Error; texto: lança esse valor, que não é Error.
   falhaDoGerador?: boolean | string;
 }) {
   const folha = {

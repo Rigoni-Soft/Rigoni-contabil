@@ -11,8 +11,6 @@ import { err, ok, type Result } from "@/shared/kernel/result";
 
 const VALIDADE_LINK_SEGUNDOS = 120;
 
-// A tela pede {tipo, número}; o caminho nasce aqui, da lista que o banco liberou ao ator, então um
-// caminho forjado nunca chega ao Storage. Sem acesso e inexistente são indistinguíveis de propósito.
 export class ObterLinkDocumentoContratual implements ObterLinkDocumentoContratualPort {
   constructor(
     private readonly sessao: SessaoPort,

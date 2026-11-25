@@ -1,9 +1,3 @@
-/**
- * Concorrência real (duas conexões) das Mensagens gravadas por `registrar_mensagem_recebida` e
- * `registrar_mensagem_do_funcionario` contra o fechamento, a transferência e a desativação.
- * Quem escreve entra sob o lock da linha do Atendimento e
- * reavalia o status e a autoridade ali. Requer `npx supabase start` local.
- */
 import { createClient } from "@supabase/supabase-js";
 import { Client } from "pg";
 
@@ -16,7 +10,6 @@ const SERVICE_KEY =
 const DATABASE_URL =
   process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
-// Antes de qualquer setup destrutivo: a suíte nunca roda contra base remota.
 exigirSupabaseLocal(SUPABASE_URL, DATABASE_URL);
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
@@ -52,7 +45,6 @@ async function criarFuncionario(
   return id;
 }
 
-// Atendimento em andamento com dono e uma Mensagem do contato.
 async function atendimentoComDono(nome: string) {
   const funcionario = await criarFuncionario(nome);
   telefone += 1;
@@ -116,10 +108,8 @@ describe("Mensagem recebida × fechamento (duas conexões)", () => {
       const fechamento = await conexao();
       const recebimento = await conexao();
 
-      // O fechamento segura a linha do Atendimento ...
       await fechamento.query("begin");
       await fechamento.query("select 1 from public.atendimentos where id = $1 for update", [id]);
-      // ... a Mensagem chega e espera ...
       const gravando = recebimento.query(RECEBIDA, [
         id,
         "depois do fechamento",
@@ -127,7 +117,6 @@ describe("Mensagem recebida × fechamento (duas conexões)", () => {
         anexo ? JSON.stringify(anexo) : null,
       ]);
       await esperar(300);
-      // ... o fechamento confirma: a Mensagem, ao acordar, reavalia o status.
       await fechamento.query("update public.atendimentos set status = 'encerrado' where id = $1", [
         id,
       ]);
@@ -213,7 +202,6 @@ describe("Mensagem do Funcionário × fechamento, transferência, desativação 
     await transferencia.query("select 1 from public.atendimentos where id = $1 for update", [id]);
     const gravando = resposta.query(DO_FUNCIONARIO, [id, funcionario, "resposta", null]);
     await esperar(300);
-    // Vai para outro Setor e para a Fila dele (sem dono).
     await transferencia.query(
       "update public.atendimentos set setor = 'rh', funcionario_id = null, assumido_em = null, fila_desde = now() where id = $1",
       [id],
@@ -326,7 +314,6 @@ describe("Entrega da Mensagem do Funcionário: pendente → entregue | falha", (
 
     expect((await c.query(FINALIZAR, [registrada.id, true])).rows[0].r).toBe(true);
     expect(await entregaDe(registrada.id)).toBe("entregue");
-    // Reentrega da confirmação, ou uma falha tardia, não muda o que já foi fechado.
     expect((await c.query(FINALIZAR, [registrada.id, false])).rows[0].r).toBe(false);
     expect(await entregaDe(registrada.id)).toBe("entregue");
   });
@@ -354,7 +341,6 @@ describe("Entrega da Mensagem do Funcionário: pendente → entregue | falha", (
 
     expect(await entregaDe(registrada.id)).toBe("falha");
     expect(await entregaDe(doContato.data!.id)).toBe("entregue");
-    // A linha e o anexo continuam (referência preservada).
     expect(await mensagensDe(id)).toEqual([
       { autor: "contato", texto: "oi", anexo_tipo: null },
       { autor: "funcionario", texto: "vai falhar", anexo_tipo: "documento" },

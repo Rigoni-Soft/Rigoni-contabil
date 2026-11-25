@@ -12,13 +12,11 @@ type ServicosDoAcompanhamentoProps = {
   novoNome: string;
   onNovoNome: (nome: string) => void;
   onCriar: () => void;
-  // Serviço em edição (renomear na própria linha).
   edicao?: { id: string; nome: string };
   onEditar: (servicoId: string, nomeAtual: string) => void;
   onNomeEdicao: (nome: string) => void;
   onSalvarEdicao: () => void;
   onCancelarEdicao: () => void;
-  // Desativar pede um segundo clique: tira a coluna do mês atual em diante.
   onDesativar: (servicoId: string) => void;
   desativando?: string;
   onConfirmarDesativar: (servicoId: string) => void;
@@ -27,7 +25,6 @@ type ServicosDoAcompanhamentoProps = {
   erro?: string;
 };
 
-// Lista dos serviços do mês, mantida pelo Líder do RH. O serviço do sistema (Holerite) não se edita.
 export function ServicosDoAcompanhamento({
   servicos,
   novoNome,
@@ -54,7 +51,6 @@ export function ServicosDoAcompanhamento({
         Desativar um serviço o tira dos meses a partir do atual; os meses anteriores continuam como
         estavam.
       </Texto>
-      {/* Acima da lista: o erro de renomear/desativar aparece junto das linhas, não depois do formulário. */}
       {erro && <AvisoDeStatus tipo="erro" legivel texto={erro} />}
       <ListaComDivisores cartao>
         {servicos.map((s) => (

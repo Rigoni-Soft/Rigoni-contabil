@@ -1,4 +1,3 @@
-// As guardas de Production do env.ts: o módulo valida ao ser importado, então cada caso o carrega do zero.
 const BASE = {
   NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon",
@@ -15,6 +14,31 @@ async function carregarEnv(variaveis: Record<string, string>) {
 
 afterEach(() => {
   process.env = { ...ORIGINAL };
+});
+
+describe("env: Serpro trial em Production da Vercel", () => {
+  const LEITORES_ESCOLHIDOS = {
+    LEITURA_CARTAO_MODO: "indisponivel",
+    EXTRACAO_CONVENCAO_MODO: "indisponivel",
+  };
+
+  it("recusa SERPRO_AMBIENTE=trial com o modo serpro ligado", async () => {
+    await expect(
+      carregarEnv({
+        VERCEL_ENV: "production",
+        ...LEITORES_ESCOLHIDOS,
+        OBRIGACOES_FISCAIS_MODO: "serpro",
+        SERPRO_AMBIENTE: "trial",
+        SERPRO_CNPJ_ESCRITORIO: "12345678000195",
+      }),
+    ).rejects.toThrow(/SERPRO_AMBIENTE=trial/);
+  });
+
+  it("aceita o trial enquanto o modo serpro está desligado", async () => {
+    await expect(
+      carregarEnv({ VERCEL_ENV: "production", ...LEITORES_ESCOLHIDOS, SERPRO_AMBIENTE: "trial" }),
+    ).resolves.toBeUndefined();
+  });
 });
 
 describe("env: leitores falsos em Production da Vercel", () => {

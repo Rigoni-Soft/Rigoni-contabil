@@ -15,7 +15,6 @@ import { EnviarComunicacaoProativa } from "./enviar-comunicacao-proativa.use-cas
 import { EnviarGuiasParcelamento } from "./enviar-guias-parcelamento.use-case";
 import { ExecutarEnvioGuiaParcelamento } from "./executar-envio-guia-parcelamento.use-case";
 
-// 22/10/2026 09:00 em São Paulo.
 const diaDoJob = new Date("2026-10-22T12:00:00Z");
 const telefone = "5511912345678";
 
@@ -23,7 +22,6 @@ function cliente(extra: Partial<ClienteParaParcelamento> = {}): ClienteParaParce
   return { clienteId: "c1", empresa: "3A Construções", ...extra };
 }
 
-// Destino de guia de parcelamento do SN: o Contato "Ângela" pelo WhatsApp, salvo se o teste disser outro.
 const destino = (extra: Partial<DestinoDeEnvio> = {}): DestinoDeEnvio => ({
   contatoNome: "Ângela",
   telefone,
@@ -55,13 +53,11 @@ function montar(
     buscar?: () => Promise<Result<GuiaFiscal[], AppError>>;
     falhas?: Record<string, number>;
     reservar?: Result<string | null, AppError>;
-    // Por Cliente: sobrepõe `reservar` (um Cliente com a reserva ocupada ao lado de outro livre).
     reservarPor?: Record<string, Result<string | null, AppError>>;
     concluir?: Result<boolean, AppError>;
     liberar?: Result<void, AppError>;
     gravacao?: Result<void, AppError>;
     resolver?: Result<void, AppError>;
-    // Destinos do SN por Cliente; sem entrada, o WhatsApp da Ângela.
     destinos?: Record<string, DestinoDeEnvio[]>;
   } = {},
 ) {
@@ -71,7 +67,6 @@ function montar(
   const reservados: string[] = [];
   const concluidos: [string, string][] = [];
   const liberados: [string, string][] = [];
-  // Quantos templates já tinham saído quando cada conclusão foi pedida: concluir é depois do envio.
   const entregasAoConcluir: number[] = [];
   const resolvidos: { desde: Date; ids: string[] }[] = [];
   const buscar = jest.fn(opcoes.buscar ?? (async () => ok([guiaOk])));
@@ -389,7 +384,6 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
       { agora: () => diaDoJob },
     );
     expect((await job.execute()).ok).toBe(false);
-    // Leitura incompleta não vira "rodada concluída": nenhum alerta é resolvido.
     expect(resolvidos).toHaveLength(0);
   });
 
@@ -406,7 +400,6 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
       },
     );
     const resultado = await job.execute();
-    // Sem conclusão e sem liberação: o cadastro segue pendente e a reserva expira sozinha.
     expect(concluidos).toEqual([["bom", "tok-1"]]);
     expect(liberados).toHaveLength(0);
     expect(alertas).toMatchObject([{ tipo: "falha_envio", clienteId: "cai" }]);
@@ -451,7 +444,6 @@ describe("ExecutarEnvioGuiaParcelamento", () => {
       { reservarPor: { ocupado: ok(null) } },
     );
     const resultado = await job.execute();
-    // Só o Cliente efetivamente reavaliado participa; o ocupado mantém o alerta anterior.
     expect(resolvidos.map((r) => r.ids)).toEqual([["livre"]]);
     expect(alertas).toHaveLength(0);
     expect(envio.templatesEnviados).toHaveLength(1);

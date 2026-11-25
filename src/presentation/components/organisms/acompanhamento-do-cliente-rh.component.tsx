@@ -8,13 +8,11 @@ import { Select } from "@/presentation/components/ui/select";
 import { cn } from "@/presentation/lib/utils";
 
 export type EstadoDoServico = "pendente" | "concluido" | "nao_aplica" | "nunca_aplica";
-// `bloqueio` é o motivo de o serviço não aceitar troca (ausente = editável).
 export type Servico = {
   servicoId: string;
   nome: string;
   estado: EstadoDoServico;
   bloqueio?: string;
-  // Texto de apoio do serviço (ex.: cartões feitos do Holerite), ligado ao seletor.
   detalhe?: string;
 };
 
@@ -28,14 +26,12 @@ const CLASSE_DO_ESTADO: Record<EstadoDoServico, string> = {
 
 type Props = {
   servicos: Servico[];
-  // Motivo que vale para o cartão todo (ex.: sem Responsável): aparece visível, além do leitor de tela.
   aviso?: string;
   pendente: boolean;
   erro?: string;
   onTrocar: (servicoId: string, de: EstadoDoServico, para: EstadoDoServico) => void;
 };
 
-// O acompanhamento do mês de um Cliente no painel dele: um serviço por linha, como o DAS no painel do SN.
 export function AcompanhamentoDoClienteRh({ servicos, aviso, pendente, erro, onTrocar }: Props) {
   return (
     <>

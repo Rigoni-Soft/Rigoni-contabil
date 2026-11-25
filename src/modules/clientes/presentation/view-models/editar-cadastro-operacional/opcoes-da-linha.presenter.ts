@@ -19,14 +19,11 @@ type EntradaDosEnvios = {
   contato: ValoresDaLinha;
   opcoes: { valor: string; rotulo: string }[];
   destinos: DestinoSalvo[];
-  // O Salvar foi recusado por falta do canal.
   semCanal: boolean;
   onMudarCanal: (valor: string) => void;
   onAlternar: (valor: string) => void;
 };
 
-// O que a linha mostra de "o que o contato recebe": os checkboxes e, com os dois canais e ao menos um envio
-// marcado, o "Enviar por".
 export function enviosDaLinha({
   contato,
   opcoes,
@@ -56,13 +53,11 @@ export function enviosDaLinha({
 type EntradaDosExistentes = {
   disponiveis: { id: string; contato: ValoresDaLinha }[];
   contato: ValoresDaLinha | undefined;
-  // Escolheu "Cadastrar novo" nesta linha.
   escolheuNovo: boolean;
   onEscolher: (contatoId: string) => void;
   onNovo: () => void;
 };
 
-// A linha nova do Setor oferece os contatos de outros Setores já cadastrados.
 export function existentesDaLinha({
   disponiveis,
   contato,
@@ -77,7 +72,6 @@ export function existentesDaLinha({
       telefone: c.telefone,
       email: c.email,
     })),
-    // Escolheu "Cadastrar novo" (ou já digitou): os três campos são de texto.
     modoNovo: escolheuNovo || (contato ? !emBranco(contato) : false),
     onEscolher,
     onNovo,
@@ -87,15 +81,12 @@ export function existentesDaLinha({
 type EntradaDoNumeroRepetido = {
   contatos: readonly ValoresDaLinha[];
   indice: number;
-  // O número (chave) em que se saiu do WhatsApp da última vez: o aviso só vale para ele.
   verificado: string | undefined;
   admin: boolean;
   naLista: (indice: number) => boolean;
   onUsar: (contatoId: string) => void;
 };
 
-// O aviso do número repetido da linha nova: o contato do Cliente que já o tem. Fora da lista do Setor, a linha
-// oferece usá-lo.
 export function numeroRepetidoDaLinha({
   contatos,
   indice,

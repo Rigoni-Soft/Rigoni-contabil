@@ -1,6 +1,196 @@
--- Parcelamento por Setor: cada Setor tem os seus Parcelamentos (mesmo fluxo do SN) e só vê os seus; o
--- Admin vê todos. Quem busca a guia para enviar ao Cliente (URA, job) lê a união pelo servidor.
--- Os Parcelamentos que já existem passam a ser do Simples Nacional.
+update storage.buckets
+set file_size_limit = 20971520
+where id = 'documentos-clientes';
+
+
+ALTER TABLE public.cliente_responsaveis DROP CONSTRAINT cliente_responsaveis_fora_do_sn;
+ALTER TABLE public.cliente_responsaveis DISABLE TRIGGER USER;
+INSERT INTO public.cliente_responsaveis (cliente_id, setor, responsavel_id)
+SELECT cliente_id, 'simples_nacional', responsavel_id
+FROM public.cliente_cadastro_operacional_sn
+WHERE responsavel_id IS NOT NULL
+ON CONFLICT DO NOTHING;
+ALTER TABLE public.cliente_responsaveis ENABLE TRIGGER USER;
+
+DROP TRIGGER cliente_cadastro_operacional_auditar_responsavel ON public.cliente_cadastro_operacional_sn;
+DROP TRIGGER cliente_cadastro_operacional_proteger_responsavel ON public.cliente_cadastro_operacional_sn;
+DROP TRIGGER cliente_cadastro_operacional_reconciliar_esperas ON public.cliente_cadastro_operacional_sn;
+ALTER TABLE public.cliente_cadastro_operacional_sn DROP COLUMN responsavel_id;
+DROP FUNCTION public.auditar_responsavel_cliente();
+DROP FUNCTION public.proteger_responsavel_cliente();
+
+CREATE OR REPLACE FUNCTION public.alterar_papel_usuario(alvo_id uuid, ator_id uuid, novo_papel public.papel) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+declare
+  v_alvo public.perfis;
+  v_ator public.perfis;
+begin
+  if novo_papel = 'admin' then
+    raise exception 'papel invalido.';
+  end if;
+
+  select * into v_alvo from public.perfis where id = alvo_id for update;
+  if not found then
+    raise exception 'perfil inexistente.';
+  end if;
+  if v_alvo.papel = 'admin' or v_alvo.desativado_em is not null then
+    raise exception 'alvo nao pode mudar de papel.';
+  end if;
+  if v_alvo.papel = novo_papel then
+    return;
+  end if;
+
+  select * into v_ator from public.perfis where id = ator_id;
+  if not found then
+    raise exception 'ator inexistente.';
+  end if;
+
+  if exists (
+    select 1 from public.cliente_responsaveis where responsavel_id = alvo_id
+  ) then
+    raise exception 'responsavel_com_clientes';
+  end if;
+
+  begin
+    update public.perfis set papel = novo_papel where id = alvo_id;
+  exception when unique_violation then
+    raise exception 'setor_com_lider';
+  end;
+
+  insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado, criado_em)
+  values (
+    gen_random_uuid(), v_ator.id, v_alvo.setor,
+    case when novo_papel = 'lider_setor' then 'usuario.promover' else 'usuario.rebaixar' end,
+    v_alvo.email, 'sucesso', now()
+  );
+end;
+$$;
+CREATE OR REPLACE FUNCTION public.avisar_nova_alteracao() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+begin
+  insert into public.avisos_cadastro (destinatario_id, tipo, cliente_id, alteracao_id, alteracao_numero)
+  select d.id, 'nova_alteracao', new.cliente_id, new.id, new.numero
+    from (
+      select p.id from public.perfis p
+       where p.setor = 'simples_nacional' and p.papel = 'lider_setor' and p.desativado_em is null
+      union
+      select p.id from public.cliente_responsaveis r
+        join public.perfis p on p.id = r.responsavel_id
+       where r.cliente_id = new.cliente_id and r.setor = 'simples_nacional' and p.desativado_em is null
+    ) d
+   where exists (select 1 from public.cliente_cadastro_operacional_sn where cliente_id = new.cliente_id);
+  return null;
+end;
+$$;
+CREATE OR REPLACE FUNCTION public.desativar_usuario(alvo_id uuid, ator_id uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+declare
+  v_alvo public.perfis;
+  v_ator public.perfis;
+begin
+  select * into v_alvo from public.perfis where id = alvo_id for update;
+  if not found then
+    raise exception 'perfil inexistente.';
+  end if;
+  if v_alvo.desativado_em is not null then
+    return;
+  end if;
+
+  select * into v_ator from public.perfis where id = ator_id;
+  if not found then
+    raise exception 'ator inexistente.';
+  end if;
+
+  insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado, criado_em)
+  values (gen_random_uuid(), v_ator.id, v_alvo.setor, 'usuario.desativar', v_alvo.email, 'sucesso', now());
+
+  update public.perfis set desativado_em = now() where id = alvo_id;
+
+  perform set_config('rigoni.removendo_responsavel_por_desativacao', 'on', true);
+  with removidos_por_setor as (
+    delete from public.cliente_responsaveis
+    where responsavel_id = alvo_id
+    returning cliente_id
+  )
+  insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado, criado_em)
+  select gen_random_uuid(), v_ator.id, v_alvo.setor, 'cliente.remover-responsavel', c.cnpj, 'sucesso', now()
+  from removidos_por_setor r
+  join public.clientes c on c.id = r.cliente_id;
+  perform set_config('rigoni.removendo_responsavel_por_desativacao', 'off', true);
+
+  perform set_config('rigoni.devolucao_por_desativacao', 'on', true);
+  with devolvidos as (
+    update public.atendimentos a
+    set funcionario_id = null,
+        fila_funcionario_id = public.destinatario_da_espera(a.cliente_id, a.setor),
+        assumido_em = null,
+        fila_desde = case
+          when a.funcionario_id = alvo_id then clock_timestamp()
+          else coalesce(a.fila_desde, a.criado_em)
+        end
+    where a.status = 'em_andamento'
+      and (a.funcionario_id = alvo_id or a.fila_funcionario_id = alvo_id)
+    returning a.id
+  )
+  insert into public.registros_auditoria (id, ator, setor, acao, alvo, resultado, criado_em)
+  select gen_random_uuid(), v_ator.id, v_alvo.setor, 'atendimento.devolver-fila', d.id::text, 'sucesso', now()
+  from devolvidos d;
+  perform set_config('rigoni.devolucao_por_desativacao', 'off', true);
+end;
+$$;
+CREATE OR REPLACE FUNCTION public.destinatario_da_espera(p_cliente_id uuid, p_setor public.setor_slug) RETURNS uuid
+    LANGUAGE sql STABLE
+    SET search_path TO 'public'
+    AS $$
+  select case when p_setor = 'recepcao' then null else coalesce(
+    (select p.id
+     from public.perfis p
+     where p.id = (select r.responsavel_id from public.cliente_responsaveis r
+                   where r.cliente_id = p_cliente_id and r.setor = p_setor)
+       and p.papel = 'funcionario' and p.setor = p_setor and p.desativado_em is null),
+    (select p.id from public.perfis p
+     where p.setor = p_setor and p.papel = 'lider_setor' and p.desativado_em is null
+     limit 1)
+  ) end;
+$$;
+CREATE OR REPLACE FUNCTION public.reconciliar_esperas_ao_surgir_destinatario() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+begin
+  if tg_table_name = 'cliente_responsaveis' then
+    perform public.reconciliar_esperas_sem_destinatario(new.setor, new.cliente_id);
+  else
+    perform public.reconciliar_esperas_sem_destinatario(new.setor);
+  end if;
+  return null;
+end;
+$$;
+CREATE OR REPLACE FUNCTION public.sou_responsavel_do_cliente(p_cliente_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+  select exists (
+    select 1 from public.cliente_responsaveis
+    where cliente_id = p_cliente_id and responsavel_id = auth.uid()
+  );
+$$;
+DROP POLICY cliente_responsaveis_select ON public.cliente_responsaveis;
+CREATE POLICY cliente_responsaveis_select ON public.cliente_responsaveis FOR SELECT USING (
+  public.acesso_liberado() AND (
+    public.meu_papel() = 'admin'
+    OR (public.meu_papel() = 'lider_setor' AND public.meu_setor() = setor)
+    OR responsavel_id = auth.uid()
+    OR (setor = 'simples_nacional' AND public.pode_ver_cliente(cliente_id))
+  )
+);
+
 ALTER TABLE public.cliente_parcelamentos ADD COLUMN setor public.setor_slug NOT NULL DEFAULT 'simples_nacional';
 ALTER TABLE public.cliente_parcelamentos ALTER COLUMN setor DROP DEFAULT;
 CREATE INDEX cliente_parcelamentos_setor_idx ON public.cliente_parcelamentos USING btree (cliente_id, setor);
@@ -69,8 +259,6 @@ begin
    where cliente_id = p_cliente_id and setor = p_setor
      and id not in (select (item ->> 'id')::uuid from jsonb_array_elements(p_itens) as item);
 
-  -- UPDATE antes do INSERT: o gatilho BEFORE INSERT avaliaria a linha proposta de um Parcelamento
-  -- quitado (parcelas em zero) antes de o ON CONFLICT resolvê-la.
   update public.cliente_parcelamentos p
      set codigo = item ->> 'codigo',
          parcelas_restantes = (item ->> 'parcelasRestantes')::integer,
@@ -95,8 +283,6 @@ REVOKE ALL ON FUNCTION public.salvar_parcelamentos_cliente(uuid, public.setor_sl
 GRANT ALL ON FUNCTION public.salvar_parcelamentos_cliente(uuid, public.setor_slug, jsonb) TO authenticated;
 GRANT ALL ON FUNCTION public.salvar_parcelamentos_cliente(uuid, public.setor_slug, jsonb) TO service_role;
 
--- A restrição de Regime (só Simples Nacional e MEI) é do cadastro operacional do SN, não dos demais
--- Setores: no Parcelamento ela vale só para as linhas do SN. O Setor de um Parcelamento não muda.
 CREATE FUNCTION public.proteger_cliente_parcelamento_regime() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'

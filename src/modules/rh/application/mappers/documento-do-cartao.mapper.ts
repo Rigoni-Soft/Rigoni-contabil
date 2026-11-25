@@ -29,8 +29,6 @@ const horarioDoPar = (par: ParDto | undefined, campo: keyof ParDto) =>
 const temApontamento = (dia: DiaDaFolhaDto) =>
   dia.batidas.length > 0 || dia.extra !== null || dia.abono;
 
-// Não há PDF para assinar de empregado desligado, sem movimento no mês (férias, afastamento) ou sem nenhum
-// apontamento (batida, Extra ou Abono) no mês: devolve o porquê, ou undefined quando o PDF cabe.
 export function motivoSemPdf(cartao: Cartao): string | undefined {
   if (!cartao.empregado.ativo) return "Empregado desligado: não há cartão para assinar.";
   if (cartao.empregado.semMovimento) {
@@ -72,7 +70,6 @@ function itensDaTotalizacao(cartao: Cartao): ItemDoDocumentoDto[] {
   const extras: [string, number][] = totalizacao.extras.length
     ? totalizacao.extras.map((faixa) => [`Extras ${faixa.percentual}%`, faixa.minutos])
     : [["Horas extras", 0]];
-  // Banco de horas e extras acima do limite só aparecem quando há minutos.
   const opcionais: [string, number][] = [
     ["Banco de horas", totalizacao.bancoDeHorasMin],
     ["Extras acima do limite diário", totalizacao.acimaDoLimiteMin],

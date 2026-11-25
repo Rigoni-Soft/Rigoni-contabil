@@ -1,5 +1,3 @@
-// A leitura da foto do Cartão de ponto (visão) chega aqui ainda não confiável: o domínio a valida e
-// só o que passa vira dado. Leitura reprovada = digitação manual.
 import {
   diaDaSemana,
   ehDiaDeTrabalho,
@@ -12,14 +10,11 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { TEXTO_CURTO_MAXIMO } from "@/shared/kernel/texto";
 
-export type DiaLido = {
-  // Dia do mês impresso na linha do cartão.
+type DiaLido = {
   dia: number;
   batidas: Par[];
   extra: Par | null;
-  // Anotação "atestado" no dia.
   atestado: boolean;
-  // Anotação "faltou" no dia.
   faltou: boolean;
 };
 export type LeituraDoCartao = { nome: string | null; dias: DiaLido[] };
@@ -28,9 +23,6 @@ export type Quinzena = 1 | 2;
 export type DiaDaLeitura = { data: string; batidas: Par[]; extra: Par | null; abono: boolean };
 export type LeituraValida = { nome: string; dias: DiaDaLeitura[]; faltas: string[] };
 
-// Dos dias lidos, os que a leitura pode gravar. Ler o cartão só preenche: o dia que já tem batida, extra ou
-// abono (digitado pelo RH ou vindo de um atestado) fica como está e é contado em `mantidos`. A anotação
-// "atestado" num dia sem batida só vira Abono em dia de trabalho (com carga e fora de feriado).
 export function diasAGravar(
   lidos: DiaDaLeitura[],
   jornada: Jornada,
@@ -50,16 +42,17 @@ export function diasAGravar(
 }
 
 const NOME = /^[\p{L}][\p{L} .'-]*$/u;
-const MAXIMO_DO_DIA_MIN = 16 * 60;
+const MAXIMO_DE_HORAS_NO_DIA = 16;
+const MAXIMO_DO_DIA_MIN = MAXIMO_DE_HORAS_NO_DIA * 60;
+const MAXIMO_DE_BATIDAS_NO_DIA = 4;
+const MAXIMO_DE_EXTRA_NO_DIA = 1;
+const PASSO_DA_JORNADA_EM_MIN = 5;
 
-// Nome do empregado como lido (cartão ou atestado): espaços normalizados; null se ilegível.
 export function nomeLegivel(lido: string | null): string | null {
   const nome = lido?.trim().replace(/\s+/g, " ") ?? "";
   return nome.length < 2 || nome.length > TEXTO_CURTO_MAXIMO || !NOME.test(nome) ? null : nome;
 }
 
-// Os horários do dia, na ordem do cartão (manhã, tarde, extra), crescem: o modelo que troca um dígito
-// quase sempre quebra isso. ponytail: turno que vira a noite reprova e cai na digitação; aceitar a virada quando houver cartão assim.
 function emOrdem(batidas: Par[], extra: Par | null): boolean {
   const marcas = [...batidas, ...(extra ? [extra] : [])].flatMap((p) => [p.entrada, p.saida]);
   return marcas.every((m, i) => i === 0 || m > marcas[i - 1]);
@@ -97,18 +90,17 @@ export function validarLeitura(
       return recusa(`Dia ${diaLido.dia} fora da quinzena ou repetido.`);
     }
     vistos.add(diaLido.dia);
-    const batidas = validarPares(diaLido.batidas, 4);
-    const extra = validarPares(diaLido.extra ? [diaLido.extra] : [], 1);
+    const batidas = validarPares(diaLido.batidas, MAXIMO_DE_BATIDAS_NO_DIA);
+    const extra = validarPares(diaLido.extra ? [diaLido.extra] : [], MAXIMO_DE_EXTRA_NO_DIA);
     if (!batidas.ok || !extra.ok) return recusa(`Horário inválido no dia ${diaLido.dia}.`);
     if (!emOrdem(batidas.value, extra.value[0] ?? null)) {
       return recusa(`Horários fora de ordem no dia ${diaLido.dia}.`);
     }
     if (trabalhado(batidas.value) > MAXIMO_DO_DIA_MIN) {
-      return recusa(`Mais de 16 horas no dia ${diaLido.dia}.`);
+      return recusa(`Mais de ${MAXIMO_DE_HORAS_NO_DIA} horas no dia ${diaLido.dia}.`);
     }
     const data = `${alvo.competencia}-${String(diaLido.dia).padStart(2, "0")}`;
     if (diaLido.faltou && batidas.value.length === 0) faltas.push(data);
-    // Linha em branco não vira dia: não apaga o que já está digitado.
     if (batidas.value.length === 0 && !extra.value[0] && !diaLido.atestado) continue;
     dias.push({
       data,
@@ -118,14 +110,10 @@ export function validarLeitura(
     });
   }
 
-  // Cartão sem nenhuma batida lida é leitura que não leu nada.
   if (!dias.some((d) => d.batidas.length > 0 || d.extra)) return recusa("Nenhum horário lido.");
   return ok({ nome, dias, faltas });
 }
 
-// Jornada pelo padrão das batidas: a mediana do trabalhado em cada dia da semana (domingo = 0), em
-// múltiplos de 5 min; dia da semana sem batida na quinzena = não trabalha. ponytail: uma quinzena dá 2
-// amostras por dia da semana; o Funcionário corrige a Jornada no quadro se o padrão errar.
 export function deduzirJornada(dias: DiaDaLeitura[]): Jornada {
   const porDia: number[][] = [[], [], [], [], [], [], []];
   for (const dia of dias) {
@@ -137,7 +125,7 @@ export function deduzirJornada(dias: DiaDaLeitura[]): Jornada {
     if (valores.length === 0) return 0;
     const ordenados = [...valores].sort((a, b) => a - b);
     const meio = ordenados[Math.floor(ordenados.length / 2)];
-    return Math.round(meio / 5) * 5;
+    return Math.round(meio / PASSO_DA_JORNADA_EM_MIN) * PASSO_DA_JORNADA_EM_MIN;
   };
   return porDia.map(mediana) as unknown as Jornada;
 }
@@ -152,8 +140,6 @@ const palavras = (nome: string) =>
     .split(/\s+/)
     .filter(Boolean);
 
-// O cartão costuma ter só o primeiro nome ("ERICK") e o quadro o nome inteiro: casa quando as palavras de
-// um são o começo das do outro. Mais de um casado = não adivinha (o Funcionário digita).
 export function acharEmpregadoPeloNome(
   nomeLido: string,
   empregados: { id: string; nome: string }[],

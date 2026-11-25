@@ -12,13 +12,10 @@ export type AtendimentoVisto = {
     autor: "contato" | "ura" | "funcionario";
     texto: string;
     criadoEm: string;
-    // Mensagem com imagem, arquivo ou áudio: a prévia nomeia o tipo no lugar do texto.
     anexoTipo: TipoAnexoMensagem | null;
   } | null;
 };
 
-// Os Atendimentos em andamento do usuário logado: a aba "Em atendimento" da tela Atendimento
-// (os que ele assumiu).
 export interface ListarMeusAtendimentosPort {
   execute(): Promise<Result<AtendimentoVisto[], AppError>>;
 }

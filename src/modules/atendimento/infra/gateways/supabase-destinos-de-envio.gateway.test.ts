@@ -1,10 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) da leitura dos Destinos de envio pelos jobs e do
- * aviso do sino quando o Cliente fica sem meio de envio: tipo específico antes de "todos", telefone
- * com DDI, janela de 24h pela chave nacional, canal removido fora da resolução, e o alerta
- * `contato_ausente` avisando o Líder e o Responsável do Setor (uma vez por abertura, nunca o Admin).
- * Destrutiva: só roda no Supabase local e limpa pelos CNPJs da própria suíte. Requer `npx supabase start`.
- */
 import {
   executarRodada,
   SEM_ANDAMENTO,
@@ -205,7 +198,6 @@ describe("SupabaseDestinosDeEnvioGateway", () => {
 
     const r = await destinos.resolver(clienteId, "simples_nacional", "guia_parcelamento");
 
-    // O tipo específico tem um Destino, mas inválido: ele vale no lugar do "todos" e vem com o motivo.
     expect(r.ok && r.value.map((d) => [d.contatoNome, d.motivoInvalido])).toEqual([
       ["Caio Exemplo", "sem_email"],
     ]);
@@ -258,7 +250,6 @@ describe("aviso do sino: Cliente sem meio de envio", () => {
   const destinatarios = async (clienteId: string) =>
     (await avisos(clienteId)).map((a) => a.destinatario_id).sort();
 
-  // O select não tem ORDER BY: a ordem física não é a de inserção. Os avisos novos saem por id, nunca por posição.
   const idsDosAvisos = async (clienteId: string) =>
     new Set((await avisos(clienteId)).map((a) => a.id));
   const avisosNovos = async (clienteId: string, antes: Set<string>) =>
@@ -430,7 +421,6 @@ describe("aviso do sino: Cliente sem meio de envio", () => {
           .eq("setor", "simples_nacional")
           .eq("tipo", "contato_ausente"),
       );
-    // O que o job faz por Cliente: lê os Destinos do Setor e, sem nenhum válido, devolve a ocorrência.
     const rodada = (agora: Date) =>
       executarRodada(alertas, agora, [{ clienteId: clienteRh }], async ({ clienteId }) => {
         const r = await destinos.resolver(clienteId, "simples_nacional", "das");
@@ -450,7 +440,6 @@ describe("aviso do sino: Cliente sem meio de envio", () => {
       telefone: "5511977776666",
     });
     await criarDestino(clienteRh, { contatoId, tipo: "das", canal: "whatsapp" });
-    // O cadastro não resolve na hora: o alerta segue aberto até a rodada seguinte.
     expect(await sinal()).toMatchObject([{ resolvido_em: null }]);
 
     await rodada(new Date(Date.now() + 2 * 24 * HORA_MS));

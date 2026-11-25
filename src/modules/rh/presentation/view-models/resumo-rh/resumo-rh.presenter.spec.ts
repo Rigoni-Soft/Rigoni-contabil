@@ -56,7 +56,6 @@ describe("cardsDoAcompanhamento", () => {
       ["servicos_concluidos", "Tudo concluído", 1, ["c"]],
     ]);
     expect(cards.every((c) => c.total === 3)).toBe(true);
-    // Total do setor: 3 cartões feitos de 4 exigidos (2 + 0 + 2).
     expect(cards.find((c) => c.id === "servico_holerite")?.descricao).toBe(
       "Clientes que ainda não concluíram Holerite em novembro de 2026. Cartões feitos no setor: 3 de 4.",
     );

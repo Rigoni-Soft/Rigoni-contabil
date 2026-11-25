@@ -5,22 +5,16 @@ import { Texto } from "@/presentation/components/atoms/texto.component";
 import { cn } from "@/presentation/lib/utils";
 
 export type CardDeEsperaProps = {
-  // Base dos ids que ligam o nome e a descrição do botão ao texto do card.
   id: string;
   contato: string;
   empresa: string;
-  // O que o cliente já disse ou escolheu antes de chegar à espera.
   resumo: string | null;
-  // De onde veio, se foi transferido ("Transferido de Financeiro por Fulano").
   origem?: string | null;
   espera: string;
-  // Dirigido a outro usuário ou sem permissão de assumir: o card só informa, não assume.
   assumivel: boolean;
-  // A espera é dirigida a um usuário (e não a do Setor): muda o motivo de não assumir.
   dirigido?: boolean;
   assumindo?: boolean;
   onAssumir: () => void;
-  // Dirigido a outro, para quem supervisiona: abre a conversa só para leitura.
   onLer?: () => void;
 };
 
@@ -81,13 +75,10 @@ export function CardDeEspera({
           <Texto como="span" variante="somenteLeitor">
             Esperando há{" "}
           </Texto>
-          {/* O relógio do navegador difere do servidor: o texto muda de propósito a cada segundo. */}
           <Caixa como="span" suppressHydrationWarning id={`${id}-espera`}>
             {espera}
           </Caixa>
         </Linha>
-        {/* O verbo à vista: o card inteiro é o botão, mas só o leitor de tela ouvia "Assumir". O nome
-            acessível já o diz (aria-labelledby), por isso este texto não é lido de novo. */}
         {assumivel && (
           <Caixa como="span" aria-hidden="true" className="text-sm font-medium text-primary">
             {assumindo ? "Assumindo…" : "Assumir"}
@@ -103,8 +94,6 @@ export function CardDeEspera({
       type="button"
       onClick={assumivel ? onAssumir : onLer}
       disabled={assumivel && assumindo}
-      // O nome é a ação e quem espera; o resumo e o tempo de espera entram como descrição, para o
-      // leitor de tela dizer o que decide quem assumir (um aria-label os esconderia).
       aria-labelledby={`${id}-acao ${id}-contato ${id}-empresa`}
       aria-describedby={[origem && `${id}-origem`, resumo && `${id}-resumo`, `${id}-espera`]
         .filter(Boolean)
@@ -119,7 +108,6 @@ export function CardDeEspera({
       {conteudo}
     </Caixa>
   ) : (
-    // Só informa: sem o fundo de cartão clicável, para não parecer um botão.
     <Caixa className={cn(MOLDURA, "border-dashed bg-transparent")}>{conteudo}</Caixa>
   );
 }

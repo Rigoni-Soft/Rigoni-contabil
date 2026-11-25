@@ -31,6 +31,7 @@
     "check:int-local": "node .claude/scripts/checar-int-local.mjs",
     "test:e2e": "playwright test",
     "test:e2e:diff": "playwright test --only-changed=develop",
+    "check:e2e-local": "node .claude/scripts/checar-e2e-local.mjs",
     "test:cov": "jest --coverage"
   },
   "dependencies": {

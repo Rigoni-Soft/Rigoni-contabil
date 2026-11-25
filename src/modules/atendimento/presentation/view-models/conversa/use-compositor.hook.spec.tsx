@@ -11,7 +11,6 @@ import {
 } from "./conversa.actions";
 import { useCompositor } from "./use-compositor.hook";
 
-// conversa.queries invalida as chaves da Fila e dos Meus atendimentos: importa os módulos delas.
 jest.mock("../fila/fila.actions", () => ({ listarFilaAction: jest.fn() }));
 jest.mock("../meus-atendimentos/meus-atendimentos.actions", () => ({
   listarMeusAtendimentosAction: jest.fn(),
@@ -133,7 +132,6 @@ describe("useCompositor", () => {
       expect(dados.get("nome")).toBe("balanco.pdf");
       expect(dados.get("legenda")).toBe("Segue");
       expect(mensagem).not.toHaveBeenCalled();
-      // Enviado: a prévia some.
       await waitFor(() => expect(result.current.anexo).toBeUndefined());
     });
 
@@ -230,7 +228,6 @@ describe("useCompositor", () => {
     expect(dados.get("nome")).toBe("gravacao.webm");
     expect(dados.get("legenda")).toBeNull();
 
-    // Descartar a gravação apaga o erro dela.
     act(() => result.current.aoCancelarAudio());
     await waitFor(() => expect(result.current.erro).toBeUndefined());
 

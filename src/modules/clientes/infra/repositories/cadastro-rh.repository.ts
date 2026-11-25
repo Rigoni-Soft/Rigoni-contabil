@@ -10,8 +10,9 @@ import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Uma função do banco (`editar_cadastro_rh_cliente`) grava observações e contatos na mesma transação e
-// confere quem pode por Cliente; ela só toca no que é do RH ou compartilhado.
+const PG_SEM_PERMISSAO = "42501";
+const PG_PARAMETRO_INVALIDO = "22023";
+
 export class SupabaseCadastroRhRepository implements CadastroRhRepository {
   constructor(
     private readonly supabase: SupabaseClient,
@@ -29,10 +30,10 @@ export class SupabaseCadastroRhRepository implements CadastroRhRepository {
       p_contatos: contatos ?? null,
     });
     if (error) {
-      if (error.code === "42501") {
+      if (error.code === PG_SEM_PERMISSAO) {
         return err(new ForbiddenError("Você não é o Responsável do RH deste cliente."));
       }
-      if (error.code === "22023") return err(new ValidationError(error.message));
+      if (error.code === PG_PARAMETRO_INVALIDO) return err(new ValidationError(error.message));
       this.erros.registrar("Falha ao atualizar o cadastro do RH:", error.message);
       return err(
         new PersistenciaError("Não foi possível salvar o cadastro do RH. Tente novamente."),

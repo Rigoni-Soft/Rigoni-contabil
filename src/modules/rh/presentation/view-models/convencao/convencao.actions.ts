@@ -15,7 +15,6 @@ import {
   interruptoresSchema,
 } from "./convencao.schema";
 
-// O PDF chega como File no FormData; o caso de uso recebe só os bytes (a porta não conhece a web).
 export async function enviarConvencaoAction(formData: FormData): Promise<ActionResult<void>> {
   const parsed = enviarConvencaoSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {

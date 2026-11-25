@@ -27,11 +27,10 @@ import { CertidaoCndSerproGateway } from "@/modules/clientes/infra/gateways/cert
 import { ObrigacoesFiscaisHttpGateway } from "@/modules/clientes/infra/gateways/obrigacoes-fiscais-http.gateway";
 import { ObrigacoesFiscaisSerproGateway } from "@/modules/clientes/infra/gateways/obrigacoes-fiscais-serpro.gateway";
 
-// URLs por ambiente (docs/deploy/serpro.md); cada uma pode ser sobrescrita por variável.
 const GATEWAY = "https://gateway.apiserpro.serpro.gov.br";
 const URLS = {
   trial: {
-    autenticacao: "", // trial não autentica: usa o token de demonstração
+    autenticacao: "",
     integraContador: `${GATEWAY}/integra-contador-trial/v1`,
     cndToken: "",
     cndCertidao: `${GATEWAY}/consulta-cnd-trial/v1/certidao`,
@@ -44,12 +43,9 @@ const URLS = {
   },
 } as const;
 
-// Token público de demonstração da documentação do Serpro (só vale no trial).
 const TOKEN_TRIAL_PADRAO = "06aef429-a981-3ec5-a1f8-71d38d86481e";
-// Código usado nos exemplos do trial da Consulta CND.
 const CODIGO_CND_TRIAL = "9001";
 
-// Instância única no modo real: guarda o token do Serpro entre chamadas.
 let serpro: ObrigacoesFiscaisSerproGateway | undefined;
 
 export function makeObrigacoesFiscais(): ObrigacoesFiscaisPort {
@@ -57,7 +53,6 @@ export function makeObrigacoesFiscais(): ObrigacoesFiscaisPort {
     return new ObrigacoesFiscaisHttpGateway(OBRIGACOES_FISCAIS_URL);
   }
   const urls = URLS[SERPRO_AMBIENTE];
-  // env.ts garante as variáveis de cada ambiente com o modo real.
   serpro ??= new ObrigacoesFiscaisSerproGateway({
     urlAutenticacao: SERPRO_URL_AUTENTICACAO ?? urls.autenticacao,
     urlBase: SERPRO_URL_INTEGRA_CONTADOR ?? urls.integraContador,
@@ -78,7 +73,6 @@ export function makeObrigacoesFiscais(): ObrigacoesFiscaisPort {
 
 let cnd: CertidaoCndSerproGateway | undefined;
 
-// A CND é outro produto do Serpro, com chave própria: modo independente das guias.
 export function makeCertidaoCnd(): CertidaoCndPort {
   if (CND_MODO !== "serpro") return new CertidaoCndHttpGateway(OBRIGACOES_FISCAIS_URL);
   const urls = URLS[SERPRO_AMBIENTE];

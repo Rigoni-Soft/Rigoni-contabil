@@ -1,4 +1,3 @@
-// Porta própria: o `main` adapta a porta IN RegistrarAcao do módulo auditoria a esta forma.
 export type RegistrarAcaoAuditoria = {
   ator: string;
   setor: string;
@@ -8,6 +7,5 @@ export type RegistrarAcaoAuditoria = {
 };
 
 export interface AuditoriaPort {
-  // Best-effort, só para "falha": o "sucesso" nasce no banco, por gatilho, na mesma transação da escrita.
   registrar(input: RegistrarAcaoAuditoria): Promise<void>;
 }

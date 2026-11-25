@@ -1,8 +1,3 @@
-/**
- * Fronteira de acesso do papel `anon` (arquitetura.md, 3.12 e 3.14): o sistema não tem acesso
- * anônimo, então a chave pública não alcança nenhuma tabela nem RPC do schema public, mesmo antes
- * do RLS. Só leitura/tentativa: não escreve nada. Requer `npx supabase start` local.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { exigirSupabaseLocal } from "../../../../../test-support/exigir-supabase-local";
@@ -16,7 +11,6 @@ exigirSupabaseLocal(SUPABASE_URL);
 
 const anonimo = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false } });
 
-// Permission denied do Postgres (42501), não "lista vazia pelo RLS".
 const NEGADO = "42501";
 
 const TABELAS = [
@@ -79,7 +73,6 @@ describe("papel anon sem privilégio no schema public", () => {
   ])("RPC %s: execução negada", async (nome, args) => {
     const { error } = await anonimo.rpc(nome, args);
 
-    // 42501 (sem privilégio) ou PGRST202 (a função não está exposta a esse papel): nunca sucesso.
     expect(["42501", "PGRST202"]).toContain(error?.code);
   });
 });

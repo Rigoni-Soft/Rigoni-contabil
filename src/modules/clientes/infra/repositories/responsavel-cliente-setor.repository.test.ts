@@ -1,9 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) do Responsável por Cliente fora do Simples
- * Nacional: o Líder do Setor atribui, troca e remove em `cliente_responsaveis`; quem não é
- * Líder do Setor ou aponta Funcionário de outro Setor é recusado pelo banco.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { SupabaseClienteQueryGateway } from "@/modules/clientes/infra/gateways/cliente-query.gateway";

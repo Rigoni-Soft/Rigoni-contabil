@@ -11,15 +11,11 @@ type CampoDeTextoProps = React.ComponentProps<"input"> & {
   rotulo: string;
   obrigatorio?: boolean;
   erro?: string;
-  // Aviso que não é erro de validação (ex.: consulta pública sem confirmação): só aparece sem erro.
   aviso?: string;
-  // Dica fixa sob o campo (por que está travado, de onde vem o valor); ligada ao campo por aria-describedby.
   ajuda?: string;
-  // Classes do contêiner (espaçamento entre rótulo e campo muda por tela).
   className?: string;
 };
 
-// Rótulo visível + campo + erro. O `aria-invalid` e o `aria-required` saem de `erro` e `obrigatorio`.
 export function CampoDeTexto({
   id,
   rotulo,

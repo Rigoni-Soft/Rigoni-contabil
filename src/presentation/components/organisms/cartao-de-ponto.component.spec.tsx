@@ -88,7 +88,6 @@ describe("CartaoDePonto", () => {
   it("mostra o empregado, o mês, os dias e a Totalização", () => {
     render(<CartaoDePonto {...PROPS} />);
 
-    // O título da tela já é "Cartão de ponto": o do cartão traz só o nome.
     expect(screen.getByRole("heading", { name: "Ana" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /Cartão de ponto de/ })).not.toBeInTheDocument();
     expect(screen.getByText("novembro de 2026")).toBeInTheDocument();
@@ -97,11 +96,9 @@ describe("CartaoDePonto", () => {
     expect(screen.getByText(/Empresa: Teste Ltda · Período: novembro de 2026/)).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "H. Diária" })).toBeInTheDocument();
     expect(screen.queryByText(/Faltas \/ Suspensão/)).not.toBeInTheDocument();
-    // A.N. por extenso e a coluna do botão sem título visível.
     expect(screen.getByRole("columnheader", { name: "Adicional noturno" })).toBeInTheDocument();
     expect(screen.queryByText("A.N.")).not.toBeInTheDocument();
     expect(screen.queryByText("Dia", { exact: true })).not.toBeInTheDocument();
-    // A coluna Abono saiu: o abono é o botão da falta.
     expect(screen.queryByRole("columnheader", { name: "Abono" })).not.toBeInTheDocument();
   });
 
@@ -170,7 +167,6 @@ describe("CartaoDePonto", () => {
   it("Salvar e Limpar da tabela só valem com uma linha aberta", () => {
     render(<CartaoDePonto {...PROPS} />);
 
-    // aria-disabled (não `disabled`): o botão segue focável, o foco não cai no corpo depois de salvar.
     expect(screen.getByRole("button", { name: "Salvar" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByRole("button", { name: "Limpar" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByRole("link", { name: "Cancelar" })).toBeInTheDocument();

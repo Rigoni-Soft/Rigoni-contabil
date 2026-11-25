@@ -7,8 +7,6 @@ import { AvisoGlobalContainer } from "@/modules/atendimento/presentation/view-mo
 
 import "./globals.css";
 
-// Roboto variável (latin) servida do repositório, não do Google: o build não depende de rede
-// externa (o CI e a Vercel compilam sem buscar a fonte).
 const roboto = localFont({
   src: "./fonts/roboto-latin.woff2",
   variable: "--font-roboto",
@@ -28,7 +26,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ThemeProvider>
           <QueryProvider>
             {children}
-            {/* Persiste entre as telas: o contador e o aviso sonoro não dependem da tela aberta. */}
             <AvisoGlobalContainer />
           </QueryProvider>
         </ThemeProvider>

@@ -3,7 +3,6 @@ import { useRouter } from "next/navigation";
 
 type Resultado = { ok: true } | { ok: false; error: { message: string } };
 
-// Esqueleto comum das ações de usuário: pendente, erro, refresh em caso de sucesso.
 export function useAcaoComPendente(mensagemFalha: string) {
   const router = useRouter();
   const [pendente, setPendente] = useState(false);

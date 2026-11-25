@@ -23,8 +23,6 @@ type Props = {
   searchParams: Promise<{ convencao?: string }>;
 };
 
-// A Convenção coletiva de um Cliente: envio e renovação (Líder do RH e Admin), o histórico, as "Regras
-// aplicadas" da convenção escolhida, em leitura, e os ajustes do Cliente.
 export default async function Page({ params, searchParams }: Props) {
   const sessao = await exigirSessao();
   if (!podeVerAcompanhamentoRh(sessao.papel, sessao.setor)) redirect("/");

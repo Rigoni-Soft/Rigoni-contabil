@@ -9,16 +9,12 @@ type LinkDeAcaoProps = {
   variant?: VariantProps<typeof buttonVariants>["variant"];
   size?: VariantProps<typeof buttonVariants>["size"];
   className?: string;
-  // Destino fora do app (ex.: link assinado): abre em nova aba, sem `opener`.
   externo?: boolean;
-  // O link da seleção em tela (empregado escolhido): além da variante, o leitor de tela ouve "atual".
   atual?: boolean;
-  // Nome acessível quando o texto visível sozinho é ambíguo (ex.: vários "Cartão de ponto →" numa lista).
   "aria-label"?: string;
   children: React.ReactNode;
 };
 
-// Navegação com a aparência de botão (o destino é uma rota, não uma ação do formulário).
 export function LinkDeAcao({
   href,
   variant = "outline",

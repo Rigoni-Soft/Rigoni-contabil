@@ -14,8 +14,6 @@ import { ROTA_RH, SETOR_RH } from "@/shared/kernel/setores";
 
 type Props = { params: Promise<{ bucket: string }> };
 
-// ponytail: esqueleto repetido em app/clientes/resumo/[bucket]; extrair um helper por Setor quando houver o 3º
-// Setor com resumo (Contábil).
 export default async function Page({ params }: Props) {
   const { bucket } = await params;
   const sessao = await exigirSessao();
@@ -36,8 +34,7 @@ export default async function Page({ params }: Props) {
       }
     : { ok: false as const };
   const header = <CabecalhoDoShellContainer sessao={sessao} />;
-  const card = resumo.ok ? resumo.value.cards.find((c) => c.id === bucket) : undefined;
-  // Com o acompanhamento fora do ar, o card dele não existe: é falha a tentar de novo, não 404.
+  const card = resumo.ok ? resumo.value.cards.find((cartao) => cartao.id === bucket) : undefined;
   const acompanhamentoFalhou = !mensal.ok;
   if (!resumo.ok || (!card && acompanhamentoFalhou)) {
     return (

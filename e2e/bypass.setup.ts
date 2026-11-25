@@ -1,7 +1,5 @@
 import { test as setup } from "@playwright/test";
 
-// Preview da Vercel tem Deployment Protection: sem o bypass, toda request recebe a página de
-// autenticação da Vercel. Roda antes da suíte e salva o cookie para reusar nos testes.
 setup("libera a Deployment Protection do preview", async ({ page }) => {
   const origem = new URL(process.env.BASE_URL!).origin;
   await page.route(`${origem}/**`, (route) =>

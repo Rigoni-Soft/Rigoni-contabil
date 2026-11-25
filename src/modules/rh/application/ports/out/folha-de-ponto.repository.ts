@@ -10,18 +10,12 @@ import type { Result } from "@/shared/kernel/result";
 export type DadosDoEmpregado = { nome: string; jornada: number[]; comissionado: boolean };
 export type ClienteDoPontoDto = { cnpj: string; empresa: string; responsavelId: string | null };
 
-// `competencia` é o primeiro dia do mês ("AAAA-MM-01"). O banco (RLS + gatilhos) é a última barreira.
 export interface FolhaDePontoRepository {
-  // null = cliente inexistente ou fora da vista do ator.
   buscarCliente(clienteId: string): Promise<Result<ClienteDoPontoDto | null, AppError>>;
-  // null = empregado inexistente ou fora da vista do ator.
   buscarClienteDoEmpregado(empregadoId: string): Promise<Result<string | null, AppError>>;
   listarEmpregados(clienteId: string): Promise<Result<EmpregadoDto[], AppError>>;
-  // Ids dos empregados do Cliente sem movimento no mês.
   listarSemMovimento(clienteId: string, competencia: string): Promise<Result<string[], AppError>>;
-  // O cartão do mês (primeiro dia, "AAAA-MM-01") já foi salvo ao menos uma vez, com ou sem horário.
   cartaoIniciado(empregadoId: string, competencia: string): Promise<Result<boolean, AppError>>;
-  // Idempotente: marcar de novo não muda nada.
   iniciarCartao(empregadoId: string, competencia: string): Promise<Result<void, AppError>>;
   buscarPadraoComissionados(clienteId: string): Promise<Result<boolean, AppError>>;
   definirPadraoComissionados(clienteId: string, valor: boolean): Promise<Result<void, AppError>>;
@@ -38,19 +32,15 @@ export interface FolhaDePontoRepository {
     de: string,
     ate: string,
   ): Promise<Result<DiaDoPontoDto[], AppError>>;
-  // Dia sem batidas, sem Extra e sem Abono apaga a linha.
   salvarDia(
     empregadoId: string,
     dia: { data: string; batidas: ParDto[]; extra: ParDto | null; abono: boolean },
   ): Promise<Result<void, AppError>>;
-  // Marca o cartão do mês como iniciado e grava os dias numa transação só: ou entra tudo ou nada. Só preenche: o
-  // dia que já tem linha não é tocado, e o dia vazio não grava nem apaga. `competencia` é o primeiro dia do mês.
   gravarCartao(
     empregadoId: string,
     competencia: string,
     dias: { data: string; batidas: ParDto[]; extra: ParDto | null; abono: boolean }[],
   ): Promise<Result<void, AppError>>;
-  // Marca Abono nas datas numa transação só, preservando batidas e Extra do dia; não inicia cartão.
   abonarDias(empregadoId: string, datas: string[]): Promise<Result<void, AppError>>;
   listarFeriados(de: string, ate: string): Promise<Result<string[], AppError>>;
   buscarInterruptores(clienteId: string): Promise<Result<InterruptoresDoClienteDto, AppError>>;
@@ -58,7 +48,6 @@ export interface FolhaDePontoRepository {
     clienteId: string,
     interruptores: InterruptoresDoClienteDto,
   ): Promise<Result<void, AppError>>;
-  // Sindicato da convenção que cada empregado do Cliente segue (nulo = a única do Cliente).
   listarConvencaoDosEmpregados(
     clienteId: string,
   ): Promise<Result<{ empregadoId: string; sindicato: string | null }[], AppError>>;

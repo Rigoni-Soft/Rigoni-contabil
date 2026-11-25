@@ -1,9 +1,7 @@
-import { expect, test } from "./fixtures";
+import { esperarHidratacao, expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, empresaUnica, login } from "./support/criar-cliente";
 
-// O que cada contato recebe do Setor (checkboxes na linha do contato, gravados com o Salvar da linha), no
-// cadastro do SN, do RH e do Admin; o Setor marca também nos contatos de outros donos. Dados fictícios.
 const admin = adminLocal();
 const FUNCIONARIO_SN_ID = "22222222-2222-2222-2222-222222222222";
 const FUNCIONARIO_RH_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
@@ -41,10 +39,9 @@ const destinosDe = async (clienteId: string) => {
   return data ?? [];
 };
 
-// Espera a hidratação: preencher antes dela deixa o React Hook Form reaplicar os valores iniciais.
 async function abrirCadastro(page: import("@playwright/test").Page, clienteId: string) {
   await page.goto(`/clientes/${clienteId}`);
-  await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+  await esperarHidratacao(page);
 }
 
 test.describe("O que cada contato recebe do Setor", () => {
@@ -59,15 +56,12 @@ test.describe("O que cada contato recebe do Setor", () => {
     await expect(page).toHaveURL("/simples-nacional");
     await abrirCadastro(page, clienteId);
 
-    // Contato de outro Setor: fica fora da lista do Setor até ser escolhido na linha nova; depois só os
-    // envios se editam (nome, WhatsApp e e-mail ficam de leitura) e a lixeira só deixa de usar.
     await expect(page.locator("[id='contatos.0.nome']")).toHaveCount(0);
     await page.locator("[id='contatos.1.nome']").selectOption({ label: "Paulo do RH" });
     const grupoPaulo = page.getByRole("group", { name: "Envios do contato 1" });
     await expect(page.locator("[id='contatos.0.nome']")).toHaveAttribute("readonly", "");
     await expect(page.getByRole("button", { name: "Remover contato 1" })).toHaveCount(0);
     await grupoPaulo.getByLabel("DAS").check();
-    // O Salvar do cadastro espera a linha em edição.
     await expect(page.getByRole("button", { name: "Salvar", exact: true })).toHaveAttribute(
       "aria-disabled",
       "true",
@@ -78,20 +72,17 @@ test.describe("O que cada contato recebe do Setor", () => {
       { setor: "simples_nacional", tipo: "das", canal: "email", contato_id: paulo },
     ]);
 
-    // Contato novo: nome, canais e envios, tudo no mesmo Salvar da linha (sem pausa).
     await page.getByRole("button", { name: "Adicionar contato" }).click();
     await page.locator("[id='contatos.1.nome']").fill("Nina Exemplo");
     await page.locator("[id='contatos.1.telefone']").fill("11977776666");
     await page.locator("[id='contatos.1.email']").fill("nina@exemplo.com");
     const grupoNina = page.getByRole("group", { name: "Envios do contato 2" });
-    // "Todos os envios" marca todos os outros; desmarcar um deles desmarca o "Todos".
     await grupoNina.getByLabel("Todos os envios").check();
     for (const tipo of ["Lembrete de documento", "DAS", "Guia de parcelamento", "Avisos"]) {
       await expect(grupoNina.getByLabel(tipo)).toBeChecked();
     }
     await grupoNina.getByLabel("Avisos").uncheck();
     await expect(grupoNina.getByLabel("Todos os envios")).not.toBeChecked();
-    // A Nina tem WhatsApp e e-mail: o Setor escolhe por onde enviar, sem valor padrão.
     const enviarPor = page.getByLabel("Enviar por");
     await expect(enviarPor).toHaveValue("");
     await page.getByRole("button", { name: "Salvar contato 2" }).click();
@@ -109,7 +100,6 @@ test.describe("O que cada contato recebe do Setor", () => {
     ]);
     expect((await daNina()).every((d) => d.canal === "whatsapp_e_email")).toBe(true);
 
-    // Número que já é de um contato do Cliente: o aviso aparece ao sair do WhatsApp e some ao descartar a linha.
     await page.getByRole("button", { name: "Adicionar contato" }).click();
     await page.locator("[id='contatos.2.telefone']").fill("11977776666");
     await page.locator("[id='contatos.2.telefone']").blur();
@@ -119,11 +109,9 @@ test.describe("O que cada contato recebe do Setor", () => {
     await page.getByRole("button", { name: "Cancelar edição do contato 3" }).click();
     await expect(page.locator("[id='contatos.2.telefone']")).toHaveCount(0);
 
-    // Editar de novo: Cancelar desfaz o que se marcou; Salvar do cadastro grava o resto sem apagar nada.
     await page.getByRole("button", { name: "Editar contato 2" }).click();
     await grupoNina.getByLabel("Avisos").check();
     await page.getByRole("button", { name: "Cancelar edição do contato 2" }).click();
-    // Fora da edição o grupo mostra em texto o que o contato recebe: o "Avisos" marcado e cancelado não ficou.
     await expect(grupoNina).toContainText("Lembrete de documento, DAS, Guia de parcelamento");
     await expect(grupoNina).not.toContainText("Avisos");
     await page.getByRole("button", { name: "Salvar", exact: true }).click();
@@ -135,7 +123,6 @@ test.describe("O que cada contato recebe do Setor", () => {
       .eq("cliente_id", clienteId);
     expect(contatos.data?.map((c) => c.nome).sort()).toEqual(["Nina Exemplo", "Paulo do RH"]);
 
-    // Contato que perde o canal que o envio usa: o aviso aparece na linha.
     await admin
       .from("cliente_contatos")
       .update({ email: null })
@@ -156,7 +143,6 @@ test.describe("O que cada contato recebe do Setor", () => {
     await expect(page).toHaveURL("/rh");
     await abrirCadastro(page, clienteId);
 
-    // O contato do SN só entra na lista do RH quando é escolhido na linha nova.
     await page.locator("[id='contatos.1.nome']").selectOption({ label: "Sara do SN" });
     await expect(page.locator("[id='contatos.0.nome']")).toHaveAttribute("readonly", "");
     const grupo = page.getByRole("group", { name: "Envios do contato 1" });

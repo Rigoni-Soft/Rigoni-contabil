@@ -4,11 +4,9 @@ import type { Result } from "@/shared/kernel/result";
 
 export type SalvarContatoDoClienteInput = {
   clienteId: string;
-  // Sem `id`, o contato é criado; com `id`, é atualizado.
   contato: ContatoEditavel;
 };
 
 export interface SalvarContatoDoClientePort {
-  // Devolve o id do contato gravado (o da linha, que passa a ser "salva").
   execute(input: SalvarContatoDoClienteInput): Promise<Result<{ id: string }, AppError>>;
 }

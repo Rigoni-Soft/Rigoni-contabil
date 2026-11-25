@@ -27,22 +27,16 @@ type EditarCadastroRhFormProps = ParcelamentosProps & {
   readOnly: boolean;
   erroServidor?: string;
   sucesso?: boolean;
-  // Até hidratar, os campos (não controlados) ainda não têm os valores: oculto sem sair do layout.
   oculto?: boolean;
   contatos: { id: string }[];
   onAdicionarContato: () => void;
   linhasDeContato: AcoesDasLinhasDeContato;
   onLimpar: () => void;
-  // Cartão do documento contratual com "Abrir em nova aba" (só leitura).
   documentoContratual?: React.ReactNode;
-  // O Responsável do RH: um campo do cabeçalho, na mesma coluna do SN.
   responsavel?: React.ReactNode;
-  // Os serviços do mês: uma seção do próprio cartão, depois do cabeçalho do cadastro.
   acompanhamento?: React.ReactNode;
 };
 
-// O cadastro do Cliente no RH: o mesmo desenho do cadastro operacional do SN, com o que é do RH (as
-// observações gerais do RH) e o que é de todos os Setores (os contatos); o que é do SN não aparece.
 export function EditarCadastroRhForm({
   cabecalho,
   register,

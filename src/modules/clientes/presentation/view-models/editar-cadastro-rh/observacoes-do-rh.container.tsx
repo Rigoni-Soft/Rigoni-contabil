@@ -10,8 +10,6 @@ import { editarCadastroRhAction } from "./editar-cadastro-rh.actions";
 
 type Props = { clienteId: string; observacoesIniciais: string };
 
-// O Admin grava só as observações do RH (sem `contatos`, que ficam como estão); o resto do cadastro do RH
-// é do formulário do RH.
 export function ObservacoesDoRhContainer({ clienteId, observacoesIniciais }: Props) {
   const router = useRouter();
   const [valor, setValor] = useState(observacoesIniciais);

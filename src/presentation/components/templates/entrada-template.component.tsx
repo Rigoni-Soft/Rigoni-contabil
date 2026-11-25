@@ -10,7 +10,6 @@ type EntradaTemplateProps = {
   formulario: React.ReactNode;
 };
 
-// Tela de entrada (login): conteúdo único centralizado, sem cabeçalho nem navegação. Sempre Server.
 export function EntradaTemplate({ titulo, subtitulo, rodape, formulario }: EntradaTemplateProps) {
   return (
     <Linha

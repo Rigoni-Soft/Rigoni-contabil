@@ -20,7 +20,6 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { hojeIso } from "@/shared/kernel/mes-atual";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// O banco (RLS) é a última barreira: só o Líder do RH e o Admin inserem (42501 para os demais).
 export class SupabaseConvencaoRepository implements ConvencaoRepository {
   constructor(
     private readonly supabase: SupabaseClient,
@@ -38,7 +37,6 @@ export class SupabaseConvencaoRepository implements ConvencaoRepository {
     const linhas = lerLinhas(this.leitura, z.array(convencaoRowSchema), data);
     if (!linhas.ok) return linhas;
     return ok(
-      // O instante vira o dia de São Paulo, não o de UTC (21h-24h já é o dia seguinte lá).
       linhas.value.map((l) => ({
         id: l.id,
         sindicato: l.sindicato,

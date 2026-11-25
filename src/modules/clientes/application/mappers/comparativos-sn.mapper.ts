@@ -18,9 +18,7 @@ function contar(
   }));
 }
 
-// Um grupo por Responsável presente nos Clientes (mais "Sem responsável" quando
-// existe algum Cliente sem atribuição), contando os com DAS enviada.
-function porResponsavel(linhas: ResumoOperacionalRow[]): FatiaComparativoDto[] {
+function dasEnviadasPorResponsavel(linhas: ResumoOperacionalRow[]): FatiaComparativoDto[] {
   const grupos = new Map<string, FatiaComparativoDto>();
   for (const l of linhas) {
     const id = l.responsavelId ?? SEM_RESPONSAVEL_ID;
@@ -38,13 +36,11 @@ function porResponsavel(linhas: ResumoOperacionalRow[]): FatiaComparativoDto[] {
   );
 }
 
-// Parcelamento: as mesmas definições dos cards, por Cliente; o RH usa com os parcelamentos que cadastrar.
 export function comparativoDeParcelamento(
   linhas: Pick<ResumoOperacionalRow, "parcelamentos">[],
   agora: Date,
 ): FatiaComparativoDto[] {
   const situacoes = linhas.map((l) => situacaoDosParcelamentos(l, agora));
-  // Mesmas cores dos cards: pendente é atenção; só o atraso é urgente.
   return (
     [
       ["enviado", "Enviado", "em_dia", "enviado"],
@@ -60,9 +56,6 @@ export function comparativoDeParcelamento(
   }));
 }
 
-// Gráficos: DAS usa o status bruto (não os buckets compostos dos cards, que se
-// sobrepõem); atividade do mês são 3 flags independentes; parcelamento usa as mesmas definições
-// dos cards (por Cliente, não exclusivas), então as fatias podem somar mais que o total.
 export function calcularComparativosSn(linhas: ResumoOperacionalRow[], agora: Date) {
   const atividades = linhas.flatMap((l) =>
     (["industria", "comercio", "servico"] as const).filter((a) => l.atividadeMes[a]),
@@ -70,8 +63,6 @@ export function calcularComparativosSn(linhas: ResumoOperacionalRow[], agora: Da
   return {
     das: contar(
       [
-        // Mesmas cores dos cards. "Pronto" (card "Esperando envio DAS") é atenção: aguarda o envio do
-        // escritório e precisa de tinta própria no donut, distinta de "Enviada".
         ["enviado", "Enviada", "em_dia"],
         ["pendente", "Pendente", "urgente"],
         ["sem_movimento", "Sem movimento", "informativo"],
@@ -88,6 +79,6 @@ export function calcularComparativosSn(linhas: ResumoOperacionalRow[], agora: Da
       ],
       atividades,
     ),
-    responsaveis: porResponsavel(linhas),
+    responsaveis: dasEnviadasPorResponsavel(linhas),
   };
 }

@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) da mídia recebida do cliente: localizar o
- * Atendimento em andamento do número, saber se a Mensagem do provedor já entrou e gravar a Mensagem
- * do contato com anexo (ou o aviso do sistema). Requer `npx supabase start` local com migrations.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { SupabaseAtendimentoRepository } from "./atendimento.repository";

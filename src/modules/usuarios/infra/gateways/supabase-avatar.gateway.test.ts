@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) dos gateways do avatar: o objeto no bucket privado
- * `avatares` e a coluna `perfis.avatar_atualizado_em`, ambos gravados só com service_role (ADR 0012).
- * Requer `npx supabase start` local com migrations aplicadas.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import type { SessaoPort } from "@/modules/usuarios/application/ports/out/sessao.provider";

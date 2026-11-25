@@ -21,7 +21,6 @@ const ANA = {
   email: "ana@exemplo.com",
   donoSetor: "simples_nacional",
   tipos: ["das"],
-  // Ana tem os dois canais: o Setor já escolheu por onde enviar.
   canal: "whatsapp",
 };
 const BIA = {
@@ -250,10 +249,8 @@ describe("useContatosDoCadastro", () => {
         "email",
         "whatsapp_e_email",
       ]);
-      // Um canal só (e-mail ou WhatsApp): sem escolha.
       expect(result.current.linhas.envios(1)?.canal).toBeUndefined();
       expect(result.current.linhas.envios(2)?.canal).toBeUndefined();
-      // Sem envio marcado não há por onde enviar.
       const vazio = montar([{ ...ANA, tipos: [] }]);
       expect(vazio.result.current.linhas.envios(0)?.canal).toBeUndefined();
     });

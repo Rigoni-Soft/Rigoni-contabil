@@ -6,7 +6,6 @@ type CartaoDeGraficoProps = {
   children: React.ReactNode;
 };
 
-// Moldura de um comparativo: grupo nomeado pelo título, com o conteúdo do gráfico dentro.
 export function CartaoDeGrafico({ titulo, className, children }: CartaoDeGraficoProps) {
   return (
     <div

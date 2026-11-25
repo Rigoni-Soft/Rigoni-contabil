@@ -9,7 +9,6 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { podeOperarParcelamento } from "@/shared/kernel/papeis";
 import { err, type Result } from "@/shared/kernel/result";
 
-// Confirmar à mão libera a guia ao envio. Quem confirmou e quando são gravados e auditados pelo banco.
 export class ConfirmarGuiaParcelaPgfn implements ConfirmarGuiaParcelaPgfnPort {
   constructor(
     private readonly sessao: SessaoPort,

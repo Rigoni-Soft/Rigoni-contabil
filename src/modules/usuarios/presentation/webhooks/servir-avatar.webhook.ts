@@ -5,9 +5,6 @@ const STATUS_POR_CODIGO: Record<string, number> = {
   FORBIDDEN: 401,
 };
 
-// `/api/avatar`: a foto do próprio usuário da sessão (ADR 0012). Não recebe id: não há como pedir a de
-// outro. `private` mantém a imagem fora de cache compartilhado (proxy/CDN); o `?v=` do avatar renova o
-// cache do navegador a cada troca ou remoção.
 export async function GET(): Promise<Response> {
   const obterAvatar = await makeObterAvatar();
   const resultado = await obterAvatar.execute();

@@ -30,7 +30,6 @@ describe("recortarQuadrado", () => {
     const blob = await recortarQuadrado(FOTO, 256);
 
     expect([canvas.width, canvas.height]).toEqual([256, 256]);
-    // largura 400 x altura 200: o corte é 200 e começa em x = 100
     expect(desenhar).toHaveBeenCalledWith(expect.anything(), 100, 0, 200, 200, 0, 0, 256, 256);
     expect(blob.type).toBe("image/webp");
     expect(fechar).toHaveBeenCalled();

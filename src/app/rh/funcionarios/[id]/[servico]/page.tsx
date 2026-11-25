@@ -14,8 +14,6 @@ type Props = {
   searchParams: Promise<{ mes?: string }>;
 };
 
-// As empresas de um Funcionário que ainda faltam num serviço no mês (a célula da tabela de faltas).
-// ponytail: o "Voltar" da tela do Cliente traz de volta a esta lista no mês atual, sem o ?mes= consultado.
 export default async function Page({ params, searchParams }: Props) {
   const [{ id, servico: servicoId }, { mes }] = await Promise.all([params, searchParams]);
   const sessao = await exigirSessao();
@@ -24,7 +22,7 @@ export default async function Page({ params, searchParams }: Props) {
   const dados = await carregarAcompanhamentoFuncionarios(mes, id);
   if (dados.ok && !dados.value.detalhe) notFound();
   const detalhe = dados.ok ? dados.value.detalhe : undefined;
-  const pendencia = detalhe?.pendencias.find((p) => p.servicoId === servicoId);
+  const pendencia = detalhe?.pendencias.find((pendencia) => pendencia.servicoId === servicoId);
   const titulo = dados.ok ? tituloDaListaDeFalta(dados.value, id, servicoId) : undefined;
   if (dados.ok && !titulo) notFound();
   const rotaDoFuncionario = `${ROTA_RH_FUNCIONARIOS}/${encodeURIComponent(id)}`;

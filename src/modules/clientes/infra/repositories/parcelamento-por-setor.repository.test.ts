@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase: Parcelamento por Setor. Cada Setor tem os seus Parcelamentos e só vê
- * os seus; o Admin vê todos; salvar mexe só no Setor informado. Requer `npx supabase start` com
- * migrations + seed aplicados.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";

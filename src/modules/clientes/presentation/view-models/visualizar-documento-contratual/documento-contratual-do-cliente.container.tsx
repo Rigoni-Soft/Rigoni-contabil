@@ -9,12 +9,10 @@ import { idPainelAnexar } from "../anexar-alteracao-contratual/anexar-alteracao-
 import { useDocumentosContratuais } from "./documentos-contratuais.queries";
 import { VisualizarDocumentoContratualContainer } from "./visualizar-documento-contratual.container";
 
-// Sem acesso (lista vazia): nada na tela. Falha ao consultar: aviso com saída, sem bloquear o form.
 type Props = {
   clienteId: string;
   documentosIniciais?: DocumentoContratualVisivelDto[];
   podeAnexar?: boolean;
-  // Nº da alteração do aviso por onde se chegou.
   alteracaoEmFoco?: number;
 };
 
@@ -29,8 +27,6 @@ export function DocumentoContratualDoClienteContainer({
     documentosIniciais,
     alteracaoEmFoco,
   );
-  // Reserva a altura do cartão enquanto carrega (ou confere se a alteração do aviso existe): ele não
-  // empurra o formulário ao chegar.
   if (isPending || confirmando) return <Caixa className="min-h-20" aria-hidden="true" />;
   if (isError) {
     return (
@@ -41,7 +37,6 @@ export function DocumentoContratualDoClienteContainer({
       />
     );
   }
-  // Sem nada a abrir, o Admin ainda precisa de como anexar a primeira alteração.
   if (data.length === 0) {
     return podeAnexar ? <BotaoAnexarAlteracao painelId={idPainelAnexar(clienteId)} /> : null;
   }

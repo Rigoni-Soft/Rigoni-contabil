@@ -3,7 +3,6 @@ import { rotuloDaCompetencia } from "@/modules/rh/presentation/view-models/acomp
 import { podeGerirServicosRh } from "@/shared/kernel/papeis";
 import { ROTA_RH_SERVICOS } from "@/shared/kernel/setores";
 
-// Mesmo desenho dos cards do resumo do SN (a View de resumo lê só este shape).
 type CardDoRh = {
   id: string;
   titulo: string;
@@ -12,7 +11,6 @@ type CardDoRh = {
   descricao?: string;
   mensagemVazia?: string;
   clientes: { clienteId: string; empresa: string; cnpj: string }[];
-  // O acompanhamento conta sobre os clientes que têm Responsável, não sobre a carteira inteira.
   total?: number;
 };
 
@@ -25,12 +23,9 @@ const doCliente = ({ clienteId, empresa, cnpj }: AcompanhamentoMensalDto["linhas
 const faltando = (l: AcompanhamentoMensalDto["linhas"][number]) =>
   l.celulas.filter((c) => c.aplica && !c.concluido).map((c) => c.servicoId);
 
-// Um card por serviço com os clientes que ainda faltam nele (aplica e não concluído), mais "Tudo
-// concluído": quem não tem serviço faltando. É o que antes era a tabela; marcar fica no painel do cliente.
 export function cardsDoAcompanhamento(dto: AcompanhamentoMensalDto) {
   const mes = rotuloDaCompetencia(dto.competencia);
   const total = dto.linhas.length;
-  // Total do setor, só para o card do Holerite.
   const totalDeCartoes = () => {
     const feitos = dto.linhas.reduce((n, l) => n + l.holerite.cartoes, 0);
     const exigidos = dto.linhas.reduce((n, l) => n + l.holerite.exigidos, 0);
@@ -45,7 +40,6 @@ export function cardsDoAcompanhamento(dto: AcompanhamentoMensalDto) {
       quantidade: clientes.length,
       descricao:
         `Clientes que ainda não concluíram ${s.nome} em ${mes}.` +
-        // O Holerite sai dos cartões: o total do setor mostra quanto falta.
         (s.sistema ? totalDeCartoes() : ""),
       mensagemVazia: `Nenhum cliente com ${s.nome} pendente em ${mes}.`,
       clientes,
@@ -66,7 +60,6 @@ export function cardsDoAcompanhamento(dto: AcompanhamentoMensalDto) {
   return { cards, grupo: { titulo: `Acompanhamento de ${mes}`, cardIds: cards.map((c) => c.id) } };
 }
 
-// O donut do acompanhamento: quantos clientes fecharam o mês e quantos ainda têm serviço faltando.
 export function fatiasDoAcompanhamento(dto: AcompanhamentoMensalDto) {
   const completos = dto.linhas.filter((l) => faltando(l).length === 0).length;
   return [
@@ -80,7 +73,6 @@ export function fatiasDoAcompanhamento(dto: AcompanhamentoMensalDto) {
   ];
 }
 
-// O menu de configuração do Setor RH: só o Líder mantém os serviços do acompanhamento.
 export const configuracoesDoRh = (papel: string, setor: string) =>
   podeGerirServicosRh(papel, setor)
     ? [{ rotulo: "Serviços do acompanhamento", href: ROTA_RH_SERVICOS }]

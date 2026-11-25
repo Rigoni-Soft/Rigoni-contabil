@@ -18,8 +18,6 @@ function falha(acao: string): Result<never, AppError> {
   return err(new ServicoExternoError(`Falha ao ${acao} a sessão de atendimento.`));
 }
 
-// Usa o client service_role (docs/adr/0001). O telefone nunca vai ao banco em claro: a chave é
-// um HMAC dele (número de telefone tem pouca entropia, então hash puro seria reversível).
 export class SupabaseSessaoAtendimentoGateway implements SessaoAtendimentoPort {
   constructor(
     private readonly supabaseAdmin: SupabaseClient,
@@ -40,11 +38,7 @@ export class SupabaseSessaoAtendimentoGateway implements SessaoAtendimentoPort {
   }
 
   async salvar(telefone: string, sessao: SessaoAtendimento): Promise<Result<void, AppError>> {
-    // Varre as expiradas de todos os números: sem job agendado, é a única limpeza.
-    const varredura = await this.supabaseAdmin
-      .from("atendimento_sessoes")
-      .delete()
-      .lt("atualizado_em", this.limite());
+    const varredura = await this.varrerSessoesExpiradas();
     if (varredura.error) return falha("gravar");
 
     const { error } = await this.supabaseAdmin.from("atendimento_sessoes").upsert({
@@ -65,6 +59,13 @@ export class SupabaseSessaoAtendimentoGateway implements SessaoAtendimentoPort {
       .delete()
       .eq("chave", this.chave(telefone));
     return error ? falha("encerrar") : ok(undefined);
+  }
+
+  private varrerSessoesExpiradas() {
+    return this.supabaseAdmin
+      .from("atendimento_sessoes")
+      .delete()
+      .lt("atualizado_em", this.limite());
   }
 
   private chave(telefone: string): string {

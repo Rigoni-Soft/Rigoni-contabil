@@ -6,27 +6,21 @@ import { cn } from "@/presentation/lib/utils";
 type MensagemBalaoProps = {
   lado: "contato" | "ura" | "atendente";
   autor: string;
-  // Só no balão do cliente: a empresa a que o Atendimento pertence.
   detalhe: string | null;
   texto: string;
   hora: string;
-  // Reação do escritório à Mensagem do cliente (emoji) e a ação de reagir (slot do organismo).
   reacao?: string | null;
   acao?: React.ReactNode;
-  // Envio ao cliente não confirmado (a Mensagem está na conversa, mas pode não ter chegado).
   aviso?: string | null;
-  // Imagem ou arquivo enviado junto; `texto` passa a ser a legenda (pode vir vazia).
   anexo?: React.ComponentProps<typeof AnexoDaMensagem> | null;
 };
 
-// Cliente à esquerda, em balão claro; URA e Funcionário, que falam em nome do escritório, à direita.
 const LADO = {
   contato: "self-start rounded-2xl rounded-tl-sm border border-border bg-card text-card-foreground",
   atendente: "self-end rounded-2xl rounded-tr-sm bg-primary text-primary-foreground",
   ura: "self-end rounded-2xl rounded-tr-sm border border-border bg-accent text-accent-foreground",
 } as const;
 
-// Uma Mensagem da conversa: balão + autor, detalhe, texto, reação e hora.
 export function MensagemBalao({
   lado,
   autor,
@@ -43,7 +37,6 @@ export function MensagemBalao({
       como="li"
       className={cn(
         "relative px-3 py-1.5 sm:max-w-[75%]",
-        // A ação fica fora do balão (left-full): reserva a largura dela para não gerar rolagem horizontal.
         acao ? "max-w-[calc(85%-2rem)]" : "max-w-[85%]",
         LADO[lado],
       )}

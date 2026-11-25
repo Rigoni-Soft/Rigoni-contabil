@@ -1,8 +1,3 @@
-/**
- * Integração direto pela Data API (PostgREST), sem passar por nenhum repositório
- * — prova o que o banco entrega a quem ignora a aplicação.
- * Requer `npx supabase start` com migrations + seed.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { Cliente } from "@/modules/clientes/domain/entities/cliente.entity";
@@ -55,8 +50,6 @@ async function criarClienteComContrato(cnpj: string): Promise<Cliente> {
   return construido.value;
 }
 
-// Conta com senha provisória AINDA válida (dentro das 48h) e primeiro acesso
-// não finalizado — o caso que meu_papel()/meu_setor() sozinhos deixavam passar.
 async function criarContaEmPrimeiroAcesso(): Promise<{ id: string; email: string; senha: string }> {
   const admin = serviceRole();
   const email = `teste-primeiro-acesso-${crypto.randomUUID()}@rigonicontabil.local`;
@@ -80,9 +73,6 @@ async function criarContaEmPrimeiroAcesso(): Promise<{ id: string; email: string
   return { id: data.user.id, email, senha };
 }
 
-// Funcionário SN só vê/edita Cliente do qual é Responsável. service_role
-// atribui direto (sem auth.uid() o gatilho confia no servidor).
-// Responsável do Cliente no Financeiro (fora do SN): é o que faz o Funcionário de lá enxergá-lo.
 async function tornarResponsavelNoFinanceiro(clienteId: string): Promise<void> {
   const { error } = await serviceRole().from("cliente_responsaveis").insert({
     cliente_id: clienteId,
@@ -116,7 +106,6 @@ const paramsEdicao = (clienteId: string) => ({
   p_servico: false,
 });
 
-// CNPJs fixos desta suíte, reservados para teste: removidos antes e depois (nunca um DELETE amplo).
 const CNPJS_DA_SUITE = [
   "11444777001486",
   "11444777001567",
@@ -143,7 +132,6 @@ describe("Data API — confidencialidade dos documentos jurídicos", () => {
     const cliente = await criarClienteComContrato("45723174000110");
     await tornarResponsavel(cliente.id, FUNCIONARIO_SN_ID);
 
-    // Funcionário de outro Setor só vê a projeção do Cliente se for Responsável dele naquele Setor.
     const semAtribuicao = await (
       await comoFuncionarioFinanceiro()
     )
@@ -223,7 +211,6 @@ describe("Data API — primeiro acesso não finalizado", () => {
     );
     expect(edicao.error?.message).toMatch(/row-level security/i);
 
-    // o próprio perfil segue legível pro fluxo de troca de senha
     const proprio = await supabase.from("perfis").select("id").eq("id", conta.id);
     expect(proprio.data).toHaveLength(1);
 
@@ -356,21 +343,17 @@ describe("Data API — revalidação (view, auditoria e gatilhos)", () => {
       "func123",
     );
 
-    // Sem atribuição, nenhum Funcionário de Setor com Responsável enxerga o Cliente.
     expect(await ver(await comoFuncionarioFinanceiro())).toEqual([]);
     expect(await ver(await comoFuncionarioSN())).toEqual([]);
-    // Líder de qualquer Setor, Admin e Funcionário da Recepção (que responde por todo cliente) veem.
     const visto = [{ id: cliente.id }];
     expect(await ver(comoLiderContabil)).toEqual(visto);
     expect(await ver(await comoAdmin())).toEqual(visto);
     expect(await ver(comoRecepcao)).toEqual(visto);
 
-    // Responsável no Financeiro passa a ver; o do SN continua sem ver (é Responsável só no Financeiro).
     await tornarResponsavelNoFinanceiro(cliente.id);
     expect(await ver(await comoFuncionarioFinanceiro())).toEqual(visto);
     expect(await ver(await comoFuncionarioSN())).toEqual([]);
 
-    // A atribuição só é lida por quem a recebeu, pelo Líder do Setor e pelo Admin.
     const atribuicoes = async (supabase: SupabaseClient) =>
       (
         await supabase
@@ -496,7 +479,6 @@ describe("Data API — revalidação (view, auditoria e gatilhos)", () => {
     const mes = async (agora: string) =>
       (await serviceRole().rpc("mes_corrente_sp", { p_agora: agora })).data;
 
-    // 02:00 UTC de 01/10 ainda é 23:00 de 30/09 em São Paulo.
     expect(await mes("2026-10-01T02:00:00Z")).toBe("2026-09-01");
     expect(await mes("2026-10-01T03:00:00Z")).toBe("2026-10-01");
   });
@@ -524,7 +506,6 @@ describe("Data API — revalidação (view, auditoria e gatilhos)", () => {
       const id = construido.value.id;
       if (aplica) await tornarResponsavel(id, FUNCIONARIO_SN_ID);
 
-      // criação automática só para MEI/Simples Nacional
       const automatico = await serviceRole()
         .from("cliente_cadastro_operacional_sn")
         .select("cliente_id")
@@ -532,8 +513,6 @@ describe("Data API — revalidação (view, auditoria e gatilhos)", () => {
       expect(automatico.data).toHaveLength(aplica ? 1 : 0);
 
       const funcionario = await comoFuncionarioSN();
-      // O telefone muda a cada contato (o número é único no Cliente); o dono é o Setor de quem insere
-      // (o Admin não tem Setor dono).
       const contatoDireto = (contatoId: string, donoSetor: string | null = "simples_nacional") => ({
         id: contatoId,
         cliente_id: id,
@@ -548,7 +527,6 @@ describe("Data API — revalidação (view, auditoria e gatilhos)", () => {
         (await serviceRole().from("cliente_contatos").select("id").eq("cliente_id", id)).data ?? [];
 
       if (aplica) {
-        // Contato direto (INSERT/DELETE) continua permitido a Admin e Funcionário SN, com auditoria.
         for (const [supabase, dono] of [
           [admin, null],
           [funcionario, "simples_nacional"],
@@ -572,8 +550,6 @@ describe("Data API — revalidação (view, auditoria e gatilhos)", () => {
       const rpc = await funcionario.rpc("editar_cadastro_operacional_cliente", paramsEdicao(id));
       expect(rpc.error?.message).toMatch(/não se aplica/);
 
-      // O Contato vale para qualquer Regime, mas quem não é Responsável do Cliente no Setor não grava:
-      // o Funcionário SN (sem ser Responsável) não insere nem remove.
       const insercao = await funcionario
         .from("cliente_contatos")
         .insert(contatoDireto(crypto.randomUUID()));
@@ -581,7 +557,6 @@ describe("Data API — revalidação (view, auditoria e gatilhos)", () => {
       await funcionario.from("cliente_contatos").delete().eq("id", existente);
       expect((await contatosDoCliente()).map((c) => c.id)).toEqual([existente]);
 
-      // DML direto de Admin e de Funcionário SN também não cria o cadastro
       for (const supabase of [admin, funcionario]) {
         const direto = await supabase
           .from("cliente_cadastro_operacional_sn")

@@ -2,7 +2,8 @@
 - O CI roda `yarn format:check`. Antes da PR, formate os arquivos do diff (`git diff <base>...HEAD --name-only | xargs npx prettier --write`) num commit `style:` à parte; `prettier --write` num arquivo que o diff não tocou reflowa linhas alheias.
 
 # E2E
-- O Playwright reaproveita o dev server em `localhost:8800`. Com `PORT=8800` no `.env.local` o `yarn dev` aberto serve o e2e; em outra porta o Playwright tenta subir um segundo `next dev` no mesmo diretório e falha.
+- O Playwright reaproveita o dev server em `localhost:8800`. Suba com `PORT=8800 yarn dev` (o `PORT` do `.env.local` o `next dev` ignora e sobe na 3000); em outra porta o Playwright tenta subir um segundo `next dev` no mesmo diretório e falha.
+- O e2e do diff: `yarn check:e2e-local` (confere servidor e Storage em segundos, roda `test:e2e:diff`, ~12 min). Verde (saída 0) só com o Playwright saindo em 0, sem erro global e sem teste vermelho; interrupção, falta de relatório ou vermelho dá saída 1. Com a sonda do Storage em `42P10`, o vermelho cuja pilha passa por `criar-cliente.ts` (sobe o contrato social) conta como Storage, e se só há desses o script sai com 2 (cobertura parcial: não anuncie o diff como verde). Com a rodada manual, `--reporter=list` num arquivo mostra o progresso; `| tail` deixa a saída vazia até o fim.
 - Os e2e de leitura (foto do cartão, atestado, convenção) esperam os leitores falsos: o `.env.local` do dev server reaproveitado leva `LEITURA_CARTAO_MODO=falso` e `EXTRACAO_CONVENCAO_MODO=falso`. Com `visao`, o leitor real recusa a foto falsa e o teste falha.
 
 # Edição de arquivos

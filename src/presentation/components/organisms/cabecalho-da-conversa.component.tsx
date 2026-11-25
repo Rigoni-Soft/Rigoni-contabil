@@ -8,7 +8,6 @@ type CabecalhoDaConversaProps = {
   subtitulo: string;
   encerrado: boolean;
   contexto?: { origem: string; resumo: string } | null;
-  // Resumo longo vem recolhido em 3 linhas, com botão para ler inteiro.
   resumoLongo?: boolean;
   resumoAberto?: boolean;
   onAlternarResumo?: () => void;

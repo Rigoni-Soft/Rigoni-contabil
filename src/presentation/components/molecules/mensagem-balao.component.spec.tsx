@@ -93,7 +93,6 @@ describe("MensagemBalao — reação (#84)", () => {
     const baixar = screen.getByRole("link", { name: "Baixar balanco.pdf" });
     expect(baixar).toHaveAttribute("href", "https://l/1");
     expect(baixar).toHaveAttribute("download", "balanco.pdf");
-    // PDF abre numa aba, sem forçar o download.
     const ver = screen.getByRole("link", { name: "Visualizar balanco.pdf" });
     expect(ver).toHaveAttribute("href", "https://l/1?ver");
     expect(ver).toHaveAttribute("target", "_blank");
@@ -150,7 +149,6 @@ describe("MensagemBalao — reação (#84)", () => {
       "download",
       "contrato.docx",
     );
-    // O link de PDF/TXT não vale para Word: a visualização é o botão do Container.
     expect(screen.queryByRole("link", { name: /Visualizar/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Visualizar contrato.docx" })).toBeInTheDocument();
   });
@@ -175,14 +173,13 @@ describe("MensagemBalao — reação (#84)", () => {
     );
 
     expect(screen.getByRole("button", { name: "Ampliar foto.png" })).toBeInTheDocument();
-    expect(container.querySelectorAll('img[src="https://l/2"]')).toHaveLength(1); // miniatura = original
+    expect(container.querySelectorAll('img[src="https://l/2"]')).toHaveLength(1);
     expect(container.querySelectorAll('img[src="https://l/2?ver"]')).toHaveLength(1);
-    // A ampliada oferece baixar o original.
     expect(screen.getByRole("link", { name: "Baixar foto.png", hidden: true })).toHaveAttribute(
       "href",
       "https://l/2",
     );
-    expect(container.querySelectorAll("p")).toHaveLength(2); // autor e hora, nenhum de texto
+    expect(container.querySelectorAll("p")).toHaveLength(2);
   });
 
   it("a imagem ampliada é um diálogo nomeado com botão de fechar", () => {
@@ -212,7 +209,6 @@ describe("MensagemBalao — reação (#84)", () => {
       "popovertargetaction",
       "hide",
     );
-    // O balão mostra a miniatura; o painel, o original.
     expect(
       screen.getByRole("button", { name: "Ampliar foto.png" }).querySelector("img"),
     ).toHaveAttribute("src", "https://l/mini");

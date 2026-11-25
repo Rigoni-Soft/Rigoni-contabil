@@ -1,9 +1,7 @@
 import { expect, test } from "./fixtures";
-import { adminLocal } from "./support/admin-local";
+import { adminLocal, limparEsperaSemDonoDoSetor } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
 
-// Setor Simples Nacional do seed: funcionario.sn (dono), funcionario2.sn (destinatário da espera
-// dirigida) e lider.sn (supervisão). Os Atendimentos nascem pela RPC da URA e são ajustados no banco.
 const admin = adminLocal();
 
 const FUNCIONARIO_SN = "22222222-2222-2222-2222-222222222222";
@@ -44,12 +42,7 @@ const clientes: string[] = [];
 test.describe("Supervisão de Líder/Admin e espera dirigida (#165)", () => {
   test.beforeAll(async () => {
     await admin.from("atendimentos").delete().in("chave_telefone", TELEFONES);
-    // A espera é do Setor inteiro: sobras de outras execuções mudariam o que a tela mostra.
-    await admin
-      .from("atendimentos")
-      .delete()
-      .eq("setor", "simples_nacional")
-      .is("funcionario_id", null);
+    await limparEsperaSemDonoDoSetor(admin, "simples_nacional");
 
     clientes.push(await abrir(TEL_DO_DONO, "Dona Do Dono", "Pergunta do cliente do dono"));
     clientes.push(await abrir(TEL_DIRIGIDO, "Dona Dirigida", "Pergunta da espera dirigida"));
@@ -84,14 +77,12 @@ test.describe("Supervisão de Líder/Admin e espera dirigida (#165)", () => {
     await expect(lider).toHaveURL("/simples-nacional");
     await lider.goto("/atendimento");
 
-    // Espera dirigida a outro: o card abre a leitura, não assume.
     await lider.getByRole("button", { name: /Ler o atendimento de Dona Dirigida/ }).click();
     await expect(
       lider.getByRole("list", { name: "Mensagens" }).getByText("Pergunta da espera dirigida"),
     ).toBeVisible();
     await expect(lider.getByRole("textbox", { name: "Mensagem ao cliente" })).toHaveCount(0);
 
-    // Atendimento de outro: na seção da equipe, também só leitura, e o painel mantém o Encerrar.
     await lider.getByRole("tab", { name: /Em atendimento/ }).click();
     const equipe = lider.getByRole("list", { name: "Da equipe (somente leitura)" });
     await equipe.getByRole("button", { name: /Dona Do Dono/ }).click();
@@ -103,7 +94,6 @@ test.describe("Supervisão de Líder/Admin e espera dirigida (#165)", () => {
     await expect(painel.getByLabel("Setor de destino")).toHaveCount(0);
     await expect(painel.getByRole("button", { name: "Encerrar atendimento" })).toBeVisible();
 
-    // Quem não é o destinatário nem supervisiona não sabe do Atendimento: a espera dele fica vazia.
     const dono = await (await browser.newContext()).newPage();
     await login(dono, "funcionario.sn@rigonicontabil.local", "func123");
     await expect(dono).toHaveURL("/simples-nacional");
@@ -111,7 +101,6 @@ test.describe("Supervisão de Líder/Admin e espera dirigida (#165)", () => {
     await expect(dono.getByText("Nenhum cliente em espera.")).toBeVisible();
     await expect(dono.getByText(/Dona Dirigida/)).toHaveCount(0);
 
-    // O destinatário assume e a conversa abre com o campo de resposta.
     const destinatario = await (await browser.newContext()).newPage();
     await login(destinatario, "funcionario2.sn@rigonicontabil.local", "func123");
     await expect(destinatario).toHaveURL("/simples-nacional");

@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) da espera do Setor: ninguém é atribuído
- * automaticamente ao abrir, transferir ou encerrar.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import { abrirComDono } from "../../../../../test-support/atendimento-com-dono";
@@ -16,7 +11,6 @@ const SERVICE_KEY =
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 const repositorio = new SupabaseAtendimentoRepository(admin);
 
-// Setor só desta suíte: a espera é do Setor inteiro, então nenhuma outra suíte pode usá-lo.
 const SETOR = "societario" as const;
 const ATOR = (id: string) => ({ id, setor: SETOR });
 const TELEFONES = [
@@ -76,7 +70,6 @@ function abrirComDonoNoSetor(telefone: string, funcionarioId: string) {
 }
 
 async function pausa() {
-  // `fila_desde` usa o relógio da transação: a ordem só é distinguível entre transações separadas.
   await new Promise((resolve) => setTimeout(resolve, 15));
 }
 
@@ -152,7 +145,6 @@ describe("SupabaseAtendimentoRepository — espera do Setor", () => {
     expect(auditoria.data).toEqual([
       { acao: "atendimento.encerrar", resultado: "sucesso", ator: dono },
     ]);
-    // Já encerrado: o dono informado não bate mais com nada em andamento.
     expect(await repositorio.encerrar(emAtendimento, dono, ATOR(dono))).toEqual({
       ok: true,
       value: { status: "inexistente" },

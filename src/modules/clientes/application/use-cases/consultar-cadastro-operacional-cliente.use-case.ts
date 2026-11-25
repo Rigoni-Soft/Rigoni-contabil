@@ -8,9 +8,6 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { usaCadastroDoRh } from "@/shared/kernel/papeis";
 import { err, type Result } from "@/shared/kernel/result";
 
-// Qualquer usuário autenticado visualiza o cadastro (outros Setores conseguem visualizar), menos o
-// Setor com cadastro próprio (RH): esse usa ConsultarCadastroRhCliente. A sessão e o perfil
-// são validados aqui (arquitetura.md §3.12); a RLS fica como segunda camada, não como única.
 export class ConsultarCadastroOperacionalCliente {
   constructor(
     private readonly sessao: SessaoPort,

@@ -20,7 +20,6 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { podeVerAcompanhamentoDosFuncionariosRh } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Meses da evolução, contando o consultado.
 const MESES_DA_EVOLUCAO = 6;
 
 type Mes = {
@@ -29,7 +28,6 @@ type Mes = {
   clientes: ClienteAcompanhamentoDto[];
 };
 
-// Serviços que ainda faltam no cliente: os que se aplicam e não estão concluídos (o Holerite entra).
 function faltantes(cliente: ClienteAcompanhamentoDto, servicos: ServicoAcompanhamentoDto[]) {
   const naoAplica = new Set(cliente.naoAplica);
   const concluidos = new Set(cliente.concluidos);
@@ -39,7 +37,6 @@ function faltantes(cliente: ClienteAcompanhamentoDto, servicos: ServicoAcompanha
 const pendentesDe = (cliente: ClienteAcompanhamentoDto, servicos: ServicoAcompanhamentoDto[]) =>
   new Set(faltantes(cliente, servicos).map((s) => s.id));
 
-// Pontos: clientes sem nenhum serviço faltando.
 const pontosDe = (clientes: ClienteAcompanhamentoDto[], servicos: ServicoAcompanhamentoDto[]) =>
   clientes.filter((c) => pendentesDe(c, servicos).size === 0).length;
 
@@ -62,8 +59,6 @@ function resumir(
   };
 }
 
-// O gráfico do RH: pontos x clientes atribuídos por Funcionário e, para um Funcionário, o
-// detalhe do mês. Só Líder e Admin; a RLS já deixa o Funcionário ver só os seus.
 export class ObterAcompanhamentoFuncionarios implements ObterAcompanhamentoFuncionariosPort {
   constructor(
     private readonly sessao: SessaoPort,
@@ -88,8 +83,6 @@ export class ObterAcompanhamentoFuncionarios implements ObterAcompanhamentoFunci
       return err(new ValidationError("Não há acompanhamento de um mês que ainda não começou."));
     }
 
-    // ponytail: 2 leituras por mês da janela, só para a evolução do detalhe; a lista lê só o mês atual.
-    // Materializar por mês se pesar.
     const janelaDeMeses = input.funcionarioId
       ? competencia.value.ultimosMeses(MESES_DA_EVOLUCAO)
       : [competencia.value.valor];
@@ -177,7 +170,6 @@ function detalharFuncionario(
     };
   });
 
-  // Meses seguidos de pendência, contados para trás a partir do mês consultado.
   const pendentesPorMes = [...janela].reverse().map(
     (mes) =>
       new Set(

@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) da sessão da URA.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { SupabaseSessaoAtendimentoGateway } from "./supabase-sessao-atendimento.gateway";

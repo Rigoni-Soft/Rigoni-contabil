@@ -1,7 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3) da leitura do CNPJ do Cliente.
- * Requer `npx supabase start` local com migrations + seed aplicados.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { NotFoundError } from "@/shared/errors/not-found.error";

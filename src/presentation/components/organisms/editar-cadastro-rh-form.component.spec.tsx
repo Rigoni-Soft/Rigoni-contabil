@@ -5,7 +5,6 @@ import { LINHAS_DE_CONTATO_DE_TESTE } from "../../../../test-support/linhas-de-c
 import type { EditarCadastroOperacionalFormValues } from "./editar-cadastro-operacional-form.component";
 import { EditarCadastroRhForm } from "./editar-cadastro-rh-form.component";
 
-// Props dos Parcelamentos do RH, sem nenhum cadastrado.
 const SEM_PARCELAMENTOS = {
   parcelamentos: [],
   parcelamentoCampos: [],

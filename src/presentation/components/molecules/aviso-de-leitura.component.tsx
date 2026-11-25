@@ -3,7 +3,6 @@ import { Eye } from "lucide-react";
 import { Linha } from "@/presentation/components/atoms/caixa.component";
 import { Texto } from "@/presentation/components/atoms/texto.component";
 
-// No lugar do campo de resposta: Líder e Admin leem a conversa de outro, quem responde é o dono.
 export function AvisoDeLeitura() {
   return (
     <Linha

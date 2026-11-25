@@ -14,7 +14,6 @@ type PainelDeEncerramentoProps = {
   aviso?: { tipo: "erro" | "sucesso"; texto: string };
 };
 
-// Encerrar não tem volta: o primeiro clique só pede a confirmação.
 export function PainelDeEncerramento({
   confirmando,
   encerrando,
@@ -51,9 +50,7 @@ export function PainelDeEncerramento({
               type="button"
               size="sm"
               variant="outline"
-              // O botão que pediu a confirmação sumiu: leva o foco do teclado para a saída segura.
               autoFocus
-              // aria-disabled (não disabled) para o foco não se perder enquanto encerra.
               aria-disabled={encerrando}
               className={`${BOTAO_OCUPADO} pointer-coarse:h-11`}
               onClick={() => !encerrando && onCancelar()}

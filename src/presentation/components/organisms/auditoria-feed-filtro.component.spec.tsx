@@ -51,7 +51,6 @@ describe("AuditoriaFeedFiltro", () => {
     expect(screen.getByText("Informe as duas datas do período (De e Até).")).toBeInTheDocument();
   });
 
-  // Erro de UUID inválido no ator precisa aparecer no campo, mesmo padrão do aviso de período.
   it("mostra o aviso de ator inválido no campo correspondente", () => {
     render(
       <AuditoriaFeedFiltro

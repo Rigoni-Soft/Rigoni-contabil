@@ -5,8 +5,6 @@ import type { AppError } from "@/shared/errors/app.error";
 import { PersistenciaError } from "@/shared/errors/persistencia.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Os repositórios do RH leem do banco do mesmo jeito: a falha vai para o registro de erros e o chamador
-// recebe só a mensagem amigável do repositório.
 export type FalhaDeLeitura = { registro: string; mensagem: string; erros: RegistroDeErrosPort };
 
 export function falhaDeLeitura(
@@ -17,7 +15,6 @@ export function falhaDeLeitura(
   return err(new PersistenciaError(mensagem));
 }
 
-// A linha que o banco devolveu fora do formato esperado também é falha de leitura.
 export function lerLinhas<S extends z.ZodType>(
   falha: FalhaDeLeitura,
   schema: S,

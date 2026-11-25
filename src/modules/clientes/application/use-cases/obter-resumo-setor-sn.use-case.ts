@@ -12,10 +12,6 @@ import { ForbiddenError } from "@/shared/errors/forbidden.error";
 import { podeAtribuirResponsavel, podeVerDashboardDoSetor } from "@/shared/kernel/papeis";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// O resumo é do Setor Simples Nacional: Admin entra para suporte, Líder e Funcionário só do
-// Simples Nacional (`podeVerDashboardDoSetor`). A sessão e o acesso são validados antes de consultar
-// (arquitetura.md §3.12), com a RLS de SELECT como segunda camada; as páginas também redirecionam,
-// mas deixaram de ser a única barreira. O 4º comparativo é só do Líder do Simples Nacional.
 export class ObterResumoSetorSn {
   constructor(
     private readonly sessao: SessaoPort,
@@ -33,7 +29,6 @@ export class ObterResumoSetorSn {
     const linhas = await this.query.listarResumoOperacional();
     if (!linhas.ok) return linhas;
 
-    // Um só instante para cards e comparativos: o "pendente em atraso" depende do dia (São Paulo).
     const agora = this.relogio.agora();
     const { responsaveis, ...comparativos } = calcularComparativosSn(linhas.value, agora);
 

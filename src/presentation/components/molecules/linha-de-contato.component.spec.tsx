@@ -184,7 +184,6 @@ describe("LinhaDeContato", () => {
     );
 
     expect(screen.getByText("Deixar de usar este contato?")).toBeInTheDocument();
-    // O foco abre no botão destrutivo: a pergunta o descreve para o leitor de tela.
     expect(screen.getByRole("button", { name: "Deixar de usar" })).toHaveAccessibleDescription(
       "Deixar de usar este contato?",
     );

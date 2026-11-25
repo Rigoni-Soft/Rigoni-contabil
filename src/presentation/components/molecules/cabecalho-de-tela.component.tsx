@@ -6,14 +6,11 @@ import { cn } from "@/presentation/lib/utils";
 type CabecalhoDeTelaProps = {
   titulo?: string;
   descricao?: string;
-  // Sem `voltarHref` nem `voltar` não há link de volta (telas de entrada da navegação).
   voltarHref?: string;
   voltarRotulo?: string;
-  // Slot do "Voltar" que precisa de cliente (ex.: voltar ao histórico); vale sem `voltarHref`.
   voltar?: React.ReactNode;
 };
 
-// Topo de uma tela de trabalho: "Voltar", título e, opcionalmente, uma descrição.
 export function CabecalhoDeTela({
   titulo,
   descricao,

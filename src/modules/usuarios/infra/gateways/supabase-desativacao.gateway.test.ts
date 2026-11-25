@@ -1,8 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3): requer `npx supabase start`
- * rodando localmente. Usa service_role (docs/adr/0001) — nunca o client
- * autenticado do usuário.
- */
 import { createClient } from "@supabase/supabase-js";
 
 import type { UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";

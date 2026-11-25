@@ -96,8 +96,6 @@ import { SupabaseUsuarioRepository } from "@/modules/usuarios/infra/repositories
 const errosRh = new ConsoleRh();
 const errosUsuarios = new ConsoleUsuarios();
 
-// Adapta a sessão do módulo usuarios à porta própria de rh (arquitetura.md, seção 3.11); monta o
-// ObterSessao direto para não criar import circular entre as factories.
 function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   const obterSessao = new ObterSessao(
     new SupabaseSessaoGateway(supabase),
@@ -112,7 +110,7 @@ function sessaoViaUsuarios(supabase: SupabaseClient): SessaoPort {
   };
 }
 
-async function montar() {
+async function montarAcompanhamento() {
   const supabase = await createSupabaseServer();
   return {
     sessao: sessaoViaUsuarios(supabase),
@@ -122,17 +120,17 @@ async function montar() {
 }
 
 export async function makeObterAcompanhamentoMensal(): Promise<ObterAcompanhamentoMensalPort> {
-  const { sessao, repositorio } = await montar();
+  const { sessao, repositorio } = await montarAcompanhamento();
   return new ObterAcompanhamentoMensal(sessao, repositorio, new RelogioSistemaGateway());
 }
 
 export async function makeObterAcompanhamentoFuncionarios(): Promise<ObterAcompanhamentoFuncionariosPort> {
-  const { sessao, repositorio } = await montar();
+  const { sessao, repositorio } = await montarAcompanhamento();
   return new ObterAcompanhamentoFuncionarios(sessao, repositorio, new RelogioSistemaGateway());
 }
 
 export async function makeMarcarServicoAcompanhamento(): Promise<MarcarServicoAcompanhamentoPort> {
-  const { sessao, repositorio, auditoria } = await montar();
+  const { sessao, repositorio, auditoria } = await montarAcompanhamento();
   return new MarcarServicoAcompanhamento(
     sessao,
     repositorio,
@@ -142,22 +140,22 @@ export async function makeMarcarServicoAcompanhamento(): Promise<MarcarServicoAc
 }
 
 export async function makeDefinirServicoAplicavel(): Promise<DefinirServicoAplicavelPort> {
-  const { sessao, repositorio, auditoria } = await montar();
+  const { sessao, repositorio, auditoria } = await montarAcompanhamento();
   return new DefinirServicoAplicavel(sessao, repositorio, auditoria, new RelogioSistemaGateway());
 }
 
 export async function makeCriarServicoAcompanhamento(): Promise<CriarServicoAcompanhamentoPort> {
-  const { sessao, repositorio, auditoria } = await montar();
+  const { sessao, repositorio, auditoria } = await montarAcompanhamento();
   return new CriarServicoAcompanhamento(sessao, repositorio, auditoria);
 }
 
 export async function makeRenomearServicoAcompanhamento(): Promise<RenomearServicoAcompanhamentoPort> {
-  const { sessao, repositorio, auditoria } = await montar();
+  const { sessao, repositorio, auditoria } = await montarAcompanhamento();
   return new RenomearServicoAcompanhamento(sessao, repositorio, auditoria);
 }
 
 export async function makeDesativarServicoAcompanhamento(): Promise<DesativarServicoAcompanhamentoPort> {
-  const { sessao, repositorio, auditoria } = await montar();
+  const { sessao, repositorio, auditoria } = await montarAcompanhamento();
   return new DesativarServicoAcompanhamento(sessao, repositorio, auditoria);
 }
 
@@ -184,7 +182,6 @@ export async function makeBaixarPdfDoCartao(): Promise<BaixarPdfDoCartaoPort> {
   const supabase = await createSupabaseServer();
   const sessao = sessaoViaUsuarios(supabase);
   const repositorio = new SupabaseFolhaDePontoRepository(supabase, errosRh);
-  // Um cliente Supabase só: a leitura da Folha e o restante do caso de uso dividem sessão e repositório.
   const folha = new ObterFolhaDePonto(
     sessao,
     repositorio,
@@ -241,7 +238,6 @@ function leitorDoCartao(): LeitorDeCartaoPort & LeitorDeAtestadoPort {
     case "falso":
       return new LeitorDeCartaoFalsoGateway();
     case "visao":
-      // O env já exige a chave neste modo.
       return new LeitorDeCartaoVisaoGateway(
         ANTHROPIC_API_KEY ?? "",
         LEITURA_CARTAO_MODELO,
@@ -252,7 +248,6 @@ function leitorDoCartao(): LeitorDeCartaoPort & LeitorDeAtestadoPort {
   }
 }
 
-// O cartão e o atestado leem pelo mesmo leitor e recebem as mesmas peças.
 async function montarLeitura() {
   const { sessao, repositorio, auditoria } = await montarFolha();
   return [
@@ -282,7 +277,12 @@ export async function makeObterConvencoesDoCliente(): Promise<ObterConvencoesDoC
   );
 }
 
-// O PDF e a convenção vão com a sessão do usuário: a policy do bucket e a RLS repetem a regra do caso de uso.
+function extratorDeRegrasDaConvencao() {
+  return EXTRACAO_CONVENCAO_MODO === "falso"
+    ? new ExtratorDeRegrasFalsoGateway()
+    : new ExtratorDeRegrasIndisponivelGateway();
+}
+
 export async function makeEnviarConvencao(): Promise<EnviarConvencaoPort> {
   const supabase = await createSupabaseServer();
   return new EnviarConvencao(
@@ -290,9 +290,7 @@ export async function makeEnviarConvencao(): Promise<EnviarConvencaoPort> {
     new SupabaseFolhaDePontoRepository(supabase, errosRh),
     new SupabaseConvencaoRepository(supabase, errosRh),
     new SupabaseArmazenamentoDeConvencaoGateway(supabase),
-    EXTRACAO_CONVENCAO_MODO === "falso"
-      ? new ExtratorDeRegrasFalsoGateway()
-      : new ExtratorDeRegrasIndisponivelGateway(),
+    extratorDeRegrasDaConvencao(),
     auditoriaBestEffort(errosRh),
     errosRh,
   );

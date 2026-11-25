@@ -29,7 +29,6 @@ import {
 
 type Props = { folha: FolhaDePontoDto };
 
-// O quadro do Cliente: cadastrar, corrigir, inativar, "sem movimento no mês" e o padrão de comissionados.
 export function QuadroDeFuncionariosContainer({ folha }: Props) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -39,12 +38,10 @@ export function QuadroDeFuncionariosContainer({ folha }: Props) {
   const [resultado, setResultado] = useState<string>();
   const escolhido = folha.selecionado?.empregado;
 
-  // Depois de desligar ou readmitir o Editar some com o botão clicado: o foco vai ao aviso do resultado.
   useEffect(() => {
     if (resultado) document.getElementById(ID_DO_RESULTADO)?.focus();
   }, [resultado]);
 
-  // Toda escrita compartilha o ciclo: erro do servidor, recarga da tela e falha de transporte.
   const executar = (
     acao: () => Promise<ActionResult<void>>,
     {
@@ -60,9 +57,7 @@ export function QuadroDeFuncionariosContainer({ folha }: Props) {
       try {
         const resposta = await acao();
         if (!resposta.ok) return falhar(resposta.error.message);
-        // Só o sucesso limpa o formulário do novo empregado: a recusa preserva o que foi digitado.
         if (cadastro) setChaveDoNovo((c) => c + 1);
-        // Desligar e readmitir já gravam: o Editar fecha e a tela volta ao formulário "Novo empregado".
         if (fecharEdicao) {
           setResultado(fecharEdicao.resultado);
           return router.push(hrefDaFolha(folha.clienteId, { mes: folha.competencia }));

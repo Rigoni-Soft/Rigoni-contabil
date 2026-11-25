@@ -33,7 +33,6 @@ const IGUAL = "igual à legislação";
 
 const numero = (n: number) => String(n).replace(".", ",");
 
-// 480 vira "8h", 440 "7h20", 30 "30 min".
 export function duracao(minutos: number): string {
   const horas = Math.floor(minutos / 60);
   const resto = minutos % 60;
@@ -92,8 +91,6 @@ function descreverRegra(regra: RegraAplicada): { valor: string; diferenca: strin
   };
 }
 
-// Uma linha por parâmetro do esquema fechado, na ordem fixa: o que a convenção aplicou (com a cláusula) e o
-// que ficou "não aplicada" (vale a legislação), com o motivo quando o modelo chegou a propor e foi recusado.
 export function linhasDeRegras(convencao: ConvencaoDto): LinhaDeRegra[] {
   const { aplicadas, rejeitadas } = convencao.regras;
   return CHAVES_DE_REGRA.map((chave) => {
@@ -128,7 +125,6 @@ export function linhasDeRegras(convencao: ConvencaoDto): LinhaDeRegra[] {
   });
 }
 
-// Sem pedido, ou com id que o Cliente não tem, abre a de vigência mais recente (a lista já vem nessa ordem).
 export function convencaoEscolhida(
   convencoes: ConvencaoDto[],
   id?: string,
@@ -139,7 +135,6 @@ export function convencaoEscolhida(
 const vigenciaDe = (c: ConvencaoDto) =>
   `${formatarDataIso(c.vigenciaInicio)} a ${formatarDataIso(c.vigenciaFim)}`;
 
-// "Comércio · 01/05/2026 a 30/04/2027".
 export const tituloDaConvencao = (c: ConvencaoDto) => `${c.sindicato} · ${vigenciaDe(c)}`;
 
 export function historicoDeConvencoes(
@@ -158,7 +153,6 @@ export function historicoDeConvencoes(
   }));
 }
 
-// Sindicatos distintos das convenções do Cliente, em ordem alfabética.
 export function sindicatosDoCliente(convencoes: ConvencaoDto[]): string[] {
   return [...new Set(convencoes.map((c) => c.sindicato))].sort((a, b) =>
     a.localeCompare(b, "pt-BR"),
@@ -175,8 +169,6 @@ export function empregadosDosAjustes(dto: ConvencoesDoClienteDto): EmpregadoDosA
 
 export type EnvioLido = { ok: true; formData: FormData } | { ok: false; erro: string };
 
-// Confere no navegador o que dá para conferir (PDF escolhido, tamanho) e monta o FormData da
-// Server Action; o servidor repete a conferência.
 export function lerEnvioDoFormulario(clienteId: string, arquivo: File | undefined): EnvioLido {
   if (!arquivo) return { ok: false, erro: "Escolha o PDF da convenção." };
   const ehPdf = arquivo.type === "application/pdf" || arquivo.name.toLowerCase().endsWith(".pdf");

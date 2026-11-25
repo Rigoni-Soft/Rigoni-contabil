@@ -1,7 +1,3 @@
-/**
- * Integração Supabase: o repositório dos tipos de envio do contato (o que o Setor de quem chama envia a
- * ele). Requer `npx supabase start` com migrations + seed aplicados. Dados fictícios (LGPD).
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { removerClientesDeTeste } from "../../../../../test-support/clientes-de-teste";

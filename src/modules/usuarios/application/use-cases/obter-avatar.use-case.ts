@@ -7,7 +7,6 @@ import type { AppError } from "@/shared/errors/app.error";
 import { NotFoundError } from "@/shared/errors/not-found.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 
-// Só a foto do próprio usuário da sessão: não há parâmetro de id, então não há como pedir a de outro.
 export class ObterAvatar implements ObterAvatarPort {
   constructor(
     private readonly sessao: SessaoPort,

@@ -1,21 +1,12 @@
-// yarn check:guard-senha  →  falha se alguma página autenticada sob src/app
-// esquecer o bloqueio de troca obrigatória de senha (precisaTrocarSenha).
-//
-// Cada page.tsx chama exigirSessao()/validarSessao() (shell.server), que aplicam o redirect de
-// troca de senha, em vez de centralizar num layout/guard comum. Este script é a rede de
-// segurança mais barata pra isso não virar um bypass silencioso numa rota nova.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 export const APP_DIR = "src/app";
 
-// Páginas públicas de verdade: não exigem sessão pra existir, então ficam de fora de qualquer
-// checagem (nem carregarSessao, nem precisaTrocarSenha). Toda página fora desta lista é obrigada a
-// chamar carregarSessao; só entra aqui quem é público de propósito (login é o único caso hoje).
 export const PAGINAS_PUBLICAS = new Set(["login/page.tsx"]);
 
-// /trocar-senha é o próprio destino do redirect: carrega sessão (pra saber o
-// estado), mas não pode checar precisaTrocarSenha contra si mesma.
+const CHAMA_GUARDA_DE_SESSAO = /(exigirSessao|validarSessao)[(]/;
+
 export const ISENTAS_DO_REDIRECT = new Set(["trocar-senha/page.tsx"]);
 
 export function paginas(dir, prefixo = "") {
@@ -26,12 +17,9 @@ export function paginas(dir, prefixo = "") {
   });
 }
 
-// Pura (sem tocar em disco) pra poder ser testada por unidade sem precisar
-// montar uma árvore de arquivos de verdade.
 export function classificarPagina(pagina, conteudo) {
   if (PAGINAS_PUBLICAS.has(pagina)) return null;
-  // exigirSessao/validarSessao (shell.server) carregam a sessão e já aplicam o redirect de troca de senha.
-  if (new RegExp("(exigirSessao|validarSessao)[(]").test(conteudo)) return null;
+  if (CHAMA_GUARDA_DE_SESSAO.test(conteudo)) return null;
 
   if (!conteudo.includes("carregarSessao")) {
     return `${pagina}: não carrega a sessão (carregarSessao) — se for pública de propósito, adicione a PAGINAS_PUBLICAS`;
@@ -53,8 +41,7 @@ function main() {
   console.log("guard de troca de senha ok");
 }
 
-// Só roda a varredura real quando chamado como script (yarn check:guard-senha);
-// o teste de unidade importa classificarPagina sem disparar isso.
-if (process.argv[1] && process.argv[1].endsWith("check-troca-senha-guard.mjs")) {
+const executadoComoScript = process.argv[1]?.endsWith("check-troca-senha-guard.mjs");
+if (executadoComoScript) {
   main();
 }

@@ -10,7 +10,6 @@ export type EmpregadoDosAjustes = { id: string; nome: string; sindicato: string 
 type Props = {
   bancoDeHoras: boolean;
   trabalhoAosDomingos: boolean;
-  // Sindicatos das convenções do Cliente; o ponteiro por empregado só aparece com mais de um.
   sindicatos: string[];
   empregados: EmpregadoDosAjustes[];
   editavel: boolean;
@@ -18,12 +17,9 @@ type Props = {
   erro?: string;
   onBancoDeHoras: (ligado: boolean) => void;
   onTrabalhoAosDomingos: (ligado: boolean) => void;
-  // Texto vazio = a única convenção do Cliente.
   onSindicato: (empregadoId: string, sindicato: string) => void;
 };
 
-// O que a convenção não decide: os interruptores do Cliente (banco de horas, desligado por padrão, e
-// trabalho aos domingos) e, havendo mais de uma convenção, qual cada empregado segue.
 export function AjustesDoClienteNaConvencao({
   bancoDeHoras,
   trabalhoAosDomingos,

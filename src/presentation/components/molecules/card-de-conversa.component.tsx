@@ -8,13 +8,11 @@ export type CardDeConversaProps = {
   titulo: string;
   detalhe: string;
   previa?: string | null;
-  // O cliente escreveu por último e espera resposta.
   aguardando?: boolean;
   aberto?: boolean;
   onAbrir: () => void;
 };
 
-// O Atendimento do usuário na aba "Em atendimento": abre o chat no centro, sem trocar de rota.
 export function CardDeConversa({
   titulo,
   detalhe,

@@ -1,6 +1,6 @@
 # Contatos com Setores e Destinos de envio: aplicar a migration nos remotos
 
-A migration `20261119100000_contato_com_setores_dono_e_id_estavel.sql` mexe em dados que já existem. Antes de
+A migration `20261118100000_ura_contatos_por_setor_e_destinos_de_envio.sql` mexe em dados que já existem. Antes de
 aplicar em homologação e em produção, confira o que ela vai encontrar.
 
 ## O que a migration faz com os Contatos existentes

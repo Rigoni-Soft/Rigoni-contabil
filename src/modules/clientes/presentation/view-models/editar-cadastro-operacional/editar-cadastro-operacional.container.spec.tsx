@@ -13,13 +13,11 @@ import { editarCadastroOperacionalAction } from "./editar-cadastro-operacional.a
 import { EditarCadastroOperacionalContainer } from "./editar-cadastro-operacional.container";
 import { useContatosDoCadastro } from "./use-contatos-do-cadastro.hook";
 
-// Passa a chamada adiante (o hook real roda); só os casos de "ligação com o hook" o substituem.
 jest.mock("./use-contatos-do-cadastro.hook", () => {
   const real = jest.requireActual("./use-contatos-do-cadastro.hook");
   return { ...real, useContatosDoCadastro: jest.fn(real.useContatosDoCadastro) };
 });
 
-// Passa a chamada adiante (a action real roda sobre o `executeMock`); só registra o que ela recebeu.
 jest.mock("./editar-cadastro-operacional.actions", () => {
   const real = jest.requireActual("./editar-cadastro-operacional.actions");
   return {
@@ -51,7 +49,6 @@ jest.mock("@/main/clientes.factory", () => ({
   makeObterLinkDocumentoContratual: () => ({ execute: jest.fn() }),
 }));
 
-// O Admin só cadastra contatos (sem Setor, não define destinos): os testes de contatos e do resto do cadastro.
 const ADMIN = { papel: "admin", setor: "administrativo" };
 
 const dados: CadastroOperacionalClienteDto = cadastroOperacionalDeTeste({
@@ -62,7 +59,6 @@ const dados: CadastroOperacionalClienteDto = cadastroOperacionalDeTeste({
   atividadeMes: { industria: false, comercio: true, servico: false },
 });
 
-// Sem retry: o backoff do React Query travaria os findBy.
 function render(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return renderRtl(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
@@ -133,7 +129,6 @@ describe("EditarCadastroOperacionalContainer", () => {
         aoSalvar={{ tipo: "voltar", href: "/simples-nacional" }}
       />,
     );
-    // Lista só é buscada quando o Select recebe foco/abre.
     expect(listarMock).not.toHaveBeenCalled();
     await userEvent.click(screen.getByLabelText("Responsável"));
     await screen.findByRole("option", { name: "Funcionário SN" });
@@ -324,7 +319,6 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(screen.getByRole("link", { name: /cancelar/i })).toHaveAttribute("href", "/");
   });
 
-  // A lógica das linhas de contato é testada no hook (use-contatos-do-cadastro.hook.spec.ts): aqui só a ligação.
   describe("ligação com o hook das linhas de contato", () => {
     const hookReal = (
       jest.requireActual("./use-contatos-do-cadastro.hook") as {
@@ -460,7 +454,6 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(screen.getByLabelText(/data de envio/i)).toHaveAccessibleDescription(
       "Preenchida pelo sistema quando o DAS é enviado.",
     );
-    // DAS ainda editável: sem texto de "travado".
     expect(screen.getByLabelText("DAS")).not.toHaveAccessibleDescription();
     unmount();
 
@@ -606,7 +599,6 @@ describe("EditarCadastroOperacionalContainer", () => {
 
     expect(await screen.findByRole("button", { name: "Remover contato 1" })).toBeInTheDocument();
     expect(screen.getByLabelText(/^nome/i)).toHaveAttribute("readonly");
-    // A vez ímpar acrescenta um caractere invisível ao aviso, por isso o texto casa por trecho.
     expect(screen.getByText(/Contato 1 salvo\./)).toHaveAttribute("aria-live", "polite");
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Editar contato 1" })).toHaveFocus(),
@@ -669,8 +661,6 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(screen.getByRole("button", { name: /salvar/i })).toBeEnabled();
   });
 
-  // Tela própria (/clientes/[id]) navega de volta pro lugar certo depois de
-  // salvar, em vez de ficar parada no form.
   it("com aoSalvar voltar, navega pra lá depois de salvar com sucesso", async () => {
     executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
     const usuario = userEvent.setup();
@@ -689,9 +679,6 @@ describe("EditarCadastroOperacionalContainer", () => {
     expect(routerPush).toHaveBeenCalledWith("/clientes/resumo/sem_documento");
   });
 
-  // Painel embutido no dashboard (busca do /simples-nacional): quem decide o
-  // "fechar/voltar" é o consumidor (fecha o painel + atualiza a página), não
-  // uma navegação fixa — destino "fechar" chama o callback e nunca navega.
   it("com aoSalvar fechar, chama o callback em vez de navegar", async () => {
     executeMock.mockResolvedValue({ ok: true, value: { clienteId: dados.id } });
     const aoSalvarComSucesso = jest.fn();

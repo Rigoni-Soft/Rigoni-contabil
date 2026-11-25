@@ -143,8 +143,6 @@ export async function reagirAMensagemAction(input: unknown): Promise<ActionResul
   return toActionResult(await reagir.execute(parsed.data));
 }
 
-// O navegador já subiu o objeto em partes direto ao Storage (o corpo de uma Server Action não passa
-// de 4,5 MB na Vercel); aqui chegam só o caminho, o nome, a legenda e a miniatura (até 256 KB).
 export async function enviarAnexoGuardadoAction(formData: FormData): Promise<ActionResult<void>> {
   const parsed = enviarAnexoGuardadoSchema.safeParse({
     atendimentoId: formData.get("atendimentoId"),

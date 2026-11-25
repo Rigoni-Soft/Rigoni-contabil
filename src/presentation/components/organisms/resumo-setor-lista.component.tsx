@@ -6,7 +6,6 @@ import {
   type SeloDoParcelamento,
 } from "@/presentation/components/molecules/selo-do-parcelamento.component";
 
-// Só os cards do grupo Parcelamento trazem `parcelamentos`.
 type Cliente = {
   clienteId: string;
   empresa: string;
@@ -14,8 +13,6 @@ type Cliente = {
   parcelamentos?: { codigo: string; interno: boolean; status: SeloDoParcelamento }[];
 };
 
-// `vazio`: por que a lista está vazia (cada card sabe o seu); sem ele, a mensagem padrão.
-// `rotaBase`: a lista do Setor, para o "Voltar" da tela do Cliente trazer de volta pra ela.
 type Props = { clientes: Cliente[]; bucket: string; vazio?: string; rotaBase: string };
 
 function Parcelamentos({
@@ -48,8 +45,6 @@ function Parcelamentos({
   );
 }
 
-// Lista filtrada de um bucket do resumo, aberta como tela própria. `voltarPara` manda a própria URL
-// desta lista, pra "Voltar" na tela de edição trazer de volta pra cá, não pro dashboard.
 export function ResumoSetorLista({ clientes, bucket, vazio, rotaBase }: Props) {
   if (clientes.length === 0) {
     return <Texto variante="apoio">{vazio ?? "Nenhum cliente neste status."}</Texto>;

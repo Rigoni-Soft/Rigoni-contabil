@@ -33,9 +33,6 @@ import { LeituraDeAtestadoContainer } from "./leitura-de-atestado.container";
 
 type Props = { folha: FolhaDePontoDto };
 
-// O cartão do mês do empregado escolhido. Cada linha abre para editar (lápis), salva ou cancela; o "Salvar" da
-// tabela salva todas as linhas abertas e fica na tela (a Totalização se recalcula e ganha destaque); "Limpar"
-// esvazia os campos das linhas abertas; "Cancelar" (link) volta à lista de empregados.
 export function CartaoDePontoContainer({ folha }: Props) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -43,7 +40,6 @@ export function CartaoDePontoContainer({ folha }: Props) {
   const [avisoDoPdf, setAvisoDoPdf] = useState<AvisoDoDia>();
   const [aviso, setAviso] = useState<AvisoDoDia & { data: string }>();
   const [avisoGeral, setAvisoGeral] = useState<AvisoDoDia>();
-  // Cartão sem nenhum dado (mês ou empregado novo): abre com todas as linhas já editáveis, sem um lápis por dia.
   const [emEdicao, setEmEdicao] = useState<string[]>(() =>
     folha.selecionado && cartaoSemDados(folha.selecionado.dias, folha.selecionado.iniciado)
       ? folha.selecionado.dias.map((d) => d.data)
@@ -52,7 +48,6 @@ export function CartaoDePontoContainer({ folha }: Props) {
   const [limpos, setLimpos] = useState<string[]>([]);
   const [versoes, setVersoes] = useState<Record<string, number>>({});
   const [destacada, setDestacada] = useState(false);
-  // A linha da última ação: ela recebe o foco quando o botão clicado some (teclado e leitor de tela não se perdem).
   const [focoNoDia, setFocoNoDia] = useState<string>();
   const { selecionado } = folha;
   if (!selecionado) return null;
@@ -66,7 +61,6 @@ export function CartaoDePontoContainer({ folha }: Props) {
     setLimpos((l) => l.filter((d) => !datas.includes(d)));
   };
 
-  // Roda uma action; devolve o texto do erro, ou undefined se deu certo.
   const tentar = async (
     falha: string,
     acao: () => Promise<ActionResult<unknown>>,
@@ -83,11 +77,9 @@ export function CartaoDePontoContainer({ folha }: Props) {
   const limparAvisos = () => {
     setAviso(undefined);
     setAvisoGeral(undefined);
-    // O PDF baixado já não reflete o cartão depois de uma nova ação: o aviso dele sai também.
     setAvisoDoPdf(undefined);
   };
 
-  // Grava um dia; devolve o texto do erro, ou undefined se deu certo.
   const gravar = async (data: string, campos: FormData): Promise<string | undefined> => {
     const lido = lerDiaDoFormulario(campos);
     if (!lido.ok) return lido.erro;
@@ -114,7 +106,6 @@ export function CartaoDePontoContainer({ folha }: Props) {
       router.refresh();
     });
 
-  // Falta vira abonada (o dia é gravado só com o Abono) e o abono se desfaz (dia vazio, sem Abono).
   const marcarAbono = (data: string, abono: boolean) =>
     iniciar(async () => {
       limparAvisos();
@@ -134,7 +125,6 @@ export function CartaoDePontoContainer({ folha }: Props) {
       router.refresh();
     });
 
-  // Marca o cartão do mês como iniciado; devolve o texto do erro, ou undefined se deu certo.
   const marcarIniciado = () =>
     tentar("Falha ao iniciar o cartão de ponto", () =>
       iniciarCartaoDoPontoAction({
@@ -150,18 +140,15 @@ export function CartaoDePontoContainer({ folha }: Props) {
         const form = document.getElementById(idDoFormDoDia(data));
         if (!(form instanceof HTMLFormElement)) continue;
         const campos = new FormData(form);
-        // Linha que já era vazia e segue vazia não tem o que gravar (cartão novo: só os dias digitados vão).
         const antes = selecionado.dias.find((d) => d.data === data);
         const depois = lerDiaDoFormulario(campos);
         if (antes && !temDados(antes) && depois.ok && !temDados(depois)) continue;
         const erro = await gravar(data, campos);
         if (erro) return setAviso({ data, tipo: "erro", texto: erro });
       }
-      // Salvar o cartão novo, mesmo sem nenhum horário, o inicia: daí em diante os dias úteis vazios são falta.
       if (cartaoNovo) {
         const falha = await marcarIniciado();
         if (falha) {
-          // Os horários digitados já foram gravados: a tela recarrega e a mensagem diz o que faltou.
           router.refresh();
           return setAvisoGeral({
             tipo: "erro",
@@ -182,8 +169,6 @@ export function CartaoDePontoContainer({ folha }: Props) {
       router.refresh();
     });
 
-  // Atestado abonou: as linhas fechadas recomeçam dos valores salvos (o abono aparece) e o resumo fica no rodapé; as
-  // linhas abertas mantêm o que o usuário está digitando.
   const aposAtestado = (resumo: string) => {
     limparAvisos();
     recomecar(selecionado.dias.map((d) => d.data).filter((d) => !emEdicao.includes(d)));
@@ -191,7 +176,6 @@ export function CartaoDePontoContainer({ folha }: Props) {
     router.refresh();
   };
 
-  // O PDF é gerado no servidor com o que está salvo; o download é auditado lá.
   const baixarPdf = () =>
     iniciarPdf(async () => {
       setAvisoDoPdf(undefined);
@@ -240,7 +224,6 @@ export function CartaoDePontoContainer({ folha }: Props) {
         selecionado.dias.reduce((soma, d) => soma + d.trabalhadoMin, 0),
         cartaoNovo,
       )}
-      // Empregado desligado não recebe cartão: o aviso "o Responsável o salva" não faz sentido para ele.
       cartaoNovo={cartaoNovo && selecionado.empregado.ativo}
       avisoDaTotalizacao={selecionado.semConvencao ? AVISO_SEM_CONVENCAO : undefined}
       editavel={editavel}
@@ -279,7 +262,6 @@ export function CartaoDePontoContainer({ folha }: Props) {
         setAvisoGeral(undefined);
         setLimpos(emEdicao);
         recomecar(emEdicao);
-        // O foco fica no botão Limpar (que não some), não pula para uma linha que remonta.
         setFocoNoDia(undefined);
       }}
     />

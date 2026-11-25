@@ -4,7 +4,6 @@ import { LinkDeAcao } from "@/presentation/components/atoms/link-de-acao.compone
 import { TelaDeAvisoPage } from "@/presentation/components/pages/tela-de-aviso.page";
 import { Button } from "@/presentation/components/ui/button";
 
-// Não mostra `error.message`: no servidor ele é genérico e no cliente pode vazar detalhe interno.
 export default function Error({ retry }: { retry: () => void }) {
   return (
     <TelaDeAvisoPage

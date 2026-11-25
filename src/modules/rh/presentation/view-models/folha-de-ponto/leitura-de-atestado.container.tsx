@@ -12,12 +12,9 @@ import { fotoDoAtestadoSchema, recusaDaFoto } from "./folha-de-ponto.schema";
 type Props = {
   empregadoId: string;
   nomeDoEmpregado: string;
-  // Sucesso: o Container do cartão atualiza a planilha e mostra este resumo.
   aoAbonar: (resumo: string) => void;
 };
 
-// Abre a modal, lê o atestado e, se abonou, fecha a modal e avisa o cartão. Falha mantém a modal aberta com o
-// motivo e o cartão como estava; a foto escolhida fica para o usuário trocar.
 export function LeituraDeAtestadoContainer({ empregadoId, nomeDoEmpregado, aoAbonar }: Props) {
   const painelId = `leitura-atestado-${useId().replace(/:/g, "")}`;
   const [pendente, iniciar] = useTransition();
@@ -74,7 +71,6 @@ export function LeituraDeAtestadoContainer({ empregadoId, nomeDoEmpregado, aoAbo
         const aberto = modal();
         if (aberto && !aberto.open) aberto.showModal();
       }}
-      // Durante a leitura a modal fica: o resultado ou o erro chega nela, não numa modal fechada.
       aoFechar={() => {
         if (!pendente) modal()?.close();
       }}

@@ -2,20 +2,15 @@ import { expect, test } from "./fixtures";
 import { adminLocal } from "./support/admin-local";
 import { cnpjUnico, login } from "./support/criar-cliente";
 
-// Convenção coletiva do RH: o Líder sobe o PDF e vê as "Regras aplicadas" (extração com o modelo falso:
-// cláusula, valor, diferença para a legislação e o que ficou "não aplicada"); renova e o histórico guarda a
-// anterior; o Responsável só lê as regras e liga os interruptores do cliente; cada gravação fica auditada.
 const admin = adminLocal();
 const EMPRESA = `Convencao E2E ${`${Date.now()}`.slice(-6)} Ltda`;
 const FUNCIONARIO_RH_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
 const SINDICATO = "Comércio E2E";
 let clienteId = "";
 let cnpj = "";
-// Cliente que já nasce com uma convenção: os testes 2 e 3 não dependem do 1 (o CI roda o @smoke à parte, com reset).
 let semeadoId = "";
 let cnpjSemeado = "";
 
-// O sindicato e a vigência saem do texto do PDF (o extrator falso lê estas duas linhas).
 const pdf = (nome: string, vigencia = "01/05/2026 a 30/04/2027") => ({
   name: nome,
   mimeType: "application/pdf",
@@ -99,7 +94,6 @@ test.describe("Convenção coletiva do RH", () => {
     await expect(sabado).toContainText("+10 pontos");
     await expect(sabado).toContainText("Cláusula 12ª");
     await expect(tabela.getByRole("row", { name: /Jornada semanal/ })).toContainText("44h");
-    // O candidato sem o número no trecho foi recusado: vale a legislação.
     const intervalo = tabela.getByRole("row", { name: /Intervalo máximo/ });
     await expect(intervalo).toContainText("Não aplicada");
     await expect(intervalo).toContainText("Recusada: O número não aparece no trecho citado");

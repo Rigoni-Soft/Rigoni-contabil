@@ -1,62 +1,42 @@
-// Totalização: a legislação padrão (CLT) com por cima os parâmetros da Convenção coletiva vigente na data do
-// dia e os interruptores do Cliente (`RegrasDeCalculo`). Sem convenção, vale a legislação: hora extra de 50%
-// em dia útil e de 100% em domingo e feriado, tolerância de 5 min por marcação e 10 por dia, adicional noturno
-// das 22h às 5h com hora reduzida. Tudo em minutos; sem relógio. Valores em dinheiro ficam com o holerite: aqui
-// saem minutos por faixa e contagens.
-// Domingo com Jornada: as horas dentro da carga contam como normais e só o excedente é extra; o domingo
-// inteiro virar extra é o interruptor "trabalho aos domingos" do Cliente.
-// Não usados aqui: jornada e intervalos da convenção (a Jornada é do empregado), exceções de feriado (sem data
-// para casar) e a data móvel da convenção sem a marca de feriado no cartão.
-// Data fixa da convenção (ex.: 25/12) só decide o percentual da hora extra. Quem dispensa a carga e a falta e
-// conta o feriado trabalhado é a marca de feriado do cartão, a única fonte: uma data especial da convenção
-// nem sempre é feriado, e dispensar a falta por ela mudaria o pagamento sem o Responsável ter marcado o dia.
-
 import {
   LEGISLACAO,
   type RegrasDeCalculo,
 } from "@/modules/rh/domain/services/regras-de-calculo.service";
 
-// Minutos desde 00:00. Saída menor ou igual à entrada = a jornada virou o dia.
 export type Par = { entrada: number; saida: number };
 
 export type DiaDoCartao = {
-  data: string; // "AAAA-MM-DD"
+  data: string;
   batidas: Par[];
-  // Coluna Extra do cartão: sempre hora extra, mesmo em dia sem carga.
   extra: Par | null;
   abono: boolean;
   feriado: boolean;
 };
 
-// Carga em minutos por dia da semana, domingo = 0; zero = não trabalha nesse dia.
 export type Jornada = readonly [number, number, number, number, number, number, number];
 
 export type Totalizacao = {
   normaisMin: number;
-  // Hora extra paga, por percentual, do menor para o maior.
   extras: { percentual: number; minutos: number }[];
-  // Hora extra de dia útil e sábado que vai para o banco de horas (ligado no Cliente), fora das faixas.
   bancoDeHorasMin: number;
-  // O que passou do limite diário de extras em dia útil e sábado; já está nas faixas, é só alerta.
   acimaDoLimiteMin: number;
-  // Minutos já com a hora noturna reduzida (52min30s = 60min) dentro de 22h às 5h.
   noturnoMin: number;
   atrasoMin: number;
   faltas: number;
   abonoDias: number;
   abonoMin: number;
-  // Contagens para o holerite aplicar os valores em dinheiro.
   feriadosTrabalhados: number;
   sabadosTrabalhados: number;
-  // Dias com hora extra (paga ou no banco): dão direito a lanche.
   diasComLanche: number;
 };
 
+const MINUTOS_POR_DIA = 24 * 60;
+const PROPORCAO_DA_HORA_NOTURNA = 8 / 7;
 const TOLERANCIA_POR_MARCACAO = 5;
 const TOLERANCIA_POR_DIA = 10;
 const JANELAS_NOTURNAS: readonly [number, number][] = [
   [0, 5 * 60],
-  [22 * 60, 29 * 60],
+  [22 * 60, MINUTOS_POR_DIA + 5 * 60],
 ];
 
 export function horaParaMinutos(texto: string): number {
@@ -69,19 +49,16 @@ export function diaDaSemana(data: string): number {
   return new Date(Date.UTC(ano, mes - 1, diaDoMes)).getUTCDay();
 }
 
-// Dia de trabalho: tem carga na jornada e não é feriado. Só nele o Abono sem batida vale; em domingo, folga ou
-// feriado o dia segue folga. Regra única do servidor (leitura de cartão e de atestado) e da tela.
 export function ehDiaDeTrabalho(cargaMin: number, feriado: boolean): boolean {
   return !feriado && cargaMin > 0;
 }
 
-// O dia tem algo gravado: batida, extra ou abono.
 export function diaTemDados(dia: Pick<DiaDoCartao, "batidas" | "extra" | "abono">): boolean {
   return dia.batidas.length > 0 || dia.extra !== null || dia.abono;
 }
 
 function intervalo({ entrada, saida }: Par): [number, number] {
-  return [entrada, saida <= entrada ? saida + 1440 : saida];
+  return [entrada, saida <= entrada ? saida + MINUTOS_POR_DIA : saida];
 }
 
 function duracao(par: Par): number {
@@ -96,10 +73,9 @@ function minutosNoturnos(pares: Par[]): number {
     for (const [inicioDaJanela, fimDaJanela] of JANELAS_NOTURNAS)
       real += Math.max(0, Math.min(fim, fimDaJanela) - Math.max(inicio, inicioDaJanela));
   }
-  return Math.round((real * 8) / 7);
+  return Math.round(real * PROPORCAO_DA_HORA_NOTURNA);
 }
 
-// A "H. Diária" do cartão: tudo o que foi batido no dia, nas duas batidas e na coluna Extra.
 export function minutosTrabalhados(dia: Pick<DiaDoCartao, "batidas" | "extra">): number {
   return (
     dia.batidas.reduce((soma, p) => soma + duracao(p), 0) + (dia.extra ? duracao(dia.extra) : 0)
@@ -121,8 +97,6 @@ const ZERO: Totalizacao = {
   diasComLanche: 0,
 };
 
-// Percentual da hora extra do dia e se é data especial (feriado, domingo ou data fixa da convenção): data
-// especial não vai para o banco nem conta no limite diário. Sábado e dia útil vão para os dois.
 function faixaDoDia(dia: DiaDoCartao, semana: number, regras: RegrasDeCalculo) {
   const [, mes, diaDoMes] = dia.data.split("-");
   const fixa = regras.datasEspeciais.find((e) => e.data === `${diaDoMes}/${mes}`);
@@ -181,8 +155,6 @@ type ContextoDoDia = {
   semana: number;
 };
 
-// Apura o dia e devolve só o que ele sabe: as horas extras vão pelo `somarExtra`, e o resto
-// (banco, faixas, limite, lanche, sábado) é montado por `totalizarDia`.
 function apurarDia(
   { dia, jornada, regras, semana }: ContextoDoDia,
   somarExtra: (min: number) => void,
@@ -191,17 +163,14 @@ function apurarDia(
   const base: Totalizacao = {
     ...ZERO,
     noturnoMin: dia.extra ? minutosNoturnos([dia.extra]) : 0,
-    // Feriado trabalhado só na coluna Extra (feriado e folga só têm a Extra liberada na tela) também conta.
     feriadosTrabalhados: dia.extra && dia.feriado ? 1 : 0,
   };
   somarExtra(dia.extra ? duracao(dia.extra) : 0);
 
   const trabalhado = dia.batidas.reduce((soma, p) => soma + duracao(p), 0);
-  // Interruptor do Cliente: o domingo trabalhado é todo hora extra, tenha ou não Jornada.
   if (semana === 0 && regras.trabalhoAosDomingos && !dia.feriado) {
     return apurarDomingoTrabalhado(base, dia, trabalhado, somarExtra);
   }
-  // Dia sem carga: só a coluna Extra conta.
   if (carga === 0 && !dia.feriado) return base;
   if (dia.feriado) return apurarFeriado(base, dia, trabalhado, somarExtra);
   if (dia.batidas.length === 0) return apurarSemBatida(base, dia.abono, carga);
@@ -219,7 +188,6 @@ function apurarDomingoTrabalhado(
   return { ...base, noturnoMin: base.noturnoMin + minutosNoturnos(dia.batidas) };
 }
 
-// Feriado: sem falta; o que se trabalha é hora extra.
 function apurarFeriado(
   base: Totalizacao,
   dia: DiaDoCartao,
@@ -258,7 +226,6 @@ function apurarComBatidas(
   return dia.abono ? { ...atrasado, abonoMin: -diferenca } : { ...atrasado, atrasoMin: -diferenca };
 }
 
-// `regrasDoDia` devolve as regras da data: a convenção vigente pode mudar no meio do período.
 export function totalizar(
   dias: DiaDoCartao[],
   jornada: Jornada,

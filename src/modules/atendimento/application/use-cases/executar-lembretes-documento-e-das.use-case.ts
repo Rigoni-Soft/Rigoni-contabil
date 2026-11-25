@@ -37,15 +37,6 @@ import type { TipoDeEnvio } from "@/shared/kernel/tipo-de-envio";
 
 const DIAS_DO_JOB = [1, 5, 10, 15];
 
-// Job dos dias 01/05/10/15 (fuso de São Paulo): lembra quem está sem documento obrigatório,
-// envia o DAS pronto aos Destinos de envio do Simples Nacional (tipo do envio ou "todos"; sem
-// Destino válido, o alerta `contato_ausente` e o aviso do Líder e do Responsável; o Destino
-// inválido ao lado de um válido vira `falha_envio`) e alerta o setor Simples Nacional do DAS que
-// segue pendente com o documento em dia. Cada Cliente é independente: um que falha não impede os
-// demais. A entrega é reservada (token, com validade) antes de sair e o DAS só vira enviado ao
-// concluir, depois do aceite: execuções simultâneas ou o Funcionário não geram envio em dobro, e
-// uma queda no meio deixa o DAS como estava (a reserva expira e a rodada seguinte retoma). Se o
-// aceite ocorreu e a queda veio antes da conclusão, a guia pode ser reenviada (pelo menos uma vez).
 export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocumentoEDasPort {
   constructor(
     private readonly clientes: ClientesParaLembretePort,
@@ -104,8 +95,6 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     ];
   }
 
-  // Segue com os Destinos do tipo no Setor; se a leitura falha ou o Setor não tem Destino válido
-  // (alerta `contato_ausente`), devolve o Andamento disso sem seguir.
   private async comDestinos(
     cliente: ClienteParaLembrete,
     tipo: TipoDeEnvio,
@@ -127,7 +116,6 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     );
   }
 
-  // Sem para quem enviar não vale buscar a guia nem reservar o DAS.
   private enviarDas(cliente: ClienteParaLembrete, agora: Date): Promise<Andamento> {
     return this.comDestinos(cliente, "das", (destinos) =>
       this.reservarEEntregarDas(cliente, destinos, agora),
@@ -139,7 +127,6 @@ export class ExecutarLembretesDocumentoEDas implements ExecutarLembretesDocument
     destinos: DestinoDeEnvio[],
     agora: Date,
   ): Promise<Andamento> {
-    // O PDF publicado fica no Storage mesmo se a entrega falhar: só o envio aceito guarda o caminho.
     const publicado: { caminho?: string } = {};
     return entregarComReserva({
       descricao: `DAS de ${cliente.empresa}`,

@@ -1,10 +1,3 @@
-/**
- * Integração infra ↔ Supabase (testes.md, seção 3): requer `npx supabase start`
- * rodando localmente com as migrations e o seed aplicados. Usa os usuários de
- * `supabase/seed.sql`: Admin (administrativo), Funcionário SN (simples_nacional),
- * Funcionário Financeiro (financeiro) e Líder Contábil (contabil) — cobrindo o
- * isolamento por setor exigido pela RLS.
- */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { Usuario, type UsuarioId } from "@/modules/usuarios/domain/entities/usuario.entity";
@@ -39,8 +32,6 @@ const comoFuncionarioFinanceiro = () =>
 const comoLiderContabil = () =>
   clienteAutenticado("lider.contabil@rigonicontabil.local", "lider123");
 
-// perfis.id referencia auth.users(id): precisa de um auth.users real (service_role,
-// docs/adr/0001) antes de testar o INSERT em perfis.
 async function criarContaAuthDeTeste(): Promise<{ id: string; email: string }> {
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -55,9 +46,6 @@ async function criarContaAuthDeTeste(): Promise<{ id: string; email: string }> {
   return { id: data.user.id, email };
 }
 
-// Cria uma conta com senha provisória já vencida (direto via service_role, fora do fluxo normal)
-// pra provar que meu_papel()/meu_setor() (20260924190000_usuarios_e_auditoria.sql) negam acesso via
-// Data API mesmo com um JWT válido.
 async function criarContaComSenhaVencida(
   papel: "admin" | "funcionario",
   setor: string,
@@ -155,10 +143,6 @@ describe("SupabaseUsuarioRepository (integração)", () => {
       if (resultado.ok) expect(resultado.value?.papel.valor).toBe("funcionario");
     });
 
-    // Consulta sem erro (resultado.ok) E ausência da linha (value === null): a
-    // combinação prova bloqueio de RLS, não uma falha técnica mascarada de ausência.
-    // O controle positivo de que a linha existe e é alcançável por um viewer
-    // autorizado está no teste "Admin → outro setor: permitido" acima, mesmo alvo.
     it("Funcionário → outro setor: negado", async () => {
       const supabase = await comoFuncionarioSN();
       const repositorio = new SupabaseUsuarioRepository(supabase);
@@ -178,8 +162,6 @@ describe("SupabaseUsuarioRepository (integração)", () => {
       if (resultado.ok) expect(resultado.value?.papel.ehLiderSetor()).toBe(true);
     });
 
-    // Mesma lógica do teste do Funcionário acima: controle positivo do mesmo
-    // alvo está em "Admin → outro setor: permitido".
     it("Líder → outro setor: negado", async () => {
       const supabase = await comoLiderContabil();
       const repositorio = new SupabaseUsuarioRepository(supabase);
@@ -223,8 +205,6 @@ describe("SupabaseUsuarioRepository (integração)", () => {
     expect(resultado.ok).toBe(false);
   });
 
-  // INSERT direto via Data API (sem passar pelo caso de uso), provando que a policy
-  // perfis_insert_lider_proprio_setor nega no Postgres o que o CriarUsuario já nega na aplicação.
   describe("Líder insere perfil direto na Data API (RLS: perfis_insert_lider_proprio_setor)", () => {
     async function inserirComoLiderContabil(papel: string, setor: string) {
       const { id, email } = await criarContaAuthDeTeste();

@@ -2,12 +2,11 @@ import { expect, test } from "./fixtures";
 import { abrirConversaEmAtendimento } from "./support/abrir-conversa";
 import { adminLocal } from "./support/admin-local";
 import { login } from "./support/criar-cliente";
+import { FUNCIONARIO2_FINANCEIRO_ID } from "./support/usuarios-do-seed";
 
-// O Funcionário transfere pelo painel e o destino lê, na conversa, o contato, a empresa, o CNPJ,
-// quem transferiu e o resumo. O Líder do Contábil lê o Atendimento mesmo na espera do Setor.
 const admin = adminLocal();
 
-const FUNCIONARIO = "55555555-5555-5555-5555-555555555555";
+const FUNCIONARIO = FUNCIONARIO2_FINANCEIRO_ID;
 const TELEFONE = "61955574001";
 const CLIENTE = crypto.randomUUID();
 const CNPJ = `7${Date.now()}`.slice(0, 14);
@@ -63,17 +62,14 @@ test.describe("Contexto da Transferência (#74)", () => {
       .single();
     if (atendimento.error) throw atendimento.error;
 
-    // Só a sessão do Supabase: limpar tudo apagaria também o cookie de bypass da proteção do preview.
     await page.context().clearCookies({ name: /^sb-/ });
     await login(page, "lider.contabil@rigonicontabil.local", "lider123");
     await expect(page).toHaveURL("/");
     await page.goto("/atendimento");
-    // Está na espera do Setor, dirigida ou não ao Líder: o card abre a conversa (assume ou só lê).
     await page.getByRole("button", { name: /(Assumir|Ler) o atendimento de Seu Contexto/ }).click();
 
     const contexto = page.getByRole("region", { name: "Contexto do Atendimento" });
     await expect(page.getByRole("heading", { name: "Seu Contexto" })).toBeVisible();
-    // O cabeçalho da conversa traz o telefone; o cartão da espera, não.
     await expect(page.getByText(/Contexto E2E Ltda · \S+ · \(61\)/)).toBeVisible();
     await expect(
       contexto.getByText("Transferido por Segundo Funcionário Financeiro · Financeiro"),

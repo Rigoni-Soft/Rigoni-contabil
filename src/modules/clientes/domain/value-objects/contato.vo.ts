@@ -3,9 +3,6 @@ import { ValidationError } from "@/shared/errors/validation.error";
 import { err, ok, type Result } from "@/shared/kernel/result";
 import { telefoneAceito } from "@/shared/kernel/telefone";
 
-// A forma única do Contato do Cliente: as camadas (portas, builder, mapper, schema) derivam daqui.
-// `telefone` e `email` vazios = sem o canal. `donoSetor` null = Contato do Admin; `setores` vem do
-// banco (URA mais os Setores que usam) e nunca é enviado ao salvar.
 export type ContatoProps = {
   id?: string;
   nome: string;
@@ -13,11 +10,9 @@ export type ContatoProps = {
   email: string;
   donoSetor?: string | null;
   setores?: readonly string[];
-  // O telefone como estava gravado: só o número novo ou trocado é cobrado do DDD. Nunca vai ao salvar.
   telefoneOriginal?: string;
 };
 
-// O que o dono edita e vai ao salvar.
 export type ContatoEditavel = Pick<ContatoProps, "id" | "nome" | "telefone" | "email">;
 
 export class Contato {

@@ -10,9 +10,7 @@ type PerfilDaContaProps = {
   email: string;
   papel: string;
   setor: string;
-  // Envio da foto do avatar (slot: é um Container).
   avatar?: React.ReactNode;
-  // Formulário de troca de senha (slot: é um Container).
   formulario: React.ReactNode;
 };
 

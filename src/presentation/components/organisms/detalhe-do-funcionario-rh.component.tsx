@@ -24,7 +24,6 @@ type Props = {
   }[];
 };
 
-// O que falta fechar de um Funcionário no mês: clientes por serviço pendente, evolução e os mais atrasados.
 export function DetalheDoFuncionarioRh({
   nome,
   rotuloMes,
