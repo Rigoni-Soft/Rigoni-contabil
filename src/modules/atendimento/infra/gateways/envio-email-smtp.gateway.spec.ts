@@ -1,6 +1,7 @@
 import { EnvioEmailSmtpGateway } from "./envio-email-smtp.gateway";
 
 const CONFIG = {
+  host: "smtp.gmail.com",
   usuario: "setor@gmail.com",
   senha: "senha-app",
   remetente: "Rigoni <setor@gmail.com>",
