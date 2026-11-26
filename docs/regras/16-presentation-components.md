@@ -14,6 +14,10 @@ Onde vive: lib/botao-ocupado.ts; organisms/painel-de-encerramento, visualizar-do
 Os campos não controlados não têm valor até hidratar; o HTML do servidor mostraria placeholders. O formulário fica `oculto` (sem sair do layout) e é revelado após 3 s se a hidratação falhar.
 Onde vive: organisms/editar-cadastro-operacional-form.component.tsx e editar-cadastro-rh-form.component.tsx: prop `oculto`.
 
+## Login não oferece a credencial salva
+No login, o e-mail usa `autoComplete="off"` e a senha `autoComplete="new-password"`: o gerenciador de senhas do navegador não preenche a credencial salva, e quem sai e volta não a vê exposta. O Container limpa o formulário no `pageshow` com `persisted`, para o Voltar não trazer o que foi digitado. Não troque por `email` e `current-password` sem validar na homolog com um Chrome que tenha a senha salva. A troca de senha já usa `new-password`.
+Onde vive: organisms/login-form.component.tsx e modules/usuarios/presentation/view-models/login/login.container.tsx.
+
 ## Cancelar do formulário inline
 Sem `onCancelar` (uso em /clientes/[id]) "Cancelar" navega ao destino do "Voltar". Com callback (busca inline do dashboard, já em "/"), um Link não navega nem reseta; o Container fecha o painel.
 Onde vive: organisms/editar-cadastro-operacional-form.component.tsx:onCancelar.
