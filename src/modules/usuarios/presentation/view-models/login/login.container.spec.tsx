@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { LoginContainer } from "./login.container";
@@ -36,6 +36,20 @@ describe("LoginContainer", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/falha inesperada/i);
     expect(screen.getByRole("button", { name: "Entrar" })).not.toBeDisabled();
+  });
+
+  it("limpa e-mail e senha quando o navegador devolve a página do cache ao voltar", async () => {
+    const usuario = userEvent.setup();
+    render(<LoginContainer />);
+    await usuario.type(screen.getByLabelText("E-mail"), "admin@rigonicontabil.local");
+    await usuario.type(screen.getByLabelText("Senha"), "admin123");
+
+    act(() => {
+      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+    });
+
+    expect(screen.getByLabelText("E-mail")).toHaveValue("");
+    expect(screen.getByLabelText("Senha")).toHaveValue("");
   });
 
   it("navega pra / quando o login funciona", async () => {
