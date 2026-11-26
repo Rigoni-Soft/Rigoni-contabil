@@ -27,7 +27,7 @@ export function LoginForm({ register, errors, onSubmit, pendente, erroServidor }
         <Input
           id="email"
           type="email"
-          autoComplete="email"
+          autoComplete="off"
           aria-invalid={!!errors.email}
           {...register("email")}
         />
@@ -38,7 +38,7 @@ export function LoginForm({ register, errors, onSubmit, pendente, erroServidor }
         <Label htmlFor="senha">Senha</Label>
         <PasswordInput
           id="senha"
-          autoComplete="current-password"
+          autoComplete="new-password"
           aria-invalid={!!errors.senha}
           {...register("senha")}
         />

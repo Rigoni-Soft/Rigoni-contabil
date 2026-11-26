@@ -48,6 +48,13 @@ describe("LoginForm", () => {
     );
   });
 
+  it("não oferece e-mail nem senha salvos pelo navegador", () => {
+    render(<Wrapper onSubmit={jest.fn()} />);
+
+    expect(screen.getByLabelText("E-mail")).toHaveAttribute("autocomplete", "off");
+    expect(screen.getByLabelText("Senha")).toHaveAttribute("autocomplete", "new-password");
+  });
+
   it("desabilita o botão e muda o rótulo quando pendente", () => {
     render(<Wrapper onSubmit={jest.fn()} pendente />);
 
