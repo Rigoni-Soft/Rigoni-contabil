@@ -15,12 +15,20 @@ function montar(
   setor = "rh",
   holerite = { cadastrados: 1, semMovimento: 0, cartoes: 0 },
 ) {
-  const chamadas: { competencia: string; responsavelId: string | null }[] = [];
+  const chamadas: {
+    competencia: string;
+    responsavelId: string | null;
+    incluirSemResponsavel?: boolean;
+  }[] = [];
   const sessao: SessaoPort = { usuarioAtual: async () => ({ id: "u1", papel, setor }) };
   const repositorio = {
     listarServicos: async () => ok([FGTS, HOLERITE]),
-    listarClientes: async (competencia: string, responsavelId: string | null) => {
-      chamadas.push({ competencia, responsavelId });
+    listarClientes: async (
+      competencia: string,
+      responsavelId: string | null,
+      incluirSemResponsavel?: boolean,
+    ) => {
+      chamadas.push({ competencia, responsavelId, incluirSemResponsavel });
       return ok([
         {
           clienteId: "c1",
@@ -128,6 +136,20 @@ describe("ObterAcompanhamentoMensal", () => {
     expect(func.chamadas[0].responsavelId).toBe("u1");
     expect(lider.chamadas[0].responsavelId).toBeNull();
     expect(admin.chamadas[0].responsavelId).toBeNull();
+  });
+
+  it("Líder e Admin contam também o cliente sem responsável; o Funcionário não", async () => {
+    const func = montar("funcionario");
+    const lider = montar("lider_setor");
+    const admin = montar("admin", "administrativo");
+
+    await func.caso.execute({});
+    await lider.caso.execute({});
+    await admin.caso.execute({});
+
+    expect(func.chamadas[0].incluirSemResponsavel).toBe(false);
+    expect(lider.chamadas[0].incluirSemResponsavel).toBe(true);
+    expect(admin.chamadas[0].incluirSemResponsavel).toBe(true);
   });
 
   it("só o Funcionário marca e só o Líder gere serviços", async () => {

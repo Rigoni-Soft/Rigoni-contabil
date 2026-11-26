@@ -27,22 +27,24 @@ export function LoginForm({ register, errors, onSubmit, pendente, erroServidor }
         <Input
           id="email"
           type="email"
-          autoComplete="email"
+          autoComplete="off"
           aria-invalid={!!errors.email}
+          aria-describedby={errors.email ? "email-erro" : undefined}
           {...register("email")}
         />
-        {errors.email && <FieldError>{errors.email.message}</FieldError>}
+        {errors.email && <FieldError id="email-erro">{errors.email.message}</FieldError>}
       </Pilha>
 
       <Pilha espaco="campo">
         <Label htmlFor="senha">Senha</Label>
         <PasswordInput
           id="senha"
-          autoComplete="current-password"
+          autoComplete="new-password"
           aria-invalid={!!errors.senha}
+          aria-describedby={errors.senha ? "senha-erro" : undefined}
           {...register("senha")}
         />
-        {errors.senha && <FieldError>{errors.senha.message}</FieldError>}
+        {errors.senha && <FieldError id="senha-erro">{errors.senha.message}</FieldError>}
       </Pilha>
 
       {erroServidor && (

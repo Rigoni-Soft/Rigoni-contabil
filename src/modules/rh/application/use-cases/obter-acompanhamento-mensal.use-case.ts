@@ -39,9 +39,10 @@ export class ObterAcompanhamentoMensal implements ObterAcompanhamentoMensalPort 
     }
 
     const dia = competencia.value.primeiroDia;
+    const souFuncionario = ator.papel === "funcionario";
     const [servicos, clientes] = await Promise.all([
       this.repositorio.listarServicos(dia),
-      this.repositorio.listarClientes(dia, ator.papel === "funcionario" ? ator.id : null),
+      this.repositorio.listarClientes(dia, souFuncionario ? ator.id : null, !souFuncionario),
     ]);
     if (!servicos.ok) return servicos;
     if (!clientes.ok) return clientes;

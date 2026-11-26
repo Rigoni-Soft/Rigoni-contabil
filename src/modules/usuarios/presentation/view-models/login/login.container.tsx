@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,8 +18,17 @@ export function LoginContainer() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) });
+
+  useEffect(() => {
+    const limparAoVoltarDoCache = (e: PageTransitionEvent) => {
+      if (e.persisted) reset({ email: "", senha: "" });
+    };
+    window.addEventListener("pageshow", limparAoVoltarDoCache);
+    return () => window.removeEventListener("pageshow", limparAoVoltarDoCache);
+  }, [reset]);
 
   const aoSubmeter = handleSubmit(async (valores) => {
     setPendente(true);
