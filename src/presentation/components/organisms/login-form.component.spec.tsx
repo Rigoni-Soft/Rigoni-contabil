@@ -55,6 +55,23 @@ describe("LoginForm", () => {
     expect(screen.getByLabelText("Senha")).toHaveAttribute("autocomplete", "new-password");
   });
 
+  it("liga a mensagem de erro de cada campo ao próprio campo", () => {
+    render(
+      <LoginForm
+        register={(() => ({})) as never}
+        errors={{
+          email: { type: "required", message: "Informe o e-mail." },
+          senha: { type: "required", message: "Informe a senha." },
+        }}
+        pendente={false}
+        onSubmit={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("E-mail")).toHaveAccessibleDescription("Informe o e-mail.");
+    expect(screen.getByLabelText("Senha")).toHaveAccessibleDescription("Informe a senha.");
+  });
+
   it("desabilita o botão e muda o rótulo quando pendente", () => {
     render(<Wrapper onSubmit={jest.fn()} pendente />);
 
